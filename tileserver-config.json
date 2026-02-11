@@ -1,0 +1,23 @@
+{
+  "options": {
+    "paths": {
+      "root": "/data/tiles",
+      "fonts": "/data/fonts",
+      "sprites": "/data/sprites"
+    },
+    "domains": ["*"],
+    "maxzoom": 19,
+    "maxsize": 2048,
+    "format": "png",
+    "scale": 1,
+    "bounds": [68.0, 6.0, 97.0, 37.0],
+    "center": [78.5, 20.5, 5],
+    "minzoom": 0
+  },
+  "data": {
+    "india": {
+      "mbtiles": "/data/tiles/india.mbtiles"
+    }
+  }
+}
+
