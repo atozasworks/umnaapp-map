@@ -121,6 +121,7 @@ model Route {
   updatedAt   DateTime @updatedAt
 
   vehicle     Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([vehicleId])
   @@index([userId])

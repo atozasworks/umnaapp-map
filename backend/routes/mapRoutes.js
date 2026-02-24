@@ -1,7 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import { body, query, validationResult } from 'express-validator'
-import { authenticate } from '../middleware/auth.js'
+import { authenticateToken } from '../middleware/auth.js'
 import { cacheMiddleware } from '../middleware/cache.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import prisma from '../config/database.js'
@@ -18,7 +18,7 @@ const NOMINATIM_URL = process.env.NOMINATIM_URL || 'http://localhost:8081'
  */
 router.get(
   '/route',
-  authenticate,
+  authenticateToken,
   rateLimitMiddleware('route', 30, 60), // 30 requests per minute
   [
     query('start').isString().withMessage('Start coordinates required (lat,lng)'),
@@ -118,7 +118,7 @@ router.get(
  */
 router.get(
   '/search',
-  authenticate,
+  authenticateToken,
   rateLimitMiddleware('search', 60, 60), // 60 requests per minute
   cacheMiddleware(300), // Cache for 5 minutes
   [
@@ -189,7 +189,7 @@ router.get(
  */
 router.get(
   '/reverse',
-  authenticate,
+  authenticateToken,
   rateLimitMiddleware('reverse', 60, 60), // 60 requests per minute
   cacheMiddleware(600), // Cache for 10 minutes
   [

@@ -9,7 +9,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@maplibre/maplibre-gl-geocoder": "^2.0.0",
     "@react-oauth/google": "^0.13.4",
     "atozas-react-auth-kit": "^1.0.1",
     "axios": "^1.6.2",
