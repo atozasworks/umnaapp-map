@@ -4,6 +4,10 @@ import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  build: {
+    outDir: path.resolve(__dirname, '../backend/build'),
+    emptyOutDir: true,
+  },
   resolve: {
     alias: {
       // Map atozas-react-auth-kit to source files since dist is not built

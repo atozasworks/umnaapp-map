@@ -1,6 +1,6 @@
 import express from 'express'
 import { body, param, validationResult } from 'express-validator'
-import { authenticate } from '../middleware/auth.js'
+import { authenticateToken } from '../middleware/auth.js'
 import prisma from '../config/database.js'
 
 const router = express.Router()
@@ -10,7 +10,7 @@ const router = express.Router()
  * @desc Get all vehicles for the authenticated user
  * @access Private
  */
-router.get('/', authenticate, async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const vehicles = await prisma.vehicle.findMany({
       where: { userId: req.user.id },
@@ -36,7 +36,7 @@ router.get('/', authenticate, async (req, res) => {
  */
 router.post(
   '/',
-  authenticate,
+  authenticateToken,
   [
     body('name').trim().notEmpty().withMessage('Vehicle name is required'),
     body('licensePlate').optional().trim(),
@@ -84,7 +84,7 @@ router.post(
  * @desc Get a specific vehicle
  * @access Private
  */
-router.get('/:id', authenticate, async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: {
@@ -121,7 +121,7 @@ router.get('/:id', authenticate, async (req, res) => {
  */
 router.put(
   '/:id',
-  authenticate,
+  authenticateToken,
   [
     body('name').optional().trim().notEmpty(),
     body('status').optional().isIn(['idle', 'active', 'maintenance']),
@@ -162,7 +162,7 @@ router.put(
  * @desc Delete a vehicle
  * @access Private
  */
-router.delete('/:id', authenticate, async (req, res) => {
+router.delete('/:id', authenticateToken, async (req, res) => {
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: {
@@ -191,7 +191,7 @@ router.delete('/:id', authenticate, async (req, res) => {
  * @desc Get location history for a vehicle
  * @access Private
  */
-router.get('/:id/locations', authenticate, async (req, res) => {
+router.get('/:id/locations', authenticateToken, async (req, res) => {
   try {
     const vehicle = await prisma.vehicle.findFirst({
       where: {

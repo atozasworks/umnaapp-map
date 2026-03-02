@@ -1,9 +1,15 @@
 import express from 'express'
 import cors from 'cors'
+import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
 import dotenv from 'dotenv'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import passport from './config/passport.js'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 import authRoutes from './routes/authRoutes.js'
 import atozasAuthRoutes from './routes/atozasAuthRoutes.js'
 import testRoutes from './routes/testRoutes.js'
@@ -43,6 +49,27 @@ app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'UMNAAPP API is running' })
+})
+
+// Serve frontend build (production: FRONTEND_BUILD_PATH=/home/testatozas-umnaapptst/htdocs/umnaapptst.testatozas.in/backend/build)
+const buildPath = process.env.FRONTEND_BUILD_PATH || 
+  (fs.existsSync(path.join(__dirname, 'build')) ? path.join(__dirname, 'build') : path.join(__dirname, 'dist'))
+const indexFile = path.join(buildPath, 'index.html')
+console.log(`📁 Serving frontend from: ${buildPath} (exists: ${fs.existsSync(buildPath)}, index.html: ${fs.existsSync(indexFile)})`)
+app.use(express.static(buildPath))
+// Explicit root + SPA fallback
+const serveIndex = (req, res, next) => {
+  res.sendFile(indexFile, (err) => {
+    if (err) {
+      console.error('sendFile error:', err.message)
+      res.status(500).send('Frontend build not found. Run: cd frontend && npm run build, then copy dist to backend/build')
+    }
+  })
+}
+app.get('/', serveIndex)
+app.get('*', (req, res, next) => {
+  if (req.path.startsWith('/api')) return next()
+  serveIndex(req, res, next)
 })
 
 // Socket.io connection handling

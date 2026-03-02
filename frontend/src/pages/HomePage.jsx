@@ -17,7 +17,12 @@ const HomePage = () => {
 
   const handleSearchSelect = (location) => {
     setSelectedLocation(location)
-    // Center map on selected location
+    if (mapRef.current?.showSearchedLocation) {
+      mapRef.current.showSearchedLocation(location)
+      return
+    }
+
+    // Fallback: Center map on selected location
     if (mapRef.current) {
       mapRef.current.flyTo({
         center: [location.lng, location.lat],

@@ -2,13 +2,13 @@ import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHand
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSocket } from '../contexts/SocketContext'
-import api from '../services/api'
 
 const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const userMarkerRef = useRef(null)
   const userCircleRef = useRef(null)
+  const searchedMarkerRef = useRef(null)
   const vehicleMarkersRef = useRef({})
   const routeLayerRef = useRef(null)
   const watchIdRef = useRef(null)
@@ -21,12 +21,17 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
   const [currentLocation, setCurrentLocation] = useState(null)
   const [vehicles, setVehicles] = useState([])
   const [route, setRoute] = useState(null)
+  const routeServiceUrl = import.meta.env.VITE_ROUTE_SERVICE_URL || 'https://umnaapp.in/map/route'
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainerRef.current || mapLoaded) return
+    if (!mapContainerRef.current || mapRef.current) return
 
-    const tileserverUrl = import.meta.env.VITE_TILESERVER_URL || 'http://localhost:8080'
+    const tileserverUrl = import.meta.env.VITE_TILESERVER_URL || 'http://localhost:5000/api/map'
+    const indiaBounds = [
+      [68.0, 6.0],
+      [97.0, 37.0],
+    ]
 
     const map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -39,6 +44,7 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
             tileSize: 256,
             minzoom: 0,
             maxzoom: 19,
+            attribution: '© UMNAAPP',
           },
         },
         layers: [
@@ -53,13 +59,22 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
         glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
       },
       center: [78.5, 20.5], // India center
-      zoom: 5,
+      zoom: 4,
+      minZoom: 3,
+      maxBounds: indiaBounds,
+      maxBoundsOptions: {
+        padding: 20,
+      },
     })
 
     map.addControl(new maplibregl.NavigationControl(), 'top-right')
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
 
     map.on('load', () => {
+      map.fitBounds(indiaBounds, {
+        padding: 20,
+        duration: 0,
+      })
       setMapLoaded(true)
       console.log('✅ Map loaded')
     })
@@ -67,11 +82,16 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
     mapRef.current = map
 
     return () => {
+      if (searchedMarkerRef.current) {
+        searchedMarkerRef.current.remove()
+        searchedMarkerRef.current = null
+      }
       if (mapRef.current) {
         mapRef.current.remove()
+        mapRef.current = null
       }
     }
-  }, [mapLoaded])
+  }, [])
 
   // GPS location tracking
   useEffect(() => {
@@ -310,17 +330,35 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
     getMap: () => mapRef.current,
     calculateRoute: async (start, end, waypoints = []) => {
       try {
-        const params = new URLSearchParams({
-          start: `${start.lat},${start.lng}`,
-          end: `${end.lat},${end.lng}`,
-          profile: 'driving',
-        })
-        if (waypoints.length > 0) {
-          params.append('waypoints', waypoints.map((wp) => `${wp.lat},${wp.lng}`).join(';'))
+        const coordinates = [
+          `${start.lng},${start.lat}`,
+          ...waypoints.map((wp) => `${wp.lng},${wp.lat}`),
+          `${end.lng},${end.lat}`,
+        ].join(';')
+
+        const routeResponse = await fetch(
+          `${routeServiceUrl}/driving/${coordinates}?overview=full&geometries=geojson&steps=true`,
+          {
+            method: 'GET',
+          }
+        )
+
+        if (!routeResponse.ok) {
+          throw new Error(`Route service failed with status ${routeResponse.status}`)
         }
 
-        const response = await api.get(`/map/route?${params}`)
-        const routeData = response.data
+        const routePayload = await routeResponse.json()
+        const selectedRoute = routePayload?.routes?.[0]
+        if (!selectedRoute?.geometry) {
+          throw new Error('No route geometry returned from UMNAAPP route service')
+        }
+
+        const routeData = {
+          distance: selectedRoute.distance,
+          duration: selectedRoute.duration,
+          geometry: selectedRoute.geometry,
+          steps: selectedRoute.legs?.flatMap((leg) => leg.steps || []) || [],
+        }
 
         // Convert to GeoJSON LineString
         const geometry = {
@@ -350,6 +388,34 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
       if (mapRef.current) {
         mapRef.current.flyTo(options)
       }
+    },
+    showSearchedLocation: (location, options = {}) => {
+      if (!mapRef.current || !location) return
+
+      const markerElement = document.createElement('div')
+      markerElement.style.width = '18px'
+      markerElement.style.height = '18px'
+      markerElement.style.borderRadius = '50%'
+      markerElement.style.backgroundColor = '#EF4444'
+      markerElement.style.border = '3px solid white'
+      markerElement.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)'
+
+      if (searchedMarkerRef.current) {
+        searchedMarkerRef.current.remove()
+      }
+
+      searchedMarkerRef.current = new maplibregl.Marker({ element: markerElement })
+        .setLngLat([location.lng, location.lat])
+        .setPopup(
+          new maplibregl.Popup({ offset: 20 }).setText(location.name || 'Searched Location')
+        )
+        .addTo(mapRef.current)
+
+      mapRef.current.flyTo({
+        center: [location.lng, location.lat],
+        zoom: options.zoom || 15,
+        duration: options.duration || 1000,
+      })
     },
   }), [drawRoute])
 

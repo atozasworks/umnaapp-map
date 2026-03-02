@@ -1,7 +1,7 @@
 import express from 'express'
 import axios from 'axios'
 import { body, query, validationResult } from 'express-validator'
-import { authenticate } from '../middleware/auth.js'
+import { authenticateToken } from '../middleware/auth.js'
 import { cacheMiddleware } from '../middleware/cache.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import prisma from '../config/database.js'
@@ -10,6 +10,76 @@ const router = express.Router()
 
 const OSRM_URL = process.env.OSRM_URL || 'http://localhost:5000'
 const NOMINATIM_URL = process.env.NOMINATIM_URL || 'http://localhost:8081'
+const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
+
+const NOMINATIM_FALLBACK_URLS = [
+  'https://nominatim.openstreetmap.org',
+  'http://localhost:8081',
+  'http://nominatim:8080',
+]
+
+const getNominatimBaseUrls = () => {
+  const configured = (NOMINATIM_URL || '').trim().replace(/\/+$/, '')
+  const urls = [configured, ...NOMINATIM_FALLBACK_URLS]
+    .filter(Boolean)
+    .map((url) => url.replace(/\/+$/, ''))
+
+  return [...new Set(urls)]
+}
+
+const requestNominatimWithFallback = async (endpoint, requestConfig = {}) => {
+  const baseUrls = getNominatimBaseUrls()
+  const errors = []
+
+  for (const baseUrl of baseUrls) {
+    const fullUrl = `${baseUrl}${endpoint}`
+    try {
+      return await axios.get(fullUrl, requestConfig)
+    } catch (error) {
+      const statusCode = error?.response?.status
+      errors.push({
+        url: fullUrl,
+        status: statusCode,
+        message: error.message,
+      })
+
+      const isRetriableStatus = !statusCode || [404, 429, 500, 502, 503, 504].includes(statusCode)
+      if (!isRetriableStatus) {
+        break
+      }
+    }
+  }
+
+  const details = errors.map((entry) => `${entry.url} -> ${entry.status || 'NO_RESPONSE'}`).join(' | ')
+  throw new Error(`All Nominatim upstreams failed: ${details}`)
+}
+
+/**
+ * @route GET /api/map/tiles/:z/:x/:y.png
+ * @desc Proxy UMNAAPP tile requests to avoid browser CORS restrictions
+ * @access Public
+ */
+router.get('/tiles/:z/:x/:y.png', async (req, res) => {
+  try {
+    const { z, x, y } = req.params
+    const tileResponse = await axios.get(`${TILESERVER_URL}/tiles/${z}/${x}/${y}.png`, {
+      responseType: 'stream',
+      timeout: 15000,
+      validateStatus: (status) => status >= 200 && status < 500,
+    })
+
+    if (tileResponse.status !== 200) {
+      return res.status(tileResponse.status).send('Tile not available')
+    }
+
+    res.setHeader('Content-Type', tileResponse.headers['content-type'] || 'image/png')
+    res.setHeader('Cache-Control', tileResponse.headers['cache-control'] || 'public, max-age=86400')
+    tileResponse.data.pipe(res)
+  } catch (error) {
+    console.error('Tile proxy error:', error.message)
+    res.status(502).send('Failed to fetch tile from upstream service')
+  }
+})
 
 /**
  * @route GET /api/map/route
@@ -18,7 +88,7 @@ const NOMINATIM_URL = process.env.NOMINATIM_URL || 'http://localhost:8081'
  */
 router.get(
   '/route',
-  authenticate,
+  authenticateToken,
   rateLimitMiddleware('route', 30, 60), // 30 requests per minute
   [
     query('start').isString().withMessage('Start coordinates required (lat,lng)'),
@@ -118,7 +188,7 @@ router.get(
  */
 router.get(
   '/search',
-  authenticate,
+  authenticateToken,
   rateLimitMiddleware('search', 60, 60), // 60 requests per minute
   cacheMiddleware(300), // Cache for 5 minutes
   [
@@ -149,7 +219,7 @@ router.get(
         nominatimParams.bounded = 1
       }
 
-      const nominatimResponse = await axios.get(`${NOMINATIM_URL}/search`, {
+      const nominatimResponse = await requestNominatimWithFallback('/search', {
         params: nominatimParams,
         headers: {
           'User-Agent': 'UMNAAPP-Map-Platform/1.0',
@@ -189,7 +259,7 @@ router.get(
  */
 router.get(
   '/reverse',
-  authenticate,
+  authenticateToken,
   rateLimitMiddleware('reverse', 60, 60), // 60 requests per minute
   cacheMiddleware(600), // Cache for 10 minutes
   [
@@ -205,7 +275,7 @@ router.get(
 
       const { lat, lng } = req.query
 
-      const nominatimResponse = await axios.get(`${NOMINATIM_URL}/reverse`, {
+      const nominatimResponse = await requestNominatimWithFallback('/reverse', {
         params: {
           lat: parseFloat(lat),
           lon: parseFloat(lng),
