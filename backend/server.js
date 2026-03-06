@@ -51,9 +51,11 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'UMNAAPP API is running' })
 })
 
-// Serve frontend build (production: FRONTEND_BUILD_PATH=/home/testatozas-umnaapptst/htdocs/umnaapptst.testatozas.in/backend/build)
+// Serve frontend build (production: set FRONTEND_BUILD_PATH)
 const buildPath = process.env.FRONTEND_BUILD_PATH || 
-  (fs.existsSync(path.join(__dirname, 'build')) ? path.join(__dirname, 'build') : path.join(__dirname, 'dist'))
+  (fs.existsSync(path.join(__dirname, 'build')) ? path.join(__dirname, 'build') :
+   fs.existsSync(path.join(__dirname, '../frontend/dist')) ? path.join(__dirname, '../frontend/dist') :
+   path.join(__dirname, 'dist'))
 const indexFile = path.join(buildPath, 'index.html')
 console.log(`📁 Serving frontend from: ${buildPath} (exists: ${fs.existsSync(buildPath)}, index.html: ${fs.existsSync(indexFile)})`)
 app.use(express.static(buildPath))
@@ -62,7 +64,7 @@ const serveIndex = (req, res, next) => {
   res.sendFile(indexFile, (err) => {
     if (err) {
       console.error('sendFile error:', err.message)
-      res.status(500).send('Frontend build not found. Run: cd frontend && npm run build, then copy dist to backend/build')
+      res.status(500).send('Frontend build not found. Run: cd frontend && npm run build (creates frontend/dist)')
     }
   })
 }

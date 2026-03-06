@@ -22,13 +22,13 @@ api.interceptors.request.use(
   }
 )
 
-// Handle auth errors
+// Handle 401 - only logout when /auth/me fails (actual session invalid). Other 401s don't auto-logout.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+    const url = error.config?.url || ''
+    if (error.response?.status === 401 && url.includes('/auth/me')) {
+      window.dispatchEvent(new CustomEvent('auth:sessionExpired'))
     }
     return Promise.reject(error)
   }

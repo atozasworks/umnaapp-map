@@ -1,6 +1,6 @@
 # Self-Hosted Map Platform
 
-A complete, production-ready, self-hosted map platform similar to OpenStreetMap with routing, geocoding, and real-time vehicle tracking.
+A complete, production-ready map platform with routing, geocoding, and real-time vehicle tracking using umnaapp.in services.
 
 ## Features
 
@@ -277,7 +277,7 @@ For issues and questions:
 
 ## Acknowledgments
 
-- [OpenStreetMap](https://www.openstreetmap.org/)
+- [UMNAAPP](https://umnaapp.in/) - Map tiles, routing, geocoding
 - [OSRM](https://project-osrm.org/)
 - [Nominatim](https://nominatim.org/)
 - [MapLibre GL JS](https://maplibre.org/)

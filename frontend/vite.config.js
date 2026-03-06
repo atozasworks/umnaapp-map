@@ -5,7 +5,7 @@ import path from 'path'
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: path.resolve(__dirname, '../backend/build'),
+    outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
   },
   resolve: {
@@ -17,6 +17,12 @@ export default defineConfig({
   },
   server: {
     port: 3000,
+    // HMR - use localhost; set hmr: false if WebSocket errors persist
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 3000,
+    },
     proxy: {
       '/api': {
         target: 'http://localhost:5000',

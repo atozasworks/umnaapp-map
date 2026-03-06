@@ -14,7 +14,7 @@ function App() {
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       {/* Atozas Auth Provider (for atozas-react-auth-kit components) */}
       <AtozasAuthProvider
         apiUrl={apiUrl}

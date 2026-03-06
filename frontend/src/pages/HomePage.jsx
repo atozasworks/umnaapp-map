@@ -1,28 +1,90 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
 import SearchBar from '../components/SearchBar'
 import RoutePanel from '../components/RoutePanel'
+import AddPlaceModal from '../components/AddPlaceModal'
+import api from '../services/api'
 
 const HomePage = () => {
   const { user, logout } = useAuth()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
-  const [selectedLocation, setSelectedLocation] = useState(null)
+  const [currentLocation, setCurrentLocation] = useState(null)
+  const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
+  const [mapLocation, setMapLocation] = useState(null)
+  const [places, setPlaces] = useState([])
+  const [addPlacePickMode, setAddPlacePickMode] = useState(false)
+  const [fetchingPlaceDetails, setFetchingPlaceDetails] = useState(false)
+
+  useEffect(() => {
+    const fetchPlaces = async () => {
+      try {
+        const { data } = await api.get('/map/places')
+        setPlaces(data.places || [])
+      } catch (err) {
+        console.error('Failed to fetch places:', err)
+      }
+    }
+    fetchPlaces()
+  }, [])
 
   const handleLocationUpdate = (location) => {
-    // Handle location updates if needed
-    console.log('Location updated:', location)
+    setCurrentLocation({ lat: location.lat, lng: location.lng, name: 'My location' })
+  }
+
+  const fetchPlaceDetails = async (loc) => {
+    setFetchingPlaceDetails(true)
+    try {
+      const { data } = await api.get('/map/reverse', {
+        params: { lat: loc.latitude, lng: loc.longitude },
+      })
+      return {
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        zoomLevel: loc.zoomLevel,
+        name: data.displayName || '',
+        address: data.address || {},
+      }
+    } catch (err) {
+      return {
+        latitude: loc.latitude,
+        longitude: loc.longitude,
+        zoomLevel: loc.zoomLevel,
+        name: '',
+      }
+    } finally {
+      setFetchingPlaceDetails(false)
+    }
+  }
+
+  const handleMapClickForPlace = async (loc) => {
+    if (addPlacePickMode || showAddPlaceModal) {
+      const details = await fetchPlaceDetails(loc)
+      setMapLocation(details)
+      if (addPlacePickMode) {
+        setShowAddPlaceModal(true)
+        setAddPlacePickMode(false)
+      }
+    }
+  }
+
+  const handlePlaceSaved = (place) => {
+    setPlaces((prev) => [place, ...prev])
+    if (mapRef.current?.flyTo) {
+      mapRef.current.flyTo({
+        center: [place.longitude, place.latitude],
+        zoom: place.zoomLevel || 15,
+        duration: 1000,
+      })
+    }
   }
 
   const handleSearchSelect = (location) => {
-    setSelectedLocation(location)
     if (mapRef.current?.showSearchedLocation) {
       mapRef.current.showSearchedLocation(location)
       return
     }
-
-    // Fallback: Center map on selected location
     if (mapRef.current) {
       mapRef.current.flyTo({
         center: [location.lng, location.lat],
@@ -33,7 +95,7 @@ const HomePage = () => {
   }
 
   const handleCalculateRoute = async (start, end) => {
-    if (mapRef.current && mapRef.current.calculateRoute) {
+    if (mapRef.current?.calculateRoute) {
       try {
         await mapRef.current.calculateRoute(start, end)
       } catch (error) {
@@ -42,59 +104,104 @@ const HomePage = () => {
     }
   }
 
-  const handleRouteClick = () => {
-    setShowRoutePanel(!showRoutePanel)
-  }
-
   const handleLogout = async () => {
     logout()
     window.location.href = '/'
   }
 
   return (
-    <div className="h-screen flex flex-col relative">
-      {/* Top Bar */}
-      <div className="glass border-b border-white/20 z-10">
-        <div className="px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-4">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
-              UMNAAPP
-            </h1>
-            <div className="h-6 w-px bg-slate-300"></div>
-            <span className="text-slate-600">Welcome, {user?.name}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <button
-              onClick={handleRouteClick}
-              className="btn-secondary text-sm py-2 px-4"
-            >
-              {showRoutePanel ? 'Hide Route' : 'Show Route'}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="btn-secondary text-sm py-2 px-4"
-            >
-              Logout
-            </button>
-          </div>
+    <div className="h-screen flex flex-col relative overflow-hidden">
+      {/* Top Bar - compact */}
+      <div className="absolute top-0 left-0 right-0 z-30 flex justify-between items-center px-4 py-2">
+        <h1 className="text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
+          UMNAAPP
+        </h1>
+        <div className="flex items-center gap-2">
+          <span className="text-slate-600 text-sm hidden sm:inline">Welcome, {user?.name}</span>
+          <button onClick={handleLogout} className="btn-secondary text-sm py-2 px-4">
+            Logout
+          </button>
         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 w-full max-w-2xl px-4">
-        <SearchBar onSelect={handleSearchSelect} onRoute={handleRouteClick} />
+      {/* Search Bar + Categories - Google Maps style */}
+      <div className="absolute top-14 left-4 z-20 w-full max-w-xl">
+        <SearchBar onSelect={handleSearchSelect} onRoute={() => setShowRoutePanel(!showRoutePanel)} />
       </div>
 
-      {/* Route Panel */}
-      {showRoutePanel && (
-        <div className="absolute top-32 left-4 z-20">
-          <RoutePanel mapRef={mapRef} onCalculateRoute={handleCalculateRoute} onClose={() => setShowRoutePanel(false)} />
+      {/* Add Place Modal */}
+      <AddPlaceModal
+        isOpen={showAddPlaceModal}
+        onClose={() => {
+          setShowAddPlaceModal(false)
+          setMapLocation(null)
+          setAddPlacePickMode(false)
+        }}
+        initialData={null}
+        mapLocation={mapLocation}
+        onSaved={handlePlaceSaved}
+      />
+
+      {/* Right-side toolbar: Add Place + Route Panel */}
+      <div className="absolute top-14 right-4 z-20 flex items-start gap-4">
+        <button
+          onClick={() => {
+            if (addPlacePickMode) {
+              setAddPlacePickMode(false)
+            } else {
+              setMapLocation(null)
+              setAddPlacePickMode(true)
+              setShowAddPlaceModal(false)
+            }
+          }}
+          className={`flex items-center gap-2 rounded-full px-4 py-2.5 shadow-lg border transition-colors ${
+            addPlacePickMode
+              ? 'bg-primary-100 border-primary-300 text-primary-700'
+              : 'glass border-white/30 hover:bg-white/90'
+          }`}
+          title="Add a new place - click map to select location"
+        >
+          <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+          <span className="font-medium text-slate-700 hidden sm:inline">Add Place</span>
+        </button>
+        {showRoutePanel && (
+          <div className="animate-fade-in">
+            <RoutePanel
+            mapRef={mapRef}
+            currentLocation={currentLocation}
+            onCalculateRoute={handleCalculateRoute}
+            onClose={() => setShowRoutePanel(false)}
+          />
+          </div>
+        )}
+      </div>
+
+      {/* Location picker hint */}
+      {addPlacePickMode && (
+        <div className="absolute bottom-20 left-4 z-20 glass rounded-xl px-4 py-3 shadow-lg animate-fade-in">
+          <p className="text-sm font-medium text-slate-700">
+            {fetchingPlaceDetails ? 'Fetching place details...' : 'Click on the map to select a place'}
+          </p>
+          <button
+            onClick={() => { setAddPlacePickMode(false); setFetchingPlaceDetails(false) }}
+            className="mt-2 text-xs text-primary-600 hover:underline"
+          >
+            Cancel
+          </button>
         </div>
       )}
 
       {/* Map Container */}
       <div className="flex-1 w-full relative">
-        <MapComponent ref={mapRef} onLocationUpdate={handleLocationUpdate} />
+        <MapComponent
+          ref={mapRef}
+          onLocationUpdate={handleLocationUpdate}
+          onMapClick={handleMapClickForPlace}
+          addPlaceMode={addPlacePickMode || showAddPlaceModal}
+          places={places}
+        />
       </div>
     </div>
   )

@@ -25,6 +25,7 @@ model User {
   vehicles         Vehicle[]
   locations        Location[]
   routes           Route[]
+  places           Place[]
 
   @@index([email])
   @@index([googleId])
@@ -126,6 +127,24 @@ model Route {
   @@index([vehicleId])
   @@index([userId])
   @@index([status])
+  @@index([createdAt])
+}
+
+model Place {
+  id        String   @id @default(uuid())
+  name      String
+  category  String   // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
+  latitude  Float
+  longitude Float
+  zoomLevel Float    @default(15)
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([category])
   @@index([createdAt])
 }
 

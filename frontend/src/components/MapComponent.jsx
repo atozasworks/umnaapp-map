@@ -2,8 +2,75 @@ import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHand
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSocket } from '../contexts/SocketContext'
+import api from '../services/api'
 
-const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
+const CATEGORY_COLORS = {
+  Restaurant: '#EF4444',
+  Hospital: '#DC2626',
+  Hotel: '#F59E0B',
+  Parking: '#6366F1',
+  Shop: '#8B5CF6',
+  'Grocery Store': '#A855F7',
+  School: '#3B82F6',
+  Temple: '#F97316',
+  Bank: '#059669',
+  'Post Office': '#6366F1',
+  'Bus Stop': '#0EA5E9',
+  'Police Station': '#DC2626',
+  'Petrol Pump': '#EAB308',
+  'Tourist Place': '#EC4899',
+  Transit: '#0EA5E9',
+  Museum: '#14B8A6',
+  Pharmacy: '#10B981',
+  ATM: '#84CC16',
+  Cinema: '#8B5CF6',
+  Gym: '#EF4444',
+  Salon: '#EC4899',
+  Other: '#0284C7',
+}
+
+const createPlaceMarkerElement = (place) => {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'place-marker-wrapper'
+  wrapper.style.display = 'flex'
+  wrapper.style.flexDirection = 'column'
+  wrapper.style.alignItems = 'center'
+  wrapper.style.cursor = 'pointer'
+
+  const dot = document.createElement('div')
+  const color = CATEGORY_COLORS[place.category] || CATEGORY_COLORS.Other
+  dot.className = 'place-marker'
+  dot.style.width = '24px'
+  dot.style.height = '24px'
+  dot.style.borderRadius = '50%'
+  dot.style.backgroundColor = color
+  dot.style.border = '3px solid white'
+  dot.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)'
+  dot.style.flexShrink = '0'
+
+  const label = document.createElement('div')
+  label.textContent = place.name
+  label.style.maxWidth = '120px'
+  label.style.fontSize = '11px'
+  label.style.fontWeight = '600'
+  label.style.color = '#1e293b'
+  label.style.background = 'rgba(255,255,255,0.95)'
+  label.style.padding = '2px 6px'
+  label.style.borderRadius = '4px'
+  label.style.marginTop = '4px'
+  label.style.textAlign = 'center'
+  label.style.whiteSpace = 'nowrap'
+  label.style.overflow = 'hidden'
+  label.style.textOverflow = 'ellipsis'
+  label.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+
+  wrapper.appendChild(dot)
+  wrapper.appendChild(label)
+  wrapper.title = place.name
+  return wrapper
+}
+
+const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, places = [] }, ref) => {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const userMarkerRef = useRef(null)
@@ -13,6 +80,7 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
   const routeLayerRef = useRef(null)
   const watchIdRef = useRef(null)
   const lastValidLocationRef = useRef(null)
+  const placeMarkersRef = useRef({})
   const { socket } = useSocket()
 
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -21,13 +89,12 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
   const [currentLocation, setCurrentLocation] = useState(null)
   const [vehicles, setVehicles] = useState([])
   const [route, setRoute] = useState(null)
-  const routeServiceUrl = import.meta.env.VITE_ROUTE_SERVICE_URL || 'https://umnaapp.in/map/route'
 
   // Initialize map
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
 
-    const tileserverUrl = import.meta.env.VITE_TILESERVER_URL || 'http://localhost:5000/api/map'
+    const tileserverUrl = import.meta.env.VITE_TILESERVER_URL || 'https://umnaapp.in'
     const indiaBounds = [
       [68.0, 6.0],
       [97.0, 37.0],
@@ -40,7 +107,7 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
         sources: {
           'raster-tiles': {
             type: 'raster',
-            tiles: [`${tileserverUrl}/tiles/{z}/{x}/{y}.png`],
+            tiles: [`${tileserverUrl.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`],
             tileSize: 256,
             minzoom: 0,
             maxzoom: 19,
@@ -56,7 +123,7 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
             maxzoom: 22,
           },
         ],
-        glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
+        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
       },
       center: [78.5, 20.5], // India center
       zoom: 4,
@@ -86,12 +153,63 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
         searchedMarkerRef.current.remove()
         searchedMarkerRef.current = null
       }
+      Object.values(placeMarkersRef.current).forEach((m) => m?.remove())
+      placeMarkersRef.current = {}
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
       }
     }
   }, [])
+
+  // Map click for Add Place location selection
+  useEffect(() => {
+    if (!mapRef.current || !onMapClick) return
+
+    const handleMapClick = (e) => {
+      if (!addPlaceMode) return
+      const { lng, lat } = e.lngLat
+      const zoom = mapRef.current.getZoom()
+      onMapClick({ latitude: lat, longitude: lng, zoomLevel: zoom })
+    }
+
+    mapRef.current.on('click', handleMapClick)
+    return () => {
+      if (mapRef.current) {
+        mapRef.current.off('click', handleMapClick)
+      }
+    }
+  }, [addPlaceMode, onMapClick])
+
+  // Place markers
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return
+
+    Object.values(placeMarkersRef.current).forEach((m) => m?.remove())
+    placeMarkersRef.current = {}
+
+    places.forEach((place) => {
+      const popup = new maplibregl.Popup({ offset: 20 })
+        .setHTML(
+          `<div class="p-2 min-w-[120px]"><strong class="text-slate-800">${place.name}</strong><div class="text-xs text-slate-600 mt-1">${place.category}</div></div>`
+        )
+      const el = createPlaceMarkerElement(place)
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: 'top',
+        offset: [0, -12],
+      })
+        .setLngLat([place.longitude, place.latitude])
+        .setPopup(popup)
+        .addTo(mapRef.current)
+      placeMarkersRef.current[place.id] = marker
+    })
+
+    return () => {
+      Object.values(placeMarkersRef.current).forEach((m) => m?.remove())
+      placeMarkersRef.current = {}
+    }
+  }, [mapLoaded, places])
 
   // GPS location tracking
   useEffect(() => {
@@ -329,52 +447,26 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
     calculateRoute: async (start, end, waypoints = []) => {
-      try {
-        const coordinates = [
-          `${start.lng},${start.lat}`,
-          ...waypoints.map((wp) => `${wp.lng},${wp.lat}`),
-          `${end.lng},${end.lat}`,
-        ].join(';')
-
-        const routeResponse = await fetch(
-          `${routeServiceUrl}/driving/${coordinates}?overview=full&geometries=geojson&steps=true`,
-          {
-            method: 'GET',
-          }
-        )
-
-        if (!routeResponse.ok) {
-          throw new Error(`Route service failed with status ${routeResponse.status}`)
-        }
-
-        const routePayload = await routeResponse.json()
-        const selectedRoute = routePayload?.routes?.[0]
-        if (!selectedRoute?.geometry) {
-          throw new Error('No route geometry returned from UMNAAPP route service')
-        }
-
-        const routeData = {
-          distance: selectedRoute.distance,
-          duration: selectedRoute.duration,
-          geometry: selectedRoute.geometry,
-          steps: selectedRoute.legs?.flatMap((leg) => leg.steps || []) || [],
-        }
-
-        // Convert to GeoJSON LineString
-        const geometry = {
-          type: 'Feature',
-          geometry: routeData.geometry,
-          properties: {},
-        }
-
-        drawRoute({ geometry: geometry.geometry })
-        setRoute(routeData)
-
-        return routeData
-      } catch (error) {
-        console.error('Route calculation error:', error)
-        throw error
+      const params = {
+        start: `${start.lat},${start.lng}`,
+        end: `${end.lat},${end.lng}`,
+        profile: 'driving',
       }
+      if (waypoints.length > 0) {
+        params.waypoints = waypoints.map((wp) => `${wp.lat},${wp.lng}`).join(';')
+      }
+
+      const response = await api.get('/map/route', { params })
+      const routeData = response.data
+
+      if (!routeData?.geometry) {
+        throw new Error('No route geometry returned from route service')
+      }
+
+      drawRoute({ geometry: routeData.geometry })
+      setRoute(routeData)
+
+      return routeData
     },
     clearRoute: () => {
       if (routeLayerRef.current && mapRef.current) {
@@ -420,7 +512,7 @@ const MapComponent = forwardRef(({ onLocationUpdate }, ref) => {
   }), [drawRoute])
 
   return (
-    <div className="relative w-full h-full">
+    <div className={`relative w-full h-full ${addPlaceMode ? 'cursor-crosshair' : ''}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
 
       {/* GPS Status Indicator */}

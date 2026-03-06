@@ -1,5 +1,4 @@
-import { createContext, useContext, useState, useEffect } from 'react'
-import { jwtDecode } from 'jwt-decode'
+import { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import api from '../services/api'
 
 const AuthContext = createContext()
@@ -17,6 +16,32 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
   const [token, setToken] = useState(localStorage.getItem('token'))
 
+  const logout = useCallback(() => {
+    setToken(null)
+    setUser(null)
+    localStorage.removeItem('token')
+  }, [])
+
+  const loadUser = useCallback(async (retryCount = 0) => {
+    try {
+      const response = await api.get('/auth/me')
+      setUser(response.data.user)
+    } catch (error) {
+      // Only logout on 401 (invalid/expired token) - user must click Logout otherwise
+      if (error.response?.status === 401) {
+        logout()
+      } else {
+        // Network error, 500, etc. - keep login, retry once
+        console.error('Failed to load user:', error)
+        if (retryCount < 2) {
+          setTimeout(() => loadUser(retryCount + 1), 2000)
+        }
+      }
+    } finally {
+      setLoading(false)
+    }
+  }, [logout])
+
   useEffect(() => {
     // Check for token in URL (from Google OAuth)
     const urlParams = new URLSearchParams(window.location.search)
@@ -28,25 +53,13 @@ export const AuthProvider = ({ children }) => {
       window.history.replaceState({}, document.title, window.location.pathname)
     }
 
-    // Load user if token exists
+    // Load user from database when token exists
     if (token) {
       loadUser()
     } else {
       setLoading(false)
     }
-  }, [token])
-
-  const loadUser = async () => {
-    try {
-      const response = await api.get('/auth/me')
-      setUser(response.data.user)
-    } catch (error) {
-      console.error('Failed to load user:', error)
-      logout()
-    } finally {
-      setLoading(false)
-    }
-  }
+  }, [token, loadUser])
 
   const login = (userData, authToken) => {
     setToken(authToken)
@@ -54,11 +67,12 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', authToken)
   }
 
-  const logout = () => {
-    setToken(null)
-    setUser(null)
-    localStorage.removeItem('token')
-  }
+  // Listen for 401 from /auth/me only - session expired
+  useEffect(() => {
+    const handleSessionInvalid = () => logout()
+    window.addEventListener('auth:sessionExpired', handleSessionInvalid)
+    return () => window.removeEventListener('auth:sessionExpired', handleSessionInvalid)
+  }, [logout])
 
   const value = {
     user,
@@ -66,7 +80,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     logout,
-    isAuthenticated: !!token && !!user,
+    loadUser,
+    isAuthenticated: !!token,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

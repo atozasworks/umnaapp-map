@@ -202,20 +202,12 @@
   }
 }
 
-/* Leaflet Map Styles */
-#map {
-  height: 100% !important;
-  width: 100% !important;
-  z-index: 0;
+/* Hide scrollbar but keep functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-
-.leaflet-container {
-  height: 100%;
-  width: 100%;
-  z-index: 0;
-}
-
-.leaflet-tile-container img {
-  max-width: none !important;
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
