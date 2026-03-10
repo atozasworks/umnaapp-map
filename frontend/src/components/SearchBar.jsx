@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import api from '../services/api'
+import { formatAddressSubtitle } from '../utils/formatAddress'
 
 const CATEGORIES = [
   { id: 'directions', icon: 'route', label: 'Directions', isAction: true },
@@ -12,7 +13,7 @@ const CATEGORIES = [
   { id: 'atm', icon: 'atm', label: 'ATMs', query: 'atm' },
 ]
 
-const SearchBar = ({ onSelect, onRoute }) => {
+const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
@@ -38,6 +39,7 @@ const SearchBar = ({ onSelect, onRoute }) => {
     if (searchQ.length < 2) {
       setResults([])
       setShowResults(false)
+      if (onResultsChange) onResultsChange([])
       return
     }
 
@@ -47,11 +49,14 @@ const SearchBar = ({ onSelect, onRoute }) => {
         const response = await api.get('/map/search', {
           params: { q: searchQ, limit: 10 },
         })
-        setResults(response.data.results)
+        const resultsData = response.data.results || []
+        setResults(resultsData)
         setShowResults(true)
+        if (onResultsChange) onResultsChange(resultsData)
       } catch (error) {
         console.error('Search error:', error)
         setResults([])
+        if (onResultsChange) onResultsChange([])
       } finally {
         setIsSearching(false)
       }
@@ -102,12 +107,12 @@ const SearchBar = ({ onSelect, onRoute }) => {
 
   return (
     <div className="relative w-full" ref={resultsRef}>
-      {/* Main search bar - Google Maps style */}
-      <div className="flex items-center gap-2 glass rounded-full pl-3 pr-1 py-1.5 shadow-lg border border-white/30">
+      {/* Main search bar - Google Maps style, touch-friendly */}
+      <div className="flex items-center gap-1.5 sm:gap-2 glass rounded-full pl-2.5 pr-1 py-2 sm:py-1.5 shadow-lg border border-white/30 min-h-[48px] sm:min-h-0">
         {/* Hamburger menu */}
         <button
           type="button"
-          className="p-2 rounded-full hover:bg-slate-200/60 transition-colors text-slate-600"
+          className="p-2.5 sm:p-2 rounded-full hover:bg-slate-200/60 active:bg-slate-200/80 transition-colors text-slate-600 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
           aria-label="Menu"
         >
           <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -122,7 +127,7 @@ const SearchBar = ({ onSelect, onRoute }) => {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search places..."
-            className="flex-1 min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 placeholder-slate-500 text-sm py-1"
+            className="flex-1 min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 placeholder-slate-500 text-base sm:text-sm py-1 min-h-[24px]"
           />
           {isSearching ? (
             <div className="flex-shrink-0 animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent" />
@@ -146,7 +151,7 @@ const SearchBar = ({ onSelect, onRoute }) => {
         {/* Directions button - blue arrow like Google Maps */}
         <button
           onClick={handleDirectionsClick}
-          className="flex-shrink-0 p-2 rounded-full hover:bg-blue-100 transition-colors"
+          className="flex-shrink-0 p-2.5 sm:p-2 rounded-full hover:bg-blue-100 active:bg-blue-200 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
           aria-label="Directions"
         >
           <svg
@@ -163,13 +168,13 @@ const SearchBar = ({ onSelect, onRoute }) => {
         </button>
       </div>
 
-      {/* Category chips - like Google Maps */}
-      <div className="flex gap-2 mt-3 overflow-x-auto scrollbar-hide pb-1 -mx-1">
+      {/* Category chips - scrollable on mobile */}
+      <div className="flex gap-2 mt-2 sm:mt-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 snap-x snap-mandatory">
         {CATEGORIES.map((cat) => (
           <button
             key={cat.id}
             onClick={() => handleCategoryClick(cat)}
-            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-full glass text-sm font-medium transition-all ${
+            className={`flex-shrink-0 flex items-center gap-1.5 px-3 py-2.5 sm:py-2 rounded-full glass text-xs sm:text-sm font-medium transition-all snap-center min-h-[44px] ${
               cat.isAction
                 ? 'text-[#4285F4] hover:bg-blue-50/80'
                 : activeCategory?.id === cat.id
@@ -215,21 +220,20 @@ const SearchBar = ({ onSelect, onRoute }) => {
         ))}
       </div>
 
-      {/* Search Results */}
+      {/* Search Results - mobile: max height, touch-friendly */}
       {showResults && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-2 glass rounded-xl shadow-2xl border border-white/30 max-h-80 overflow-y-auto">
+        <div className="absolute z-50 left-0 right-0 mt-2 glass rounded-xl shadow-2xl border border-white/30 max-h-[min(60vh,320px)] sm:max-h-80 overflow-y-auto overscroll-contain">
           {results.map((result) => (
             <button
               key={result.placeId}
               onClick={() => handleSelect(result)}
-              className="w-full px-4 py-3 text-left hover:bg-white/40 transition-colors border-b border-white/20 last:border-b-0 flex flex-col"
+              className="w-full px-4 py-3.5 sm:py-3 text-left hover:bg-white/40 active:bg-white/50 transition-colors border-b border-white/20 last:border-b-0 flex flex-col min-h-[52px] sm:min-h-0"
             >
               <div className="font-medium text-slate-700 truncate">{result.displayName}</div>
-              {result.address && (
-                <div className="text-xs text-slate-500 truncate mt-0.5">
-                  {result.address.road || result.address.city || result.address.state || result.address.country}
-                </div>
-              )}
+              {result.address && (() => {
+                const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state || result.address.country
+                return line2 ? <div className="text-xs text-slate-500 truncate mt-0.5">{line2}</div> : null
+              })()}
             </button>
           ))}
         </div>

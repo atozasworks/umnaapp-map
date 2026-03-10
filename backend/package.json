@@ -8,6 +8,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@mapbox/polyline": "^1.2.1",
     "@prisma/client": "^5.7.1",
     "atozas-auth-kit-express": "^1.0.0",
     "axios": "^1.6.2",

@@ -3,6 +3,7 @@ import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSocket } from '../contexts/SocketContext'
 import api from '../services/api'
+import { formatAddressSubtitle } from '../utils/formatAddress'
 
 const CATEGORY_COLORS = {
   Restaurant: '#EF4444',
@@ -27,6 +28,34 @@ const CATEGORY_COLORS = {
   Gym: '#EF4444',
   Salon: '#EC4899',
   Other: '#0284C7',
+}
+
+const ACCURACY_CIRCLE_SOURCE_ID = 'user-accuracy-circle-source'
+const ACCURACY_CIRCLE_LAYER_ID = 'user-accuracy-circle-layer'
+
+const createCircleGeoJson = (centerLng, centerLat, radiusMeters, points = 64) => {
+  const coordinates = []
+  const latRadians = (centerLat * Math.PI) / 180
+  const metersPerDegreeLat = 111320
+  const metersPerDegreeLng = 111320 * Math.cos(latRadians || 0)
+
+  for (let i = 0; i <= points; i++) {
+    const angle = (i / points) * Math.PI * 2
+    const dx = Math.cos(angle) * radiusMeters
+    const dy = Math.sin(angle) * radiusMeters
+    const lng = centerLng + dx / metersPerDegreeLng
+    const lat = centerLat + dy / metersPerDegreeLat
+    coordinates.push([lng, lat])
+  }
+
+  return {
+    type: 'Feature',
+    geometry: {
+      type: 'Polygon',
+      coordinates: [coordinates],
+    },
+    properties: {},
+  }
 }
 
 const createPlaceMarkerElement = (place) => {
@@ -70,12 +99,92 @@ const createPlaceMarkerElement = (place) => {
   return wrapper
 }
 
-const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, places = [] }, ref) => {
+const createSearchResultMarkerElement = (place) => {
+  const wrapper = document.createElement('div')
+  wrapper.className = 'search-result-marker-wrapper'
+  wrapper.style.display = 'flex'
+  wrapper.style.flexDirection = 'column'
+  wrapper.style.alignItems = 'center'
+  wrapper.style.cursor = 'pointer'
+
+  const dot = document.createElement('div')
+  dot.style.width = '20px'
+  dot.style.height = '20px'
+  dot.style.borderRadius = '50%'
+  dot.style.backgroundColor = '#EF4444'
+  dot.style.border = '2px solid white'
+  dot.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)'
+
+  const label = document.createElement('div')
+  label.textContent = place.displayName || place.name || 'Place'
+  label.style.maxWidth = '140px'
+  label.style.fontSize = '10px'
+  label.style.fontWeight = '600'
+  label.style.color = '#1e293b'
+  label.style.background = 'rgba(255,255,255,0.95)'
+  label.style.padding = '2px 6px'
+  label.style.borderRadius = '4px'
+  label.style.marginTop = '4px'
+  label.style.textAlign = 'center'
+  label.style.whiteSpace = 'nowrap'
+  label.style.overflow = 'hidden'
+  label.style.textOverflow = 'ellipsis'
+  label.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+
+  wrapper.appendChild(dot)
+  wrapper.appendChild(label)
+  wrapper.title = place.displayName || place.name || ''
+  return wrapper
+}
+
+const createRouteEndpointMarker = (place, isStart) => {
+  const color = isStart ? '#2563EB' : '#EF4444' // blue for start, red for end
+  const label = isStart ? 'Start' : 'End'
+  const wrapper = document.createElement('div')
+  wrapper.className = 'route-endpoint-marker'
+  wrapper.style.display = 'flex'
+  wrapper.style.flexDirection = 'column'
+  wrapper.style.alignItems = 'center'
+  wrapper.style.cursor = 'pointer'
+
+  const dot = document.createElement('div')
+  dot.style.width = '28px'
+  dot.style.height = '28px'
+  dot.style.borderRadius = '50%'
+  dot.style.backgroundColor = color
+  dot.style.border = '3px solid white'
+  dot.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)'
+
+  const labelEl = document.createElement('div')
+  labelEl.textContent = place?.name || place?.displayName || label
+  labelEl.style.maxWidth = '140px'
+  labelEl.style.fontSize = '11px'
+  labelEl.style.fontWeight = '700'
+  labelEl.style.color = '#1e293b'
+  labelEl.style.background = 'rgba(255,255,255,0.95)'
+  labelEl.style.padding = '3px 8px'
+  labelEl.style.borderRadius = '4px'
+  labelEl.style.marginTop = '4px'
+  labelEl.style.textAlign = 'center'
+  labelEl.style.whiteSpace = 'nowrap'
+  labelEl.style.overflow = 'hidden'
+  labelEl.style.textOverflow = 'ellipsis'
+  labelEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+
+  wrapper.appendChild(dot)
+  wrapper.appendChild(labelEl)
+  wrapper.title = place?.name || place?.displayName || label
+  return wrapper
+}
+
+const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, places = [], searchResultPlaces = [], routeStartPlace = null, routeEndPlace = null }, ref) => {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const userMarkerRef = useRef(null)
   const userCircleRef = useRef(null)
   const searchedMarkerRef = useRef(null)
+  const searchResultMarkersRef = useRef({})
+  const routeEndpointMarkersRef = useRef({})
   const vehicleMarkersRef = useRef({})
   const routeLayerRef = useRef(null)
   const watchIdRef = useRef(null)
@@ -153,6 +262,10 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
         searchedMarkerRef.current.remove()
         searchedMarkerRef.current = null
       }
+      Object.values(searchResultMarkersRef.current).forEach((m) => m?.remove())
+      searchResultMarkersRef.current = {}
+      Object.values(routeEndpointMarkersRef.current).forEach((m) => m?.remove())
+      routeEndpointMarkersRef.current = {}
       Object.values(placeMarkersRef.current).forEach((m) => m?.remove())
       placeMarkersRef.current = {}
       if (mapRef.current) {
@@ -210,6 +323,88 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       placeMarkersRef.current = {}
     }
   }, [mapLoaded, places])
+
+  // Search result markers (from umnaapp.in/search)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return
+
+    Object.values(searchResultMarkersRef.current).forEach((m) => m?.remove())
+    searchResultMarkersRef.current = {}
+
+    searchResultPlaces.forEach((place) => {
+      const key = place.placeId || `${place.lat}-${place.lng}`
+      const addrSubtitle = place.address && typeof place.address === 'object'
+        ? (formatAddressSubtitle(place.address) || [place.address.road, place.address.city, place.address.state].filter(Boolean).join(', '))
+        : ''
+      const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
+        `<div class="p-2 min-w-[140px]"><strong class="text-slate-800">${place.displayName || place.name || 'Place'}</strong>${addrSubtitle ? `<div class="text-xs text-slate-600 mt-1">${addrSubtitle}</div>` : ''}</div>`
+      )
+      const el = createSearchResultMarkerElement(place)
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: 'top',
+        offset: [0, -10],
+      })
+        .setLngLat([place.lng, place.lat])
+        .setPopup(popup)
+        .addTo(mapRef.current)
+      searchResultMarkersRef.current[key] = marker
+    })
+
+    // Fit map to show all search results when we have them
+    if (searchResultPlaces.length > 1) {
+      const bounds = searchResultPlaces.reduce(
+        (b, p) => b.extend([p.lng, p.lat]),
+        new maplibregl.LngLatBounds(
+          [searchResultPlaces[0].lng, searchResultPlaces[0].lat],
+          [searchResultPlaces[0].lng, searchResultPlaces[0].lat]
+        )
+      )
+      mapRef.current.fitBounds(bounds, { padding: 60, duration: 800, maxZoom: 14 })
+    }
+
+    return () => {
+      Object.values(searchResultMarkersRef.current).forEach((m) => m?.remove())
+      searchResultMarkersRef.current = {}
+    }
+  }, [mapLoaded, searchResultPlaces])
+
+  // Route start (blue) and end (red) markers
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return
+
+    Object.values(routeEndpointMarkersRef.current).forEach((m) => m?.remove())
+    routeEndpointMarkersRef.current = {}
+
+    if (routeStartPlace?.lat != null && routeStartPlace?.lng != null) {
+      const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
+        `<div class="p-2 min-w-[120px]"><strong class="text-blue-700">Start</strong><div class="text-xs text-slate-600">${routeStartPlace.name || 'Start Place'}</div></div>`
+      )
+      const el = createRouteEndpointMarker(routeStartPlace, true)
+      const marker = new maplibregl.Marker({ element: el, anchor: 'top', offset: [0, -14] })
+        .setLngLat([routeStartPlace.lng, routeStartPlace.lat])
+        .setPopup(popup)
+        .addTo(mapRef.current)
+      routeEndpointMarkersRef.current.start = marker
+    }
+
+    if (routeEndPlace?.lat != null && routeEndPlace?.lng != null) {
+      const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
+        `<div class="p-2 min-w-[120px]"><strong class="text-red-700">End</strong><div class="text-xs text-slate-600">${routeEndPlace.name || 'End Place'}</div></div>`
+      )
+      const el = createRouteEndpointMarker(routeEndPlace, false)
+      const marker = new maplibregl.Marker({ element: el, anchor: 'top', offset: [0, -14] })
+        .setLngLat([routeEndPlace.lng, routeEndPlace.lat])
+        .setPopup(popup)
+        .addTo(mapRef.current)
+      routeEndpointMarkersRef.current.end = marker
+    }
+
+    return () => {
+      Object.values(routeEndpointMarkersRef.current).forEach((m) => m?.remove())
+      routeEndpointMarkersRef.current = {}
+    }
+  }, [mapLoaded, routeStartPlace, routeEndPlace])
 
   // GPS location tracking
   useEffect(() => {
@@ -286,8 +481,11 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     if (userMarkerRef.current) {
       userMarkerRef.current.remove()
     }
-    if (userCircleRef.current) {
-      userCircleRef.current.remove()
+    if (mapRef.current.getLayer(ACCURACY_CIRCLE_LAYER_ID)) {
+      mapRef.current.removeLayer(ACCURACY_CIRCLE_LAYER_ID)
+    }
+    if (mapRef.current.getSource(ACCURACY_CIRCLE_SOURCE_ID)) {
+      mapRef.current.removeSource(ACCURACY_CIRCLE_SOURCE_ID)
     }
 
     // Create marker
@@ -308,17 +506,19 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     // Create accuracy circle
     if (accuracy) {
       const radius = Math.min(accuracy, 100) // Cap at 100m for display
-      userCircleRef.current = new maplibregl.Circle({
-        center: [lng, lat],
-        radius: radius,
-        style: {
-          fillColor: '#136AEC',
-          fillOpacity: 0.2,
-          strokeColor: '#136AEC',
-          strokeOpacity: 0.5,
-          strokeWidth: 1,
+      mapRef.current.addSource(ACCURACY_CIRCLE_SOURCE_ID, {
+        type: 'geojson',
+        data: createCircleGeoJson(lng, lat, radius),
+      })
+      mapRef.current.addLayer({
+        id: ACCURACY_CIRCLE_LAYER_ID,
+        type: 'fill',
+        source: ACCURACY_CIRCLE_SOURCE_ID,
+        paint: {
+          'fill-color': '#136AEC',
+          'fill-opacity': 0.2,
         },
-      }).addTo(mapRef.current)
+      })
     }
 
     setCurrentLocation({ lat, lng, accuracy })
@@ -515,9 +715,9 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     <div className={`relative w-full h-full ${addPlaceMode ? 'cursor-crosshair' : ''}`}>
       <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* GPS Status Indicator */}
+      {/* GPS Status Indicator - bottom on mobile to avoid search overlap */}
       {mapLoaded && (
-        <div className="absolute top-4 left-4 glass rounded-lg p-3 shadow-lg z-10">
+        <div className="absolute bottom-4 left-2 sm:top-4 sm:bottom-auto sm:left-4 glass rounded-lg p-2.5 sm:p-3 shadow-lg z-10 max-w-[calc(100vw-1rem)] sm:max-w-none mb-[env(safe-area-inset-bottom)] sm:mb-0">
           <div className="flex items-center gap-2">
             <div
               className={`w-3 h-3 rounded-full ${
@@ -528,7 +728,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
                   : 'bg-orange-500'
               } animate-pulse`}
             />
-            <span className="text-sm font-medium text-slate-700">
+            <span className="text-xs sm:text-sm font-medium text-slate-700">
               {gpsStatus === 'high'
                 ? 'High Accuracy GPS'
                 : gpsStatus === 'acquiring'
@@ -546,7 +746,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
 
       {/* Location Error */}
       {locationError && (
-        <div className="absolute top-20 left-4 glass rounded-lg p-3 shadow-lg z-10 max-w-sm">
+        <div className="absolute top-20 left-2 right-2 sm:left-4 sm:right-auto glass rounded-lg p-3 shadow-lg z-10 max-w-[calc(100vw-1rem)] sm:max-w-sm">
           <div className="flex items-start gap-2">
             <span className="text-red-500 text-lg">⚠️</span>
             <div className="flex-1">

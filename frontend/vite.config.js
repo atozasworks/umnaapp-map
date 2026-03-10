@@ -1,6 +1,19 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import fs from 'fs'
+import { fileURLToPath } from 'url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const atozasAuthKitPath = (() => {
+  const pkg = 'atozas-react-auth-kit'
+  const candidates = [
+    path.resolve(__dirname, 'node_modules', pkg, 'src'),
+    path.resolve(__dirname, '..', 'node_modules', pkg, 'src'),
+  ]
+  return candidates.find((p) => fs.existsSync(p)) || candidates[1]
+})()
 
 export default defineConfig({
   plugins: [react()],
@@ -10,8 +23,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      // Map atozas-react-auth-kit to source files since dist is not built
-      'atozas-react-auth-kit': path.resolve(__dirname, '../node_modules/atozas-react-auth-kit/src'),
+      'atozas-react-auth-kit': atozasAuthKitPath,
     },
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
   },

@@ -1,5 +1,6 @@
 import express from 'express'
 import axios from 'axios'
+import polyline from '@mapbox/polyline'
 import { body, query, validationResult } from 'express-validator'
 import { authenticateToken } from '../middleware/auth.js'
 import { cacheMiddleware } from '../middleware/cache.js'
@@ -9,9 +10,38 @@ import prisma from '../config/database.js'
 const router = express.Router()
 
 const ROUTE_SERVICE_URL = process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in'
-const SEARCH_URL = process.env.SEARCH_URL || 'https://umnaapp.in/search'
+const ROUTE_BASE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in').replace(/\/+$/, '') + '/map/route'
+const OSRM_URL = (process.env.OSRM_URL || '').trim().replace(/\/+$/, '')
+const OSRM_PUBLIC = 'https://router.project-osrm.org'
+const SEARCH_URL = process.env.SEARCH_URL || 'https://umnaapp.in/map/nominatim/search'
 const REVERSE_URL = process.env.REVERSE_URL || 'https://umnaapp.in/map/reverse'
+const NOMINATIM_URL = process.env.NOMINATIM_URL || ''
 const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
+
+const NOMINATIM_PUBLIC = 'https://nominatim.openstreetmap.org/reverse'
+
+/** Reverse geocode lat/lon to get address (taluk, district, state) - returns address object or null */
+async function reverseGeocode(lat, lon) {
+  const urls = [
+    (REVERSE_URL || '').trim().replace(/\/+$/, '') || 'https://umnaapp.in/map/reverse',
+    (NOMINATIM_URL || '').trim().replace(/\/+$/, '') ? `${(NOMINATIM_URL || '').trim().replace(/\/+$/, '')}/reverse` : null,
+    NOMINATIM_PUBLIC, // Fallback when umnaapp/NOMINATIM_URL fail (rate limit: 1 req/sec)
+  ].filter(Boolean)
+  for (const base of urls) {
+    try {
+      const res = await axios.get(base, {
+        params: { lat: parseFloat(lat), lon: parseFloat(lon), format: 'json', addressdetails: 1 },
+        headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
+        timeout: 5000,
+      })
+      const addr = res.data?.address || null
+      if (addr) return addr
+    } catch {
+      continue
+    }
+  }
+  return null
+}
 
 /**
  * @route GET /api/map/tiles/:z/:x/:y.png
@@ -96,39 +126,78 @@ router.get(
       }
       coordinatesStr += `;${endCoords[1]},${endCoords[0]}`
 
-      const routeUrl = `${ROUTE_SERVICE_URL}/map/route/${profile}/${coordinatesStr}`
-      console.log(`🗺️  Route request: ${routeUrl}`)
+      let routeData = null
 
-      const routeResponse = await axios.get(routeUrl, {
-        params: {
-          overview: 'full',
-          geometries: 'geojson',
-        },
-        timeout: 15000,
-      })
-
-      const data = routeResponse.data
-
-      // Support OSRM-style (routes array) or flat response (direct geometry)
-      let route
-      if (data.routes && data.routes[0]) {
-        route = data.routes[0]
-      } else if (data.geometry) {
-        route = data
-      } else {
-        console.error('Unexpected route response format:', data)
-        return res.status(400).json({ error: 'Route calculation failed', details: 'Invalid response format' })
+      /** Fetch from OSRM-style API: /route/v1/{profile}/{coords} */
+      const tryOsrm = async (baseUrl) => {
+        const url = `${baseUrl.replace(/\/+$/, '')}/route/v1/${profile}/${coordinatesStr}`
+        const res = await axios.get(url, {
+          params: { overview: 'full', geometries: 'geojson' },
+          timeout: 10000,
+        })
+        const r = res.data?.routes?.[0]
+        if (r?.geometry?.coordinates?.length > 0) {
+          return {
+            distance: r.distance ?? 0,
+            duration: r.duration ?? 0,
+            geometry: r.geometry,
+            steps: r.legs?.flatMap((leg) => leg.steps) ?? [],
+          }
+        }
+        return null
       }
 
-      if (!route.geometry || !route.geometry.coordinates || route.geometry.coordinates.length === 0) {
-        return res.status(400).json({ error: 'Route calculation failed', details: 'No route geometry' })
+      /** Fetch from umnaapp-style API: /map/route/{profile}/{coords} */
+      const tryUmnaapp = async () => {
+        const url = `${ROUTE_BASE_URL}/${profile}/${coordinatesStr}`
+        for (const geom of ['geojson', 'polyline']) {
+          try {
+            const res = await axios.get(url, {
+              params: { overview: 'full', geometries: geom },
+              timeout: 10000,
+            })
+            const data = res.data
+            const route = data.routes?.[0] ?? (data.geometry ? { geometry: data.geometry, distance: data.distance, duration: data.duration, legs: data.legs } : null)
+            if (geom === 'geojson' && route?.geometry?.coordinates?.length > 0) {
+              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: route.geometry, steps: route.legs?.flatMap((l) => l.steps) ?? [] }
+            }
+            if (geom === 'polyline' && typeof route?.geometry === 'string') {
+              const dec = polyline.decode(route.geometry, 5)
+              const coordinates = dec.map(([lat, lng]) => [lng, lat])
+              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: { type: 'LineString', coordinates }, steps: route.legs?.flatMap((l) => l.steps) ?? [] }
+            }
+          } catch (e) {
+            if (geom === 'geojson') console.warn('Route umnaapp GeoJSON failed:', e.message)
+          }
+        }
+        return null
       }
 
-      const routeData = {
-        distance: route.distance ?? 0,
-        duration: route.duration ?? 0,
-        geometry: route.geometry,
-        steps: route.legs?.flatMap((leg) => leg.steps) ?? [],
+      // 1) umnaapp.in
+      routeData = await tryUmnaapp()
+
+      // 2) OSRM_URL (Docker/local)
+      if (!routeData && OSRM_URL) {
+        try {
+          routeData = await tryOsrm(OSRM_URL)
+          if (routeData) console.log('🗺️  Route from OSRM_URL')
+        } catch (e) {
+          console.warn('Route OSRM_URL failed:', e.message)
+        }
+      }
+
+      // 3) Public OSRM demo
+      if (!routeData) {
+        try {
+          routeData = await tryOsrm(OSRM_PUBLIC)
+          if (routeData) console.log('🗺️  Route from OSRM public')
+        } catch (e) {
+          console.warn('Route OSRM public failed:', e.message)
+        }
+      }
+
+      if (!routeData || !routeData.geometry?.coordinates?.length) {
+        return res.status(400).json({ error: 'Route calculation failed', details: 'All route services unavailable (umnaapp, OSRM)' })
       }
 
       // Optionally save route to database
@@ -148,7 +217,7 @@ router.get(
               : null,
             distance: routeData.distance,
             duration: Math.round(routeData.duration),
-            polyline: JSON.stringify(route.geometry),
+            polyline: JSON.stringify(routeData.geometry),
             status: 'planned',
           },
         })
@@ -195,24 +264,41 @@ router.get(
 
       if (SEARCH_URL) {
         try {
-          const searchUrl = (SEARCH_URL || '').trim().replace(/\/+$/, '') || 'https://umnaapp.in/search'
+          const searchUrl = (SEARCH_URL || '').trim().replace(/\/+$/, '') || 'https://umnaapp.in/map/nominatim/search'
           const searchResponse = await axios.get(searchUrl, {
-            params: { q, limit: safeLimit },
+            params: { q: q.trim(), format: 'json', limit: safeLimit },
             headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
             timeout: 10000,
           })
           const data = searchResponse.data
           const rawResults = Array.isArray(data) ? data : Array.isArray(data?.results) ? data.results : []
-          results = rawResults.map((r) => ({
-            placeId: r.place_id ?? r.id ?? r.osm_id ?? `${r.lat}-${r.lon}`,
-            displayName: r.display_name ?? r.name ?? r.formatted ?? '',
-            lat: parseFloat(r.lat) || 0,
-            lng: parseFloat(r.lon ?? r.lng) || 0,
-            type: r.type,
-            category: r.category,
-            address: r.address,
-            boundingBox: r.boundingbox,
-          }))
+          console.log('🔍 Search fetched:', { query: q, url: searchUrl, rawData: data, rawResults })
+
+          // umnaapp.in/map/nominatim/search may return { name, lat, lon }; enrich with reverse geocode for taluk, district, state when address missing
+          const toEnrich = Math.min(rawResults.length, 5)
+          const reverseDelay = 1100 // Nominatim public: 1 req/sec
+          const enriched = []
+          for (let i = 0; i < toEnrich; i++) {
+            const r = rawResults[i]
+            const addr = await reverseGeocode(r.lat, r.lon ?? r.lng)
+            enriched.push({ status: 'fulfilled', value: { r, addr } })
+            if (i < toEnrich - 1) await new Promise((resolve) => setTimeout(resolve, reverseDelay))
+          }
+
+          results = rawResults.map((r, i) => {
+            const address = r.address ?? (i < enriched.length && enriched[i].status === 'fulfilled' ? enriched[i].value.addr : null)
+            return {
+              placeId: r.place_id ?? r.id ?? r.osm_id ?? `${r.lat}-${r.lon ?? r.lng}`,
+              displayName: r.display_name ?? r.name ?? r.formatted ?? '', // Nominatim: display_name; umnaapp: name
+              lat: parseFloat(r.lat) || 0,
+              lng: parseFloat(r.lon ?? r.lng) || 0,
+              type: r.type,
+              category: r.category,
+              address,
+              boundingBox: r.boundingbox,
+            }
+          })
+          console.log('🔍 Search results (enriched):', results)
         } catch (extErr) {
           console.warn('Search failed:', extErr.message)
         }

@@ -142,12 +142,12 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, onSaved }) =
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-end sm:justify-center p-0 sm:p-4">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-end sm:justify-center p-0 sm:p-4 pb-[env(safe-area-inset-bottom)] sm:pb-4">
       <div
         className="absolute inset-0 bg-black/30 sm:bg-black/50 backdrop-blur-sm pointer-events-none"
         aria-hidden="true"
       />
-      <div className="relative w-full sm:max-w-md h-auto max-h-[85vh] sm:max-h-[90vh] glass rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/30 overflow-y-auto animate-slide-up sm:animate-fade-in pointer-events-auto">
+      <div className="relative w-full sm:max-w-md h-auto max-h-[85dvh] sm:max-h-[90vh] glass rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/30 overflow-y-auto animate-slide-up sm:animate-fade-in pointer-events-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/30">
           <h2 className="text-lg font-semibold text-slate-800">Add Place</h2>
           <button

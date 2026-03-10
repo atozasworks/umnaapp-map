@@ -2,8 +2,14 @@
 import { useAtozasAuthKit } from 'atozas-react-auth-kit'
 
 export const useAtozasAuth = () => {
+  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  const normalizedApiUrl = apiUrl.replace(/\/+$/, '')
+  const authKitApiUrl = normalizedApiUrl.endsWith('/api')
+    ? normalizedApiUrl
+    : `${normalizedApiUrl}/api`
+
   const authKit = useAtozasAuthKit({
-    apiUrl: import.meta.env.VITE_API_URL || 'http://localhost:5000',
+    apiUrl: authKitApiUrl,
   })
 
   return {
@@ -11,7 +17,7 @@ export const useAtozasAuth = () => {
     sendOTP: async (email, type = 'register') => {
       try {
         const endpoint = type === 'register' ? '/auth/register' : '/auth/login'
-        const response = await fetch(`${authKit.apiUrl}/api${endpoint}`, {
+        const response = await fetch(`${authKit.apiUrl}${endpoint}`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, ...(type === 'register' ? { name: '' } : {}) }),
@@ -26,7 +32,7 @@ export const useAtozasAuth = () => {
     // Verify OTP
     verifyOTP: async (email, otp, type = 'register') => {
       try {
-        const response = await fetch(`${authKit.apiUrl}/api/auth/verify-otp`, {
+        const response = await fetch(`${authKit.apiUrl}/auth/verify-otp`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, otp, type }),

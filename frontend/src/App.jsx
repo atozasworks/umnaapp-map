@@ -11,13 +11,17 @@ import ProtectedRoute from './components/ProtectedRoute'
 
 function App() {
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
+  const normalizedApiUrl = apiUrl.replace(/\/+$/, '')
+  const authKitApiUrl = normalizedApiUrl.endsWith('/api')
+    ? normalizedApiUrl
+    : `${normalizedApiUrl}/api`
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       {/* Atozas Auth Provider (for atozas-react-auth-kit components) */}
       <AtozasAuthProvider
-        apiUrl={apiUrl}
+        apiUrl={authKitApiUrl}
         googleClientId={googleClientId}
         enableLocalStorage={true}
         onAuthError={(error) => {

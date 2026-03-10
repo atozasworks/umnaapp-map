@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import api from '../services/api'
+import { formatAddressSubtitle } from '../utils/formatAddress'
 
-const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear }) => {
+const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResultsChange }) => {
   const [query, setQuery] = useState(value?.name || '')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
@@ -21,6 +22,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear }) => {
     if (query.length < 3 || (value && value.name === query)) {
       setResults([])
       setShowResults(false)
+      if (onResultsChange) onResultsChange([])
       return
     }
 
@@ -30,11 +32,14 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear }) => {
         const response = await api.get('/map/search', {
           params: { q: query, limit: 6 },
         })
-        setResults(response.data.results)
+        const res = response.data.results || []
+        setResults(res)
         setShowResults(true)
+        if (onResultsChange) onResultsChange(res)
       } catch (err) {
         console.error('Search error:', err)
         setResults([])
+        if (onResultsChange) onResultsChange([])
       } finally {
         setIsSearching(false)
       }
@@ -85,7 +90,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear }) => {
           value={query}
           onChange={handleInputChange}
           placeholder={placeholder}
-          className="w-full px-3 py-2 pr-8 glass rounded border border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700 text-sm"
+          className="w-full px-3 py-2.5 sm:py-2 pr-8 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700 text-base sm:text-sm min-h-[44px] sm:min-h-0"
         />
         {isSearching && (
           <div className="absolute right-8 top-1/2 -translate-y-1/2">
@@ -108,19 +113,18 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear }) => {
       </div>
 
       {showResults && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 glass rounded-lg shadow-xl border border-white/20 max-h-48 overflow-y-auto">
+        <div className="absolute z-50 w-full mt-1 glass rounded-lg shadow-xl border border-white/20 max-h-[min(50vh,200px)] sm:max-h-48 overflow-y-auto overscroll-contain">
           {results.map((result) => (
             <button
               key={result.placeId}
               onClick={() => handleSelect(result)}
-              className="w-full px-3 py-2 text-left hover:bg-white/20 transition-colors border-b border-white/10 last:border-b-0"
+              className="w-full px-3 py-3 sm:py-2 text-left hover:bg-white/20 active:bg-white/30 transition-colors border-b border-white/10 last:border-b-0 min-h-[48px] sm:min-h-0"
             >
               <div className="text-sm font-medium text-slate-700 truncate">{result.displayName}</div>
-              {result.address && (
-                <div className="text-xs text-slate-500 truncate">
-                  {result.address.road || result.address.city || result.address.state}
-                </div>
-              )}
+              {result.address && (() => {
+                const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state
+                return line2 ? <div className="text-xs text-slate-500 truncate">{line2}</div> : null
+              })()}
             </button>
           ))}
         </div>
@@ -135,12 +139,19 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear }) => {
   )
 }
 
-const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose }) => {
+const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange }) => {
   const [startPlace, setStartPlace] = useState(null)
   const [endPlace, setEndPlace] = useState(null)
   const [isCalculating, setIsCalculating] = useState(false)
   const [routeData, setRouteData] = useState(null)
   const [error, setError] = useState(null)
+
+  // Notify parent when start/end places change so map can show blue/red markers
+  useEffect(() => {
+    if (onRoutePlacesChange) {
+      onRoutePlacesChange(startPlace, endPlace)
+    }
+  }, [startPlace, endPlace, onRoutePlacesChange])
 
   const handleCalculate = async () => {
     if (!startPlace || !endPlace) {
@@ -196,12 +207,13 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose }) => {
   }
 
   return (
-    <div className="glass rounded-lg p-5 shadow-xl border border-white/20 w-80">
+    <div className="glass rounded-xl sm:rounded-lg p-4 sm:p-5 shadow-xl border border-white/20 w-full sm:w-80 max-w-sm sm:max-w-none">
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-bold text-slate-700">Calculate Route</h3>
         <button
           onClick={onClose}
-          className="text-slate-500 hover:text-slate-700 transition-colors"
+          className="p-2 -m-2 text-slate-500 hover:text-slate-700 active:text-slate-800 transition-colors rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
+          aria-label="Close"
         >
           ✕
         </button>
@@ -215,6 +227,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose }) => {
             value={startPlace}
             onSelect={setStartPlace}
             onClear={() => setStartPlace(null)}
+            onResultsChange={onSearchResultsChange}
           />
           {currentLocation && (
             <button
@@ -246,6 +259,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose }) => {
           value={endPlace}
           onSelect={setEndPlace}
           onClear={() => setEndPlace(null)}
+          onResultsChange={onSearchResultsChange}
         />
 
         {error && (
