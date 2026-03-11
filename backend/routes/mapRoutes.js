@@ -7,6 +7,7 @@ import { authenticateToken } from '../middleware/auth.js'
 import { cacheMiddleware } from '../middleware/cache.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import prisma from '../config/database.js'
+import { translateText, getLanguageFromAddress } from '../services/translateService.js'
 
 const router = express.Router()
 
@@ -464,6 +465,8 @@ router.get(
         return res.status(404).json({ error: 'Location not found' })
       }
 
+      const targetLang = getLanguageFromAddress(result.address || {})
+
       const address = {
         placeId: result.place_id,
         displayName: result.display_name ?? result.name ?? '',
@@ -471,12 +474,44 @@ router.get(
         lng: parseFloat(result.lon ?? result.lng) || parseFloat(lng),
         address: result.address,
         boundingBox: result.boundingbox,
+        targetLang, // For Add Place auto-translation (e.g. 'kn', 'ta', 'hi')
       }
 
       res.json(address)
     } catch (error) {
       console.error('Reverse geocode error:', error.message)
       res.status(500).json({ error: 'Failed to reverse geocode', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/translate
+ * @desc Translate English text to local language (Atozas Translate or fallback)
+ * @access Private
+ */
+router.post(
+  '/translate',
+  authenticateToken,
+  rateLimitMiddleware('translate', 60, 60),
+  [
+    body('text').trim().isLength({ min: 1, max: 500 }).withMessage('Text required (1-500 chars)'),
+    body('targetLang').trim().isLength({ min: 2, max: 10 }).withMessage('Target language code required (e.g. kn, ta, hi)'),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const { text, targetLang } = req.body
+      const translated = await translateText(text.trim(), targetLang.trim().toLowerCase())
+
+      res.json({ translatedText: translated, targetLang: targetLang.trim().toLowerCase() })
+    } catch (error) {
+      console.error('Translate error:', error.message)
+      res.status(500).json({ error: 'Translation failed', message: error.message })
     }
   }
 )
@@ -516,7 +551,8 @@ router.post(
   authenticateToken,
   rateLimitMiddleware('places:create', 30, 60),
   [
-    body('name').trim().isLength({ min: 1, max: 200 }).withMessage('Place name required (1-200 chars)'),
+    body('place_name_en').trim().isLength({ min: 1, max: 200 }).withMessage('Place name (English) required (1-200 chars)'),
+    body('place_name_local').optional().trim().isLength({ max: 200 }).withMessage('Local name max 200 chars'),
     body('category')
       .trim()
       .isLength({ min: 1, max: 50 })
@@ -539,8 +575,10 @@ router.post(
         return res.status(400).json({ errors: errors.array() })
       }
 
-      const { name, category, latitude, longitude, zoomLevel = 15 } = req.body
+      const { place_name_en, place_name_local, category, latitude, longitude, zoomLevel = 15 } = req.body
       const userId = req.user.id
+      const nameEn = (place_name_en || '').trim()
+      const nameLocal = (place_name_local || '').trim() || null
 
       // Prevent duplicates: same user, same coordinates (within ~11m at equator)
       const duplicate = await prisma.place.findFirst({
@@ -560,7 +598,9 @@ router.post(
 
       const place = await prisma.place.create({
         data: {
-          name: name.trim(),
+          name: nameEn, // legacy field = place_name_en
+          placeNameEn: nameEn,
+          placeNameLocal: nameLocal,
           category,
           latitude: parseFloat(latitude),
           longitude: parseFloat(longitude),
@@ -571,7 +611,9 @@ router.post(
 
       res.status(201).json({
         id: place.id,
-        name: place.name,
+        name: place.placeNameEn ?? place.name,
+        place_name_en: place.placeNameEn ?? place.name,
+        place_name_local: place.placeNameLocal,
         category: place.category,
         latitude: place.latitude,
         longitude: place.longitude,
@@ -603,12 +645,14 @@ router.get(
         })
       }
 
-      const places = await prisma.place.findMany({
+      const       places = await prisma.place.findMany({
         where: { userId: req.user.id },
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
           name: true,
+          placeNameEn: true,
+          placeNameLocal: true,
           category: true,
           latitude: true,
           longitude: true,
@@ -616,7 +660,14 @@ router.get(
           createdAt: true,
         },
       })
-      res.json({ places })
+      // Normalize for API: name = place_name_en for backward compat
+      const normalized = places.map((p) => ({
+        ...p,
+        name: p.placeNameEn ?? p.name,
+        place_name_en: p.placeNameEn ?? p.name,
+        place_name_local: p.placeNameLocal,
+      }))
+      res.json({ places: normalized })
     } catch (error) {
       console.error('List places error:', error)
       res.status(500).json({ error: 'Failed to fetch places', message: error.message })

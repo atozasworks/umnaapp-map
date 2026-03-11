@@ -131,15 +131,17 @@ model Route {
 }
 
 model Place {
-  id        String   @id @default(uuid())
-  name      String
-  category  String   // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
-  latitude  Float
-  longitude Float
-  zoomLevel Float    @default(15)
-  userId    String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String   // Legacy: kept for backward compat; equals place_name_en for new places
+  placeNameEn      String?  @map("place_name_en")   // English name (preferred)
+  placeNameLocal   String?  @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
+  category         String   // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
+  latitude         Float
+  longitude        Float
+  zoomLevel        Float    @default(15)
+  userId           String
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

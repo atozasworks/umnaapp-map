@@ -47,6 +47,7 @@ const HomePage = () => {
         zoomLevel: loc.zoomLevel,
         name: data.displayName || '',
         address: data.address || {},
+        targetLang: data.targetLang || 'hi', // For auto-translation: kn, ta, ml, te, hi
       }
     } catch (err) {
       return {
@@ -54,6 +55,7 @@ const HomePage = () => {
         longitude: loc.longitude,
         zoomLevel: loc.zoomLevel,
         name: '',
+        targetLang: 'hi',
       }
     } finally {
       setFetchingPlaceDetails(false)

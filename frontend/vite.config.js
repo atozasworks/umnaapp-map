@@ -47,11 +47,12 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['@react-oauth/google'],
+    include: ['@react-oauth/google', 'atozas-traslate'],
     esbuildOptions: {
       loader: {
         '.ts': 'ts',
         '.tsx': 'tsx',
+        '.js': 'jsx', // atozas-traslate has JSX in .js files
       },
     },
   },
