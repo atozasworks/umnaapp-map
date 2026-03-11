@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
+import { parseQueryFromInput } from '../utils/parseSearchQuery'
 
 const CATEGORIES = [
   { id: 'directions', icon: 'route', label: 'Directions', isAction: true },
@@ -13,14 +14,25 @@ const CATEGORIES = [
   { id: 'atm', icon: 'atm', label: 'ATMs', query: 'atm' },
 ]
 
-const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
+const SearchBar = ({ onSelect, onRoute, onResultsChange, userPlaces = [] }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [searchError, setSearchError] = useState(false)
   const [activeCategory, setActiveCategory] = useState(null)
+  const [isFocused, setIsFocused] = useState(false)
   const searchTimeoutRef = useRef(null)
   const resultsRef = useRef(null)
+
+  // Convert user places (from DB) to search result format
+  const dbResults = userPlaces.map((p) => ({
+    placeId: p.id,
+    displayName: p.name,
+    lat: p.latitude,
+    lng: p.longitude,
+    address: p.category ? { county: p.category } : null,
+  }))
 
   const buildSearchQuery = () => {
     if (activeCategory?.query && query.trim()) {
@@ -38,29 +50,34 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
     const searchQ = buildSearchQuery()
     if (searchQ.length < 2) {
       setResults([])
-      setShowResults(false)
+      setSearchError(false)
       if (onResultsChange) onResultsChange([])
+      setShowResults(false)
       return
     }
 
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true)
+      setSearchError(false)
       try {
-        const response = await api.get('/map/search', {
-          params: { q: searchQ, limit: 10 },
+        const response = await api.get('/map/search-simple', {
+          params: { q: searchQ },
         })
         const resultsData = response.data.results || []
         setResults(resultsData)
+        setSearchError(false)
         setShowResults(true)
         if (onResultsChange) onResultsChange(resultsData)
       } catch (error) {
         console.error('Search error:', error)
         setResults([])
+        setSearchError(true)
+        setShowResults(true)
         if (onResultsChange) onResultsChange([])
       } finally {
         setIsSearching(false)
       }
-    }, 300)
+    }, 250)
 
     return () => {
       if (searchTimeoutRef.current) {
@@ -69,11 +86,21 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
     }
   }, [query, activeCategory?.id, activeCategory?.query])
 
+  // When focused with empty/short query, show user's places from database
+  useEffect(() => {
+    if (isFocused && buildSearchQuery().length < 2 && dbResults.length > 0) {
+      setResults(dbResults)
+      setShowResults(true)
+      if (onResultsChange) onResultsChange(dbResults)
+    }
+  }, [isFocused, query, activeCategory?.id, activeCategory?.query, userPlaces])
+
   // Close results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (resultsRef.current && !resultsRef.current.contains(event.target)) {
         setShowResults(false)
+        setIsFocused(false)
       }
     }
 
@@ -125,7 +152,8 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setQuery(parseQueryFromInput(e.target.value))}
+            onFocus={() => setIsFocused(true)}
             placeholder="Search places..."
             className="flex-1 min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 placeholder-slate-500 text-base sm:text-sm py-1 min-h-[24px]"
           />
@@ -240,8 +268,12 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
       )}
 
       {showResults && results.length === 0 && buildSearchQuery().length >= 2 && !isSearching && (
-        <div className="absolute z-50 w-full mt-2 glass rounded-xl shadow-2xl border border-white/30 p-4 text-center text-slate-500 text-sm">
-          No places found
+        <div className="absolute z-50 w-full mt-2 glass rounded-xl shadow-2xl border border-white/30 p-4 text-center text-sm">
+          {searchError ? (
+            <span className="text-amber-600">Search failed. Try again.</span>
+          ) : (
+            <span className="text-slate-500">No places found</span>
+          )}
         </div>
       )}
     </div>

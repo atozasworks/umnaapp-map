@@ -1,4 +1,5 @@
 import express from 'express'
+import { URL } from 'url'
 import axios from 'axios'
 import polyline from '@mapbox/polyline'
 import { body, query, validationResult } from 'express-validator'
@@ -13,12 +14,33 @@ const ROUTE_SERVICE_URL = process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in'
 const ROUTE_BASE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in').replace(/\/+$/, '') + '/map/route'
 const OSRM_URL = (process.env.OSRM_URL || '').trim().replace(/\/+$/, '')
 const OSRM_PUBLIC = 'https://router.project-osrm.org'
-const SEARCH_URL = process.env.SEARCH_URL || 'https://umnaapp.in/map/nominatim/search'
+const SEARCH_URL = process.env.SEARCH_URL || 'https://umnaapp.in/map/nominatim/search?q='
+const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
 const REVERSE_URL = process.env.REVERSE_URL || 'https://umnaapp.in/map/reverse'
 const NOMINATIM_URL = process.env.NOMINATIM_URL || ''
 const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
 
 const NOMINATIM_PUBLIC = 'https://nominatim.openstreetmap.org/reverse'
+
+const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 20000
+const SEARCH_SIMPLE_RETRIES = parseInt(process.env.SEARCH_SIMPLE_RETRIES, 10) || 3
+
+/** Retry axios request on timeout or network errors */
+async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
+  let lastError
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await fn()
+    } catch (err) {
+      lastError = err
+      const isRetryable = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'ENETUNREACH'
+      if (!isRetryable || attempt >= maxRetries) throw err
+      const delay = attempt * 500
+      await new Promise((r) => setTimeout(r, delay))
+    }
+  }
+  throw lastError
+}
 
 /** Reverse geocode lat/lon to get address (taluk, district, state) - returns address object or null */
 async function reverseGeocode(lat, lon) {
@@ -308,6 +330,101 @@ router.get(
     } catch (error) {
       console.error('Search error:', error.message)
       res.json({ query: req.query.q, results: [], count: 0 })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/search-simple
+ * @desc Search places using umnaapp.in/search (simple API: name, lat, lon)
+ * @access Private
+ */
+router.get(
+  '/search-simple',
+  authenticateToken,
+  rateLimitMiddleware('search', 60, 60),
+  [query('q').isString().notEmpty().withMessage('Search query required')],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+      const parsed = new URL(req.originalUrl, `http://${req.get('host') || 'localhost'}`)
+      const params = Object.fromEntries(parsed.searchParams)
+      const q = (params.q || '').trim()
+      const searchResponse = await axiosWithRetry(
+        () =>
+          axios.get(SEARCH_SIMPLE_URL, {
+            params: { q },
+            headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
+            timeout: SEARCH_SIMPLE_TIMEOUT,
+            validateStatus: (status) => status === 200 || status === 404, // umnaapp.in/search returns 404 with valid JSON body
+          }),
+        { maxRetries: SEARCH_SIMPLE_RETRIES }
+      )
+      const raw = searchResponse.data
+      const rawResults = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : []
+
+      // API results
+      const apiResults = rawResults.map((r, i) => ({
+        placeId: r.place_id ?? r.id ?? r.osm_id ?? `api-${r.lat}-${r.lon ?? r.lng}-${i}`,
+        displayName: r.display_name ?? r.name ?? r.formatted ?? '',
+        lat: parseFloat(r.lat) || 0,
+        lng: parseFloat(r.lon ?? r.lng) || 0,
+        address: r.address ?? null,
+      }))
+
+      // User-added places from database (match name or category)
+      let dbResults = []
+      if (prisma.place && req.user?.id && q.length >= 2) {
+        const searchTerm = q.trim()
+        try {
+          const dbPlaces = await prisma.place.findMany({
+            where: {
+              userId: req.user.id,
+              OR: [
+                { name: { contains: searchTerm, mode: 'insensitive' } },
+                { category: { contains: searchTerm, mode: 'insensitive' } },
+              ],
+            },
+            take: 10,
+            orderBy: { createdAt: 'desc' },
+            select: { id: true, name: true, category: true, latitude: true, longitude: true },
+          })
+          dbResults = dbPlaces.map((p) => ({
+            placeId: p.id,
+            displayName: p.name,
+            lat: p.latitude,
+            lng: p.longitude,
+            address: p.category ? { county: p.category } : null,
+          }))
+        } catch (dbErr) {
+          console.warn('DB places search failed:', dbErr.message)
+        }
+      }
+
+      // Merge: DB places first (user's own), then API results, dedupe by coords
+      const seen = new Set()
+      const merged = []
+      for (const r of [...dbResults, ...apiResults]) {
+        const key = `${r.lat.toFixed(5)}-${r.lng.toFixed(5)}`
+        if (!seen.has(key)) {
+          seen.add(key)
+          merged.push(r)
+        }
+      }
+
+      res.json({ query: q, results: merged, count: merged.length })
+    } catch (error) {
+      console.error('Search simple error:', error.message)
+      res.status(503).json({
+        error: true,
+        message: 'Search service temporarily unavailable',
+        query: req.query.q,
+        results: [],
+        count: 0,
+      })
     }
   }
 )

@@ -113,22 +113,70 @@ const HomePage = () => {
 
   return (
     <div className="h-screen flex flex-col relative overflow-hidden safe-area-inset">
-      {/* Top Bar - compact, mobile-responsive */}
-      <div className="absolute top-0 left-0 right-0 z-30 flex justify-between items-center px-3 py-2 sm:px-4 pt-[env(safe-area-inset-top)]">
-        <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent truncate">
-          UMNAAPP
-        </h1>
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-          <span className="text-slate-600 text-xs sm:text-sm hidden md:inline truncate">Welcome, {user?.name}</span>
-          <button onClick={handleLogout} className="btn-secondary text-xs sm:text-sm py-2 px-3 sm:px-4 shrink-0 min-h-[44px] sm:min-h-0">
-            Logout
-          </button>
-        </div>
-      </div>
+      {/* Navbar - Beautiful glass design with user, Add Place, Logout */}
+      <nav className="absolute top-0 left-0 right-0 z-30 glass border-b border-white/30 pt-[env(safe-area-inset-top)] shadow-lg">
+        <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
+          {/* Logo */}
+          <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate flex-shrink-0">
+            UMNAAPP
+          </h1>
 
-      {/* Search Bar + Categories - full width on mobile */}
-      <div className="absolute top-12 sm:top-14 left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl">
+          {/* Right side: Username, Add Place, Logout */}
+          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1 justify-end">
+            {/* Logged-in username */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/50 border border-white/40 backdrop-blur-sm min-w-0">
+              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-sm font-bold">
+                  {(user?.name || user?.email || 'U').charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <span className="text-slate-700 text-sm font-medium truncate hidden sm:inline">
+                {user?.name || user?.email || 'User'}
+              </span>
+            </div>
+
+            {/* Add Place button */}
+            <button
+              onClick={() => {
+                if (addPlacePickMode) {
+                  setAddPlacePickMode(false)
+                } else {
+                  setMapLocation(null)
+                  setAddPlacePickMode(true)
+                  setShowAddPlaceModal(false)
+                }
+              }}
+              className={`flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2.5 font-medium text-sm transition-all duration-200 shrink-0 min-h-[44px] sm:min-h-0 ${
+                addPlacePickMode
+                  ? 'bg-primary-100 border-2 border-primary-400 text-primary-700 shadow-md'
+                  : 'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl border border-primary-400/30'
+              }`}
+              title="Add a new place"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+              </svg>
+              <span className="hidden sm:inline">Add Place</span>
+            </button>
+
+            {/* Logout button */}
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2.5 bg-white/80 hover:bg-white text-slate-600 hover:text-slate-800 font-medium text-sm border border-slate-200/80 hover:border-slate-300 transition-all duration-200 shadow-md hover:shadow-lg shrink-0 min-h-[44px] sm:min-h-0"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+              <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
+        </div>
+      </nav>
+
+      {/* Search Bar + Categories - positioned below navbar (safe-area + ~4.5rem) */}
+      <div className="absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl" style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}>
         <SearchBar
+          userPlaces={places}
           onSelect={handleSearchSelect}
           onRoute={() => setShowRoutePanel(!showRoutePanel)}
           onResultsChange={() => {}}
@@ -148,30 +196,8 @@ const HomePage = () => {
         onSaved={handlePlaceSaved}
       />
 
-      {/* Right-side toolbar: Add Place + Route Panel - responsive */}
-      <div className="absolute top-12 sm:top-14 right-2 sm:right-4 z-20 flex flex-col sm:flex-row items-end sm:items-start gap-2 sm:gap-4">
-        <button
-          onClick={() => {
-            if (addPlacePickMode) {
-              setAddPlacePickMode(false)
-            } else {
-              setMapLocation(null)
-              setAddPlacePickMode(true)
-              setShowAddPlaceModal(false)
-            }
-          }}
-          className={`flex items-center gap-2 rounded-full px-3 sm:px-4 py-2.5 shadow-lg border transition-colors min-h-[44px] ${
-            addPlacePickMode
-              ? 'bg-primary-100 border-primary-300 text-primary-700'
-              : 'glass border-white/30 hover:bg-white/90 active:bg-white/95'
-          }`}
-          title="Add a new place - click map to select location"
-        >
-          <svg className="w-5 h-5 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-          <span className="font-medium text-slate-700 hidden sm:inline">Add Place</span>
-        </button>
+      {/* Right-side toolbar: Route Panel - positioned below navbar */}
+      <div className="absolute right-2 sm:right-4 z-20 flex flex-col sm:flex-row items-end sm:items-start gap-2 sm:gap-4" style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}>
         {showRoutePanel && (
           <div className="animate-fade-in w-full sm:w-auto max-w-[calc(100vw-1rem)] sm:max-w-none">
             <RoutePanel

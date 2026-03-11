@@ -58,45 +58,24 @@ const createCircleGeoJson = (centerLng, centerLat, radiusMeters, points = 64) =>
   }
 }
 
+// Added places: display like native map labels (no colored dot, just text like OSM labels)
 const createPlaceMarkerElement = (place) => {
-  const wrapper = document.createElement('div')
-  wrapper.className = 'place-marker-wrapper'
-  wrapper.style.display = 'flex'
-  wrapper.style.flexDirection = 'column'
-  wrapper.style.alignItems = 'center'
-  wrapper.style.cursor = 'pointer'
-
-  const dot = document.createElement('div')
-  const color = CATEGORY_COLORS[place.category] || CATEGORY_COLORS.Other
-  dot.className = 'place-marker'
-  dot.style.width = '24px'
-  dot.style.height = '24px'
-  dot.style.borderRadius = '50%'
-  dot.style.backgroundColor = color
-  dot.style.border = '3px solid white'
-  dot.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)'
-  dot.style.flexShrink = '0'
-
   const label = document.createElement('div')
+  label.className = 'place-label-marker'
   label.textContent = place.name
-  label.style.maxWidth = '120px'
-  label.style.fontSize = '11px'
-  label.style.fontWeight = '600'
-  label.style.color = '#1e293b'
-  label.style.background = 'rgba(255,255,255,0.95)'
-  label.style.padding = '2px 6px'
-  label.style.borderRadius = '4px'
-  label.style.marginTop = '4px'
-  label.style.textAlign = 'center'
+  label.style.fontSize = '13px'
+  label.style.fontWeight = '500'
+  label.style.color = '#2c3e50'
+  label.style.fontFamily = 'system-ui, -apple-system, sans-serif'
+  label.style.textShadow = '0 1px 1px #fff, 0 -1px 1px #fff, 1px 0 1px #fff, -1px 0 1px #fff'
   label.style.whiteSpace = 'nowrap'
   label.style.overflow = 'hidden'
   label.style.textOverflow = 'ellipsis'
-  label.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
-
-  wrapper.appendChild(dot)
-  wrapper.appendChild(label)
-  wrapper.title = place.name
-  return wrapper
+  label.style.cursor = 'pointer'
+  label.style.maxWidth = '140px'
+  label.style.pointerEvents = 'auto'
+  label.title = `${place.name} (${place.category})`
+  return label
 }
 
 const createSearchResultMarkerElement = (place) => {
@@ -193,6 +172,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
   const { socket } = useSocket()
 
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [mapZoom, setMapZoom] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [gpsStatus, setGpsStatus] = useState('acquiring') // 'acquiring', 'high', 'weak'
   const [currentLocation, setCurrentLocation] = useState(null)
@@ -252,8 +232,12 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
         duration: 0,
       })
       setMapLoaded(true)
+      setMapZoom(map.getZoom())
       console.log('✅ Map loaded')
     })
+
+    map.on('zoom', () => setMapZoom(map.getZoom()))
+    map.on('zoomend', () => setMapZoom(map.getZoom()))
 
     mapRef.current = map
 
@@ -294,23 +278,32 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     }
   }, [addPlaceMode, onMapClick])
 
-  // Place markers
+  // Place markers - appear when map zoom >= place.zoomLevel, disappear when zoomed out
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
 
+    const currentZoom = mapZoom ?? mapRef.current.getZoom()
+
+    // Filter: show place only when current zoom >= place's zoomLevel (place saved at that zoom)
+    const visiblePlaces = places.filter((place) => {
+      const minZoom = place.zoomLevel != null ? Number(place.zoomLevel) : 0
+      return currentZoom >= minZoom
+    })
+
+    // Remove all place markers and re-add only visible ones
     Object.values(placeMarkersRef.current).forEach((m) => m?.remove())
     placeMarkersRef.current = {}
 
-    places.forEach((place) => {
-      const popup = new maplibregl.Popup({ offset: 20 })
+    visiblePlaces.forEach((place) => {
+      const popup = new maplibregl.Popup({ offset: 12 })
         .setHTML(
           `<div class="p-2 min-w-[120px]"><strong class="text-slate-800">${place.name}</strong><div class="text-xs text-slate-600 mt-1">${place.category}</div></div>`
         )
       const el = createPlaceMarkerElement(place)
       const marker = new maplibregl.Marker({
         element: el,
-        anchor: 'top',
-        offset: [0, -12],
+        anchor: 'center',
+        offset: [0, 0],
       })
         .setLngLat([place.longitude, place.latitude])
         .setPopup(popup)
@@ -322,7 +315,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       Object.values(placeMarkersRef.current).forEach((m) => m?.remove())
       placeMarkersRef.current = {}
     }
-  }, [mapLoaded, places])
+  }, [mapLoaded, places, mapZoom])
 
   // Search result markers (from umnaapp.in/search)
   useEffect(() => {

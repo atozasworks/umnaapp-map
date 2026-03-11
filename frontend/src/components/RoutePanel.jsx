@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
+import { parseQueryFromInput } from '../utils/parseSearchQuery'
 
 const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResultsChange }) => {
   const [query, setQuery] = useState(value?.name || '')
@@ -19,7 +20,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
 
-    if (query.length < 3 || (value && value.name === query)) {
+    if (query.length < 2 || (value && value.name === query)) {
       setResults([])
       setShowResults(false)
       if (onResultsChange) onResultsChange([])
@@ -29,8 +30,8 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true)
       try {
-        const response = await api.get('/map/search', {
-          params: { q: query, limit: 6 },
+        const response = await api.get('/map/search-simple', {
+          params: { q: query },
         })
         const res = response.data.results || []
         setResults(res)
@@ -43,7 +44,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
       } finally {
         setIsSearching(false)
       }
-    }, 300)
+    }, 250)
 
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
@@ -69,7 +70,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
   }
 
   const handleInputChange = (e) => {
-    setQuery(e.target.value)
+    setQuery(parseQueryFromInput(e.target.value))
     // If user edits the text after selecting, clear the selection
     if (value) onClear()
   }
@@ -130,7 +131,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
         </div>
       )}
 
-      {showResults && results.length === 0 && query.length >= 3 && !isSearching && (
+      {showResults && results.length === 0 && query.length >= 2 && !isSearching && (
         <div className="absolute z-50 w-full mt-1 glass rounded-lg shadow-xl border border-white/20 p-3 text-center text-slate-500 text-sm">
           No places found
         </div>
