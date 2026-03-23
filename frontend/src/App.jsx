@@ -17,38 +17,50 @@ function App() {
     : `${normalizedApiUrl}/api`
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
+  const atozasAuthProps = {
+    apiUrl: authKitApiUrl,
+    googleClientId,
+    enableLocalStorage: true,
+    onAuthError: (error) => console.error('Atozas Auth error:', error),
+  }
+
   return (
     <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      {/* Atozas Auth Provider (for atozas-react-auth-kit components) */}
-      <AtozasAuthProvider
-        apiUrl={authKitApiUrl}
-        googleClientId={googleClientId}
-        enableLocalStorage={true}
-        onAuthError={(error) => {
-          console.error('Atozas Auth error:', error)
-        }}
-      >
-        {/* Our custom Auth Provider (for existing functionality) */}
-        <AuthProvider>
-          <SocketProvider>
-            <Routes>
-              <Route path="/" element={<LandingPage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/verify-otp" element={<OTPVerificationPage />} />
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    <HomePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </SocketProvider>
-        </AuthProvider>
-      </AtozasAuthProvider>
+      {/* AuthProvider & SocketProvider wrap all routes */}
+      <AuthProvider>
+        <SocketProvider>
+          <Routes>
+            <Route path="/" element={<LandingPage />} />
+            {/* Atozas only wraps login/register - avoids blocking /home render */}
+            <Route
+              path="/login"
+              element={
+                <AtozasAuthProvider {...atozasAuthProps}>
+                  <LoginPage />
+                </AtozasAuthProvider>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <AtozasAuthProvider {...atozasAuthProps}>
+                  <RegisterPage />
+                </AtozasAuthProvider>
+              }
+            />
+            <Route path="/verify-otp" element={<OTPVerificationPage />} />
+            <Route
+              path="/home"
+              element={
+                <ProtectedRoute>
+                  <HomePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </SocketProvider>
+      </AuthProvider>
     </Router>
   )
 }

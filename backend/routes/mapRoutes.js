@@ -560,6 +560,7 @@ router.post(
     body('latitude').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude required'),
     body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
     body('zoomLevel').optional().isFloat({ min: 0, max: 22 }).withMessage('Zoom level 0-22'),
+    body('source').optional().isIn(['contribution', 'saved']).withMessage('Source must be contribution or saved'),
   ],
   async (req, res) => {
     try {
@@ -575,8 +576,10 @@ router.post(
         return res.status(400).json({ errors: errors.array() })
       }
 
-      const { place_name_en, place_name_local, category, latitude, longitude, zoomLevel = 15 } = req.body
+      const { place_name_en, place_name_local, category, latitude, longitude, zoomLevel = 15, source = 'contribution' } = req.body
       const userId = req.user.id
+      const userName = req.user.name || null
+      const userEmail = req.user.email || null
       const nameEn = (place_name_en || '').trim()
       const nameLocal = (place_name_local || '').trim() || null
 
@@ -606,6 +609,9 @@ router.post(
           longitude: parseFloat(longitude),
           zoomLevel: parseFloat(zoomLevel),
           userId,
+          userName,
+          userEmail,
+          source: source === 'saved' ? 'saved' : 'contribution',
         },
       })
 
@@ -618,6 +624,10 @@ router.post(
         latitude: place.latitude,
         longitude: place.longitude,
         zoomLevel: place.zoomLevel,
+        source: place.source ?? 'contribution',
+        userId: place.userId,
+        user_name: place.userName,
+        user_email: place.userEmail,
         createdAt: place.createdAt,
       })
     } catch (error) {
@@ -645,7 +655,8 @@ router.get(
         })
       }
 
-      const       places = await prisma.place.findMany({
+      // Only return places belonging to this user (filter by userId; each user sees only their own)
+      const places = await prisma.place.findMany({
         where: { userId: req.user.id },
         orderBy: { createdAt: 'desc' },
         select: {
@@ -657,6 +668,10 @@ router.get(
           latitude: true,
           longitude: true,
           zoomLevel: true,
+          source: true,
+          userId: true,
+          userName: true,
+          userEmail: true,
           createdAt: true,
         },
       })
@@ -666,11 +681,53 @@ router.get(
         name: p.placeNameEn ?? p.name,
         place_name_en: p.placeNameEn ?? p.name,
         place_name_local: p.placeNameLocal,
+        user_name: p.userName,
+        user_email: p.userEmail,
       }))
       res.json({ places: normalized })
     } catch (error) {
       console.error('List places error:', error)
       res.status(500).json({ error: 'Failed to fetch places', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route DELETE /api/map/places/:id
+ * @desc Delete a place owned by the current user
+ * @access Private
+ */
+router.delete(
+  '/places/:id',
+  authenticateToken,
+  rateLimitMiddleware('places:delete', 30, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+
+      const { id } = req.params
+      if (!id || typeof id !== 'string' || id.trim().length === 0) {
+        return res.status(400).json({ error: 'Place ID required' })
+      }
+
+      // Verify the place belongs to the authenticated user before deleting
+      const place = await prisma.place.findFirst({
+        where: { id: id.trim(), userId: req.user.id },
+        select: { id: true },
+      })
+
+      if (!place) {
+        return res.status(404).json({ error: 'Place not found or not authorized' })
+      }
+
+      await prisma.place.delete({ where: { id: id.trim() } })
+
+      res.json({ success: true, id: id.trim() })
+    } catch (error) {
+      console.error('Delete place error:', error)
+      res.status(500).json({ error: 'Failed to delete place', message: error.message })
     }
   }
 )

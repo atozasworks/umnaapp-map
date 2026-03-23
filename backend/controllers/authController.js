@@ -207,6 +207,7 @@ export const getCurrentUser = async (req, res) => {
         id: true,
         name: true,
         email: true,
+        picture: true,
         emailVerified: true,
         createdAt: true,
       },
@@ -216,6 +217,45 @@ export const getCurrentUser = async (req, res) => {
   } catch (error) {
     console.error('Get current user error:', error)
     res.status(500).json({ error: 'Failed to get user' })
+  }
+}
+
+export const updateProfilePicture = async (req, res) => {
+  try {
+    const { picture } = req.body
+    if (!picture || typeof picture !== 'string') {
+      return res.status(400).json({ error: 'Picture data is required' })
+    }
+    const isValid =
+      picture.startsWith('data:image/') ||
+      picture.startsWith('http://') ||
+      picture.startsWith('https://')
+    if (!isValid) {
+      return res.status(400).json({ error: 'Invalid picture format' })
+    }
+    if (picture.startsWith('data:')) {
+      const base64Len = picture.length - (picture.indexOf(',') + 1)
+      if (base64Len > 270000) {
+        return res.status(400).json({ error: 'Image too large. Use a smaller image (max ~200KB).' })
+      }
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { picture },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        picture: true,
+        emailVerified: true,
+      },
+    })
+
+    res.json({ user: updated })
+  } catch (error) {
+    console.error('Update profile picture error:', error)
+    res.status(500).json({ error: 'Failed to update profile picture' })
   }
 }
 

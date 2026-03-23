@@ -16,6 +16,7 @@ model User {
   email         String    @unique
   password      String?   // Optional for OTP-only users
   googleId      String?   @unique
+  picture       String?   // Profile image: URL (Google) or base64 data URL (uploaded)
   emailVerified Boolean   @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -140,6 +141,9 @@ model Place {
   longitude        Float
   zoomLevel        Float    @default(15)
   userId           String
+  userName         String?  @map("user_name")   // User name when place was added
+  userEmail        String?  @map("user_email")  // User email when place was added
+  source           String   @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -148,5 +152,6 @@ model Place {
   @@index([userId])
   @@index([category])
   @@index([createdAt])
+  @@index([source])
 }
 

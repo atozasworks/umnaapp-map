@@ -1,9 +1,9 @@
+import 'dotenv/config' // Load .env first, before any module reads process.env
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
-import dotenv from 'dotenv'
 import { createServer } from 'http'
 import { Server } from 'socket.io'
 import passport from './config/passport.js'
@@ -17,8 +17,6 @@ import mapRoutes from './routes/mapRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
 import prisma from './config/database.js'
-
-dotenv.config()
 
 const app = express()
 const httpServer = createServer(app)

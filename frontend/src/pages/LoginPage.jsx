@@ -1,35 +1,27 @@
 import { useState, useEffect } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { EmailOtpLogin, useAuth as useAtozasAuth } from '../lib/atozas-auth-kit'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import api from '../services/api'
+
+const errorMessages = {
+  google_not_configured: 'Google login is not configured. Please use email OTP instead.',
+  google_auth_failed: 'Google sign-in failed. Please try again or use email OTP.',
+  auth_failed: 'Authentication failed. Please try again.',
+}
 
 const LoginPage = () => {
   const navigate = useNavigate()
-  
-  // Try to use Atozas auth (must be within AtozasAuthProvider)
-  let atozasAuth = null
-  try {
-    atozasAuth = useAtozasAuth()
-  } catch (error) {
-    // Not within AtozasAuthProvider, will use fallback
-  }
-
-  // Redirect if already authenticated via Atozas
-  useEffect(() => {
-    if (atozasAuth?.isAuthenticated && atozasAuth?.user) {
-      navigate('/home')
-    }
-  }, [atozasAuth, navigate])
-
-  // Atozas Email OTP Login Handler
-  const handleAtozasSuccess = () => {
-    navigate('/home')
-  }
-
-  // Legacy login handler (fallback)
+  const [searchParams] = useSearchParams()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  useEffect(() => {
+    const err = searchParams.get('error')
+    if (err) {
+      setError(errorMessages[err] || 'Something went wrong. Please try again.')
+      window.history.replaceState({}, '', '/login')
+    }
+  }, [searchParams])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -62,49 +54,36 @@ const LoginPage = () => {
             <p className="text-slate-600 mt-2">Sign in to your account</p>
           </div>
 
-          {/* Use Atozas Email OTP Login Component */}
-          {atozasAuth ? (
-            <EmailOtpLogin
-              onSuccess={handleAtozasSuccess}
-              onError={(error) => {
-                console.error('Atozas login error:', error)
-              }}
-              className="space-y-6"
-            />
-          ) : (
-            <>
-              {error && (
-                <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-                  {error}
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
-                    Email Address
-                  </label>
-                  <input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="input-field"
-                    placeholder="your@email.com"
-                    required
-                  />
-                </div>
-
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Sending OTP...' : 'Send OTP'}
-                </button>
-              </form>
-            </>
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
+              {error}
+            </div>
           )}
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-2">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="input-field"
+                placeholder="your@email.com"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? 'Sending OTP...' : 'Send OTP'}
+            </button>
+          </form>
 
           <div className="mt-6">
             <div className="relative">

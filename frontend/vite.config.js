@@ -43,6 +43,12 @@ export default defineConfig({
       '/socket.io': {
         target: 'http://localhost:5000',
         ws: true
+      },
+      '/map-tiles': {
+        target: 'https://umnaapp.in',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/map-tiles/, '/tiles'),
+        secure: true
       }
     }
   },

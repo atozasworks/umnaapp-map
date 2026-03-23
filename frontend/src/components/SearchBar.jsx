@@ -14,7 +14,7 @@ const CATEGORIES = [
   { id: 'atm', icon: 'atm', label: 'ATMs', query: 'atm' },
 ]
 
-const SearchBar = ({ onSelect, onRoute, onResultsChange, userPlaces = [] }) => {
+const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces = [], savingPlaceId = null }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
@@ -132,21 +132,25 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, userPlaces = [] }) => {
     }
   }
 
+  const isPlaceSaved = (result) => {
+    const tol = 0.0001
+    return userPlaces.some(
+      (p) =>
+        String(p.id) === String(result.placeId) ||
+        (Math.abs(p.latitude - result.lat) < tol && Math.abs(p.longitude - result.lng) < tol)
+    )
+  }
+
+  const handleSaveClick = (e, result) => {
+    e.stopPropagation()
+    if (isPlaceSaved(result)) return
+    if (onSavePlace) onSavePlace(result)
+  }
+
   return (
     <div className="relative w-full" ref={resultsRef}>
       {/* Main search bar - Google Maps style, touch-friendly */}
-      <div className="flex items-center gap-1.5 sm:gap-2 glass rounded-full pl-2.5 pr-1 py-2 sm:py-1.5 shadow-lg border border-white/30 min-h-[48px] sm:min-h-0">
-        {/* Hamburger menu */}
-        <button
-          type="button"
-          className="p-2.5 sm:p-2 rounded-full hover:bg-slate-200/60 active:bg-slate-200/80 transition-colors text-slate-600 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
-          aria-label="Menu"
-        >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-          </svg>
-        </button>
-
+      <div className="flex items-center gap-1.5 sm:gap-2 glass rounded-full pl-3 pr-1 py-2 sm:py-1.5 shadow-lg border border-white/30 min-h-[48px] sm:min-h-0">
         {/* Search input */}
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <input
@@ -251,19 +255,59 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, userPlaces = [] }) => {
       {/* Search Results - mobile: max height, touch-friendly */}
       {showResults && results.length > 0 && (
         <div className="absolute z-50 left-0 right-0 mt-2 glass rounded-xl shadow-2xl border border-white/30 max-h-[min(60vh,320px)] sm:max-h-80 overflow-y-auto overscroll-contain">
-          {results.map((result) => (
-            <button
-              key={result.placeId}
-              onClick={() => handleSelect(result)}
-              className="w-full px-4 py-3.5 sm:py-3 text-left hover:bg-white/40 active:bg-white/50 transition-colors border-b border-white/20 last:border-b-0 flex flex-col min-h-[52px] sm:min-h-0"
-            >
-              <div className="font-medium text-slate-700 truncate">{result.displayName}</div>
-              {result.address && (() => {
-                const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state || result.address.country
-                return line2 ? <div className="text-xs text-slate-500 truncate mt-0.5">{line2}</div> : null
-              })()}
-            </button>
-          ))}
+          {results.map((result) => {
+            const saved = isPlaceSaved(result)
+            const placeKey = `${result.lat}-${result.lng}`
+            const isSaving = savingPlaceId === placeKey
+            return (
+              <div
+                key={result.placeId}
+                className="flex items-center gap-2 px-4 py-3.5 sm:py-3 border-b border-white/20 last:border-b-0 min-h-[52px] sm:min-h-0 group"
+              >
+                <button
+                  onClick={() => handleSelect(result)}
+                  className="flex-1 min-w-0 text-left hover:bg-white/40 active:bg-white/50 transition-colors rounded-lg -m-1 p-1 flex flex-col"
+                >
+                  <div className="font-medium text-slate-700 truncate">{result.displayName}</div>
+                  {result.address && (() => {
+                    const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state || result.address.country
+                    return line2 ? <div className="text-xs text-slate-500 truncate mt-0.5">{line2}</div> : null
+                  })()}
+                </button>
+                <button
+                  onClick={(e) => handleSaveClick(e, result)}
+                  disabled={saved || isSaving}
+                  className={`flex-shrink-0 p-2 rounded-full transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                    saved
+                      ? 'text-primary-600 cursor-default'
+                      : isSaving
+                      ? 'text-primary-500 cursor-wait'
+                      : 'text-slate-400 hover:text-primary-600 hover:bg-white/50 active:bg-white/70'
+                  }`}
+                  aria-label={saved ? 'Saved' : isSaving ? 'Saving...' : 'Save place'}
+                  title={saved ? 'Saved' : isSaving ? 'Saving...' : 'Save to Saved'}
+                >
+                  {isSaving ? (
+                    <div className="w-5 h-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+                  ) : (
+                    <svg
+                      className="w-5 h-5"
+                      fill={saved ? 'currentColor' : 'none'}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 

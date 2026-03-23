@@ -6,14 +6,20 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
+  timeout: 15000, // 15s - avoid infinite hang on /auth/me when API unreachable
 })
 
-// Add token to requests
+// Add token to requests + longer timeout for OTP send (SMTP can take 20-30s)
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('token')
     if (token) {
       config.headers.Authorization = `Bearer ${token}`
+    }
+    // OTP send endpoints - SMTP can be slow, allow 45s
+    const otpUrls = ['/auth/login', '/auth/register', '/email/send-otp']
+    if (otpUrls.some((u) => (config.url || '').includes(u))) {
+      config.timeout = 45000
     }
     return config
   },

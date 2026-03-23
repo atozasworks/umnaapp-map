@@ -173,6 +173,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
 
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapZoom, setMapZoom] = useState(null)
+  const [mapInitError, setMapInitError] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [gpsStatus, setGpsStatus] = useState('acquiring') // 'acquiring', 'high', 'weak'
   const [currentLocation, setCurrentLocation] = useState(null)
@@ -183,24 +184,33 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
 
-    const tileserverUrl = import.meta.env.VITE_TILESERVER_URL || 'https://umnaapp.in'
+    // Use CORS-enabled tiles. umnaapp.in lacks CORS headers and returns 404 for tiles.
+    const env = import.meta.env.VITE_TILESERVER_URL
+    const tileUrl = env?.includes('{z}')
+      ? env
+      : env
+        ? `${String(env).replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
+        : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+    const attribution = tileUrl.includes('cartocdn') ? '© CARTO © OpenStreetMap' : '© UMNAAPP'
     const indiaBounds = [
       [68.0, 6.0],
       [97.0, 37.0],
     ]
 
-    const map = new maplibregl.Map({
+    let map
+    try {
+      map = new maplibregl.Map({
       container: mapContainerRef.current,
       style: {
         version: 8,
         sources: {
           'raster-tiles': {
             type: 'raster',
-            tiles: [`${tileserverUrl.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`],
+            tiles: [tileUrl],
             tileSize: 256,
             minzoom: 0,
             maxzoom: 19,
-            attribution: '© UMNAAPP',
+            attribution,
           },
         },
         layers: [
@@ -239,6 +249,11 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     map.on('zoom', () => setMapZoom(map.getZoom()))
     map.on('zoomend', () => setMapZoom(map.getZoom()))
 
+    map.on('error', (e) => {
+      console.error('Map error:', e)
+      setMapInitError(e.error?.message || 'Map tiles failed to load')
+    })
+
     mapRef.current = map
 
     return () => {
@@ -256,6 +271,10 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
         mapRef.current.remove()
         mapRef.current = null
       }
+    }
+    } catch (err) {
+      console.error('Map init error:', err)
+      setMapInitError(err?.message || 'Map failed to initialize')
     }
   }, [])
 
@@ -706,9 +725,30 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
 
   return (
     <div className={`relative w-full h-full ${addPlaceMode ? 'cursor-crosshair' : ''}`}>
-      <div ref={mapContainerRef} className="w-full h-full" />
+      {mapInitError ? (
+        <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6 bg-slate-100">
+          <p className="text-slate-700 font-medium">Map could not load</p>
+          <p className="text-sm text-slate-600 text-center max-w-md">{mapInitError}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            Reload
+          </button>
+        </div>
+      ) : (
+        <>
+          <div ref={mapContainerRef} className="w-full h-full" />
 
-      {/* GPS Status Indicator - bottom on mobile to avoid search overlap */}
+          {/* Loading overlay - visible until map loads (avoids blank white screen) */}
+          {!mapLoaded && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-100/90 z-[5]">
+              <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary-500 border-t-transparent" />
+              <p className="text-slate-700 font-medium text-sm">Loading map...</p>
+            </div>
+          )}
+
+          {/* GPS Status Indicator - bottom on mobile to avoid search overlap */}
       {mapLoaded && (
         <div className="absolute bottom-4 left-2 sm:top-4 sm:bottom-auto sm:left-4 glass rounded-lg p-2.5 sm:p-3 shadow-lg z-10 max-w-[calc(100vw-1rem)] sm:max-w-none mb-[env(safe-area-inset-bottom)] sm:mb-0">
           <div className="flex items-center gap-2">
@@ -757,6 +797,8 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
             Vehicles: {vehicles.length}
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   )
