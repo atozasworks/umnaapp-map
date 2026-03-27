@@ -27,6 +27,8 @@ model User {
   locations        Location[]
   routes           Route[]
   places           Place[]
+  placeReviews     PlaceReview[]
+  placePhotos      PlacePhoto[]
 
   @@index([email])
   @@index([googleId])
@@ -149,9 +151,47 @@ model Place {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  reviews  PlaceReview[]
+  photos   PlacePhoto[]
+
   @@index([userId])
   @@index([category])
   @@index([createdAt])
   @@index([source])
+  @@index([latitude, longitude])
+}
+
+model PlaceReview {
+  id        String   @id @default(uuid())
+  placeId   String
+  userId    String
+  userName  String?  @map("user_name")
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, userId])
+  @@index([placeId])
+  @@index([userId])
+}
+
+model PlacePhoto {
+  id        String   @id @default(uuid())
+  placeId   String
+  userId    String
+  userName  String?  @map("user_name")
+  dataUrl   String   // base64 data URL (jpeg, compressed)
+  caption   String?
+  createdAt DateTime @default(now())
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([placeId])
+  @@index([userId])
 }
 

@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { translateText } from 'atozas-traslate'
 import api from '../services/api'
 
 export const PLACE_CATEGORIES = [
@@ -65,7 +64,16 @@ const parseCoordinates = (input) => {
   return { lat, lng }
 }
 
-const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocation, onRequestMapPick, onSaved }) => {
+const EMPTY_ADDRESS_FIELDS = {
+  village: '',
+  taluk: '',
+  district: '',
+  state: '',
+  pincode: '',
+  country: '',
+}
+
+const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocation, onRequestMapPick, onSaved, initialLocationMethod }) => {
   const [formData, setFormData] = useState({
     placeNameEn: '',
     placeNameLocal: '',
@@ -74,18 +82,80 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
     latitude: '',
     longitude: '',
     zoomLevel: '15',
+    ...EMPTY_ADDRESS_FIELDS,
   })
-  const [locationMethod, setLocationMethod] = useState('map-or-current') // 'map-or-current' | 'manual-coords'
+  const [fetchingAddress, setFetchingAddress] = useState(false)
+  const [locationMethod, setLocationMethod] = useState(initialLocationMethod || 'map-or-current') // 'map-or-current' | 'manual-coords'
   const [coordInput, setCoordInput] = useState('') // e.g. "12.9716, 77.5946"
   const [coordError, setCoordError] = useState(null)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [submitted, setSubmitted] = useState(false)
   const [translating, setTranslating] = useState(false)
+  const [detectedTargetLang, setDetectedTargetLang] = useState('hi')
   const [localLabelTranslated, setLocalLabelTranslated] = useState('')
   const translateTimeoutRef = useRef(null)
+  const addressFetchRef = useRef(null)
+  const addressRequestIdRef = useRef(0)
+  const addressCacheRef = useRef(new Map())
 
-  const targetLang = mapLocation?.targetLang ?? initialData?.targetLang ?? 'hi'
+  /** Extract display address fields from Nominatim address object */
+  const extractAddressFields = (addr) => {
+    if (!addr || typeof addr !== 'object') return null
+    return {
+      village: addr.village || addr.town || addr.city || addr.hamlet || '',
+      district: addr.county || addr.state_district || addr.district || '',
+      state: addr.state || '',
+      pincode: addr.postcode || '',
+      country: addr.country || '',
+      taluk: addr.taluk || addr.tehsil || addr.subdistrict || addr.municipality || '',
+    }
+  }
+
+  /** Fetch address from lat/lng via reverse geocode API */
+  const fetchAddressFromCoords = useCallback(async (lat, lng) => {
+    const latNum = parseFloat(lat)
+    const lngNum = parseFloat(lng)
+    if (isNaN(latNum) || isNaN(lngNum)) return null
+
+    const cacheKey = `${latNum.toFixed(6)},${lngNum.toFixed(6)}`
+    const cached = addressCacheRef.current.get(cacheKey)
+    if (cached) {
+      console.log('[AddPlaceModal] Reverse geocode cache hit', { lat: latNum, lng: lngNum, fields: cached })
+      setFormData((prev) => ({ ...prev, ...cached }))
+      return { address: cached }
+    }
+
+    const requestId = ++addressRequestIdRef.current
+    setFetchingAddress(true)
+    try {
+      const { data } = await api.get('/map/reverse', { params: { lat: latNum, lng: lngNum } })
+      if (data?.targetLang) {
+        setDetectedTargetLang(data.targetLang)
+      }
+      // data.address is the Nominatim address object
+      const addr = data?.address
+      const fields = addr && typeof addr === 'object' ? extractAddressFields(addr) : EMPTY_ADDRESS_FIELDS
+      console.log('[AddPlaceModal] Reverse geocode API response', { lat: latNum, lng: lngNum, fields, data })
+      addressCacheRef.current.set(cacheKey, fields)
+      if (requestId === addressRequestIdRef.current) {
+        setFormData((prev) => ({ ...prev, ...fields }))
+      }
+      return data
+    } catch (err) {
+      console.warn('Address fetch failed:', err?.message)
+      if (requestId === addressRequestIdRef.current) {
+        setFormData((prev) => ({ ...prev, ...EMPTY_ADDRESS_FIELDS }))
+      }
+      return null
+    } finally {
+      if (requestId === addressRequestIdRef.current) {
+        setFetchingAddress(false)
+      }
+    }
+  }, [])
+
+  const targetLang = detectedTargetLang || 'hi'
 
   const LABEL_LOCAL_NAME = 'Local Language Name (auto-translated, editable)'
 
@@ -95,7 +165,11 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
       if (!trimmed || targetLang === 'en') return
       setTranslating(true)
       try {
-        const translated = await translateText(trimmed, 'en', targetLang)
+        const { data } = await api.post('/map/translate', {
+          text: trimmed,
+          targetLang,
+        })
+        const translated = data?.translatedText
         if (translated?.trim()) {
           setFormData((prev) => ({ ...prev, placeNameLocal: translated.trim() }))
         }
@@ -111,6 +185,7 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
   useEffect(() => {
     if (isOpen) {
       const fromMap = mapLocation ?? initialData
+      setDetectedTargetLang(fromMap?.targetLang ?? 'hi')
       const hasMapLocation = fromMap?.latitude != null && fromMap?.longitude != null
       setFormData((prev) => {
         const locChanged =
@@ -124,27 +199,67 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
           latitude: fromMap?.latitude != null ? String(fromMap.latitude) : initialData?.latitude != null ? String(initialData.latitude) : prev.latitude,
           longitude: fromMap?.longitude != null ? String(fromMap.longitude) : initialData?.longitude != null ? String(initialData.longitude) : prev.longitude,
           zoomLevel: fromMap?.zoomLevel != null ? String(fromMap.zoomLevel) : initialData?.zoomLevel != null ? String(initialData.zoomLevel) : prev.zoomLevel ?? '15',
+          village: fromMap?.village ?? initialData?.village ?? prev.village,
+          taluk: fromMap?.taluk ?? initialData?.taluk ?? prev.taluk,
+          district: fromMap?.district ?? initialData?.district ?? prev.district,
+          state: fromMap?.state ?? initialData?.state ?? prev.state,
+          pincode: fromMap?.pincode ?? initialData?.pincode ?? prev.pincode,
+          country: fromMap?.country ?? initialData?.country ?? prev.country,
         }
       })
+
+      // Always fetch address from coordinates to ensure fields are populated
       if (hasMapLocation) {
+        // Try to use pre-fetched address first for instant display
+        const addr = fromMap?.address
+        if (addr && typeof addr === 'object' && Object.keys(addr).length > 0) {
+          const fields = extractAddressFields(addr)
+          if (fields && (fields.village || fields.district || fields.state || fields.pincode)) {
+            setFormData((prev) => ({ ...prev, ...fields }))
+          } else {
+            // Pre-fetched address had no useful fields, fetch fresh
+            fetchAddressFromCoords(fromMap.latitude, fromMap.longitude)
+          }
+        } else {
+          // No pre-fetched address, fetch from API
+          fetchAddressFromCoords(fromMap.latitude, fromMap.longitude)
+        }
         setLocationMethod('map-or-current')
+      } else {
+        setFormData((prev) => ({ ...prev, ...EMPTY_ADDRESS_FIELDS }))
+        if (initialLocationMethod) {
+          setLocationMethod(initialLocationMethod)
+        }
       }
       setCoordInput('')
       setCoordError(null)
       setError(null)
       setSubmitted(false)
     }
-  }, [isOpen, mapLocation?.latitude, mapLocation?.longitude, mapLocation?.zoomLevel, mapLocation?.name, mapLocation?.targetLang, initialData?.latitude, initialData?.longitude, initialData?.zoomLevel, initialData?.name, initialData?.category])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, mapLocation, initialData, initialLocationMethod, fetchAddressFromCoords])
 
-  // Translate the "Local Language Name" label into detected local language (atozas-traslate)
+  useEffect(() => {
+    return () => {
+      if (addressFetchRef.current) clearTimeout(addressFetchRef.current)
+      if (translateTimeoutRef.current) clearTimeout(translateTimeoutRef.current)
+    }
+  }, [])
+
+  // Translate the local label via backend /map/translate endpoint.
   useEffect(() => {
     if (!isOpen || targetLang === 'en') {
       setLocalLabelTranslated('')
       return
     }
     let cancelled = false
-    translateText(LABEL_LOCAL_NAME, 'en', targetLang)
-      .then((translated) => {
+    api
+      .post('/map/translate', {
+        text: LABEL_LOCAL_NAME,
+        targetLang,
+      })
+      .then(({ data }) => {
+        const translated = data?.translatedText
         if (!cancelled && translated?.trim()) {
           setLocalLabelTranslated(translated.trim())
         }
@@ -195,6 +310,7 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
     setFormData((prev) => ({ ...prev, latitude: String(lat), longitude: String(lng), zoomLevel: '15' }))
     setError(null)
     setCoordError(null)
+    fetchAddressFromCoords(lat, lng)
   }
 
   const handleRequestMapPick = () => {
@@ -208,6 +324,11 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
     const parsed = parseCoordinates(val)
     if (parsed) {
       setFormData((prev) => ({ ...prev, latitude: String(parsed.lat), longitude: String(parsed.lng) }))
+      // Debounced address fetch as user types valid coords
+      if (addressFetchRef.current) clearTimeout(addressFetchRef.current)
+      addressFetchRef.current = setTimeout(() => {
+        fetchAddressFromCoords(parsed.lat, parsed.lng)
+      }, 600)
     }
   }
 
@@ -217,6 +338,11 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
       setCoordError('Enter valid coordinates. Example: 12.9716, 77.5946 (Lat: -90 to 90, Lng: -180 to 180)')
     } else {
       setCoordError(null)
+      // Fetch address immediately on blur if valid
+      if (parsed) {
+        if (addressFetchRef.current) clearTimeout(addressFetchRef.current)
+        fetchAddressFromCoords(parsed.lat, parsed.lng)
+      }
     }
   }
 
@@ -227,6 +353,14 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
     }
     return formData.latitude && formData.longitude
   }
+
+  const hasAddressDetails =
+    Boolean(formData.village) ||
+    Boolean(formData.taluk) ||
+    Boolean(formData.district) ||
+    Boolean(formData.state) ||
+    Boolean(formData.pincode) ||
+    Boolean(formData.country)
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -280,6 +414,12 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
         latitude: lat,
         longitude: lng,
         zoomLevel: zoom,
+        village: formData.village.trim(),
+        taluk: formData.taluk.trim(),
+        district: formData.district.trim(),
+        state: formData.state.trim(),
+        pincode: formData.pincode.trim(),
+        country: formData.country.trim(),
         source: 'contribution',
       })
       setSubmitted(true)
@@ -475,18 +615,88 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
             </div>
           )}
 
-          {(formData.latitude || formData.longitude) && (
-            <div className="rounded-lg bg-slate-50 border border-slate-200 p-3 space-y-2">
-              <p className="text-xs font-medium text-slate-500">
-                {locationMethod === 'manual-coords' ? 'Location (from coordinates)' : 'Location (from map/current)'}
-              </p>
-              <div className="flex flex-wrap gap-3 text-sm font-mono text-slate-700">
-                <span>Lat: {formData.latitude}</span>
-                <span>Lng: {formData.longitude}</span>
-                <span>Zoom: {formData.zoomLevel}</span>
+          {/* Address detail fields - show once we have location or data */}
+          {(formData.latitude || formData.longitude || fetchingAddress || hasAddressDetails) ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-medium text-slate-700">Location Details</p>
+                {fetchingAddress && (
+                  <span className="flex items-center gap-1 text-xs text-slate-400">
+                    <span className="animate-spin rounded-full h-3 w-3 border-2 border-primary-500 border-t-transparent" />
+                    Fetching address...
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Village / Town</label>
+                  <input
+                    type="text"
+                    name="village"
+                    value={formData.village}
+                    onChange={handleChange}
+                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Taluk</label>
+                  <input
+                    type="text"
+                    name="taluk"
+                    value={formData.taluk}
+                    onChange={handleChange}
+                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">District</label>
+                  <input
+                    type="text"
+                    name="district"
+                    value={formData.district}
+                    onChange={handleChange}
+                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">State</label>
+                  <input
+                    type="text"
+                    name="state"
+                    value={formData.state}
+                    onChange={handleChange}
+                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Pincode</label>
+                  <input
+                    type="text"
+                    name="pincode"
+                    value={formData.pincode}
+                    onChange={handleChange}
+                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1">Country</label>
+                  <input
+                    type="text"
+                    name="country"
+                    value={formData.country}
+                    onChange={handleChange}
+                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                  />
+                </div>
               </div>
             </div>
-          )}
+          ) : null}
 
           {error && (
             <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">

@@ -44,26 +44,51 @@ async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
 }
 
 /** Reverse geocode lat/lon to get address (taluk, district, state) - returns address object or null */
-async function reverseGeocode(lat, lon) {
+async function reverseGeocodeResult(lat, lon) {
+  const latNum = parseFloat(lat)
+  const lonNum = parseFloat(lon)
+  if (Number.isNaN(latNum) || Number.isNaN(lonNum)) return null
+
   const urls = [
     (REVERSE_URL || '').trim().replace(/\/+$/, '') || 'https://umnaapp.in/map/reverse',
     (NOMINATIM_URL || '').trim().replace(/\/+$/, '') ? `${(NOMINATIM_URL || '').trim().replace(/\/+$/, '')}/reverse` : null,
-    NOMINATIM_PUBLIC, // Fallback when umnaapp/NOMINATIM_URL fail (rate limit: 1 req/sec)
+    NOMINATIM_PUBLIC,
   ].filter(Boolean)
+
   for (const base of urls) {
-    try {
-      const res = await axios.get(base, {
-        params: { lat: parseFloat(lat), lon: parseFloat(lon), format: 'json', addressdetails: 1 },
-        headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
-        timeout: 5000,
-      })
-      const addr = res.data?.address || null
-      if (addr) return addr
-    } catch {
-      continue
+    const paramVariants = [
+      { lat: latNum, lon: lonNum, format: 'json', addressdetails: 1 },
+      { lat: latNum, lng: lonNum, format: 'json', addressdetails: 1 },
+    ]
+
+    for (const params of paramVariants) {
+      try {
+        const res = await axiosWithRetry(
+          () =>
+            axios.get(base, {
+              params,
+              headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
+              timeout: 7000,
+            }),
+          { maxRetries: 2 }
+        )
+
+        const result = res.data
+        if (result && !result.error && (result.address || result.display_name || result.name)) {
+          return result
+        }
+      } catch {
+        continue
+      }
     }
   }
+
   return null
+}
+
+async function reverseGeocode(lat, lon) {
+  const result = await reverseGeocodeResult(lat, lon)
+  return result?.address || null
 }
 
 /**
@@ -164,6 +189,7 @@ router.get(
             distance: r.distance ?? 0,
             duration: r.duration ?? 0,
             geometry: r.geometry,
+            legs: (r.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })),
             steps: r.legs?.flatMap((leg) => leg.steps) ?? [],
           }
         }
@@ -182,12 +208,12 @@ router.get(
             const data = res.data
             const route = data.routes?.[0] ?? (data.geometry ? { geometry: data.geometry, distance: data.distance, duration: data.duration, legs: data.legs } : null)
             if (geom === 'geojson' && route?.geometry?.coordinates?.length > 0) {
-              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: route.geometry, steps: route.legs?.flatMap((l) => l.steps) ?? [] }
+              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: route.geometry, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
             }
             if (geom === 'polyline' && typeof route?.geometry === 'string') {
               const dec = polyline.decode(route.geometry, 5)
               const coordinates = dec.map(([lat, lng]) => [lng, lat])
-              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: { type: 'LineString', coordinates }, steps: route.legs?.flatMap((l) => l.steps) ?? [] }
+              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: { type: 'LineString', coordinates }, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
             }
           } catch (e) {
             if (geom === 'geojson') console.warn('Route umnaapp GeoJSON failed:', e.message)
@@ -376,29 +402,30 @@ router.get(
         address: r.address ?? null,
       }))
 
-      // User-added places from database (match name or category)
+      // User-added places from database: search ALL users' places (not just current user)
       let dbResults = []
-      if (prisma.place && req.user?.id && q.length >= 2) {
+      if (prisma.place && q.length >= 2) {
         const searchTerm = q.trim()
         try {
           const dbPlaces = await prisma.place.findMany({
             where: {
-              userId: req.user.id,
               OR: [
                 { name: { contains: searchTerm, mode: 'insensitive' } },
+                { placeNameEn: { contains: searchTerm, mode: 'insensitive' } },
                 { category: { contains: searchTerm, mode: 'insensitive' } },
               ],
             },
-            take: 10,
+            take: 15,
             orderBy: { createdAt: 'desc' },
-            select: { id: true, name: true, category: true, latitude: true, longitude: true },
+            select: { id: true, name: true, placeNameEn: true, placeNameLocal: true, category: true, latitude: true, longitude: true, userId: true, userName: true, source: true },
           })
           dbResults = dbPlaces.map((p) => ({
             placeId: p.id,
-            displayName: p.name,
+            displayName: p.placeNameEn ?? p.name,
             lat: p.latitude,
             lng: p.longitude,
             address: p.category ? { county: p.category } : null,
+            isDbPlace: true,
           }))
         } catch (dbErr) {
           console.warn('DB places search failed:', dbErr.message)
@@ -452,15 +479,7 @@ router.get(
       }
 
       const { lat, lng } = req.query
-      const reverseUrl = (REVERSE_URL || '').trim().replace(/\/+$/, '') || 'https://umnaapp.in/map/reverse'
-
-      const reverseResponse = await axios.get(reverseUrl, {
-        params: { lat: parseFloat(lat), lon: parseFloat(lng), format: 'json', addressdetails: 1 },
-        headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
-        timeout: 10000,
-      })
-
-      const result = reverseResponse.data
+      const result = await reverseGeocodeResult(lat, lng)
       if (!result || result.error) {
         return res.status(404).json({ error: 'Location not found' })
       }
@@ -487,7 +506,7 @@ router.get(
 
 /**
  * @route POST /api/map/translate
- * @desc Translate English text to local language (Atozas Translate or fallback)
+ * @desc Transliterate English/place text to local script using Aksharamukha
  * @access Private
  */
 router.post(
@@ -728,6 +747,246 @@ router.delete(
     } catch (error) {
       console.error('Delete place error:', error)
       res.status(500).json({ error: 'Failed to delete place', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/places/:id
+ * @desc Get a single place by ID (any user's place)
+ * @access Private
+ */
+router.get(
+  '/places/:id',
+  authenticateToken,
+  rateLimitMiddleware('places:get', 120, 60),
+  async (req, res) => {
+    try {
+      const { id } = req.params
+      const place = await prisma.place.findUnique({
+        where: { id },
+        select: {
+          id: true, name: true, placeNameEn: true, placeNameLocal: true,
+          category: true, latitude: true, longitude: true, zoomLevel: true,
+          source: true, userId: true, userName: true, userEmail: true, createdAt: true,
+        },
+      })
+      if (!place) return res.status(404).json({ error: 'Place not found' })
+      res.json({
+        ...place,
+        name: place.placeNameEn ?? place.name,
+        place_name_en: place.placeNameEn ?? place.name,
+        place_name_local: place.placeNameLocal,
+        user_name: place.userName,
+      })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch place', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/places/:id/nearby
+ * @desc Get nearby places (same category or within ~2km)
+ * @access Private
+ */
+router.get(
+  '/places/:id/nearby',
+  authenticateToken,
+  rateLimitMiddleware('places:nearby', 60, 60),
+  async (req, res) => {
+    try {
+      const { id } = req.params
+      const place = await prisma.place.findUnique({ where: { id }, select: { latitude: true, longitude: true, category: true } })
+      if (!place) return res.status(404).json({ error: 'Place not found' })
+
+      const delta = 0.018 // ~2km
+      const nearby = await prisma.place.findMany({
+        where: {
+          id: { not: id },
+          latitude:  { gte: place.latitude  - delta, lte: place.latitude  + delta },
+          longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
+        },
+        take: 8,
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, name: true, placeNameEn: true, category: true, latitude: true, longitude: true, userId: true, userName: true },
+      })
+      res.json(nearby.map((p) => ({ ...p, name: p.placeNameEn ?? p.name, place_name_en: p.placeNameEn ?? p.name })))
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch nearby places', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/places/:id/reviews
+ * @desc Get all reviews for a place
+ * @access Private
+ */
+router.get(
+  '/places/:id/reviews',
+  authenticateToken,
+  rateLimitMiddleware('reviews:list', 120, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.placeReview) return res.json({ reviews: [], avgRating: null })
+      const reviews = await prisma.placeReview.findMany({
+        where: { placeId: req.params.id },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, userId: true, userName: true, rating: true, comment: true, createdAt: true },
+      })
+      const avgRating = reviews.length ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : null
+      res.json({ reviews, avgRating: avgRating ? Math.round(avgRating * 10) / 10 : null, count: reviews.length })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch reviews', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/places/:id/reviews
+ * @desc Add or update a review for a place
+ * @access Private
+ */
+router.post(
+  '/places/:id/reviews',
+  authenticateToken,
+  rateLimitMiddleware('reviews:create', 20, 60),
+  [
+    body('rating').isInt({ min: 1, max: 5 }).withMessage('Rating must be 1-5'),
+    body('comment').optional().trim().isLength({ max: 1000 }).withMessage('Comment max 1000 chars'),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.placeReview) return res.status(503).json({ error: 'Reviews not available. Run migration: add-reviews-photos.sql' })
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const { id: placeId } = req.params
+      const { rating, comment } = req.body
+      const place = await prisma.place.findUnique({ where: { id: placeId }, select: { id: true } })
+      if (!place) return res.status(404).json({ error: 'Place not found' })
+
+      const review = await prisma.placeReview.upsert({
+        where: { placeId_userId: { placeId, userId: req.user.id } },
+        create: { placeId, userId: req.user.id, userName: req.user.name || null, rating: parseInt(rating), comment: comment?.trim() || null },
+        update: { rating: parseInt(rating), comment: comment?.trim() || null, updatedAt: new Date() },
+        select: { id: true, userId: true, userName: true, rating: true, comment: true, createdAt: true },
+      })
+      res.status(201).json(review)
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to save review', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route DELETE /api/map/places/:id/reviews/:reviewId
+ * @desc Delete own review
+ * @access Private
+ */
+router.delete(
+  '/places/:id/reviews/:reviewId',
+  authenticateToken,
+  rateLimitMiddleware('reviews:delete', 20, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.placeReview) return res.status(503).json({ error: 'Reviews not available' })
+      const review = await prisma.placeReview.findFirst({
+        where: { id: req.params.reviewId, userId: req.user.id },
+        select: { id: true },
+      })
+      if (!review) return res.status(404).json({ error: 'Review not found or not authorized' })
+      await prisma.placeReview.delete({ where: { id: req.params.reviewId } })
+      res.json({ success: true })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete review', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/places/:id/photos
+ * @desc Get all photos for a place
+ * @access Private
+ */
+router.get(
+  '/places/:id/photos',
+  authenticateToken,
+  rateLimitMiddleware('photos:list', 120, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.placePhoto) return res.json({ photos: [] })
+      const photos = await prisma.placePhoto.findMany({
+        where: { placeId: req.params.id },
+        orderBy: { createdAt: 'desc' },
+        select: { id: true, userId: true, userName: true, dataUrl: true, caption: true, createdAt: true },
+      })
+      res.json({ photos, count: photos.length })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch photos', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/places/:id/photos
+ * @desc Upload a photo for a place (base64 data URL, max ~500KB after compression on client)
+ * @access Private
+ */
+router.post(
+  '/places/:id/photos',
+  authenticateToken,
+  rateLimitMiddleware('photos:create', 10, 60),
+  [
+    body('dataUrl').isString().isLength({ min: 50, max: 600000 }).withMessage('Valid image data required (max ~450KB)'),
+    body('caption').optional().trim().isLength({ max: 200 }).withMessage('Caption max 200 chars'),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.placePhoto) return res.status(503).json({ error: 'Photos not available. Run migration: add-reviews-photos.sql' })
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const place = await prisma.place.findUnique({ where: { id: req.params.id }, select: { id: true } })
+      if (!place) return res.status(404).json({ error: 'Place not found' })
+
+      // Limit 10 photos per place per user
+      const count = await prisma.placePhoto.count({ where: { placeId: req.params.id, userId: req.user.id } })
+      if (count >= 10) return res.status(429).json({ error: 'Max 10 photos per place' })
+
+      const photo = await prisma.placePhoto.create({
+        data: { placeId: req.params.id, userId: req.user.id, userName: req.user.name || null, dataUrl: req.body.dataUrl, caption: req.body.caption?.trim() || null },
+        select: { id: true, userId: true, userName: true, dataUrl: true, caption: true, createdAt: true },
+      })
+      res.status(201).json(photo)
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to upload photo', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route DELETE /api/map/places/:placeId/photos/:photoId
+ * @desc Delete own photo
+ * @access Private
+ */
+router.delete(
+  '/places/:placeId/photos/:photoId',
+  authenticateToken,
+  rateLimitMiddleware('photos:delete', 20, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.placePhoto) return res.status(503).json({ error: 'Photos not available' })
+      const photo = await prisma.placePhoto.findFirst({
+        where: { id: req.params.photoId, userId: req.user.id },
+        select: { id: true },
+      })
+      if (!photo) return res.status(404).json({ error: 'Photo not found or not authorized' })
+      await prisma.placePhoto.delete({ where: { id: req.params.photoId } })
+      res.json({ success: true })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete photo', message: error.message })
     }
   }
 )

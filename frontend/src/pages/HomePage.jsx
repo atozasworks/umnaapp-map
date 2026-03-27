@@ -4,6 +4,8 @@ import MapComponent from '../components/MapComponent'
 import SearchBar from '../components/SearchBar'
 import RoutePanel from '../components/RoutePanel'
 import AddPlaceModal from '../components/AddPlaceModal'
+import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
+import PlaceDetailPanel from '../components/PlaceDetailPanel'
 import api from '../services/api'
 
 const MAX_AVATAR_SIZE = 200
@@ -50,6 +52,8 @@ const HomePage = () => {
   const [showRoutePanel, setShowRoutePanel] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
   const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
+  const [showAddPlaceMethodModal, setShowAddPlaceMethodModal] = useState(false)
+  const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
   const [mapLocation, setMapLocation] = useState(null)
   const [places, setPlaces] = useState([])
   const [routeStartPlace, setRouteStartPlace] = useState(null)
@@ -63,7 +67,17 @@ const HomePage = () => {
   const [deletingPlaceId, setDeletingPlaceId] = useState(null)
   const [savingPlaceId, setSavingPlaceId] = useState(null)
   const [uploadingPicture, setUploadingPicture] = useState(false)
+  const [selectedPlace, setSelectedPlace] = useState(null)
+  const [routePanelEndPlace, setRoutePanelEndPlace] = useState(null)
   const profileFileInputRef = useRef(null)
+  const [toast, setToast] = useState(null)
+  const [confirmModal, setConfirmModal] = useState(null)
+  const [shareModal, setShareModal] = useState(null)
+
+  const showToast = (msg, type = 'info') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3500)
+  }
 
   const handleProfileImageChange = async (e) => {
     const file = e.target.files?.[0]
@@ -72,20 +86,93 @@ const HomePage = () => {
     try {
       const dataUrl = await resizeImageToDataUrl(file)
       const result = await updateProfilePicture(dataUrl)
-      if (!result.success) alert(result.error || 'Failed to update photo')
+      if (!result.success) showToast(result.error || 'Failed to update photo', 'error')
     } catch {
-      alert('Failed to process image')
+      showToast('Failed to process image', 'error')
     } finally {
       setUploadingPicture(false)
       e.target.value = ''
     }
   }
 
+  const handlePrint = () => {
+    setShowMenu(false)
+    const map = mapRef.current?.getMap?.()
+    if (!map) {
+      showToast('Map not ready', 'error')
+      return
+    }
+    try {
+      const canvas = map.getCanvas()
+      const dataUrl = canvas.toDataURL('image/png')
+      const printWindow = window.open('', '_blank')
+      if (!printWindow) {
+        showToast('Please allow popups to print', 'error')
+        return
+      }
+      printWindow.document.write(`<!DOCTYPE html>
+<html><head><title>UMNAAPP - Map Print</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, -apple-system, sans-serif; padding: 20px; }
+  .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+  .title { font-size: 20px; font-weight: 700; color: #1e293b; }
+  .date { font-size: 12px; color: #64748b; }
+  .map-img { width: 100%; border: 1px solid #e2e8f0; border-radius: 8px; }
+  @media print {
+    body { padding: 0; }
+    .no-print { display: none; }
+    .map-img { border-radius: 0; border: none; }
+  }
+</style></head><body>
+<div class="header">
+  <span class="title">UMNAAPP</span>
+  <span class="date">${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</span>
+</div>
+<img class="map-img" src="${dataUrl}" alt="Map" onload="window.print();" />
+</body></html>`)
+      printWindow.document.close()
+    } catch {
+      showToast('Failed to capture map for printing', 'error')
+    }
+  }
+
+  const handleLocationSharing = () => {
+    setShowMenu(false)
+    const map = mapRef.current?.getMap?.()
+    const center = map?.getCenter()
+    const zoom = map ? Math.round(map.getZoom()) : 15
+    const lat = center ? center.lat.toFixed(6) : currentLocation?.lat?.toFixed(6)
+    const lng = center ? center.lng.toFixed(6) : currentLocation?.lng?.toFixed(6)
+    if (!lat || !lng) {
+      showToast('Location not available', 'error')
+      return
+    }
+    const appUrl = `https://umnaapptst.testatozas.in/?lat=${lat}&lng=${lng}&z=${zoom}`
+    const text = `Check out this location on UMNAAPP`
+    const shareText = `${text}\n${appUrl}`
+
+    if (navigator.share) {
+      navigator.share({ title: 'UMNAAPP - Shared Location', text: shareText, url: appUrl })
+        .catch(() => {})
+    } else {
+      setShareModal({ lat, lng, zoom, appUrl, text, shareText })
+    }
+  }
+
+  const copyShareLink = (link) => {
+    navigator.clipboard.writeText(link).then(
+      () => showToast('Link copied!', 'success'),
+      () => showToast('Failed to copy', 'error')
+    )
+  }
+
   const openAddPlace = () => {
     setShowMenu(false)
     setMapLocation(null)
     setAddPlacePickMode(false)
-    setShowAddPlaceModal(true)
+    setAddPlaceLocationMethod(null)
+    setShowAddPlaceMethodModal(true)
   }
 
   const handleSavePlaceFromSearch = async (result) => {
@@ -109,7 +196,7 @@ const HomePage = () => {
       setShowMyPlaces(true)
     } catch (err) {
       const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
-      alert(msg)
+      showToast(msg, 'error')
     } finally {
       setSavingPlaceId(null)
     }
@@ -178,24 +265,85 @@ const HomePage = () => {
     }
   }
 
-  const handleSearchSelect = (location) => {
+  const handleSearchSelect = async (location) => {
+    // UUID placeId → could be own place or another user's place
+    if (location.placeId && /^[0-9a-f-]{36}$/.test(String(location.placeId))) {
+      // Try own places cache first (instant)
+      const cached = places.find((p) => String(p.id) === String(location.placeId))
+      if (cached) {
+        setSelectedPlace({ ...cached, _isDbPlace: true })
+        if (mapRef.current?.flyTo) {
+          mapRef.current.flyTo({ center: [cached.longitude, cached.latitude], zoom: cached.zoomLevel || 15, duration: 800 })
+        }
+        return
+      }
+      // Fetch from server (another user's place)
+      try {
+        const { data } = await api.get(`/map/places/${location.placeId}`)
+        setSelectedPlace({ ...data, _isDbPlace: true })
+        if (mapRef.current?.flyTo) {
+          mapRef.current.flyTo({ center: [data.longitude, data.latitude], zoom: data.zoomLevel || 15, duration: 800 })
+        }
+        return
+      } catch {
+        // Fall through to normal fly-to
+      }
+    }
+    // Regular nominatim/OSM result — just fly to location
     if (mapRef.current?.showSearchedLocation) {
       mapRef.current.showSearchedLocation(location)
       return
     }
     if (mapRef.current) {
-      mapRef.current.flyTo({
-        center: [location.lng, location.lat],
-        zoom: 15,
-        duration: 1000,
-      })
+      mapRef.current.flyTo({ center: [location.lng, location.lat], zoom: 15, duration: 1000 })
     }
   }
 
-  const handleCalculateRoute = async (start, end) => {
+  const handlePlaceDirections = (place) => {
+    setSelectedPlace(null)
+    setRoutePanelEndPlace({ lat: place.latitude, lng: place.longitude, name: place.place_name_en || place.name })
+    setShowRoutePanel(true)
+  }
+
+  const handlePlaceEdit = (place) => {
+    setSelectedPlace(null)
+    setMapLocation({
+      name: place.place_name_en || place.name,
+      category: place.category,
+      latitude: place.latitude,
+      longitude: place.longitude,
+      zoomLevel: place.zoomLevel || 15,
+    })
+    setShowAddPlaceModal(true)
+  }
+
+  const handlePlaceSaveFromPanel = async (place) => {
+    const placeKey = `${place.latitude}-${place.longitude}`
+    if (savingPlaceId === placeKey) return
+    setSavingPlaceId(placeKey)
+    try {
+      const { data } = await api.post('/map/places', {
+        place_name_en: place.place_name_en || place.name,
+        place_name_local: place.place_name_local || '',
+        category: place.category || 'Other',
+        latitude: place.latitude,
+        longitude: place.longitude,
+        zoomLevel: place.zoomLevel || 15,
+        source: 'saved',
+      })
+      setPlaces((prev) => [data, ...prev])
+    } catch (err) {
+      const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
+      showToast(msg, 'error')
+    } finally {
+      setSavingPlaceId(null)
+    }
+  }
+
+  const handleCalculateRoute = async (start, end, waypoints = [], profile = 'driving') => {
     if (mapRef.current?.calculateRoute) {
       try {
-        await mapRef.current.calculateRoute(start, end)
+        await mapRef.current.calculateRoute(start, end, waypoints, profile)
       } catch (error) {
         console.error('Route calculation failed:', error)
       }
@@ -208,21 +356,71 @@ const HomePage = () => {
   }
 
   const handleDeletePlace = async (placeId) => {
-    if (!window.confirm('Are you sure you want to delete this place?')) return
     setDeletingPlaceId(placeId)
     try {
       await api.delete(`/map/places/${placeId}`)
       setPlaces((prev) => prev.filter((p) => p.id !== placeId))
+      setSelectedPlace((prev) => (prev?.id === placeId ? null : prev))
+      showToast('Place deleted successfully.', 'success')
     } catch (err) {
       console.error('Delete place error:', err)
-      alert('Failed to delete place. Please try again.')
+      showToast('Failed to delete place. Please try again.', 'error')
     } finally {
       setDeletingPlaceId(null)
     }
   }
 
+  const confirmDeletePlace = (placeId, placeName) => {
+    setConfirmModal({
+      title: 'Delete this place?',
+      message: `Are you sure you want to delete "${placeName}" from the map? This cannot be undone.`,
+      onConfirm: () => { setConfirmModal(null); handleDeletePlace(placeId) },
+      onCancel: () => setConfirmModal(null),
+    })
+  }
+
   return (
     <div className="h-screen flex flex-col relative overflow-hidden safe-area-inset">
+
+      {/* ── Toast notification ── */}
+      {toast && (
+        <div className={`fixed top-5 left-1/2 -translate-x-1/2 z-[500] flex items-center gap-3 px-4 py-3 rounded-2xl shadow-2xl text-white text-sm font-medium transition-all animate-fade-in max-w-xs w-full mx-4
+          ${ toast.type === 'error' ? 'bg-red-500' : toast.type === 'success' ? 'bg-emerald-500' : 'bg-slate-700' }`}>
+          <span className="text-lg flex-shrink-0">
+            {toast.type === 'error' ? '❌' : toast.type === 'success' ? '✅' : 'ℹ️'}
+          </span>
+          <span className="flex-1 leading-snug">{toast.msg}</span>
+          <button onClick={() => setToast(null)} className="ml-1 opacity-70 hover:opacity-100 text-lg leading-none">✕</button>
+        </div>
+      )}
+
+      {/* ── Confirm modal ── */}
+      {confirmModal && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" onClick={confirmModal.onCancel}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-base font-bold text-slate-800">{confirmModal.title}</h3>
+              </div>
+            </div>
+            <p className="text-sm text-slate-600 mb-5 leading-relaxed">{confirmModal.message}</p>
+            <div className="flex gap-3">
+              <button onClick={confirmModal.onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
+                Cancel
+              </button>
+              <button onClick={confirmModal.onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors">
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Navbar - Logo, Menu icon, Add Place (My Places & Logout in menu) */}
       <nav className="absolute top-0 left-0 right-0 z-30 glass border-b border-white/30 pt-[env(safe-area-inset-top)] shadow-lg">
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
@@ -252,7 +450,8 @@ const HomePage = () => {
                   setAddPlacePickMode(false)
                 } else {
                   setMapLocation(null)
-                  setShowAddPlaceModal(true)
+                  setAddPlaceLocationMethod(null)
+                  setShowAddPlaceMethodModal(true)
                 }
               }}
               className={`flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2.5 font-medium text-sm transition-all duration-200 shrink-0 min-h-[44px] sm:min-h-0 ${
@@ -283,6 +482,35 @@ const HomePage = () => {
         />
       </div>
 
+      {/* Add Place Method Selection Modal */}
+      <AddPlaceMethodModal
+        isOpen={showAddPlaceMethodModal}
+        onClose={() => setShowAddPlaceMethodModal(false)}
+        currentLocation={currentLocation}
+        onSelectMapPick={() => {
+          setShowAddPlaceMethodModal(false)
+          setAddPlacePickMode(true)
+        }}
+        onUseCurrentLocation={async () => {
+          setShowAddPlaceMethodModal(false)
+          if (currentLocation?.lat != null && currentLocation?.lng != null) {
+            const details = await fetchPlaceDetails({
+              latitude: currentLocation.lat,
+              longitude: currentLocation.lng,
+              zoomLevel: 15,
+            })
+            setMapLocation(details)
+            setAddPlaceLocationMethod('map-or-current')
+            setShowAddPlaceModal(true)
+          }
+        }}
+        onSelectManualCoords={() => {
+          setShowAddPlaceMethodModal(false)
+          setAddPlaceLocationMethod('manual-coords')
+          setShowAddPlaceModal(true)
+        }}
+      />
+
       {/* Add Place Modal */}
       <AddPlaceModal
         isOpen={showAddPlaceModal}
@@ -290,10 +518,12 @@ const HomePage = () => {
           setShowAddPlaceModal(false)
           setMapLocation(null)
           setAddPlacePickMode(false)
+          setAddPlaceLocationMethod(null)
         }}
         initialData={null}
         mapLocation={mapLocation}
         currentLocation={currentLocation}
+        initialLocationMethod={addPlaceLocationMethod}
         onRequestMapPick={() => {
           setShowAddPlaceModal(false)
           setAddPlacePickMode(true)
@@ -301,18 +531,31 @@ const HomePage = () => {
         onSaved={handlePlaceSaved}
       />
 
-      {/* Right-side toolbar: Route Panel - positioned below navbar */}
-      <div className="absolute right-2 sm:right-4 z-20 flex flex-col sm:flex-row items-end sm:items-start gap-2 sm:gap-4" style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}>
-        {showRoutePanel && (
-          <div className="animate-fade-in w-full sm:w-auto max-w-[calc(100vw-1rem)] sm:max-w-none">
+      {/* Route Panel - LEFT side popup like Google Maps */}
+      {showRoutePanel && (
+        <div className="absolute inset-0 z-40 flex pointer-events-none" style={{ top: 0 }}>
+          {/* Backdrop - only on mobile */}
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
+            onClick={() => {
+              setShowRoutePanel(false)
+              setRouteStartPlace(null)
+              setRouteEndPlace(null)
+              setRoutePanelEndPlace(null)
+            }}
+          />
+          {/* Panel - left side */}
+          <div className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]" style={{ marginTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}>
             <RoutePanel
               mapRef={mapRef}
               currentLocation={currentLocation}
               onCalculateRoute={handleCalculateRoute}
+              initialEndPlace={routePanelEndPlace}
               onClose={() => {
                 setShowRoutePanel(false)
                 setRouteStartPlace(null)
                 setRouteEndPlace(null)
+                setRoutePanelEndPlace(null)
               }}
               onSearchResultsChange={() => {}}
               onRoutePlacesChange={(start, end) => {
@@ -321,22 +564,36 @@ const HomePage = () => {
               }}
             />
           </div>
-        )}
-      </div>
-
-      {/* Location picker hint - mobile safe area */}
-      {addPlacePickMode && (
-        <div className="absolute bottom-20 left-2 right-2 sm:left-4 sm:right-auto z-20 glass rounded-xl px-4 py-3 shadow-lg animate-fade-in max-w-md pb-[env(safe-area-inset-bottom)] sm:pb-3">
-          <p className="text-sm font-medium text-slate-700">
-            {fetchingPlaceDetails ? 'Fetching place details...' : 'Click on the map to select a place'}
-          </p>
-          <button
-            onClick={() => { setAddPlacePickMode(false); setFetchingPlaceDetails(false) }}
-            className="mt-2 text-xs text-primary-600 hover:underline"
-          >
-            Cancel
-          </button>
         </div>
+      )}
+
+      {/* Location picker crosshair + hint */}
+      {addPlacePickMode && (
+        <>
+          {/* Centered "+" crosshair on the map */}
+          <div className="absolute inset-0 z-20 flex items-center justify-center pointer-events-none">
+            <div className="relative flex items-center justify-center">
+              <div className="w-12 h-12 rounded-full bg-primary-500/15 flex items-center justify-center animate-pulse">
+                <svg className="w-8 h-8 text-primary-600 drop-shadow-md" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v12m-6-6h12" />
+                </svg>
+              </div>
+            </div>
+          </div>
+
+          {/* Bottom hint bar */}
+          <div className="absolute bottom-20 left-2 right-2 sm:left-4 sm:right-auto z-20 glass rounded-xl px-4 py-3 shadow-lg animate-fade-in max-w-md pb-[env(safe-area-inset-bottom)] sm:pb-3">
+            <p className="text-sm font-medium text-slate-700">
+              {fetchingPlaceDetails ? 'Fetching place details...' : 'Tap on the map to select a place'}
+            </p>
+            <button
+              onClick={() => { setAddPlacePickMode(false); setFetchingPlaceDetails(false) }}
+              className="mt-2 text-xs text-primary-600 hover:underline"
+            >
+              Cancel
+            </button>
+          </div>
+        </>
       )}
 
       {/* Map Container */}
@@ -352,6 +609,29 @@ const HomePage = () => {
           routeEndPlace={routeEndPlace}
         />
       </div>
+
+      {/* Place Detail Panel - opens when a contributed/saved place is selected from search */}
+      {selectedPlace && (
+        <div className="absolute inset-0 z-40 pointer-events-none">
+          <PlaceDetailPanel
+            place={selectedPlace}
+            onClose={() => setSelectedPlace(null)}
+            onDirections={handlePlaceDirections}
+            onSave={handlePlaceSaveFromPanel}
+            onEdit={handlePlaceEdit}
+            onDelete={(placeId) => confirmDeletePlace(placeId, selectedPlace?.place_name_en || selectedPlace?.name || 'this place')}
+            currentUser={user}
+            deletingId={deletingPlaceId}
+            isSaved={places.some(
+              (p) =>
+                p.userId === user?.id &&
+                (p.id === selectedPlace.id ||
+                  (Math.abs(p.latitude - selectedPlace.latitude) < 0.0001 &&
+                    Math.abs(p.longitude - selectedPlace.longitude) < 0.0001))
+            )}
+          />
+        </div>
+      )}
 
       {/* Menu panel - Google Maps style, slide in from left */}
       {showMenu && (
@@ -483,36 +763,25 @@ const HomePage = () => {
                     ).length}
                   </span>
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
+                <button
+                  onClick={handleLocationSharing}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                   <span className="text-sm font-medium text-slate-800">Location sharing</span>
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
-                  </svg>
-                  <span className="text-sm font-medium text-slate-800">Your timeline</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                  </svg>
-                  <span className="text-sm font-medium text-slate-800">Your data in Maps</span>
-                </button>
+
               </div>
 
               {/* Section 3: Map actions */}
               <div className="border-b border-slate-200 py-2">
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  <span className="text-sm font-medium text-slate-800">Share or embed map</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
+                <button
+                  onClick={handlePrint}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5M9 21V5a2 2 0 012-2h2a2 2 0 012 2v4m2 4a2 2 0 01-2 2H9" />
                   </svg>
@@ -524,43 +793,18 @@ const HomePage = () => {
                 >
                   <span className="text-sm font-medium text-slate-800">Add a missing place</span>
                 </button>
-                <button
-                  onClick={openAddPlace}
-                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
-                >
-                  <span className="text-sm font-medium text-slate-800">Add your business</span>
-                </button>
                 <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
                   <span className="text-sm font-medium text-slate-800">Edit the map</span>
                 </button>
               </div>
 
-              {/* Section 4: Support */}
-              <div className="border-b border-slate-200 py-2">
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <span className="text-sm font-medium text-slate-800">Tips and tricks</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <span className="text-sm font-medium text-slate-800">Get help</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <span className="text-sm font-medium text-slate-800">Consumer information</span>
-                </button>
-              </div>
-
-              {/* Section 5: Settings */}
+              {/* Section 4: Settings */}
               <div className="border-b border-slate-200 py-2">
                 <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
                   <span className="text-sm font-medium text-slate-800">Language</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <span className="text-sm font-medium text-slate-800">Search settings</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <span className="text-sm font-medium text-slate-800">Maps history</span>
                 </button>
               </div>
 
@@ -577,6 +821,78 @@ const HomePage = () => {
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Location fallback modal (desktop / unsupported browsers) */}
+      {shareModal && (
+        <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" onClick={() => setShareModal(null)}>
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-base font-bold text-slate-800">Share Location</h3>
+              <button onClick={() => setShareModal(null)} className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-1">Coordinates: {shareModal.lat}, {shareModal.lng}</p>
+            {/* Copy link */}
+            <button
+              onClick={() => { copyShareLink(shareModal.appUrl); setShareModal(null) }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors text-left mb-1"
+            >
+              <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" /></svg>
+              </div>
+              <span className="text-sm font-medium text-slate-700">Copy link</span>
+            </button>
+            {/* WhatsApp */}
+            <a
+              href={`https://wa.me/?text=${encodeURIComponent(shareModal.shareText)}`}
+              target="_blank" rel="noopener noreferrer"
+              onClick={() => setShareModal(null)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors text-left mb-1"
+            >
+              <div className="w-9 h-9 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-green-600" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              </div>
+              <span className="text-sm font-medium text-slate-700">WhatsApp</span>
+            </a>
+            {/* Telegram */}
+            <a
+              href={`https://t.me/share/url?url=${encodeURIComponent(shareModal.appUrl)}&text=${encodeURIComponent(shareModal.text)}`}
+              target="_blank" rel="noopener noreferrer"
+              onClick={() => setShareModal(null)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors text-left mb-1"
+            >
+              <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-blue-500" viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.479.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/></svg>
+              </div>
+              <span className="text-sm font-medium text-slate-700">Telegram</span>
+            </a>
+            {/* Email */}
+            <a
+              href={`mailto:?subject=${encodeURIComponent('UMNAAPP - Shared Location')}&body=${encodeURIComponent(shareModal.shareText)}`}
+              onClick={() => setShareModal(null)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors text-left mb-1"
+            >
+              <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+              </div>
+              <span className="text-sm font-medium text-slate-700">Email</span>
+            </a>
+            {/* SMS */}
+            <a
+              href={`sms:?body=${encodeURIComponent(shareModal.shareText)}`}
+              onClick={() => setShareModal(null)}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors text-left"
+            >
+              <div className="w-9 h-9 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+              </div>
+              <span className="text-sm font-medium text-slate-700">SMS</span>
+            </a>
           </div>
         </div>
       )}
@@ -690,7 +1006,7 @@ const HomePage = () => {
                       {/* Delete button - only in Your contributions */}
                       {showContributionsOnly && (
                         <button
-                          onClick={() => handleDeletePlace(place.id)}
+                          onClick={() => confirmDeletePlace(place.id, place.place_name_en || place.name || 'this place')}
                           disabled={deletingPlaceId === place.id}
                           className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0 disabled:opacity-40"
                           title="Delete place"

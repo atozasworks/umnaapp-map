@@ -114,7 +114,7 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
     setQuery(result.displayName)
     setShowResults(false)
     if (onSelect) {
-      onSelect({ lat: result.lat, lng: result.lng, name: result.displayName })
+      onSelect({ lat: result.lat, lng: result.lng, name: result.displayName, placeId: result.placeId })
     }
   }
 
