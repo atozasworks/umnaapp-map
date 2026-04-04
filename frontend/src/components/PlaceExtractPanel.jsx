@@ -14,7 +14,7 @@ const RATE_CONFIG = {
   baseRetryDelay: 2000,
 }
 
-let _googleMapsApiKey = nu
+let _googleMapsApiKey = null
 
 async function fetchGoogleMapsApiKey() {
   if (_googleMapsApiKey) return _googleMapsApiKey
