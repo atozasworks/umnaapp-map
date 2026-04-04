@@ -6,6 +6,7 @@ import RoutePanel from '../components/RoutePanel'
 import AddPlaceModal from '../components/AddPlaceModal'
 import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
 import PlaceDetailPanel from '../components/PlaceDetailPanel'
+import PlaceExtractPanel from '../components/PlaceExtractPanel'
 import api from '../services/api'
 
 const MAX_AVATAR_SIZE = 200
@@ -73,6 +74,7 @@ const HomePage = () => {
   const [toast, setToast] = useState(null)
   const [confirmModal, setConfirmModal] = useState(null)
   const [shareModal, setShareModal] = useState(null)
+  const [showExtractPanel, setShowExtractPanel] = useState(false)
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
@@ -348,6 +350,22 @@ const HomePage = () => {
         console.error('Route calculation failed:', error)
       }
     }
+  }
+
+  const handleAddExtractedPlaces = async (selected) => {
+    const { data } = await api.post('/map/places/bulk', { places: selected })
+    if (data.places?.length > 0) {
+      setPlaces((prev) => [...data.places, ...prev])
+    }
+    if (data.places?.[0]) {
+      mapRef.current?.flyTo?.({
+        center: [data.places[0].longitude, data.places[0].latitude],
+        zoom: 12,
+        duration: 1000,
+      })
+    }
+    showToast(`Added ${data.added} places (${data.skipped} skipped)`, data.added > 0 ? 'success' : 'info')
+    return data
   }
 
   const handleLogout = async () => {
@@ -793,6 +811,15 @@ const HomePage = () => {
                 >
                   <span className="text-sm font-medium text-slate-800">Add a missing place</span>
                 </button>
+                <button
+                  onClick={() => { setShowMenu(false); setShowExtractPanel(true) }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">Extract Places</span>
+                </button>
                 <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
                   <span className="text-sm font-medium text-slate-800">Edit the map</span>
                 </button>
@@ -896,6 +923,13 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
+      {/* Place Extract Panel */}
+      <PlaceExtractPanel
+        isOpen={showExtractPanel}
+        onClose={() => setShowExtractPanel(false)}
+        onAddToMap={handleAddExtractedPlaces}
+      />
 
       {/* My Places panel - slide in from left */}
       {showMyPlaces && (

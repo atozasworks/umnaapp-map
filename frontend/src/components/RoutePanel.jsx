@@ -178,19 +178,44 @@ const PlaceThumbnail = ({ place }) => {
 }
 
 const TRAVEL_MODES = [
-  { id: 'driving', label: 'Car', icon: (
+  { id: 'driving', label: 'Car', color: '#136AEC', icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17h.01M16 17h.01M3 11l1.5-5A2 2 0 016.4 4h11.2a2 2 0 011.9 1.4L21 11M3 11h18M3 11v6a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-6" /></svg>
   )},
-  { id: 'two_wheeler', label: 'Two Wheeler', icon: (
+  { id: 'two_wheeler', label: 'Bike', color: '#059669', icon: (
     <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="5" cy="17" r="3"/><circle cx="19" cy="17" r="3"/><path d="M12 17V5l4 4"/><path d="M5 17h6l3-6h5"/></svg>
   )},
-  { id: 'walking', label: 'Walk', icon: (
+  { id: 'walking', label: 'Walk', color: '#7C3AED', dashArray: [2, 3], icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 4a1 1 0 11-2 0 1 1 0 012 0zM10.5 7.5L8 14l2.5 3.5L13 21m-2.5-3.5L8 21m5-14l2 3.5L18 14" /></svg>
   )},
-  { id: 'cycling', label: 'Cycle', icon: (
+  { id: 'cycling', label: 'Cycle', color: '#D97706', icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><circle cx="5.5" cy="17.5" r="3.5"/><circle cx="18.5" cy="17.5" r="3.5"/><path d="M15 6a1 1 0 100-2 1 1 0 000 2zm-3 11.5V14l-3-3 4-3 2 3h3"/></svg>
   )},
+  { id: 'bus', label: 'Bus', color: '#0EA5E9', dashArray: [4, 4], icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 21v-2M17 21v-2M7 17h.01M17 17h.01"/></svg>
+  )},
 ]
+
+const MODE_ROUTE_OPTIONS = Object.fromEntries(
+  TRAVEL_MODES.map((m) => [m.id, { color: m.color, ...(m.dashArray ? { dashArray: m.dashArray } : {}) }])
+)
+
+const StepIcon = ({ modifier }) => {
+  const m = (modifier || '').toLowerCase()
+  if (m.includes('left'))
+    return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+  if (m.includes('right'))
+    return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+  if (m.includes('uturn') || m.includes('u-turn'))
+    return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 10h10a4 4 0 010 8H9m4-8l-4-4m4 4l-4 4" /></svg>
+  if (m.includes('arrive') || m.includes('destination'))
+    return <svg className="w-3 h-3 text-red-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>
+  if (m.includes('depart') || m.includes('head'))
+    return <svg className="w-3 h-3 text-green-600" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z"/></svg>
+  if (m.includes('roundabout') || m.includes('rotary'))
+    return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" strokeWidth={2}/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8V3m0 0l-2 2m2-2l2 2" /></svg>
+  // default: straight
+  return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5m0 0l-4 4m4-4l4 4" /></svg>
+}
 
 const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, initialEndPlace }) => {
   const [startPlace, setStartPlace] = useState(null)
@@ -202,6 +227,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const [isRouteEdited, setIsRouteEdited] = useState(false)
   const [allModesData, setAllModesData] = useState(null) // { driving: {...}, two_wheeler: {...}, ... }
   const [error, setError] = useState(null)
+  const [showSteps, setShowSteps] = useState(false)
   const nextWpId = useRef(1)
 
   // Notify parent when start/end places change so map can show blue/red markers
@@ -239,8 +265,10 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     }
 
     const mode = modeOverride || travelMode
+    const routeOpts = MODE_ROUTE_OPTIONS[mode] || {}
     setIsCalculating(true)
     setError(null)
+    setShowSteps(false)
 
     try {
       const start = { lat: startPlace.lat, lng: startPlace.lng }
@@ -248,7 +276,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       const wp = waypoints.filter((w) => w.place).map((w) => ({ lat: w.place.lat, lng: w.place.lng }))
 
       if (mapRef?.current?.calculateRoute) {
-        const route = await mapRef.current.calculateRoute(start, end, wp, mode)
+        const route = await mapRef.current.calculateRoute(start, end, wp, mode, routeOpts)
         setRouteData(route)
         setIsRouteEdited(false)
         // Now fetch all travel modes in background for comparison
@@ -291,12 +319,14 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
 
   const handleModeChange = (mode) => {
     setTravelMode(mode)
+    setShowSteps(false)
+    const routeOpts = MODE_ROUTE_OPTIONS[mode] || {}
     if (allModesData?.[mode]) {
       // Already have data for this mode — draw it on map
       setRouteData(allModesData[mode])
       setIsRouteEdited(false)
       if (allModesData[mode]?.geometry && mapRef?.current?.setRouteGeometry) {
-        mapRef.current.setRouteGeometry(allModesData[mode].geometry, { fitBounds: false })
+        mapRef.current.setRouteGeometry(allModesData[mode].geometry, { fitBounds: false, ...routeOpts })
       }
     } else if (startPlace && endPlace) {
       // Need to calculate fresh
@@ -311,6 +341,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     setRouteData(null)
     setIsRouteEdited(false)
     setAllModesData(null)
+    setShowSteps(false)
     setError(null)
   }
 
@@ -396,19 +427,19 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
               onClick={() => handleModeChange(mode.id)}
               className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-1 transition-all relative ${
                 isActive
-                  ? 'text-primary-700'
-                  : 'text-slate-400 hover:text-slate-600'
+                  ? 'text-slate-800'
+                  : modeData ? 'text-slate-400 hover:text-slate-600' : 'text-slate-300 hover:text-slate-400'
               }`}
               title={mode.label}
             >
-              <div className={isActive ? 'text-primary-600' : ''}>{mode.icon}</div>
+              <div style={isActive ? { color: mode.color } : {}}>{mode.icon}</div>
               <span className="text-[10px] font-medium leading-none">{mode.label}</span>
               {modeData && (
-                <span className={`text-[9px] font-semibold leading-none ${isActive ? 'text-primary-600' : 'text-slate-400'}`}>
+                <span className={`text-[9px] font-semibold leading-none ${isActive ? '' : 'text-slate-400'}`} style={isActive ? { color: mode.color } : {}}>
                   {formatDuration(modeData.duration)}
                 </span>
               )}
-              {isActive && <div className="absolute bottom-0 left-1 right-1 h-[2px] bg-primary-600 rounded-full" />}
+              {isActive && <div className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full" style={{ backgroundColor: mode.color }} />}
             </button>
           )
         })}
@@ -567,8 +598,10 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         {routeData && (
           <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-primary-50 border border-blue-100 rounded-xl">
             <div className="flex items-center gap-2 mb-2">
-              {TRAVEL_MODES.find((m) => m.id === travelMode)?.icon}
-              <span className="text-xs font-semibold text-blue-700">
+              <span style={{ color: TRAVEL_MODES.find((m) => m.id === travelMode)?.color }}>
+                {TRAVEL_MODES.find((m) => m.id === travelMode)?.icon}
+              </span>
+              <span className="text-xs font-semibold" style={{ color: TRAVEL_MODES.find((m) => m.id === travelMode)?.color }}>
                 {TRAVEL_MODES.find((m) => m.id === travelMode)?.label} Route
               </span>
               {isRouteEdited && (
@@ -602,7 +635,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
             {allModesData && Object.keys(allModesData).length > 1 && (
               <div className="mt-2 pt-2 border-t border-blue-200">
                 <div className="text-[10px] text-slate-500 mb-1.5 font-medium uppercase tracking-wide">Compare</div>
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                   {TRAVEL_MODES.map((mode) => {
                     const d = allModesData[mode.id]
                     if (!d) return null
@@ -612,12 +645,13 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                         key={mode.id}
                         onClick={() => handleModeChange(mode.id)}
                         className={`flex items-center gap-1.5 p-1.5 rounded-lg text-left transition-all ${
-                          isActive ? 'bg-primary-100 ring-1 ring-primary-300' : 'bg-white/70 hover:bg-white'
+                          isActive ? 'ring-1 ring-offset-1' : 'bg-white/70 hover:bg-white'
                         }`}
+                        style={isActive ? { backgroundColor: `${mode.color}15`, ringColor: mode.color } : {}}
                       >
-                        <span className={isActive ? 'text-primary-600' : 'text-slate-400'}>{mode.icon}</span>
+                        <span style={{ color: isActive ? mode.color : undefined }} className={isActive ? '' : 'text-slate-400'}>{mode.icon}</span>
                         <div className="min-w-0">
-                          <div className={`text-[10px] font-semibold truncate ${isActive ? 'text-primary-700' : 'text-slate-600'}`}>
+                          <div className={`text-[10px] font-semibold truncate ${isActive ? '' : 'text-slate-600'}`} style={isActive ? { color: mode.color } : {}}>
                             {formatDuration(d.duration)}
                           </div>
                           <div className="text-[9px] text-slate-400">{formatDistance(d.distance)}</div>
@@ -644,6 +678,59 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                     </span>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* Step-by-step navigation toggle */}
+            {routeData.steps && routeData.steps.length > 0 && (
+              <div className="mt-2 pt-2 border-t border-blue-200">
+                <button
+                  onClick={() => setShowSteps(!showSteps)}
+                  className="w-full flex items-center justify-between text-xs font-medium text-blue-700 hover:text-blue-800 transition-colors"
+                >
+                  <span className="flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    Step-by-step directions
+                  </span>
+                  <svg className={`w-4 h-4 transition-transform ${showSteps ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                </button>
+                {showSteps && (
+                  <div className="mt-2 space-y-0.5 max-h-60 overflow-y-auto overscroll-contain">
+                    {routeData.steps.map((step, i) => {
+                      const maneuver = step.maneuver || {}
+                      const instruction = step.name || maneuver.instruction || `Step ${i + 1}`
+                      const modifier = maneuver.modifier || maneuver.type || ''
+                      return (
+                        <div key={i} className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-blue-50/50">
+                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
+                            <StepIcon modifier={modifier} />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[11px] text-slate-700 leading-snug">
+                              {modifier && <span className="font-semibold capitalize">{modifier.replace(/-/g, ' ')} </span>}
+                              {instruction ? <span>on {instruction}</span> : null}
+                            </div>
+                            {(step.distance > 0 || step.duration > 0) && (
+                              <div className="text-[10px] text-slate-400 mt-0.5">
+                                {step.distance > 0 && formatDistance(step.distance)}
+                                {step.distance > 0 && step.duration > 0 && ' · '}
+                                {step.duration > 0 && formatDuration(step.duration)}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Bus mode hint */}
+            {travelMode === 'bus' && (
+              <div className="mt-2 pt-2 border-t border-blue-200 flex items-start gap-2 text-[10px] text-slate-500">
+                <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-sky-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                <span>Bus times are estimated. Actual public transport schedules and stops may vary by city.</span>
               </div>
             )}
           </div>

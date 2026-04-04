@@ -144,7 +144,7 @@ router.get(
   [
     query('start').isString().withMessage('Start coordinates required (lat,lng)'),
     query('end').isString().withMessage('End coordinates required (lat,lng)'),
-    query('profile').optional().isIn(['driving', 'walking', 'cycling']).withMessage('Invalid profile'),
+    query('profile').optional().isIn(['driving', 'walking', 'cycling', 'bus']).withMessage('Invalid profile'),
   ],
   async (req, res) => {
     try {
@@ -154,6 +154,9 @@ router.get(
       }
 
       const { start, end, profile = 'driving', waypoints } = req.query
+
+      // Map bus to driving for routing engines (bus uses driving roads with duration adjustment)
+      const routingProfile = profile === 'bus' ? 'driving' : profile
 
       // Validate coordinates (frontend sends lat,lng)
       const startCoords = start.split(',').map(Number)
@@ -178,9 +181,9 @@ router.get(
 
       /** Fetch from OSRM-style API: /route/v1/{profile}/{coords} */
       const tryOsrm = async (baseUrl) => {
-        const url = `${baseUrl.replace(/\/+$/, '')}/route/v1/${profile}/${coordinatesStr}`
+        const url = `${baseUrl.replace(/\/+$/, '')}/route/v1/${routingProfile}/${coordinatesStr}`
         const res = await axios.get(url, {
-          params: { overview: 'full', geometries: 'geojson' },
+          params: { overview: 'full', geometries: 'geojson', steps: 'true' },
           timeout: 10000,
         })
         const r = res.data?.routes?.[0]
@@ -198,11 +201,11 @@ router.get(
 
       /** Fetch from umnaapp-style API: /map/route/{profile}/{coords} */
       const tryUmnaapp = async () => {
-        const url = `${ROUTE_BASE_URL}/${profile}/${coordinatesStr}`
+        const url = `${ROUTE_BASE_URL}/${routingProfile}/${coordinatesStr}`
         for (const geom of ['geojson', 'polyline']) {
           try {
             const res = await axios.get(url, {
-              params: { overview: 'full', geometries: geom },
+              params: { overview: 'full', geometries: geom, steps: 'true' },
               timeout: 10000,
             })
             const data = res.data
@@ -247,6 +250,15 @@ router.get(
 
       if (!routeData || !routeData.geometry?.coordinates?.length) {
         return res.status(400).json({ error: 'Route calculation failed', details: 'All route services unavailable (umnaapp, OSRM)' })
+      }
+
+      // Profile-based duration adjustments
+      if (profile === 'bus' && routeData.duration) {
+        // Bus is slower due to stops — ~1.4x driving duration
+        routeData.duration = Math.round(routeData.duration * 1.4)
+        if (routeData.legs) {
+          routeData.legs = routeData.legs.map((leg) => ({ ...leg, duration: Math.round(leg.duration * 1.4) }))
+        }
       }
 
       // Optionally save route to database
@@ -712,6 +724,123 @@ router.get(
 )
 
 /**
+ * @route POST /api/map/places/bulk
+ * @desc Save multiple extracted places at once, skipping duplicates
+ * @access Private
+ */
+router.post(
+  '/places/bulk',
+  authenticateToken,
+  rateLimitMiddleware('places:bulk', 10, 60),
+  [
+    body('places').isArray({ min: 1, max: 500 }).withMessage('places must be an array (1-500 items)'),
+    body('places.*.name').trim().isLength({ min: 1, max: 200 }).withMessage('Each place needs a name (1-200 chars)'),
+    body('places.*.lat').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude required'),
+    body('places.*.lng').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
+    body('places.*.type').optional().trim().isLength({ max: 100 }),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const { places: incoming } = req.body
+      const userId = req.user.id
+      const userName = req.user.name || null
+      const userEmail = req.user.email || null
+
+      // Fetch existing places for this user to check duplicates by coordinates
+      const existing = await prisma.place.findMany({
+        where: { userId },
+        select: { latitude: true, longitude: true },
+      })
+
+      const isDuplicate = (lat, lng) =>
+        existing.some(
+          (p) => Math.abs(p.latitude - lat) < 0.0001 && Math.abs(p.longitude - lng) < 0.0001
+        )
+
+      const toCreate = []
+      const skipped = []
+
+      for (const item of incoming) {
+        const lat = parseFloat(item.lat)
+        const lng = parseFloat(item.lng)
+        const name = (item.name || '').trim()
+        if (!name || isNaN(lat) || isNaN(lng)) {
+          skipped.push({ name, reason: 'invalid' })
+          continue
+        }
+        if (isDuplicate(lat, lng)) {
+          skipped.push({ name, reason: 'duplicate' })
+          continue
+        }
+        // Also deduplicate within the batch itself
+        if (toCreate.some((c) => Math.abs(c.latitude - lat) < 0.0001 && Math.abs(c.longitude - lng) < 0.0001)) {
+          skipped.push({ name, reason: 'duplicate_in_batch' })
+          continue
+        }
+        toCreate.push({
+          name,
+          placeNameEn: name,
+          placeNameLocal: null,
+          category: item.type || 'Other',
+          latitude: lat,
+          longitude: lng,
+          zoomLevel: 15,
+          userId,
+          userName,
+          userEmail,
+          source: 'contribution',
+        })
+      }
+
+      let created = []
+      if (toCreate.length > 0) {
+        // Use createMany for efficiency, then fetch created records
+        await prisma.place.createMany({ data: toCreate, skipDuplicates: true })
+
+        // Fetch back the newly created places for this user
+        created = await prisma.place.findMany({
+          where: { userId },
+          orderBy: { createdAt: 'desc' },
+          take: toCreate.length,
+          select: {
+            id: true, name: true, placeNameEn: true, placeNameLocal: true,
+            category: true, latitude: true, longitude: true, zoomLevel: true,
+            source: true, userId: true, userName: true, userEmail: true, createdAt: true,
+          },
+        })
+
+        created = created.map((p) => ({
+          ...p,
+          name: p.placeNameEn ?? p.name,
+          place_name_en: p.placeNameEn ?? p.name,
+          place_name_local: p.placeNameLocal,
+          user_name: p.userName,
+          user_email: p.userEmail,
+        }))
+      }
+
+      res.status(201).json({
+        added: created.length,
+        skipped: skipped.length,
+        places: created,
+      })
+    } catch (error) {
+      console.error('Bulk save places error:', error)
+      res.status(500).json({ error: 'Failed to save places', message: error.message })
+    }
+  }
+)
+
+/**
  * @route DELETE /api/map/places/:id
  * @desc Delete a place owned by the current user
  * @access Private
@@ -990,6 +1119,17 @@ router.delete(
     }
   }
 )
+
+/**
+ * @route GET /api/map/config
+ * @desc Return public client-side config (Google Maps API key)
+ * @access Private
+ */
+router.get('/config', authenticateToken, (req, res) => {
+  res.json({
+    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+  })
+})
 
 export default router
 

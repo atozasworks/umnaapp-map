@@ -881,6 +881,8 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     if (!feature) return
 
     const shouldFitBounds = options.fitBounds !== false
+    const lineColor = options.color || '#136AEC'
+    const lineDash = options.dashArray || null
 
     // Remove existing route
     if (mapRef.current.getLayer('route')) {
@@ -916,6 +918,15 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     })
 
     // Add route layer
+    const routePaint = {
+      'line-color': lineColor,
+      'line-width': 4,
+      'line-opacity': 0.8,
+    }
+    if (lineDash) {
+      routePaint['line-dasharray'] = lineDash
+    }
+
     mapRef.current.addLayer({
       id: 'route',
       type: 'line',
@@ -924,11 +935,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
         'line-join': 'round',
         'line-cap': 'round',
       },
-      paint: {
-        'line-color': '#136AEC',
-        'line-width': 4,
-        'line-opacity': 0.8,
-      },
+      paint: routePaint,
     })
 
     routeLayerRef.current = true
@@ -952,11 +959,12 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
   // Expose methods via ref (for parent component)
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
-    calculateRoute: async (start, end, waypoints = [], profile = 'driving') => {
+    calculateRoute: async (start, end, waypoints = [], profile = 'driving', routeOptions = {}) => {
+      const backendProfile = profile === 'two_wheeler' ? 'driving' : profile
       const params = {
         start: `${start.lat},${start.lng}`,
         end: `${end.lat},${end.lng}`,
-        profile: profile === 'two_wheeler' ? 'driving' : profile,
+        profile: backendProfile,
       }
       if (waypoints.length > 0) {
         params.waypoints = waypoints.map((wp) => `${wp.lat},${wp.lng}`).join(';')
@@ -974,7 +982,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
         routeData.duration = Math.round(routeData.duration * 0.75)
       }
 
-      drawRoute({ geometry: routeData.geometry })
+      drawRoute({ geometry: routeData.geometry }, routeOptions)
       setRoute(routeData)
 
       return routeData
