@@ -1,4 +1,4 @@
-# [YOUR PROJECT NAME]
+# [UMNAAPP (Universal Map & Navigation Advisory App)]
 
 [SHORT DESCRIPTION]
 
