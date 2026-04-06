@@ -82,7 +82,7 @@ const createSearchResultMarkerElement = (place) => {
   dot.style.width = '20px'
   dot.style.height = '20px'
   dot.style.borderRadius = '50%'
-  dot.style.backgroundColor = '#EF4444'
+  dot.style.backgroundColor = place.markerColor || '#EA4335'
   dot.style.border = '2px solid white'
   dot.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)'
 
@@ -148,7 +148,17 @@ const createRouteEndpointMarker = (place, isStart) => {
   return wrapper
 }
 
-const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, places = [], searchResultPlaces = [], routeStartPlace = null, routeEndPlace = null }, ref) => {
+const MapComponent = forwardRef(({
+  onLocationUpdate,
+  onMapClick,
+  onMapReady,
+  addPlaceMode,
+  places = [],
+  searchResultPlaces = [],
+  autoFitSearchResults = true,
+  routeStartPlace = null,
+  routeEndPlace = null,
+}, ref) => {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
   const userMarkerRef = useRef(null)
@@ -166,6 +176,10 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
   const routeEditEmitRafRef = useRef(null)
   const watchIdRef = useRef(null)
   const lastValidLocationRef = useRef(null)
+  const hasFlownToUserRef = useRef(false)
+  const lastAppliedAccuracyRef = useRef(null)
+  const initialFlyFallbackTimerRef = useRef(null)
+  const hasRefinedFlyToGpsRef = useRef(false)
   const placePopupRef = useRef(null)
   const { socket } = useSocket()
 
@@ -437,10 +451,12 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
             type: 'raster',
             source: 'raster-tiles',
             minzoom: 0,
-            maxzoom: 22,
+            // Keep in sync with source maxzoom to avoid odd tile requests at high zoom
+            maxzoom: 19,
           },
         ],
-        glyphs: 'https://demotiles.maplibre.org/font/{fontstack}/{range}.pbf',
+        // demotiles.maplibre.org often 404s for Open Sans; OpenMapTiles CDN is stable for glyphs
+        glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
       },
       center: [78.5, 20.5], // India center
       zoom: 4,
@@ -461,6 +477,9 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       })
       setMapLoaded(true)
       setMapZoom(map.getZoom())
+      if (typeof onMapReady === 'function') {
+        onMapReady(map)
+      }
       console.log('✅ Map loaded')
     })
 
@@ -468,8 +487,27 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     map.on('zoomend', () => setMapZoom(map.getZoom()))
 
     map.on('error', (e) => {
+      const err = e.error
+      const msg = err?.message || (typeof err === 'string' ? err : '') || 'Unknown map error'
+
+      // Raster tile fetch failures (404, CORS, timeout) fire once per tile — not fatal; map still works.
+      if (e.tile != null) {
+        if (import.meta.env.DEV) {
+          console.warn('[map] Tile failed:', msg)
+        }
+        return
+      }
+
+      // Missing glyph ranges should not replace the whole map with an error screen
+      if (/glyph|font|\.pbf/i.test(msg)) {
+        if (import.meta.env.DEV) {
+          console.warn('[map] Glyph load issue:', msg)
+        }
+        return
+      }
+
       console.error('Map error:', e)
-      setMapInitError(e.error?.message || 'Map tiles failed to load')
+      setMapInitError(msg || 'Map failed to load')
     })
 
     mapRef.current = map
@@ -574,7 +612,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
         filter: ['has', 'point_count'],
         layout: {
           'text-field': '{point_count_abbreviated}',
-          'text-font': ['Open Sans Bold'],
+          'text-font': ['Noto Sans Bold'],
           'text-size': 12,
         },
         paint: {
@@ -611,6 +649,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
         filter: ['!', ['has', 'point_count']],
         layout: {
           'text-field': ['get', 'name'],
+          'text-font': ['Noto Sans Regular'],
           'text-size': 11,
           'text-offset': [0, 1.35],
           'text-anchor': 'top',
@@ -733,8 +772,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       searchResultMarkersRef.current[key] = marker
     })
 
-    // Fit map to show all search results when we have them
-    if (searchResultPlaces.length > 1) {
+    if (autoFitSearchResults && searchResultPlaces.length > 1) {
       const bounds = searchResultPlaces.reduce(
         (b, p) => b.extend([p.lng, p.lat]),
         new maplibregl.LngLatBounds(
@@ -749,7 +787,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       Object.values(searchResultMarkersRef.current).forEach((m) => m?.remove())
       searchResultMarkersRef.current = {}
     }
-  }, [mapLoaded, searchResultPlaces])
+  }, [mapLoaded, searchResultPlaces, autoFitSearchResults])
 
   // Route start (blue) and end (red) markers
   useEffect(() => {
@@ -788,69 +826,150 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
     }
   }, [mapLoaded, routeStartPlace, routeEndPlace])
 
-  // GPS location tracking
+  // GPS: bootstrap with a fast coarse fix, then high-accuracy watch. Code 3 = TIMEOUT is common
+  // on Wi‑Fi/desktop — we avoid treating it as fatal if we already have a position.
   useEffect(() => {
     if (!mapLoaded || !mapRef.current) return
-
-    const options = {
-      enableHighAccuracy: true,
-      maximumAge: 0,
-      timeout: 15000,
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser.')
+      return
     }
 
-    const handleLocationSuccess = (position) => {
+    const relaxedRead = {
+      enableHighAccuracy: false,
+      maximumAge: 60000,
+      timeout: 45000,
+    }
+    const strictWatch = {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 60000,
+    }
+
+    const AUTO_FLY_MAX_ACCURACY_M = 100
+    const REFINE_FLY_PREV_MIN_M = 70
+    const REFINE_FLY_NEW_MAX_M = 35
+
+    const applyPosition = (position) => {
       const { latitude, longitude, accuracy, speed, heading } = position.coords
 
-      // Filter: Only accept high-accuracy readings (≤ 30m)
-      if (accuracy > 30) {
-        setGpsStatus('weak')
-        if (lastValidLocationRef.current) {
-          // Use last valid position
-          updateUserLocation(lastValidLocationRef.current, false)
-        }
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
         return
       }
 
-      setGpsStatus(accuracy <= 15 ? 'high' : 'acquiring')
+      const acc = Number.isFinite(accuracy) && accuracy > 0 ? accuracy : 150
+      const location = { lat: latitude, lng: longitude, accuracy: acc, speed, heading }
+      lastValidLocationRef.current = location
       setLocationError(null)
 
-      const location = { lat: latitude, lng: longitude, accuracy, speed, heading }
-      lastValidLocationRef.current = location
-      updateUserLocation(location, true)
+      if (acc <= 15) {
+        setGpsStatus('high')
+      } else if (acc <= 80) {
+        setGpsStatus('acquiring')
+      } else {
+        setGpsStatus('weak')
+      }
+
+      updateUserLocation(location, acc <= 30)
 
       if (onLocationUpdate) {
         onLocationUpdate(location)
       }
+
+      const map = mapRef.current
+      const prevAcc = lastAppliedAccuracyRef.current
+      lastAppliedAccuracyRef.current = acc
+
+      // Do not auto-fly on coarse network/IP fixes (often 1km+ off): wait for GPS-level accuracy,
+      // then fly; if nothing good arrives, fallback timer still centers on best available fix.
+      if (map && !hasFlownToUserRef.current && acc <= AUTO_FLY_MAX_ACCURACY_M) {
+        hasFlownToUserRef.current = true
+        if (initialFlyFallbackTimerRef.current != null) {
+          clearTimeout(initialFlyFallbackTimerRef.current)
+          initialFlyFallbackTimerRef.current = null
+        }
+        map.flyTo({
+          center: [longitude, latitude],
+          zoom: acc <= 25 ? 16 : 15,
+          duration: 1200,
+        })
+      } else if (
+        map
+        && hasFlownToUserRef.current
+        && !hasRefinedFlyToGpsRef.current
+        && prevAcc != null
+        && prevAcc > REFINE_FLY_PREV_MIN_M
+        && acc <= REFINE_FLY_NEW_MAX_M
+      ) {
+        hasRefinedFlyToGpsRef.current = true
+        map.flyTo({
+          center: [longitude, latitude],
+          zoom: 16,
+          duration: 700,
+        })
+      }
     }
 
-    const handleLocationError = (error) => {
-      console.error('Location error:', error)
+    const handleWatchError = (error) => {
+      if (error.code === error.TIMEOUT) {
+        if (lastValidLocationRef.current) {
+          setLocationError(null)
+          setGpsStatus('weak')
+          return
+        }
+        setGpsStatus('weak')
+        setLocationError(
+          'Precise location is slow. Showing approximate position if available — tap the target button to retry.'
+        )
+        return
+      }
+
+      if (import.meta.env.DEV) {
+        console.warn('Geolocation:', error.message || error.code)
+      }
       let message = 'Location access denied. Please enable location services.'
       if (error.code === error.POSITION_UNAVAILABLE) {
-        message = 'Location information unavailable. Please check GPS settings.'
-      } else if (error.code === error.TIMEOUT) {
-        message = 'Location request timed out. Please try again.'
+        message = 'Location unavailable. Check GPS or try the target button to retry.'
       }
       setLocationError(message)
       setGpsStatus('weak')
     }
 
-    // Start watching position
-    if (navigator.geolocation) {
-      watchIdRef.current = navigator.geolocation.watchPosition(
-        handleLocationSuccess,
-        handleLocationError,
-        options
-      )
-    } else {
-      setLocationError('Geolocation is not supported by your browser.')
-    }
+    // Fast approximate marker only — do not treat this as the “true” position for auto-fly
+    navigator.geolocation.getCurrentPosition(applyPosition, () => {}, relaxedRead)
+
+    watchIdRef.current = navigator.geolocation.watchPosition(
+      applyPosition,
+      handleWatchError,
+      strictWatch
+    )
+
+    initialFlyFallbackTimerRef.current = setTimeout(() => {
+      initialFlyFallbackTimerRef.current = null
+      const map = mapRef.current
+      const loc = lastValidLocationRef.current
+      if (!map || !loc || hasFlownToUserRef.current) return
+      hasFlownToUserRef.current = true
+      map.flyTo({
+        center: [loc.lng, loc.lat],
+        zoom: 14,
+        duration: 1000,
+      })
+    }, 14000)
 
     return () => {
+      if (initialFlyFallbackTimerRef.current != null) {
+        clearTimeout(initialFlyFallbackTimerRef.current)
+        initialFlyFallbackTimerRef.current = null
+      }
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current)
+        watchIdRef.current = null
       }
+      hasRefinedFlyToGpsRef.current = false
+      lastAppliedAccuracyRef.current = null
     }
+    // updateUserLocation: stable useCallback below; omit from deps (declared after this hook)
   }, [mapLoaded, onLocationUpdate])
 
   // Update user location marker
@@ -977,29 +1096,45 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       .addTo(mapRef.current)
   }, [])
 
-  // Fly to user's current location
+  // Fly to user's current location (always prefer a fresh high-accuracy read on tap)
   const locateMe = useCallback(() => {
     if (!mapRef.current) return
-    if (currentLocation) {
+    if (!navigator.geolocation) return
+
+    const flyAndMark = (pos) => {
+      const { latitude, longitude, accuracy } = pos.coords
+      if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+        const acc = Number.isFinite(accuracy) && accuracy > 0 ? accuracy : 150
+        updateUserLocation({ lat: latitude, lng: longitude, accuracy: acc }, acc <= 30)
+      }
       mapRef.current.flyTo({
-        center: [currentLocation.lng, currentLocation.lat],
+        center: [pos.coords.longitude, pos.coords.latitude],
         zoom: 16,
         duration: 800,
       })
-    } else if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
+      setLocationError(null)
+    }
+
+    navigator.geolocation.getCurrentPosition(flyAndMark, () => {
+      navigator.geolocation.getCurrentPosition(flyAndMark, () => {
+        if (currentLocation?.lng != null && currentLocation?.lat != null) {
           mapRef.current.flyTo({
-            center: [pos.coords.longitude, pos.coords.latitude],
+            center: [currentLocation.lng, currentLocation.lat],
             zoom: 16,
             duration: 800,
           })
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 10000 }
-      )
-    }
-  }, [currentLocation])
+        }
+      }, {
+        enableHighAccuracy: false,
+        maximumAge: 60000,
+        timeout: 60000,
+      })
+    }, {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 25000,
+    })
+  }, [currentLocation, updateUserLocation])
 
   // Draw route on map
   const drawRoute = useCallback((routeData, options = {}) => {

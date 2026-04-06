@@ -14,7 +14,15 @@ const CATEGORIES = [
   { id: 'atm', icon: 'atm', label: 'ATMs', query: 'atm' },
 ]
 
-const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces = [], savingPlaceId = null }) => {
+const SearchBar = ({
+  onSelect,
+  onRoute,
+  onResultsChange,
+  onSavePlace,
+  onCategoryExploreChange,
+  userPlaces = [],
+  savingPlaceId = null,
+}) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
@@ -94,6 +102,13 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
       if (onResultsChange) onResultsChange(dbResults)
     }
   }, [isFocused, query, activeCategory?.id, activeCategory?.query, userPlaces])
+
+  // Notify parent when a map-explore category chip is toggled (Hotels, ATMs, etc.)
+  useEffect(() => {
+    if (!onCategoryExploreChange) return
+    const explore = activeCategory && !activeCategory.isAction ? activeCategory : null
+    onCategoryExploreChange(explore)
+  }, [activeCategory, onCategoryExploreChange])
 
   // Close results when clicking outside
   useEffect(() => {

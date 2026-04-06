@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
 import SearchBar from '../components/SearchBar'
@@ -75,6 +75,19 @@ const buildCategoryOptions = (placesList) => {
   return [...prioritized, ...extras]
 }
 
+/** Pin colors for SearchBar category chips (hotels, ATM, …) — Google-style hues */
+const SEARCH_CHIP_MARKER_COLORS = {
+  restaurants: '#EA4335',
+  hotels: '#F59E0B',
+  things: '#A855F7',
+  museums: '#14B8A6',
+  transit: '#2563EB',
+  pharmacies: '#10B981',
+  atm: '#15803D',
+}
+
+const MAX_CATEGORY_EXPLORE_RESULTS = 50
+
 const HomePage = () => {
   const { user, logout, updateProfilePicture } = useAuth()
   const mapRef = useRef(null)
@@ -107,6 +120,69 @@ const HomePage = () => {
   const [confirmModal, setConfirmModal] = useState(null)
   const [shareModal, setShareModal] = useState(null)
   const [showExtractPanel, setShowExtractPanel] = useState(false)
+  const [categoryExplorePlaces, setCategoryExplorePlaces] = useState([])
+  const [mapReadyTick, setMapReadyTick] = useState(0)
+  const exploreCategoryRef = useRef(null)
+  const exploreMoveDebounceRef = useRef(null)
+
+  const fetchCategoryExplorePlaces = useCallback(async (cat) => {
+    if (!cat?.query) {
+      setCategoryExplorePlaces([])
+      return
+    }
+    const map = mapRef.current?.getMap?.()
+    if (!map) return
+    const center = map.getCenter()
+    const bounds = map.getBounds()
+    const q = `${cat.query} near ${center.lat.toFixed(4)},${center.lng.toFixed(4)}`
+    try {
+      const { data } = await api.get('/map/search-simple', { params: { q } })
+      const raw = Array.isArray(data.results) ? data.results : []
+      const valid = raw.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
+      const inView = valid.filter((r) => bounds.contains([r.lng, r.lat]))
+      const pool = inView.length > 0 ? inView : valid
+      const color = SEARCH_CHIP_MARKER_COLORS[cat.id] || '#EA4335'
+      setCategoryExplorePlaces(
+        pool.slice(0, MAX_CATEGORY_EXPLORE_RESULTS).map((r) => ({ ...r, markerColor: color }))
+      )
+    } catch (err) {
+      console.warn('Category explore search failed:', err)
+      setCategoryExplorePlaces([])
+    }
+  }, [])
+
+  const handleCategoryExploreChange = useCallback(
+    (cat) => {
+      exploreCategoryRef.current = cat && !cat.isAction ? cat : null
+      if (!cat?.query) {
+        setCategoryExplorePlaces([])
+        return
+      }
+      fetchCategoryExplorePlaces(cat)
+    },
+    [fetchCategoryExplorePlaces]
+  )
+
+  useEffect(() => {
+    if (mapReadyTick === 0) return
+    const map = mapRef.current?.getMap?.()
+    if (!map) return
+
+    const onMoveEnd = () => {
+      const cat = exploreCategoryRef.current
+      if (!cat?.query) return
+      if (exploreMoveDebounceRef.current) clearTimeout(exploreMoveDebounceRef.current)
+      exploreMoveDebounceRef.current = setTimeout(() => {
+        fetchCategoryExplorePlaces(cat)
+      }, 500)
+    }
+
+    map.on('moveend', onMoveEnd)
+    return () => {
+      map.off('moveend', onMoveEnd)
+      if (exploreMoveDebounceRef.current) clearTimeout(exploreMoveDebounceRef.current)
+    }
+  }, [mapReadyTick, fetchCategoryExplorePlaces])
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
@@ -607,6 +683,7 @@ const HomePage = () => {
           onSelect={handleSearchSelect}
           onRoute={() => setShowRoutePanel(!showRoutePanel)}
           onResultsChange={() => {}}
+          onCategoryExploreChange={handleCategoryExploreChange}
           onSavePlace={handleSavePlaceFromSearch}
           savingPlaceId={savingPlaceId}
         />
@@ -829,9 +906,11 @@ const HomePage = () => {
           ref={mapRef}
           onLocationUpdate={handleLocationUpdate}
           onMapClick={handleMapClickForPlace}
+          onMapReady={() => setMapReadyTick((t) => t + 1)}
           addPlaceMode={addPlacePickMode || showAddPlaceModal}
           places={visiblePlaces}
-          searchResultPlaces={[]}
+          searchResultPlaces={categoryExplorePlaces}
+          autoFitSearchResults={false}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
         />
