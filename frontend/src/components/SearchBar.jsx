@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
+import { parseQueryFromInput } from '../utils/parseSearchQuery'
 
 const CATEGORIES = [
   { id: 'directions', icon: 'route', label: 'Directions', isAction: true },
@@ -13,14 +14,25 @@ const CATEGORIES = [
   { id: 'atm', icon: 'atm', label: 'ATMs', query: 'atm' },
 ]
 
-const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
+const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces = [], savingPlaceId = null }) => {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [searchError, setSearchError] = useState(false)
   const [activeCategory, setActiveCategory] = useState(null)
+  const [isFocused, setIsFocused] = useState(false)
   const searchTimeoutRef = useRef(null)
   const resultsRef = useRef(null)
+
+  // Convert user places (from DB) to search result format
+  const dbResults = userPlaces.map((p) => ({
+    placeId: p.id,
+    displayName: p.name,
+    lat: p.latitude,
+    lng: p.longitude,
+    address: p.category ? { county: p.category } : null,
+  }))
 
   const buildSearchQuery = () => {
     if (activeCategory?.query && query.trim()) {
@@ -38,29 +50,34 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
     const searchQ = buildSearchQuery()
     if (searchQ.length < 2) {
       setResults([])
-      setShowResults(false)
+      setSearchError(false)
       if (onResultsChange) onResultsChange([])
+      setShowResults(false)
       return
     }
 
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true)
+      setSearchError(false)
       try {
-        const response = await api.get('/map/search', {
-          params: { q: searchQ, limit: 10 },
+        const response = await api.get('/map/search-simple', {
+          params: { q: searchQ },
         })
         const resultsData = response.data.results || []
         setResults(resultsData)
+        setSearchError(false)
         setShowResults(true)
         if (onResultsChange) onResultsChange(resultsData)
       } catch (error) {
         console.error('Search error:', error)
         setResults([])
+        setSearchError(true)
+        setShowResults(true)
         if (onResultsChange) onResultsChange([])
       } finally {
         setIsSearching(false)
       }
-    }, 300)
+    }, 250)
 
     return () => {
       if (searchTimeoutRef.current) {
@@ -69,11 +86,21 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
     }
   }, [query, activeCategory?.id, activeCategory?.query])
 
+  // When focused with empty/short query, show user's places from database
+  useEffect(() => {
+    if (isFocused && buildSearchQuery().length < 2 && dbResults.length > 0) {
+      setResults(dbResults)
+      setShowResults(true)
+      if (onResultsChange) onResultsChange(dbResults)
+    }
+  }, [isFocused, query, activeCategory?.id, activeCategory?.query, userPlaces])
+
   // Close results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (resultsRef.current && !resultsRef.current.contains(event.target)) {
         setShowResults(false)
+        setIsFocused(false)
       }
     }
 
@@ -87,7 +114,7 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
     setQuery(result.displayName)
     setShowResults(false)
     if (onSelect) {
-      onSelect({ lat: result.lat, lng: result.lng, name: result.displayName })
+      onSelect({ lat: result.lat, lng: result.lng, name: result.displayName, placeId: result.placeId })
     }
   }
 
@@ -105,27 +132,32 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
     }
   }
 
+  const isPlaceSaved = (result) => {
+    const tol = 0.0001
+    return userPlaces.some(
+      (p) =>
+        String(p.id) === String(result.placeId) ||
+        (Math.abs(p.latitude - result.lat) < tol && Math.abs(p.longitude - result.lng) < tol)
+    )
+  }
+
+  const handleSaveClick = (e, result) => {
+    e.stopPropagation()
+    if (isPlaceSaved(result)) return
+    if (onSavePlace) onSavePlace(result)
+  }
+
   return (
     <div className="relative w-full" ref={resultsRef}>
       {/* Main search bar - Google Maps style, touch-friendly */}
-      <div className="flex items-center gap-1.5 sm:gap-2 glass rounded-full pl-2.5 pr-1 py-2 sm:py-1.5 shadow-lg border border-white/30 min-h-[48px] sm:min-h-0">
-        {/* Hamburger menu */}
-        <button
-          type="button"
-          className="p-2.5 sm:p-2 rounded-full hover:bg-slate-200/60 active:bg-slate-200/80 transition-colors text-slate-600 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
-          aria-label="Menu"
-        >
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-            <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-          </svg>
-        </button>
-
+      <div className="flex items-center gap-1.5 sm:gap-2 glass rounded-full pl-3 pr-1 py-2 sm:py-1.5 shadow-lg border border-white/30 min-h-[48px] sm:min-h-0">
         {/* Search input */}
         <div className="flex-1 min-w-0 flex items-center gap-2">
           <input
             type="text"
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => setQuery(parseQueryFromInput(e.target.value))}
+            onFocus={() => setIsFocused(true)}
             placeholder="Search places..."
             className="flex-1 min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 placeholder-slate-500 text-base sm:text-sm py-1 min-h-[24px]"
           />
@@ -223,25 +255,69 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange }) => {
       {/* Search Results - mobile: max height, touch-friendly */}
       {showResults && results.length > 0 && (
         <div className="absolute z-50 left-0 right-0 mt-2 glass rounded-xl shadow-2xl border border-white/30 max-h-[min(60vh,320px)] sm:max-h-80 overflow-y-auto overscroll-contain">
-          {results.map((result) => (
-            <button
-              key={result.placeId}
-              onClick={() => handleSelect(result)}
-              className="w-full px-4 py-3.5 sm:py-3 text-left hover:bg-white/40 active:bg-white/50 transition-colors border-b border-white/20 last:border-b-0 flex flex-col min-h-[52px] sm:min-h-0"
-            >
-              <div className="font-medium text-slate-700 truncate">{result.displayName}</div>
-              {result.address && (() => {
-                const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state || result.address.country
-                return line2 ? <div className="text-xs text-slate-500 truncate mt-0.5">{line2}</div> : null
-              })()}
-            </button>
-          ))}
+          {results.map((result) => {
+            const saved = isPlaceSaved(result)
+            const placeKey = `${result.lat}-${result.lng}`
+            const isSaving = savingPlaceId === placeKey
+            return (
+              <div
+                key={result.placeId}
+                className="flex items-center gap-2 px-4 py-3.5 sm:py-3 border-b border-white/20 last:border-b-0 min-h-[52px] sm:min-h-0 group"
+              >
+                <button
+                  onClick={() => handleSelect(result)}
+                  className="flex-1 min-w-0 text-left hover:bg-white/40 active:bg-white/50 transition-colors rounded-lg -m-1 p-1 flex flex-col"
+                >
+                  <div className="font-medium text-slate-700 truncate">{result.displayName}</div>
+                  {result.address && (() => {
+                    const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state || result.address.country
+                    return line2 ? <div className="text-xs text-slate-500 truncate mt-0.5">{line2}</div> : null
+                  })()}
+                </button>
+                <button
+                  onClick={(e) => handleSaveClick(e, result)}
+                  disabled={saved || isSaving}
+                  className={`flex-shrink-0 p-2 rounded-full transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                    saved
+                      ? 'text-primary-600 cursor-default'
+                      : isSaving
+                      ? 'text-primary-500 cursor-wait'
+                      : 'text-slate-400 hover:text-primary-600 hover:bg-white/50 active:bg-white/70'
+                  }`}
+                  aria-label={saved ? 'Saved' : isSaving ? 'Saving...' : 'Save place'}
+                  title={saved ? 'Saved' : isSaving ? 'Saving...' : 'Save to Saved'}
+                >
+                  {isSaving ? (
+                    <div className="w-5 h-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
+                  ) : (
+                    <svg
+                      className="w-5 h-5"
+                      fill={saved ? 'currentColor' : 'none'}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"
+                      />
+                    </svg>
+                  )}
+                </button>
+              </div>
+            )
+          })}
         </div>
       )}
 
       {showResults && results.length === 0 && buildSearchQuery().length >= 2 && !isSearching && (
-        <div className="absolute z-50 w-full mt-2 glass rounded-xl shadow-2xl border border-white/30 p-4 text-center text-slate-500 text-sm">
-          No places found
+        <div className="absolute z-50 w-full mt-2 glass rounded-xl shadow-2xl border border-white/30 p-4 text-center text-sm">
+          {searchError ? (
+            <span className="text-amber-600">Search failed. Try again.</span>
+          ) : (
+            <span className="text-slate-500">No places found</span>
+          )}
         </div>
       )}
     </div>

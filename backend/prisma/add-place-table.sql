@@ -20,3 +20,8 @@ DO $$ BEGIN
     ALTER TABLE "Place" ADD CONSTRAINT "Place_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   END IF;
 END $$;
+
+-- Add Place translation columns (Add Place auto-translation feature)
+ALTER TABLE "Place" ADD COLUMN IF NOT EXISTS "place_name_en" TEXT;
+ALTER TABLE "Place" ADD COLUMN IF NOT EXISTS "place_name_local" TEXT;
+UPDATE "Place" SET "place_name_en" = "name" WHERE "place_name_en" IS NULL AND "name" IS NOT NULL;

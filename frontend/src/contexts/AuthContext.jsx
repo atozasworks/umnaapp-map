@@ -24,15 +24,15 @@ export const AuthProvider = ({ children }) => {
 
   const loadUser = useCallback(async (retryCount = 0) => {
     try {
-      const response = await api.get('/auth/me')
-      setUser(response.data.user)
+      const { data } = await api.get('/auth/me')
+      setUser(data.user)
     } catch (error) {
       // Only logout on 401 (invalid/expired token) - user must click Logout otherwise
       if (error.response?.status === 401) {
         logout()
       } else {
-        // Network error, 500, etc. - keep login, retry once
-        console.error('Failed to load user:', error)
+        // Network error, timeout, 500, etc. - keep token, retry once
+        console.error('Failed to load user:', error?.message || error)
         if (retryCount < 2) {
           setTimeout(() => loadUser(retryCount + 1), 2000)
         }
@@ -56,6 +56,9 @@ export const AuthProvider = ({ children }) => {
     // Load user from database when token exists
     if (token) {
       loadUser()
+      // Fallback: if loadUser hangs (e.g. API unreachable), stop loading after 20s
+      const fallbackTimer = setTimeout(() => setLoading(false), 20000)
+      return () => clearTimeout(fallbackTimer)
     } else {
       setLoading(false)
     }
@@ -66,6 +69,16 @@ export const AuthProvider = ({ children }) => {
     setUser(userData)
     localStorage.setItem('token', authToken)
   }
+
+  const updateProfilePicture = useCallback(async (pictureData) => {
+    try {
+      const { data } = await api.put('/auth/profile-picture', { picture: pictureData })
+      setUser(data.user)
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.response?.data?.error || 'Failed to update' }
+    }
+  }, [])
 
   // Listen for 401 from /auth/me only - session expired
   useEffect(() => {
@@ -81,6 +94,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     loadUser,
+    updateProfilePicture,
     isAuthenticated: !!token,
   }
 

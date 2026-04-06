@@ -5,6 +5,7 @@ import {
   verifyOTP,
   loginWithOTP,
   getCurrentUser,
+  updateProfilePicture,
   logout,
 } from '../controllers/authController.js'
 import { authenticateToken } from '../middleware/auth.js'
@@ -47,29 +48,44 @@ router.post(
 // Get current user
 router.get('/me', authenticateToken, getCurrentUser)
 
+// Update profile picture
+router.put('/profile-picture', authenticateToken, updateProfilePicture)
+
 // Logout
 router.post('/logout', authenticateToken, logout)
 
-// Google OAuth routes (only if configured)
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-  router.get(
-    '/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-  )
+// Google OAuth routes
+const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'
+const googleConfigured = process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.env.GOOGLE_CALLBACK_URL
 
-  router.get(
-    '/google/callback',
-    passport.authenticate('google', { session: false, failureRedirect: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=google_auth_failed` }),
-    async (req, res) => {
-      try {
-        const token = req.user.token
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/home?token=${token}`)
-      } catch (error) {
-        res.redirect(`${process.env.FRONTEND_URL || 'http://localhost:3000'}/login?error=auth_failed`)
-      }
+router.get(
+  '/google',
+  (req, res, next) => {
+    if (!googleConfigured) {
+      return res.redirect(`${frontendUrl}/login?error=google_not_configured`)
     }
-  )
-}
+    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next)
+  }
+)
+
+router.get(
+  '/google/callback',
+  (req, res, next) => {
+    if (!googleConfigured) {
+      return res.redirect(`${frontendUrl}/login?error=google_not_configured`)
+    }
+    passport.authenticate('google', { session: false }, (err, user) => {
+      if (err) return next(err)
+      if (!user) return res.redirect(`${frontendUrl}/login?error=google_auth_failed`)
+      try {
+        const token = user.token
+        res.redirect(`${frontendUrl}/home?token=${token}`)
+      } catch (error) {
+        res.redirect(`${frontendUrl}/login?error=auth_failed`)
+      }
+    })(req, res, next)
+  }
+)
 
 export default router
 

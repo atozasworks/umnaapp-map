@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comprehensive Place Extractor</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAaY-GbdPh3b5zO7Flg0u2Dnz9r1zr753U&libraries=places,geocoding"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            gap: 20px;
+        }
+        .map-container {
+            flex: 2;
+        }
+        .places-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        #map {
+            height: 500px;
+            width: 100%;
+            margin-top: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        #controls {
+            margin: 20px 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        select, input {
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            min-width: 200px;
+        }
+        button {
+            background-color: #4285F4;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #3367D6;
+        }
+        #status {
+            margin-top: 10px;
+            color: #666;
+        }
+        #placesList {
+            margin-top: 20px;
+            height: 500px;
+            overflow-y: auto;
+            text-align: left;
+            border: 1px solid #ccc;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        #progressBar {
+            width: 100%;
+            background-color: #e0e0e0;
+            margin-top: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+        #progressBarFill {
+            height: 100%;
+            background-color: #4285F4;
+            border-radius: 4px;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        .place-item {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .extracting {
+            background-color: #e8f0fe;
+            animation: pulse 1s infinite alternate;
+        }
+        @keyframes pulse {
+            from { background-color: #e8f0fe; }
+            to { background-color: #c6dafc; }
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Comprehensive Place Extractor</h2>
+    <div id="controls">
+        <div>
+            <label for="countryInput">Enter a country: </label>
+            <input type="text" id="countryInput" placeholder="e.g. India, USA, Japan...">
+            <button onclick="loadCountry()">Load Country</button>
+        </div>
+        
+        <div>
+            <label for="stateInput">Enter a state/region: </label>
+            <input type="text" id="stateInput" placeholder="e.g. Maharashtra, California...">
+            <button onclick="loadState()">Load State</button>
+        </div>
+        
+        <div>
+            <label for="districtInput">Enter a district: </label>
+            <input type="text" id="districtInput" placeholder="e.g. Pune, Los Angeles...">
+            <button onclick="loadDistrict()">Load District</button>
+        </div>
+        
+        <div>
+            <label for="talukInput">Enter a taluk/locality: </label>
+            <input type="text" id="talukInput" placeholder="e.g. Maval, Hollywood...">
+            <button onclick="loadTaluk()">Load Taluk</button>
+        </div>
+        
+        <div>
+            <label for="gridSize">Grid resolution: </label>
+            <select id="gridSize">
+                <option value="5">High (5x5 grid)</option>
+                <option value="3" selected>Medium (3x3 grid)</option>
+                <option value="2">Low (2x2 grid)</option>
+            </select>
+        </div>
+        
+        <div>
+            <button onclick="extractPlaces()">Extract All Places</button>
+            <button onclick="stopExtraction()" id="stopBtn" style="background-color:#EA4335;display:none;">Stop Extraction</button>
+            <button onclick="downloadJSON()">Download JSON</button>
+        </div>
+    </div>
+    
+    <div id="status">Please enter a country to begin</div>
+    <div id="apiStats">
+        <div class="stat-item">Nearby Search: <span id="nearbyCount" class="stat-value">0</span></div>
+        <div class="stat-item">Geocode: <span id="geocodeCount" class="stat-value">0</span></div>
+        <div class="stat-item">Total Calls: <span id="totalCount" class="stat-value">0</span></div>
+        <div class="stat-item">Retries: <span id="retryCount" class="stat-value">0</span></div>
+        <div class="stat-item">Places Found: <span id="placesFoundCount" class="stat-value">0</span></div>
+        <div class="stat-item" id="retryNotice">&#9203; Rate limited — waiting to retry...</div>
+    </div>
+    <div id="progressBar"><div id="progressBarFill"></div></div>
+    
+    <div class="container">
+        <div class="map-container">
+            <div id="map"></div>
+        </div>
+        <div class="places-container">
+            <h3>Extracted Places</h3>
+            <div id="placesList"></div>
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let service;
+        let currentCountry = "";
+        let currentState = "";
+        let currentDistrict = "";
+        let currentTaluk = "";
+        let places = [];
+        let markers = [];
+        let stateBounds = null;
+        let districtBounds = null;
+        let talukBounds = null;
+        let searchQueue = [];
+        let currentSearchIndex = 0;
+        let gridSize = 3;
+        let isExtracting = false;
+        let stopRequested = false;
+        let gridRectangles = [];
+        
+        // ===== RATE LIMITING CONFIGURATION =====
+        const RATE_CONFIG = {
+            minDelayBetweenCalls: 350,   // Minimum ms between ANY API call
+            cellDelay: 800,              // Delay between grid cells
+            maxRetries: 5,               // Max retries on OVER_QUERY_LIMIT
+            baseRetryDelay: 2000,        // Base retry delay (doubles each retry)
+            maxConcurrent: 1             // Only 1 API call at a time
+        };
+        
+        // API call tracking
+        let apiStats = { nearby: 0, geocode: 0, retries: 0 };
+        let lastApiCallTime = 0;
+        let requestQueue = [];
+        let isProcessingQueue = false;
+        
+        // ===== THROTTLED API QUEUE =====
+        // All API calls go through this queue to ensure minimum delay between calls
+        function enqueueApiCall(apiCallFn) {
+            return new Promise(function(resolve) {
+                requestQueue.push({ fn: apiCallFn, resolve: resolve });
+                processQueue();
+            });
+        }
+        
+        function processQueue() {
+            if (isProcessingQueue || requestQueue.length === 0) return;
+            isProcessingQueue = true;
+            
+            const now = Date.now();
+            const timeSinceLastCall = now - lastApiCallTime;
+            const waitTime = Math.max(0, RATE_CONFIG.minDelayBetweenCalls - timeSinceLastCall);
+            
+            setTimeout(function() {
+                if (requestQueue.length === 0) {
+                    isProcessingQueue = false;
+                    return;
+                }
+                
+                const item = requestQueue.shift();
+                lastApiCallTime = Date.now();
+                
+                // Execute the API call and resolve when done
+                item.fn(function(result) {
+                    item.resolve(result);
+                    isProcessingQueue = false;
+                    // Process next item in queue
+                    if (requestQueue.length > 0) {
+                        processQueue();
+                    }
+                });
+            }, waitTime);
+        }
+        
+        // ===== TRACKING & UI =====
+        function trackApiCall(type) {
+            if (type === 'nearby') apiStats.nearby++;
+            if (type === 'geocode') apiStats.geocode++;
+            updateApiStatsUI();
+        }
+        
+        function trackRetry() {
+            apiStats.retries++;
+            updateApiStatsUI();
+        }
+        
+        function updateApiStatsUI() {
+            document.getElementById('nearbyCount').textContent = apiStats.nearby;
+            document.getElementById('geocodeCount').textContent = apiStats.geocode;
+            document.getElementById('totalCount').textContent = apiStats.nearby + apiStats.geocode;
+            document.getElementById('retryCount').textContent = apiStats.retries;
+            document.getElementById('placesFoundCount').textContent = places.length;
+            
+            // Warn when approaching safe limits
+            var totalEl = document.getElementById('totalCount');
+            totalEl.className = (apiStats.nearby > 150) ? 'stat-warning' : 'stat-value';
+        }
+        
+        function showRetryNotice(show) {
+            document.getElementById('retryNotice').style.display = show ? 'inline-block' : 'none';
+        }
+        
+        // ===== THROTTLED GEOCODE =====
+        function throttledGeocode(address, callback) {
+            enqueueApiCall(function(done) {
+                var geocoder = new google.maps.Geocoder();
+                geocoder.geocode({ address: address }, function(results, status) {
+                    trackApiCall('geocode');
+                    
+                    if (status === 'OVER_QUERY_LIMIT') {
+                        // Wait and retry once for geocode
+                        trackRetry();
+                        showRetryNotice(true);
+                        updateStatus('Rate limited on geocode. Waiting 3s...');
+                        setTimeout(function() {
+                            showRetryNotice(false);
+                            geocoder.geocode({ address: address }, function(results2, status2) {
+                                trackApiCall('geocode');
+                                callback(results2, status2);
+                                done();
+                            });
+                        }, 3000);
+                    } else {
+                        callback(results, status);
+                        done();
+                    }
+                });
+            });
+        }
+        
+        // ===== THROTTLED NEARBY SEARCH WITH RETRY =====
+        function throttledNearbySearch(request, callback, retryCount) {
+            retryCount = retryCount || 0;
+            
+            enqueueApiCall(function(done) {
+                service.nearbySearch(request, function(results, status) {
+                    trackApiCall('nearby');
+                    
+                    if (status === google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
+                        if (retryCount < RATE_CONFIG.maxRetries) {
+                            trackRetry();
+                            showRetryNotice(true);
+                            var delay = RATE_CONFIG.baseRetryDelay * Math.pow(2, retryCount);
+                            updateStatus('⏳ Rate limited (attempt ' + (retryCount + 1) + '/' + RATE_CONFIG.maxRetries + '). Waiting ' + (delay / 1000) + 's...');
+                            
+                            setTimeout(function() {
+                                showRetryNotice(false);
+                                done(); // Release queue lock
+                                // Re-enqueue with incremented retry
+                                throttledNearbySearch(request, callback, retryCount + 1);
+                            }, delay);
+                        } else {
+                            // Max retries reached - skip this search
+                            showRetryNotice(false);
+                            updateStatus('⚠️ Skipped after ' + RATE_CONFIG.maxRetries + ' retries. Continuing...');
+                            callback([], 'MAX_RETRIES_EXCEEDED');
+                            done();
+                        }
+                    } else {
+                        callback(results, status);
+                        done();
+                    }
+                });
+            });
+        }
+        
+        // ===== MAP INIT =====
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 0, lng: 0 },
+                zoom: 2,
+                mapTypeId: google.maps.MapTypeId.ROADMAP
+            });
+            service = new google.maps.places.PlacesService(map);
+        }
+        
+        // ===== LOCATION LOADERS =====
+        function loadCountry() {
+            resetSelection();
+            currentCountry = document.getElementById("countryInput").value.trim();
+            currentState = "";
+            currentDistrict = "";
+            currentTaluk = "";
+            
+            if (!currentCountry) { alert("Please enter a country name"); return; }
+            
+            throttledGeocode(currentCountry, function(results, status) {
+                if (status === "OK" && results[0]) {
+                    map.fitBounds(results[0].geometry.viewport);
+                    updateStatus('Loaded ' + currentCountry + '. Please enter a state/region.');
+                } else {
+                    alert("Could not find the specified country");
+                }
+            });
+        }
+        
+        function loadState() {
+            if (!currentCountry) { alert("Please load a country first"); return; }
+            
+            resetSelection();
+            currentState = document.getElementById("stateInput").value.trim();
+            currentDistrict = "";
+            currentTaluk = "";
+            
+            if (!currentState) { alert("Please enter a state/region name"); return; }
+            
+            throttledGeocode(currentState + ', ' + currentCountry, function(results, status) {
+                if (status === "OK" && results[0]) {
+                    stateBounds = results[0].geometry.viewport;
+                    map.fitBounds(stateBounds);
+                    updateStatus('Loaded ' + currentState + ', ' + currentCountry + '. Ready to extract places or enter a district.');
+                } else {
+                    alert("Could not find the specified state/region");
+                }
+            });
+        }
+        
+        function loadDistrict() {
+            if (!currentState) { alert("Please load a state first"); return; }
+            
+            resetSelection();
+            currentDistrict = document.getElementById("districtInput").value.trim();
+            currentTaluk = "";
+            
+            if (!currentDistrict) { alert("Please enter a district name"); return; }
+            
+            throttledGeocode(currentDistrict + ', ' + currentState + ', ' + currentCountry, function(results, status) {
+                if (status === "OK" && results[0]) {
+                    districtBounds = results[0].geometry.viewport;
+                    map.fitBounds(districtBounds);
+                    updateStatus('Loaded ' + currentDistrict + ', ' + currentState + ', ' + currentCountry + '. Ready to extract places or enter a taluk.');
+                } else {
+                    alert("Could not find the specified district");
+                }
+            });
+        }
+        
+        function loadTaluk() {
+            if (!currentDistrict) { alert("Please load a district first"); return; }
+            
+            resetSelection();
+            currentTaluk = document.getElementById("talukInput").value.trim();
+            
+            if (!currentTaluk) { alert("Please enter a taluk/locality name"); return; }
+            
+            throttledGeocode(currentTaluk + ', ' + currentDistrict + ', ' + currentState + ', ' + currentCountry, function(results, status) {
+                if (status === "OK" && results[0]) {
+                    talukBounds = results[0].geometry.viewport;
+                    map.fitBounds(talukBounds);
+                    updateStatus('Loaded ' + currentTaluk + ', ' + currentDistrict + ', ' + currentState + ', ' + currentCountry + '. Ready to extract places.');
+                } else {
+                    alert("Could not find the specified taluk/locality");
+                }
+            });
+        }
+        
+        // ===== GRID GENERATION =====
+        function generateGrid(bounds) {
+            var NE = bounds.getNorthEast();
+            var SW = bounds.getSouthWest();
+            var latDiff = NE.lat() - SW.lat();
+            var lngDiff = NE.lng() - SW.lng();
+            
+            gridSize = parseInt(document.getElementById("gridSize").value);
+            var cells = [];
+            
+            gridRectangles.forEach(function(rect) { rect.setMap(null); });
+            gridRectangles = [];
+            
+            for (var i = 0; i < gridSize; i++) {
+                for (var j = 0; j < gridSize; j++) {
+                    var cellSW = {
+                        lat: SW.lat() + (latDiff * i / gridSize),
+                        lng: SW.lng() + (lngDiff * j / gridSize)
+                    };
+                    var cellNE = {
+                        lat: SW.lat() + (latDiff * (i + 1) / gridSize),
+                        lng: SW.lng() + (lngDiff * (j + 1) / gridSize)
+                    };
+                    
+                    var cellBounds = new google.maps.LatLngBounds(
+                        new google.maps.LatLng(cellSW.lat, cellSW.lng),
+                        new google.maps.LatLng(cellNE.lat, cellNE.lng)
+                    );
+                    
+                    cells.push(cellBounds);
+                    
+                    var rectangle = new google.maps.Rectangle({
+                        bounds: cellBounds,
+                        map: map,
+                        strokeColor: '#FF0000',
+                        strokeOpacity: 0.8,
+                        strokeWeight: 1,
+                        fillColor: '#FF0000',
+                        fillOpacity: 0.1
+                    });
+                    gridRectangles.push(rectangle);
+                }
+            }
+            return cells;
+        }
+        
+        // ===== EXTRACTION CONTROL =====
+        function extractPlaces() {
+            var extractionBounds = null;
+            
+            if (talukBounds) {
+                extractionBounds = talukBounds;
+            } else if (districtBounds) {
+                extractionBounds = districtBounds;
+            } else if (stateBounds) {
+                extractionBounds = stateBounds;
+            } else {
+                alert("Please load a country and at least a state first.");
+                return;
+            }
+            
+            if (isExtracting) {
+                alert("Already extracting places. Please wait.");
+                return;
+            }
+            
+            resetSelection();
+            isExtracting = true;
+            stopRequested = false;
+            document.getElementById('stopBtn').style.display = 'inline-block';
+            updateStatus('Extracting places in ' + getCurrentLocationString() + '...');
+            
+            var grid = generateGrid(extractionBounds);
+            searchQueue = grid.slice();
+            currentSearchIndex = 0;
+            
+            document.getElementById("progressBarFill").style.width = "0%";
+            processNextGridCell();
+        }
+        
+        function stopExtraction() {
+            if (isExtracting) {
+                stopRequested = true;
+                // Clear the request queue
+                requestQueue = [];
+                updateStatus('Stopping extraction... Found ' + places.length + ' places so far.');
+            }
+        }
+        
+        function getCurrentLocationString() {
+            var parts = [];
+            if (currentTaluk) parts.push(currentTaluk);
+            if (currentDistrict) parts.push(currentDistrict);
+            if (currentState) parts.push(currentState);
+            if (currentCountry) parts.push(currentCountry);
+            return parts.join(", ");
+        }
+        
+        // ===== GRID CELL PROCESSING (Sequential with delays) =====
+        function processNextGridCell() {
+            // Check if stopped or finished
+            if (stopRequested || currentSearchIndex >= searchQueue.length) {
+                finishExtraction();
+                return;
+            }
+            
+            var progress = Math.floor((currentSearchIndex / searchQueue.length) * 100);
+            document.getElementById("progressBarFill").style.width = progress + '%';
+            
+            updateStatus('Extracting places... Cell ' + (currentSearchIndex + 1) + '/' + searchQueue.length + 
+                         ' | Found: ' + places.length + ' places | API calls: ' + (apiStats.nearby + apiStats.geocode));
+            
+            // Update grid cell colors
+            if (currentSearchIndex > 0 && gridRectangles[currentSearchIndex - 1]) {
+                gridRectangles[currentSearchIndex - 1].setOptions({
+                    fillColor: '#4285F4',
+                    fillOpacity: 0.15
+                });
+            }
+            if (gridRectangles[currentSearchIndex]) {
+                gridRectangles[currentSearchIndex].setOptions({
+                    fillColor: '#00FF00',
+                    fillOpacity: 0.3
+                });
+            }
+            
+            // Search all 4 types sequentially for this cell
+            var placeTypes = ['establishment', 'locality', 'sublocality', 'neighborhood'];
+            searchTypesSequentially(placeTypes, 0, function() {
+                if (stopRequested) {
+                    finishExtraction();
+                    return;
+                }
+                // Delay before moving to next cell
+                setTimeout(function() {
+                    currentSearchIndex++;
+                    processNextGridCell();
+                }, RATE_CONFIG.cellDelay);
+            });
+        }
+        
+        // Search each type one by one
+        function searchTypesSequentially(types, index, onComplete) {
+            if (stopRequested || index >= types.length) {
+                onComplete();
+                return;
+            }
+            
+            searchForType(types[index], function() {
+                // Small delay between different search types
+                searchTypesSequentially(types, index + 1, onComplete);
+            });
+        }
+        
+        // ===== SEARCH FOR TYPE (Uses throttled queue) =====
+        function searchForType(placeType, callback) {
+            if (stopRequested) { callback(); return; }
+            
+            var request = {
+                bounds: searchQueue[currentSearchIndex],
+                type: placeType
+            };
+            
+            throttledNearbySearch(request, function(results, status) {
+                if (status === google.maps.places.PlacesServiceStatus.OK && results) {
+                    results.forEach(function(place) {
+                        if (!placeExists(place.name)) {
+                            var newPlace = {
+                                name: place.name,
+                                lat: place.geometry.location.lat(),
+                                lng: place.geometry.location.lng(),
+                                type: place.types ? place.types[0] : placeType,
+                                district: currentDistrict,
+                                taluk: currentTaluk,
+                                zoom: map.getZoom(),
+                                mapType: map.getMapTypeId(),
+                                center: map.getCenter(),
+                                bounds: map.getBounds(),
+                                viewport: map.getBounds(),
+                                marker: place.geometry.location,
+                                geocoder: place.geometry.location,
+                                streetView: place.geometry.location,
+                                infoWindow: place.name,
+                                geospatialIndexing: place.geometry.location,
+                                pathPolyline: place.geometry.location
+                            };
+                            places.push(newPlace);
+                            addPlaceToList(newPlace, true);
+                            updateApiStatsUI();
+                            
+                            var marker = new google.maps.Marker({
+                                position: place.geometry.location,
+                                map: map,
+                                title: place.name
+                            });
+                            markers.push(marker);
+                        }
+                    });
+                }
+                callback();
+            });
+        }
+        
+        function placeExists(name) {
+            return places.some(function(p) { return p.name === name; });
+        }
+        
+        // ===== FINISH =====
+        function finishExtraction() {
+            isExtracting = false;
+            stopRequested = false;
+            document.getElementById('stopBtn').style.display = 'none';
+            showRetryNotice(false);
+            document.getElementById("progressBarFill").style.width = "100%";
+            
+            var totalCalls = apiStats.nearby + apiStats.geocode;
+            updateStatus('✅ Extraction complete. Found ' + places.length + ' places in ' + getCurrentLocationString() + 
+                         '. Total API calls: ' + totalCalls + ' (Retries: ' + apiStats.retries + ')');
+            
+            document.querySelectorAll('.place-item').forEach(function(item) {
+                item.classList.remove('extracting');
+            });
+        }
+        
+        // ===== PLACE LIST =====
+        function addPlaceToList(place, extracting) {
+            var placesList = document.getElementById("placesList");
+            var placeItem = document.createElement("div");
+            placeItem.className = "place-item";
+            if (extracting) placeItem.classList.add("extracting");
+            
+            var placeText = place.name + ' (' + place.lat.toFixed(6) + ', ' + place.lng.toFixed(6) + ')';
+            if (place.type) placeText += ' [' + place.type + ']';
+            if (place.district) placeText += ' - District: ' + place.district;
+            if (place.taluk) placeText += ' - Taluk: ' + place.taluk;
+            placeText += ' - Zoom Level: ' + place.zoom;
+            placeText += ' - Map Type: ' + place.mapType;
+            placeText += ' - Center: ' + place.center;
+            placeText += ' - Bounds: ' + place.bounds;
+            placeText += ' - Viewport: ' + place.viewport;
+            placeText += ' - Marker: ' + place.marker;
+            placeText += ' - Geocoder: ' + place.geocoder;
+            placeText += ' - Street View: ' + place.streetView;
+            placeText += ' - Info Window: ' + place.infoWindow;
+            placeText += ' - Geospatial Indexing: ' + place.geospatialIndexing;
+            placeText += ' - Path/Polyline: ' + place.pathPolyline;
+            
+            placeItem.textContent = placeText;
+            placesList.appendChild(placeItem);
+            placesList.scrollTop = placesList.scrollHeight;
+        }
+        
+        function updatePlacesList() {
+            var placesList = document.getElementById("placesList");
+            placesList.innerHTML = "";
+            places.forEach(function(place) { addPlaceToList(place, false); });
+        }
+        
+        // ===== RESET =====
+        function resetSelection() {
+            places = [];
+            markers.forEach(function(m) { m.setMap(null); });
+            markers = [];
+            apiStats = { nearby: 0, geocode: 0, retries: 0 };
+            requestQueue = [];
+            isProcessingQueue = false;
+            updateApiStatsUI();
+            document.getElementById("placesList").innerHTML = "";
+            updateStatus("Selection Reset");
+            
+            gridRectangles.forEach(function(rect) { rect.setMap(null); });
+            gridRectangles = [];
+        }
+        
+        // ===== DOWNLOAD =====
+        function downloadJSON() {
+            if (places.length === 0) {
+                alert("No places to download. Please extract places first.");
+                return;
+            }
+            var jsonData = JSON.stringify(places, null, 4);
+            var blob = new Blob([jsonData], { type: "application/json" });
+            var a = document.createElement("a");
+            a.href = URL.createObjectURL(blob);
+            a.download = getCurrentLocationString().replace(/,\s+/g, '_') + '_places.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+        }
+        
+        function updateStatus(message) {
+            document.getElementById("status").textContent = message;
+        }
+        
+        window.onload = initMap;
+    </script>
+</body>
+</html>

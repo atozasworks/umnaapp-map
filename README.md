@@ -1,243 +1,152 @@
-# Self-Hosted Map Platform
+# [YOUR PROJECT NAME]
 
-A complete, production-ready map platform with routing, geocoding, and real-time vehicle tracking using umnaapp.in services.
+[SHORT DESCRIPTION]
 
-## Features
+[![Build](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-org/your-repo/actions)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-org/your-repo/releases)
 
-- 🗺️ **Self-Hosted Map Tiles** - Display maps using TileServer GL with your own tile data
-- 🧭 **Routing** - Turn-by-turn routing using self-hosted OSRM server
-- 🔍 **Place Search & Geocoding** - Search places and reverse geocode using self-hosted Nominatim
-- 📍 **GPS Tracking** - Real-time GPS location tracking with smooth marker updates
-- 🚗 **Vehicle Tracking** - Real-time vehicle tracking via WebSocket (Socket.io)
-- 💾 **PostgreSQL + PostGIS** - Store routes, vehicles, and locations with spatial indexing
-- 🐳 **Docker Compose** - All services containerized and orchestrated
-- ⚡ **Production Ready** - Caching, rate limiting, and optimized for scale
+## Project Overview
 
-## Architecture
+This repository contains a modern, full-stack web platform built with React, Node.js, Socket.IO, PostgreSQL, and Docker. It is designed for real-time mapping, vehicle tracking, place search, and spatial data handling.
 
-```
-┌─────────────┐
-│   Frontend  │ (React + MapLibre GL JS)
-│  (Port 3000)│
-└──────┬──────┘
-       │
-       ▼
-┌─────────────┐
-│    Nginx    │ (Reverse Proxy)
-│  (Port 80)  │
-└──────┬──────┘
-       │
-       ├──► Backend API (Node.js/Express)
-       │    ├──► PostgreSQL + PostGIS
-       │    ├──► Redis (Cache & Rate Limiting)
-       │    ├──► OSRM (Routing)
-       │    └──► Nominatim (Geocoding)
-       │
-       └──► TileServer GL (Map Tiles)
-```
+## Key Features
 
-## Quick Start
+- ✅ Real-time location and vehicle tracking with `Socket.IO`
+- ✅ Interactive React-based map UI with map tile support
+- ✅ REST API backend with Express and Prisma
+- ✅ PostgreSQL + PostGIS for spatial data and geospatial queries
+- ✅ Docker Compose orchestration for local development and deployment
+- ✅ Environment-based configuration and secure authentication
+- ✅ Modular frontend and backend workspaces for clean separation
+
+## Screenshots / Demo
+
+> Replace these placeholders with your actual screenshots or demo links.
+
+| Desktop View | Mobile / Map View |
+| --- | --- |
+| ![Screenshot 1](https://via.placeholder.com/600x350?text=Dashboard+Screenshot) | ![Screenshot 2](https://via.placeholder.com/600x350?text=Map+View) |
+
+## Installation
 
 ### Prerequisites
 
+- Node.js 18+ and npm
 - Docker and Docker Compose
-- 16GB+ RAM
-- 100GB+ disk space
+- Git
 
-### 1. Clone and Setup
+### Setup
 
 ```bash
 # Clone repository
-git clone <your-repo>
-cd maptest
+git clone https://github.com/your-org/your-repo.git
+cd your-repo
 
-# Copy environment files
+# Install root dependencies
+npm install
+
+# Install frontend and backend dependencies
+npm run install:all
+```
+
+### Environment
+
+Copy environment templates and update values:
+
+```bash
 cp .env.example .env
 cp backend/.env.example backend/.env
 cp frontend/.env.example frontend/.env
 ```
 
-### 2. Prepare Map Data
+### Start for Local Development
 
 ```bash
-# Download OSM data for India
-mkdir -p osrm-data tiles
-cd osrm-data
-wget https://download.geofabrik.de/asia/india-latest.osm.pbf
-
-# Prepare OSRM data (takes 30-60 minutes)
-docker run -t -v $(pwd):/data osrm/osrm-backend osrm-extract -p /opt/car.lua /data/india-latest.osm.pbf
-docker run -t -v $(pwd):/data osrm/osrm-backend osrm-partition /data/india-latest.osrm
-docker run -t -v $(pwd):/data osrm/osrm-backend osrm-customize /data/india-latest.osrm
-
-# Place your .mbtiles file in tiles/ directory
-cp /path/to/your/india.mbtiles ../tiles/
-```
-
-### 3. Start Services
-
-```bash
-# Start all services
-docker-compose up -d
-
-# Check status
-docker-compose ps
-
-# View logs
-docker-compose logs -f
-```
-
-### 4. Setup Database
-
-```bash
-cd backend
-npm install
-npx prisma generate
-npx prisma migrate deploy
-```
-
-### 5. Start Frontend
-
-```bash
-cd frontend
-npm install
 npm run dev
 ```
 
-### 6. Access Application
+### Docker Compose
 
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:5001
-- Tile Server: http://localhost:8080
-
-## Services
-
-### TileServer GL
-- Serves map tiles from `.mbtiles` files
-- Port: 8080
-- Config: `tileserver-config.json`
-
-### OSRM
-- Routing engine for turn-by-turn directions
-- Port: 5000
-- Data: `osrm-data/india-latest.osrm`
-
-### Nominatim
-- Geocoding and reverse geocoding
-- Port: 8081
-- First import takes several hours
-
-### PostgreSQL + PostGIS
-- Database with spatial extensions
-- Port: 5432
-- Stores routes, vehicles, locations
-
-### Redis
-- Caching and rate limiting
-- Port: 6379
-
-### Node.js Backend
-- REST API and WebSocket server
-- Port: 5001
-- Handles routing, search, vehicle tracking
-
-## API Documentation
-
-See [API_EXAMPLES.md](./API_EXAMPLES.md) for detailed API examples.
-
-### Key Endpoints
-
-- `GET /api/map/route` - Calculate route
-- `GET /api/map/search` - Search places
-- `GET /api/map/reverse` - Reverse geocode
-- `GET /api/vehicles` - List vehicles
-- `POST /api/vehicles` - Create vehicle
-- WebSocket: `vehicle:location` - Send/receive location updates
-
-## WebSocket Events
-
-### Client → Server
-- `vehicle:join` - Join vehicle tracking room
-- `vehicle:location` - Send location update
-- `vehicles:list` - Request vehicle list
-
-### Server → Client
-- `vehicle:location:update` - Location update received
-- `vehicles:list` - Vehicle list response
-
-## Project Structure
-
+```bash
+docker-compose up -d
 ```
+
+## Usage
+
+### Frontend
+
+```bash
+cd frontend
+npm run dev
+```
+
+Open the app in your browser at `http://localhost:3000`.
+
+### Backend
+
+```bash
+cd backend
+npm run dev
+```
+
+The backend API runs at `http://localhost:5001` by default.
+
+### Database
+
+Run Prisma commands when schema changes:
+
+```bash
+cd backend
+npx prisma generate
+npx prisma migrate dev
+```
+
+## Tech Stack
+
+- Frontend: `React`, `Vite`, `Tailwind CSS`
+- Backend: `Node.js`, `Express`, `Socket.IO`
+- Database: `PostgreSQL`, `PostGIS`, `Prisma`
+- Infrastructure: `Docker`, `Docker Compose`, `Nginx`
+- Mapping: `TileServer GL`, `OSRM`, `Nominatim`
+
+## Folder Structure
+
+```text
 .
-├── backend/              # Node.js/Express backend
-│   ├── routes/          # API routes
-│   ├── middleware/      # Auth, cache, rate limiting
-│   ├── config/          # Database, passport config
-│   └── prisma/          # Database schema
-├── frontend/            # React frontend
-│   ├── src/
-│   │   ├── components/  # Map, Search, Route components
-│   │   ├── pages/       # Page components
-│   │   └── services/    # API client
-├── nginx/               # Nginx configuration
-├── osrm-data/           # OSRM routing data
-├── tiles/               # Map tile files (.mbtiles)
-├── docker-compose.yml   # Docker orchestration
-└── SETUP_GUIDE.md       # Detailed setup instructions
+├── backend/                  # API server and backend services
+│   ├── controllers/          # Route handlers and business logic
+│   ├── middleware/           # Authentication, cache, rate limiting
+│   ├── routes/               # Express route definitions
+│   ├── prisma/               # Database schema and migrations
+│   └── server.js
+├── frontend/                 # React application
+│   ├── src/                  # UI source code
+│   ├── components/           # Reusable React components
+│   ├── pages/                # Page-level components
+│   └── services/             # API clients and helpers
+├── nginx/                    # Reverse proxy configuration
+├── docker-compose.yml        # Local orchestration configuration
+├── LICENSE
+├── CONTRIBUTING.md
+└── .github/ISSUE_TEMPLATE/   # GitHub issue templates
 ```
 
-## Configuration
+## Contributing
 
-### Environment Variables
+We welcome contributions from the community.
 
-Key environment variables (see `.env.example`):
+- Fork the repository
+- Create a new branch for your feature or fix
+- Open a pull request with a clear description
+- Follow the code style and existing project conventions
 
-- `DATABASE_URL` - PostgreSQL connection string
-- `JWT_SECRET` - JWT signing secret
-- `TILESERVER_URL` - Tile server URL
-- `OSRM_URL` - OSRM server URL
-- `NOMINATIM_URL` - Nominatim server URL
-- `REDIS_URL` - Redis connection string
+For details, see `CONTRIBUTING.md`.
 
-### Rate Limiting
+## License
 
-Configured in `backend/middleware/rateLimit.js`:
-- Route: 30 requests/minute
-- Search: 60 requests/minute
-- Reverse: 60 requests/minute
+This project is licensed under the MIT License. See `LICENSE` for details.
 
-### Caching
-
-Redis caching configured in `backend/middleware/cache.js`:
-- Search results: 5 minutes
-- Reverse geocoding: 10 minutes
-
-## Production Deployment
-
-1. Update environment variables for production
-2. Set up SSL certificates
-3. Configure domain names
-4. Set up monitoring and logging
-5. Configure backups for PostgreSQL
-6. Set up CDN for tile serving (optional)
-
-See [SETUP_GUIDE.md](./SETUP_GUIDE.md) for detailed instructions.
-
-## Troubleshooting
-
-### Services Not Starting
-- Check Docker logs: `docker-compose logs <service>`
-- Verify environment variables
-- Check port availability
-
-### Tiles Not Loading
-- Verify tile server is running
-- Check tile URL in frontend config
-- Ensure `.mbtiles` file exists
-
-### Routing Not Working
-- Verify OSRM data files exist
-- Check OSRM logs
 - Test OSRM directly: `curl http://localhost:5000/route/v1/driving/...`
 
 ### Nominatim Import Issues

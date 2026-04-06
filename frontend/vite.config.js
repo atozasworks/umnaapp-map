@@ -43,15 +43,22 @@ export default defineConfig({
       '/socket.io': {
         target: 'http://localhost:5000',
         ws: true
+      },
+      '/map-tiles': {
+        target: 'https://umnaapp.in',
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/map-tiles/, '/tiles'),
+        secure: true
       }
     }
   },
   optimizeDeps: {
-    include: ['@react-oauth/google'],
+    include: ['@react-oauth/google', 'atozas-traslate'],
     esbuildOptions: {
       loader: {
         '.ts': 'ts',
         '.tsx': 'tsx',
+        '.js': 'jsx', // atozas-traslate has JSX in .js files
       },
     },
   },

@@ -14,8 +14,9 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
       },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const { id, displayName, emails } = profile
+        const { id, displayName, emails, photos } = profile
         const email = emails[0].value
+        const picture = photos?.[0]?.value || null
 
         // Find or create user
         let user = await prisma.user.findUnique({
@@ -29,12 +30,13 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
           })
 
           if (user) {
-            // Update existing user with Google ID
+            // Update existing user with Google ID and picture
             user = await prisma.user.update({
               where: { email },
               data: {
                 googleId: id,
                 emailVerified: true,
+                picture: picture || undefined,
               },
             })
           } else {
@@ -44,10 +46,17 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET && process.
                 name: displayName,
                 email,
                 googleId: id,
+                picture,
                 emailVerified: true,
               },
             })
           }
+        } else if (picture) {
+          // Refresh Google profile picture on login
+          user = await prisma.user.update({
+            where: { id: user.id },
+            data: { picture },
+          })
         }
 
         // Generate token and create session

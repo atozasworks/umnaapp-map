@@ -1,24 +1,32 @@
-# Dependencies
+# Node
 node_modules/
-frontend/node_modules/
-backend/node_modules/
-
-# Environment variables
-.env
-.env.local
-.env.*.local
-backend/.env
+/frontend/node_modules/
+/backend/node_modules/
 
 # Build outputs
-frontend/dist/
-frontend/build/
-backend/dist/
+/dist/
+/build/
+/frontend/dist/
+/frontend/build/
+/backend/dist/
+
+# Environment
+.env
+.env.*
+backend/.env
+frontend/.env
 
 # Logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+pnpm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
 
 # IDE
 .vscode/
@@ -27,10 +35,22 @@ yarn-error.log*
 *.swo
 *~
 
-# OS
-.DS_Store
-Thumbs.db
+# Docker
+docker-compose.override.yml
+*.env.*.local
+
+# Cache
+.cache/
+.pnpm-store/
+
+# Optional local directories
+osrm-data/
+tiles/
 
 # Prisma
 backend/prisma/migrations/
+
+# Misc
+coverage/
+*.zip
 
