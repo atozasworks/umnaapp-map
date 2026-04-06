@@ -3,7 +3,7 @@ import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
 import SearchBar from '../components/SearchBar'
 import RoutePanel from '../components/RoutePanel'
-import AddPlaceModal from '../components/AddPlaceModal'
+import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
 import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
 import PlaceDetailPanel from '../components/PlaceDetailPanel'
 import PlaceExtractPanel from '../components/PlaceExtractPanel'
@@ -47,6 +47,34 @@ const filterPlacesByUser = (placesList, currentUser) => {
   return placesList.filter((p) => p.userId === currentUser.id)
 }
 
+const normalizeCategory = (category) => {
+  const value = String(category || '').trim()
+  return value || 'Other'
+}
+
+const placeMatchesCategories = (place, selectedCategories) => (
+  selectedCategories.length === 0 || selectedCategories.includes(normalizeCategory(place.category))
+)
+
+const buildCategoryOptions = (placesList) => {
+  const counts = new Map()
+  placesList.forEach((place) => {
+    const category = normalizeCategory(place.category)
+    counts.set(category, (counts.get(category) || 0) + 1)
+  })
+
+  const prioritized = PLACE_CATEGORIES
+    .filter((category) => counts.has(category))
+    .map((category) => ({ category, count: counts.get(category) || 0 }))
+
+  const extras = [...counts.entries()]
+    .filter(([category]) => !PLACE_CATEGORIES.includes(category))
+    .sort((a, b) => a[0].localeCompare(b[0]))
+    .map(([category, count]) => ({ category, count }))
+
+  return [...prioritized, ...extras]
+}
+
 const HomePage = () => {
   const { user, logout, updateProfilePicture } = useAuth()
   const mapRef = useRef(null)
@@ -56,7 +84,11 @@ const HomePage = () => {
   const [showAddPlaceMethodModal, setShowAddPlaceMethodModal] = useState(false)
   const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
   const [mapLocation, setMapLocation] = useState(null)
-  const [places, setPlaces] = useState([])
+  const [allPlaces, setAllPlaces] = useState([])
+  const [visiblePlaces, setVisiblePlaces] = useState([])
+  const [availableCategories, setAvailableCategories] = useState([])
+  const [selectedCategories, setSelectedCategories] = useState([])
+  const [loadingCategoryPlaces, setLoadingCategoryPlaces] = useState(false)
   const [routeStartPlace, setRouteStartPlace] = useState(null)
   const [routeEndPlace, setRouteEndPlace] = useState(null)
   const [addPlacePickMode, setAddPlacePickMode] = useState(false)
@@ -79,6 +111,84 @@ const HomePage = () => {
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  useEffect(() => {
+    setAvailableCategories(buildCategoryOptions(allPlaces))
+  }, [allPlaces])
+
+  useEffect(() => {
+    const fetchAllPlaces = async () => {
+      try {
+        const { data } = await api.get('/map/places')
+        setAllPlaces(data.places || [])
+      } catch (err) {
+        console.error('Failed to fetch places:', err)
+      }
+    }
+    fetchAllPlaces()
+  }, [])
+
+  useEffect(() => {
+    if (selectedCategories.length === 0) {
+      setVisiblePlaces(allPlaces)
+      setLoadingCategoryPlaces(false)
+      return
+    }
+
+    let active = true
+    const localFiltered = allPlaces.filter((place) => placeMatchesCategories(place, selectedCategories))
+    setVisiblePlaces(localFiltered)
+    setLoadingCategoryPlaces(true)
+
+    api.get('/map/places', {
+      params: { categories: selectedCategories.join(',') },
+    })
+      .then(({ data }) => {
+        if (!active) return
+        const serverPlaces = Array.isArray(data.places) ? data.places : []
+        const filteredServerPlaces = serverPlaces.filter((place) => placeMatchesCategories(place, selectedCategories))
+        setVisiblePlaces(filteredServerPlaces)
+      })
+      .catch((err) => {
+        if (!active) return
+        console.error('Failed to fetch filtered places:', err)
+        setVisiblePlaces(localFiltered)
+      })
+      .finally(() => {
+        if (active) {
+          setLoadingCategoryPlaces(false)
+        }
+      })
+
+    return () => {
+      active = false
+    }
+  }, [allPlaces, selectedCategories])
+
+  const toggleCategoryFilter = (category) => {
+    const normalized = normalizeCategory(category)
+    setSelectedCategories((prev) => (
+      prev.includes(normalized)
+        ? prev.filter((item) => item !== normalized)
+        : [...prev, normalized]
+    ))
+  }
+
+  const clearCategoryFilters = () => {
+    setSelectedCategories([])
+  }
+
+  const focusPlaceFromResults = (place) => {
+    if (!place) return
+    setSelectedPlace({ ...place, _isDbPlace: true })
+    if (mapRef.current?.flyTo) {
+      mapRef.current.flyTo({
+        center: [place.longitude, place.latitude],
+        zoom: Math.max(14, place.zoomLevel || 14),
+        duration: 700,
+      })
+    }
   }
 
   const handleProfileImageChange = async (e) => {
@@ -192,7 +302,10 @@ const HomePage = () => {
         zoomLevel: 15,
         source: 'saved',
       })
-      setPlaces((prev) => [data, ...prev])
+      setAllPlaces((prev) => [data, ...prev.filter((place) => place.id !== data.id)])
+      if (placeMatchesCategories(data, selectedCategories)) {
+        setVisiblePlaces((prev) => [data, ...prev.filter((place) => place.id !== data.id)])
+      }
       setShowMenu(false)
       setShowContributionsOnly(false)
       setShowMyPlaces(true)
@@ -203,18 +316,6 @@ const HomePage = () => {
       setSavingPlaceId(null)
     }
   }
-
-  useEffect(() => {
-    const fetchPlaces = async () => {
-      try {
-        const { data } = await api.get('/map/places')
-        setPlaces(data.places || [])
-      } catch (err) {
-        console.error('Failed to fetch places:', err)
-      }
-    }
-    fetchPlaces()
-  }, [])
 
   const handleLocationUpdate = (location) => {
     setCurrentLocation({ lat: location.lat, lng: location.lng, name: 'My location' })
@@ -257,7 +358,10 @@ const HomePage = () => {
   }
 
   const handlePlaceSaved = (place) => {
-    setPlaces((prev) => [place, ...prev])
+    setAllPlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
+    if (placeMatchesCategories(place, selectedCategories)) {
+      setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
+    }
     if (mapRef.current?.flyTo) {
       mapRef.current.flyTo({
         center: [place.longitude, place.latitude],
@@ -271,7 +375,7 @@ const HomePage = () => {
     // UUID placeId → could be own place or another user's place
     if (location.placeId && /^[0-9a-f-]{36}$/.test(String(location.placeId))) {
       // Try own places cache first (instant)
-      const cached = places.find((p) => String(p.id) === String(location.placeId))
+      const cached = allPlaces.find((p) => String(p.id) === String(location.placeId))
       if (cached) {
         setSelectedPlace({ ...cached, _isDbPlace: true })
         if (mapRef.current?.flyTo) {
@@ -333,7 +437,10 @@ const HomePage = () => {
         zoomLevel: place.zoomLevel || 15,
         source: 'saved',
       })
-      setPlaces((prev) => [data, ...prev])
+      setAllPlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
+      if (placeMatchesCategories(data, selectedCategories)) {
+        setVisiblePlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
+      }
     } catch (err) {
       const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
       showToast(msg, 'error')
@@ -355,7 +462,11 @@ const HomePage = () => {
   const handleAddExtractedPlaces = async (selected) => {
     const { data } = await api.post('/map/places/bulk', { places: selected })
     if (data.places?.length > 0) {
-      setPlaces((prev) => [...data.places, ...prev])
+      setAllPlaces((prev) => [...data.places, ...prev])
+      const matchingPlaces = data.places.filter((place) => placeMatchesCategories(place, selectedCategories))
+      if (matchingPlaces.length > 0) {
+        setVisiblePlaces((prev) => [...matchingPlaces, ...prev])
+      }
     }
     if (data.places?.[0]) {
       mapRef.current?.flyTo?.({
@@ -377,7 +488,8 @@ const HomePage = () => {
     setDeletingPlaceId(placeId)
     try {
       await api.delete(`/map/places/${placeId}`)
-      setPlaces((prev) => prev.filter((p) => p.id !== placeId))
+      setAllPlaces((prev) => prev.filter((p) => p.id !== placeId))
+      setVisiblePlaces((prev) => prev.filter((p) => p.id !== placeId))
       setSelectedPlace((prev) => (prev?.id === placeId ? null : prev))
       showToast('Place deleted successfully.', 'success')
     } catch (err) {
@@ -491,13 +603,110 @@ const HomePage = () => {
       {/* Search Bar + Categories - positioned below navbar (safe-area + ~4.5rem) */}
       <div className="absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl" style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}>
         <SearchBar
-          userPlaces={places}
+          userPlaces={allPlaces}
           onSelect={handleSearchSelect}
           onRoute={() => setShowRoutePanel(!showRoutePanel)}
           onResultsChange={() => {}}
           onSavePlace={handleSavePlaceFromSearch}
           savingPlaceId={savingPlaceId}
         />
+        <div className="mt-2 glass rounded-2xl border border-white/40 shadow-lg px-2 py-2">
+          <div className="flex items-center justify-between gap-2 px-2 pb-2">
+            <div className="min-w-0">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
+                Explore Categories
+              </p>
+              <p className="text-xs text-slate-600">
+                {selectedCategories.length === 0
+                  ? `Showing all ${visiblePlaces.length} places`
+                  : `Showing ${visiblePlaces.length} of ${allPlaces.length} places`}
+              </p>
+            </div>
+            {selectedCategories.length > 0 && (
+              <button
+                onClick={clearCategoryFilters}
+                className="text-xs font-semibold text-primary-600 hover:text-primary-700 whitespace-nowrap"
+              >
+                Clear all
+              </button>
+            )}
+          </div>
+
+          <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
+            <button
+              onClick={clearCategoryFilters}
+              className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                selectedCategories.length === 0
+                  ? 'border-primary-500 bg-primary-600 text-white shadow-md'
+                  : 'border-slate-200 bg-white/80 text-slate-600 hover:border-slate-300 hover:bg-white'
+              }`}
+            >
+              All
+            </button>
+
+            {availableCategories.map(({ category, count }) => {
+              const selected = selectedCategories.includes(category)
+              return (
+                <button
+                  key={category}
+                  onClick={() => toggleCategoryFilter(category)}
+                  className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition-all ${
+                    selected
+                      ? 'border-primary-500 bg-primary-600 text-white shadow-md'
+                      : 'border-slate-200 bg-white/80 text-slate-700 hover:border-primary-200 hover:bg-primary-50'
+                  }`}
+                >
+                  {category}
+                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
+                    selected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              )
+            })}
+          </div>
+
+          {(loadingCategoryPlaces || (selectedCategories.length > 0 && visiblePlaces.length === 0)) && (
+            <div className="px-2 pt-2 text-xs text-slate-500">
+              {loadingCategoryPlaces ? 'Loading filtered places...' : 'No places found for the selected categories.'}
+            </div>
+          )}
+
+          {selectedCategories.length > 0 && visiblePlaces.length > 0 && (
+            <div className="px-2 pt-2">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Results
+                </p>
+                <p className="text-[11px] text-slate-500">
+                  {visiblePlaces.length} places
+                </p>
+              </div>
+              <div className="max-h-44 overflow-y-auto pr-1 space-y-1.5 scrollbar-hide">
+                {visiblePlaces.slice(0, 8).map((place) => (
+                  <button
+                    key={place.id}
+                    onClick={() => focusPlaceFromResults(place)}
+                    className="w-full text-left bg-white/85 hover:bg-white rounded-xl border border-slate-200 px-3 py-2 transition-colors"
+                  >
+                    <p className="text-sm font-semibold text-slate-800 truncate">
+                      {place.place_name_en || place.name}
+                    </p>
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <span className="text-[11px] font-medium text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full truncate">
+                        {place.category || 'Other'}
+                      </span>
+                      <span className="text-[11px] text-slate-500 font-mono">
+                        {place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}
+                      </span>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Add Place Method Selection Modal */}
@@ -621,7 +830,7 @@ const HomePage = () => {
           onLocationUpdate={handleLocationUpdate}
           onMapClick={handleMapClickForPlace}
           addPlaceMode={addPlacePickMode || showAddPlaceModal}
-          places={places}
+          places={visiblePlaces}
           searchResultPlaces={[]}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
@@ -640,7 +849,7 @@ const HomePage = () => {
             onDelete={(placeId) => confirmDeletePlace(placeId, selectedPlace?.place_name_en || selectedPlace?.name || 'this place')}
             currentUser={user}
             deletingId={deletingPlaceId}
-            isSaved={places.some(
+            isSaved={allPlaces.some(
               (p) =>
                 p.userId === user?.id &&
                 (p.id === selectedPlace.id ||
@@ -757,7 +966,7 @@ const HomePage = () => {
                   </svg>
                   <span className="text-sm font-medium text-slate-800">Saved</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
-                  {places.filter((p) => (p.source || 'contribution') === 'saved').length}
+                  {allPlaces.filter((p) => (p.source || 'contribution') === 'saved').length}
                 </span>
                 </button>
                 <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation opacity-60">
@@ -776,7 +985,7 @@ const HomePage = () => {
                   <span className="text-sm font-medium text-slate-800">Your contributions</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
                     {filterPlacesByUser(
-                      places.filter((p) => (p.source || 'contribution') === 'contribution'),
+                      allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
                       user
                     ).length}
                   </span>
@@ -954,11 +1163,11 @@ const HomePage = () => {
                 <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5">
                   {showContributionsOnly
                     ? filterPlacesByUser(
-                        places.filter((p) => (p.source || 'contribution') === 'contribution'),
+                        allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
                         user
                       ).length
                     : filterPlacesByUser(
-                        places.filter((p) => (p.source || 'contribution') === 'saved'),
+                        allPlaces.filter((p) => (p.source || 'contribution') === 'saved'),
                         user
                       ).length}
                 </span>
@@ -979,11 +1188,11 @@ const HomePage = () => {
               {(() => {
                 const displayPlaces = showContributionsOnly
                   ? filterPlacesByUser(
-                      places.filter((p) => (p.source || 'contribution') === 'contribution'),
+                      allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
                       user
                     )
                   : filterPlacesByUser(
-                      places.filter((p) => (p.source || 'contribution') === 'saved'),
+                      allPlaces.filter((p) => (p.source || 'contribution') === 'saved'),
                       user
                     )
                 return displayPlaces.length === 0 ? (

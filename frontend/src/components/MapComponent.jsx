@@ -32,6 +32,11 @@ const CATEGORY_COLORS = {
 
 const ACCURACY_CIRCLE_SOURCE_ID = 'user-accuracy-circle-source'
 const ACCURACY_CIRCLE_LAYER_ID = 'user-accuracy-circle-layer'
+const PLACE_SOURCE_ID = 'user-places-source'
+const PLACE_CLUSTER_LAYER_ID = 'user-places-clusters'
+const PLACE_CLUSTER_COUNT_LAYER_ID = 'user-places-cluster-count'
+const PLACE_POINT_LAYER_ID = 'user-places-point'
+const PLACE_LABEL_LAYER_ID = 'user-places-label'
 
 const createCircleGeoJson = (centerLng, centerLat, radiusMeters, points = 64) => {
   const coordinates = []
@@ -58,25 +63,12 @@ const createCircleGeoJson = (centerLng, centerLat, radiusMeters, points = 64) =>
   }
 }
 
-// Added places: display like native map labels (no colored dot, just text like OSM labels)
-const createPlaceMarkerElement = (place) => {
-  const label = document.createElement('div')
-  label.className = 'place-label-marker'
-  label.textContent = place.name
-  label.style.fontSize = '13px'
-  label.style.fontWeight = '500'
-  label.style.color = '#2c3e50'
-  label.style.fontFamily = 'system-ui, -apple-system, sans-serif'
-  label.style.textShadow = '0 1px 1px #fff, 0 -1px 1px #fff, 1px 0 1px #fff, -1px 0 1px #fff'
-  label.style.whiteSpace = 'nowrap'
-  label.style.overflow = 'hidden'
-  label.style.textOverflow = 'ellipsis'
-  label.style.cursor = 'pointer'
-  label.style.maxWidth = '140px'
-  label.style.pointerEvents = 'auto'
-  label.title = `${place.name} (${place.category})`
-  return label
-}
+const escapeHtml = (value = '') => String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#39;')
 
 const createSearchResultMarkerElement = (place) => {
   const wrapper = document.createElement('div')
@@ -174,7 +166,7 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
   const routeEditEmitRafRef = useRef(null)
   const watchIdRef = useRef(null)
   const lastValidLocationRef = useRef(null)
-  const placeMarkersRef = useRef({})
+  const placePopupRef = useRef(null)
   const { socket } = useSocket()
 
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -500,8 +492,10 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       searchResultMarkersRef.current = {}
       Object.values(routeEndpointMarkersRef.current).forEach((m) => m?.remove())
       routeEndpointMarkersRef.current = {}
-      Object.values(placeMarkersRef.current).forEach(({ marker } = {}) => marker?.remove())
-      placeMarkersRef.current = {}
+      if (placePopupRef.current) {
+        placePopupRef.current.remove()
+        placePopupRef.current = null
+      }
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
@@ -531,55 +525,188 @@ const MapComponent = forwardRef(({ onLocationUpdate, onMapClick, addPlaceMode, p
       }
     }
   }, [addPlaceMode, onMapClick])
-
-  // Place markers - created once per places change; zoom visibility toggled via show/hide only
+  // Setup clustered place layers once (Google Maps-like smooth performance for large datasets).
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
-
     const map = mapRef.current
-    const currentZoom = map.getZoom()
 
-    // Tear down previous markers
-    Object.values(placeMarkersRef.current).forEach(({ marker } = {}) => marker?.remove())
-    placeMarkersRef.current = {}
-
-    // Create ALL markers once; just hide those below their min zoom
-    places.forEach((place) => {
-      const minZoom = place.zoomLevel != null ? Number(place.zoomLevel) : 0
-      const popup = new maplibregl.Popup({ offset: 12 }).setHTML(
-        `<div class="p-2 min-w-[120px]"><strong class="text-slate-800">${place.name}</strong><div class="text-xs text-slate-600 mt-1">${place.category}</div></div>`
-      )
-      const el = createPlaceMarkerElement(place)
-      // Initial visibility without touching React state
-      el.style.visibility = currentZoom >= minZoom ? 'visible' : 'hidden'
-      el.style.pointerEvents = currentZoom >= minZoom ? 'auto' : 'none'
-      const marker = new maplibregl.Marker({ element: el, anchor: 'center', offset: [0, 0] })
-        .setLngLat([place.longitude, place.latitude])
-        .setPopup(popup)
-        .addTo(map)
-      placeMarkersRef.current[place.id] = { marker, minZoom }
-    })
-
-    // On zoom end, simply toggle visibility — no React state, no re-render, no DOM recreation
-    const updateVisibility = () => {
-      const zoom = map.getZoom()
-      Object.values(placeMarkersRef.current).forEach(({ marker, minZoom }) => {
-        const el = marker.getElement()
-        const visible = zoom >= minZoom
-        el.style.visibility = visible ? 'visible' : 'hidden'
-        el.style.pointerEvents = visible ? 'auto' : 'none'
+    if (!map.getSource(PLACE_SOURCE_ID)) {
+      map.addSource(PLACE_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+        cluster: true,
+        clusterMaxZoom: 13,
+        clusterRadius: 50,
       })
     }
-    map.on('zoomend', updateVisibility)
+
+    if (!map.getLayer(PLACE_CLUSTER_LAYER_ID)) {
+      map.addLayer({
+        id: PLACE_CLUSTER_LAYER_ID,
+        type: 'circle',
+        source: PLACE_SOURCE_ID,
+        filter: ['has', 'point_count'],
+        paint: {
+          'circle-color': '#0284C7',
+          'circle-radius': [
+            'step',
+            ['get', 'point_count'],
+            16,
+            20,
+            20,
+            60,
+            24,
+            150,
+            28,
+          ],
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 2,
+          'circle-opacity': 0.85,
+        },
+      })
+    }
+
+    if (!map.getLayer(PLACE_CLUSTER_COUNT_LAYER_ID)) {
+      map.addLayer({
+        id: PLACE_CLUSTER_COUNT_LAYER_ID,
+        type: 'symbol',
+        source: PLACE_SOURCE_ID,
+        filter: ['has', 'point_count'],
+        layout: {
+          'text-field': '{point_count_abbreviated}',
+          'text-font': ['Open Sans Bold'],
+          'text-size': 12,
+        },
+        paint: {
+          'text-color': '#ffffff',
+        },
+      })
+    }
+
+    if (!map.getLayer(PLACE_POINT_LAYER_ID)) {
+      map.addLayer({
+        id: PLACE_POINT_LAYER_ID,
+        type: 'circle',
+        source: PLACE_SOURCE_ID,
+        filter: ['!', ['has', 'point_count']],
+        paint: {
+          'circle-color': [
+            'match',
+            ['get', 'category'],
+            ...Object.entries(CATEGORY_COLORS).flatMap(([category, color]) => [category, color]),
+            CATEGORY_COLORS.Other,
+          ],
+          'circle-radius': 7,
+          'circle-stroke-color': '#ffffff',
+          'circle-stroke-width': 1.5,
+        },
+      })
+    }
+
+    if (!map.getLayer(PLACE_LABEL_LAYER_ID)) {
+      map.addLayer({
+        id: PLACE_LABEL_LAYER_ID,
+        type: 'symbol',
+        source: PLACE_SOURCE_ID,
+        filter: ['!', ['has', 'point_count']],
+        layout: {
+          'text-field': ['get', 'name'],
+          'text-size': 11,
+          'text-offset': [0, 1.35],
+          'text-anchor': 'top',
+          'text-max-width': 12,
+        },
+        paint: {
+          'text-color': '#1e293b',
+          'text-halo-color': '#ffffff',
+          'text-halo-width': 1.2,
+        },
+      })
+    }
+
+    const handleClusterClick = (e) => {
+      const feature = e.features?.[0]
+      if (!feature) return
+      const clusterId = feature.properties?.cluster_id
+      const source = map.getSource(PLACE_SOURCE_ID)
+      if (!source || clusterId == null || typeof source.getClusterExpansionZoom !== 'function') return
+      source.getClusterExpansionZoom(clusterId, (err, zoom) => {
+        if (err) return
+        map.easeTo({
+          center: feature.geometry.coordinates,
+          zoom,
+          duration: 350,
+        })
+      })
+    }
+
+    const handlePointClick = (e) => {
+      const feature = e.features?.[0]
+      if (!feature) return
+      const [lng, lat] = feature.geometry.coordinates
+      const name = feature.properties?.name || 'Place'
+      const category = feature.properties?.category || 'Other'
+      const sourceType = feature.properties?.source || 'contribution'
+      const popupHtml = `<div class="p-2 min-w-[150px]"><strong class="text-slate-800">${escapeHtml(name)}</strong><div class="text-xs text-slate-600 mt-1">${escapeHtml(category)}</div><div class="text-[11px] text-slate-500 mt-1">${escapeHtml(sourceType)}</div></div>`
+
+      if (placePopupRef.current) {
+        placePopupRef.current.remove()
+      }
+      placePopupRef.current = new maplibregl.Popup({ offset: 14 })
+        .setLngLat([lng, lat])
+        .setHTML(popupHtml)
+        .addTo(map)
+    }
+
+    const setPointer = () => { map.getCanvas().style.cursor = 'pointer' }
+    const resetPointer = () => { map.getCanvas().style.cursor = '' }
+
+    map.on('click', PLACE_CLUSTER_LAYER_ID, handleClusterClick)
+    map.on('click', PLACE_POINT_LAYER_ID, handlePointClick)
+    map.on('mouseenter', PLACE_CLUSTER_LAYER_ID, setPointer)
+    map.on('mouseleave', PLACE_CLUSTER_LAYER_ID, resetPointer)
+    map.on('mouseenter', PLACE_POINT_LAYER_ID, setPointer)
+    map.on('mouseleave', PLACE_POINT_LAYER_ID, resetPointer)
 
     return () => {
-      map.off('zoomend', updateVisibility)
-      Object.values(placeMarkersRef.current).forEach(({ marker } = {}) => marker?.remove())
-      placeMarkersRef.current = {}
+      map.off('click', PLACE_CLUSTER_LAYER_ID, handleClusterClick)
+      map.off('click', PLACE_POINT_LAYER_ID, handlePointClick)
+      map.off('mouseenter', PLACE_CLUSTER_LAYER_ID, setPointer)
+      map.off('mouseleave', PLACE_CLUSTER_LAYER_ID, resetPointer)
+      map.off('mouseenter', PLACE_POINT_LAYER_ID, setPointer)
+      map.off('mouseleave', PLACE_POINT_LAYER_ID, resetPointer)
     }
+  }, [mapLoaded])
+
+  // Update clustered place source data when category-filtered places change.
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return
+    const source = mapRef.current.getSource(PLACE_SOURCE_ID)
+    if (!source || typeof source.setData !== 'function') return
+
+    const features = places
+      .filter((place) => Number.isFinite(place.longitude) && Number.isFinite(place.latitude))
+      .map((place) => ({
+        type: 'Feature',
+        geometry: {
+          type: 'Point',
+          coordinates: [place.longitude, place.latitude],
+        },
+        properties: {
+          id: place.id,
+          name: place.name || place.place_name_en || 'Place',
+          category: place.category || 'Other',
+          source: place.source || 'contribution',
+        },
+      }))
+
+    source.setData({
+      type: 'FeatureCollection',
+      features,
+    })
   }, [mapLoaded, places])
 
-  // Search result markers (from umnaapp.in/search)
+  // Search result markers (from umnaapp.in/search)'
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
 

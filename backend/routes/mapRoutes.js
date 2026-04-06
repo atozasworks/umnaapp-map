@@ -677,6 +677,13 @@ router.get(
   '/places',
   authenticateToken,
   rateLimitMiddleware('places:list', 60, 60),
+  [
+    query('categories')
+      .optional()
+      .isString()
+      .isLength({ max: 500 })
+      .withMessage('Categories filter is too long'),
+  ],
   async (req, res) => {
     try {
       if (!prisma.place) {
@@ -686,9 +693,26 @@ router.get(
         })
       }
 
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const selectedCategories = String(req.query.categories || '')
+        .split(',')
+        .map((category) => category.trim())
+        .filter(Boolean)
+
+      const where = {
+        userId: req.user.id,
+        ...(selectedCategories.length > 0
+          ? { category: { in: selectedCategories } }
+          : {}),
+      }
+
       // Only return places belonging to this user (filter by userId; each user sees only their own)
       const places = await prisma.place.findMany({
-        where: { userId: req.user.id },
+        where,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -706,6 +730,14 @@ router.get(
           createdAt: true,
         },
       })
+
+      const categoryCounts = await prisma.place.groupBy({
+        by: ['category'],
+        where: { userId: req.user.id },
+        _count: { category: true },
+        orderBy: { category: 'asc' },
+      })
+
       // Normalize for API: name = place_name_en for backward compat
       const normalized = places.map((p) => ({
         ...p,
@@ -715,7 +747,14 @@ router.get(
         user_name: p.userName,
         user_email: p.userEmail,
       }))
-      res.json({ places: normalized })
+      res.json({
+        places: normalized,
+        selectedCategories,
+        availableCategories: categoryCounts.map((item) => ({
+          category: item.category,
+          count: item._count.category,
+        })),
+      })
     } catch (error) {
       console.error('List places error:', error)
       res.status(500).json({ error: 'Failed to fetch places', message: error.message })
@@ -1132,4 +1171,3 @@ router.get('/config', authenticateToken, (req, res) => {
 })
 
 export default router
-
