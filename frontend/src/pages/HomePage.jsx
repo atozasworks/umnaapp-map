@@ -1,4 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useTranslate, useLanguage, getAllLanguages } from 'atozas-traslate'
 import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
 import SearchBar from '../components/SearchBar'
@@ -7,6 +8,8 @@ import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
 import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
 import PlaceDetailPanel from '../components/PlaceDetailPanel'
 import PlaceExtractPanel from '../components/PlaceExtractPanel'
+import TranslatedLabel from '../components/TranslatedLabel'
+import AppLogo from '../components/AppLogo'
 import api from '../services/api'
 
 const MAX_AVATAR_SIZE = 200
@@ -89,11 +92,13 @@ const SEARCH_CHIP_MARKER_COLORS = {
 const MAX_CATEGORY_EXPLORE_RESULTS = 50
 
 const HomePage = () => {
+  const { language, setLanguage } = useLanguage()
   const { user, logout, updateProfilePicture } = useAuth()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
   const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
+  const [addPlaceExcludeId, setAddPlaceExcludeId] = useState(null)
   const [showAddPlaceMethodModal, setShowAddPlaceMethodModal] = useState(false)
   const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
   const [mapLocation, setMapLocation] = useState(null)
@@ -120,10 +125,48 @@ const HomePage = () => {
   const [confirmModal, setConfirmModal] = useState(null)
   const [shareModal, setShareModal] = useState(null)
   const [showExtractPanel, setShowExtractPanel] = useState(false)
+  const [showLanguageModal, setShowLanguageModal] = useState(false)
+  const [pendingLanguage, setPendingLanguage] = useState('en')
   const [categoryExplorePlaces, setCategoryExplorePlaces] = useState([])
   const [mapReadyTick, setMapReadyTick] = useState(0)
   const exploreCategoryRef = useRef(null)
   const exploreMoveDebounceRef = useRef(null)
+
+  const menuShowSidebar = useTranslate('Show side bar')
+  const menuSaved = useTranslate('Saved')
+  const menuRecents = useTranslate('Recents')
+  const menuYourContributions = useTranslate('Your contributions')
+  const menuLocationSharing = useTranslate('Location sharing')
+  const menuPrint = useTranslate('Print')
+  const menuAddMissingPlace = useTranslate('Add a missing place')
+  const menuExtractPlaces = useTranslate('Extract Places')
+  const menuLanguage = useTranslate('Language')
+  const menuLogout = useTranslate('Logout')
+  const menuTapPhotoHint = useTranslate('Tap photo to change')
+  const languageModalTitle = useTranslate('App language')
+  const languageModalHint = useTranslate(
+    'Pick a language, then tap Apply. Menu and labels update after a short load.'
+  )
+  const applyButtonLabel = useTranslate('Apply')
+  const navAppTitle = useTranslate('UMNAAPP')
+  const navAddPlace = useTranslate('Add Place')
+  const navAddPlaceTitle = useTranslate('Add a new place')
+  const navMenuAria = useTranslate('Menu')
+  const filterAll = useTranslate('All')
+  const filterLoading = useTranslate('Loading filtered places...')
+  const filterEmpty = useTranslate('No places found for the selected categories.')
+  const filterResults = useTranslate('Results')
+  const filterPlacesCount = useTranslate('places')
+  const ariaClose = useTranslate('Close')
+  const myPlacesViewOnMap = useTranslate('View on map')
+
+  const allLanguages = useMemo(() => getAllLanguages(), [])
+
+  useEffect(() => {
+    if (showLanguageModal) {
+      setPendingLanguage(language)
+    }
+  }, [showLanguageModal, language])
 
   const fetchCategoryExplorePlaces = useCallback(async (cat) => {
     if (!cat?.query) {
@@ -489,6 +532,7 @@ const HomePage = () => {
 
   const handlePlaceEdit = (place) => {
     setSelectedPlace(null)
+    setAddPlaceExcludeId(place?.id != null ? place.id : null)
     setMapLocation({
       name: place.place_name_en || place.name,
       category: place.category,
@@ -636,14 +680,20 @@ const HomePage = () => {
             <button
               onClick={() => setShowMenu(!showMenu)}
               className="p-2.5 sm:p-2 rounded-xl hover:bg-white/60 active:bg-white/80 transition-colors text-slate-600 flex items-center justify-center min-h-[44px] sm:min-h-0"
-              aria-label="Menu"
+              aria-label={navMenuAria}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
               </svg>
             </button>
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
-              UMNAAPP
+            <h1 className="m-0 min-w-0 flex items-center gap-2">
+              <AppLogo
+                decorative
+                imgClassName="h-7 w-auto max-h-8 sm:h-8 sm:max-h-9 object-contain flex-shrink-0"
+              />
+              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
+                {navAppTitle}
+              </span>
             </h1>
           </div>
 
@@ -665,12 +715,12 @@ const HomePage = () => {
                   ? 'bg-primary-100 border-2 border-primary-400 text-primary-700 shadow-md'
                   : 'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl border border-primary-400/30'
               }`}
-              title="Add a new place"
+              title={navAddPlaceTitle}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              <span className="hidden sm:inline">Add Place</span>
+              <span className="hidden sm:inline">{navAddPlace}</span>
             </button>
           </div>
         </div>
@@ -688,27 +738,6 @@ const HomePage = () => {
           savingPlaceId={savingPlaceId}
         />
         <div className="mt-2 glass rounded-2xl border border-white/40 shadow-lg px-2 py-2">
-          <div className="flex items-center justify-between gap-2 px-2 pb-2">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Explore Categories
-              </p>
-              <p className="text-xs text-slate-600">
-                {selectedCategories.length === 0
-                  ? `Showing all ${visiblePlaces.length} places`
-                  : `Showing ${visiblePlaces.length} of ${allPlaces.length} places`}
-              </p>
-            </div>
-            {selectedCategories.length > 0 && (
-              <button
-                onClick={clearCategoryFilters}
-                className="text-xs font-semibold text-primary-600 hover:text-primary-700 whitespace-nowrap"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-
           <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
             <button
               onClick={clearCategoryFilters}
@@ -718,7 +747,7 @@ const HomePage = () => {
                   : 'border-slate-200 bg-white/80 text-slate-600 hover:border-slate-300 hover:bg-white'
               }`}
             >
-              All
+              {filterAll}
             </button>
 
             {availableCategories.map(({ category, count }) => {
@@ -733,7 +762,7 @@ const HomePage = () => {
                       : 'border-slate-200 bg-white/80 text-slate-700 hover:border-primary-200 hover:bg-primary-50'
                   }`}
                 >
-                  {category}
+                  <TranslatedLabel text={category} />
                   <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
                     selected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                   }`}>
@@ -746,7 +775,7 @@ const HomePage = () => {
 
           {(loadingCategoryPlaces || (selectedCategories.length > 0 && visiblePlaces.length === 0)) && (
             <div className="px-2 pt-2 text-xs text-slate-500">
-              {loadingCategoryPlaces ? 'Loading filtered places...' : 'No places found for the selected categories.'}
+              {loadingCategoryPlaces ? filterLoading : filterEmpty}
             </div>
           )}
 
@@ -754,10 +783,10 @@ const HomePage = () => {
             <div className="px-2 pt-2">
               <div className="flex items-center justify-between mb-1.5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Results
+                  {filterResults}
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  {visiblePlaces.length} places
+                  {visiblePlaces.length} {filterPlacesCount}
                 </p>
               </div>
               <div className="max-h-44 overflow-y-auto pr-1 space-y-1.5 scrollbar-hide">
@@ -772,7 +801,7 @@ const HomePage = () => {
                     </p>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="text-[11px] font-medium text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full truncate">
-                        {place.category || 'Other'}
+                        <TranslatedLabel text={place.category || 'Other'} />
                       </span>
                       <span className="text-[11px] text-slate-500 font-mono">
                         {place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}
@@ -823,11 +852,14 @@ const HomePage = () => {
           setMapLocation(null)
           setAddPlacePickMode(false)
           setAddPlaceLocationMethod(null)
+          setAddPlaceExcludeId(null)
         }}
         initialData={null}
         mapLocation={mapLocation}
         currentLocation={currentLocation}
         initialLocationMethod={addPlaceLocationMethod}
+        existingPlaces={allPlaces}
+        excludePlaceId={addPlaceExcludeId}
         onRequestMapPick={() => {
           setShowAddPlaceModal(false)
           setAddPlacePickMode(true)
@@ -949,13 +981,19 @@ const HomePage = () => {
           <div className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
             {/* Header */}
             <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-slate-200">
-              <h1 className="text-lg font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent">
-                UMNAAPP
+              <h1 className="m-0 flex min-w-0 items-center gap-2.5 pr-2">
+                <AppLogo
+                  decorative
+                  imgClassName="h-8 w-auto max-h-9 object-contain flex-shrink-0"
+                />
+                <span className="text-lg font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
+                  {navAppTitle}
+                </span>
               </h1>
               <button
                 onClick={() => setShowMenu(false)}
                 className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors touch-manipulation"
-                aria-label="Close"
+                aria-label={ariaClose}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -1010,7 +1048,7 @@ const HomePage = () => {
                         {user.name || 'User'}
                       </p>
                       <p className="text-xs text-slate-600 truncate">{user.email}</p>
-                      <p className="text-xs text-primary-600 mt-0.5">Tap photo to change</p>
+                      <p className="text-xs text-primary-600 mt-0.5">{menuTapPhotoHint}</p>
                     </div>
                   </div>
                 </div>
@@ -1026,7 +1064,7 @@ const HomePage = () => {
                     <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
-                    <span className="text-sm font-medium text-slate-800">Show side bar</span>
+                    <span className="text-sm font-medium text-slate-800">{menuShowSidebar}</span>
                   </div>
                   <div className={`relative w-11 h-6 rounded-full transition-colors ${showSidebar ? 'bg-primary-500' : 'bg-slate-300'}`}>
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${showSidebar ? 'left-6' : 'left-0.5'}`} />
@@ -1043,7 +1081,7 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Saved</span>
+                  <span className="text-sm font-medium text-slate-800">{menuSaved}</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
                   {allPlaces.filter((p) => (p.source || 'contribution') === 'saved').length}
                 </span>
@@ -1052,7 +1090,7 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                   </svg>
-                  <span className="text-sm text-slate-500">Recents</span>
+                  <span className="text-sm text-slate-500">{menuRecents}</span>
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); setShowContributionsOnly(true); setShowMyPlaces(true); }}
@@ -1061,7 +1099,7 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Your contributions</span>
+                  <span className="text-sm font-medium text-slate-800">{menuYourContributions}</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
                     {filterPlacesByUser(
                       allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
@@ -1077,7 +1115,7 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Location sharing</span>
+                  <span className="text-sm font-medium text-slate-800">{menuLocationSharing}</span>
                 </button>
 
               </div>
@@ -1091,13 +1129,13 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5M9 21V5a2 2 0 012-2h2a2 2 0 012 2v4m2 4a2 2 0 01-2 2H9" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Print</span>
+                  <span className="text-sm font-medium text-slate-800">{menuPrint}</span>
                 </button>
                 <button
                   onClick={openAddPlace}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
                 >
-                  <span className="text-sm font-medium text-slate-800">Add a missing place</span>
+                  <span className="text-sm font-medium text-slate-800">{menuAddMissingPlace}</span>
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); setShowExtractPanel(true) }}
@@ -1106,20 +1144,21 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Extract Places</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <span className="text-sm font-medium text-slate-800">Edit the map</span>
+                  <span className="text-sm font-medium text-slate-800">{menuExtractPlaces}</span>
                 </button>
               </div>
 
               {/* Section 4: Settings */}
               <div className="border-b border-slate-200 py-2">
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); setShowLanguageModal(true) }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Language</span>
+                  <span className="text-sm font-medium text-slate-800">{menuLanguage}</span>
                 </button>
               </div>
 
@@ -1132,10 +1171,68 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-700">Logout</span>
+                  <span className="text-sm font-medium text-slate-700">{menuLogout}</span>
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showLanguageModal && (
+        <div
+          className="fixed inset-0 z-[450] flex items-center justify-center p-4"
+          onClick={() => setShowLanguageModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="language-modal-title"
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 id="language-modal-title" className="text-base font-bold text-slate-800">
+                {languageModalTitle}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowLanguageModal(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">{languageModalHint}</p>
+            <label className="sr-only" htmlFor="atozas-language-selector">
+              {menuLanguage}
+            </label>
+            <select
+              id="atozas-language-selector"
+              value={pendingLanguage}
+              onChange={(e) => setPendingLanguage(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            >
+              {allLanguages.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setLanguage(pendingLanguage)
+                setShowLanguageModal(false)
+              }}
+              className="w-full mt-4 rounded-xl bg-primary-600 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-primary-700 active:bg-primary-800"
+            >
+              {applyButtonLabel}
+            </button>
           </div>
         </div>
       )}
@@ -1307,7 +1404,9 @@ const HomePage = () => {
                           <p className="text-xs text-slate-500 truncate">{place.place_name_local}</p>
                         )}
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">{place.category}</span>
+                          <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">
+                            <TranslatedLabel text={place.category} />
+                          </span>
                           <button
                             onClick={() => {
                               setShowMyPlaces(false)
@@ -1321,7 +1420,7 @@ const HomePage = () => {
                             }}
                             className="text-xs text-slate-400 hover:text-primary-600 transition-colors"
                           >
-                            View on map
+                            {myPlacesViewOnMap}
                           </button>
                         </div>
                       </div>

@@ -2,8 +2,6 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import api from '../services/api'
 
 const GRID_OPTIONS = [
-  { value: 5, label: 'High (5×5 grid)' },
-  { value: 3, label: 'Medium (3×3 grid)' },
   { value: 2, label: 'Low (2×2 grid)' },
 ]
 
@@ -77,7 +75,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
   const [state, setState] = useState('')
   const [district, setDistrict] = useState('')
   const [taluk, setTaluk] = useState('')
-  const [gridSize, setGridSize] = useState(3)
+  const [gridSize, setGridSize] = useState(2)
   const [status, setStatus] = useState('Enter a country to begin')
   const [isExtracting, setIsExtracting] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -966,7 +964,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
                       <select
                         value={gridSize}
                         onChange={(e) => setGridSize(parseInt(e.target.value, 10))}
-                        className="min-h-[44px] w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-primary-400/20 focus:border-primary-400 focus:ring-2 sm:w-auto"
+                        className="min-h-[44px] w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-primary-400/20 focus:border-primary-400 focus:ring-2 sm:w-auto"
                       >
                         {GRID_OPTIONS.map((o) => (
                           <option key={o.value} value={o.value}>

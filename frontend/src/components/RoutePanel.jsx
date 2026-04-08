@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useTranslate } from 'atozas-traslate'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { parseQueryFromInput } from '../utils/parseSearchQuery'
 
 const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResultsChange, icon, iconColor }) => {
+  const noPlacesFound = useTranslate('No places found')
   const [query, setQuery] = useState(value?.name || '')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
@@ -140,7 +142,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
 
       {showResults && results.length === 0 && query.length >= 2 && !isSearching && (
         <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 p-3 text-center text-slate-500 text-sm">
-          No places found
+          {noPlacesFound}
         </div>
       )}
     </div>
@@ -218,6 +220,42 @@ const StepIcon = ({ modifier }) => {
 }
 
 const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, initialEndPlace }) => {
+  const tDirections = useTranslate('Directions')
+  const tGetDirections = useTranslate('Get Directions')
+  const tCalculating = useTranslate('Calculating...')
+  const tClear = useTranslate('Clear')
+  const tChooseStart = useTranslate('Choose starting point')
+  const tChooseDestination = useTranslate('Choose destination')
+  const tAddStopPrefix = useTranslate('Add stop')
+  const tYourLocation = useTranslate('Your location')
+  const tPleaseSelectBoth = useTranslate('Please select both start and end places')
+  const tClose = useTranslate('Close')
+  const tCar = useTranslate('Car')
+  const tBike = useTranslate('Bike')
+  const tWalk = useTranslate('Walk')
+  const tCycle = useTranslate('Cycle')
+  const tBus = useTranslate('Bus')
+  const tBusHint = useTranslate(
+    'Bus times are estimated. Actual public transport schedules and stops may vary by city.'
+  )
+  const tSwap = useTranslate('Swap')
+  const tReverseRoute = useTranslate('Reverse route')
+  const tMoveUp = useTranslate('Move up')
+  const tMoveDown = useTranslate('Move down')
+  const tRemoveStop = useTranslate('Remove stop')
+  const tFailedRoute = useTranslate('Failed to calculate route')
+
+  const travelModeLabels = useMemo(
+    () => ({
+      driving: tCar,
+      two_wheeler: tBike,
+      walking: tWalk,
+      cycling: tCycle,
+      bus: tBus,
+    }),
+    [tCar, tBike, tWalk, tCycle, tBus]
+  )
+
   const [startPlace, setStartPlace] = useState(null)
   const [endPlace, setEndPlace] = useState(() => initialEndPlace || null)
   const [waypoints, setWaypoints] = useState([])
@@ -260,7 +298,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
 
   const handleCalculate = async (modeOverride) => {
     if (!startPlace || !endPlace) {
-      setError('Please select both start and end places')
+      setError(tPleaseSelectBoth)
       return
     }
 
@@ -287,7 +325,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         setIsRouteEdited(false)
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || 'Failed to calculate route')
+      setError(err.response?.data?.error || err.message || tFailedRoute)
     } finally {
       setIsCalculating(false)
     }
@@ -403,12 +441,12 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
           </svg>
-          Directions
+          {tDirections}
         </h3>
         <button
           onClick={onClose}
           className="p-2 -m-1 text-slate-400 hover:text-slate-600 transition-colors rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-          aria-label="Close"
+          aria-label={tClose}
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -430,10 +468,10 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                   ? 'text-slate-800'
                   : modeData ? 'text-slate-400 hover:text-slate-600' : 'text-slate-300 hover:text-slate-400'
               }`}
-              title={mode.label}
+              title={travelModeLabels[mode.id] || mode.label}
             >
               <div style={isActive ? { color: mode.color } : {}}>{mode.icon}</div>
-              <span className="text-[10px] font-medium leading-none">{mode.label}</span>
+              <span className="text-[10px] font-medium leading-none">{travelModeLabels[mode.id] || mode.label}</span>
               {modeData && (
                 <span className={`text-[9px] font-semibold leading-none ${isActive ? '' : 'text-slate-400'}`} style={isActive ? { color: mode.color } : {}}>
                   {formatDuration(modeData.duration)}
@@ -461,7 +499,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
               </div>
               <div className="flex-1 min-w-0">
                 <PlaceSearchInput
-                  placeholder="Choose starting point"
+                  placeholder={tChooseStart}
                   value={startPlace}
                   onSelect={setStartPlace}
                   onClear={() => setStartPlace(null)}
@@ -475,7 +513,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                     <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" />
                     </svg>
-                    Your location
+                    {tYourLocation}
                   </button>
                 )}
                 {startPlace && (
@@ -499,7 +537,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                   <div className="flex items-center gap-1">
                     <div className="flex-1 min-w-0">
                       <PlaceSearchInput
-                        placeholder={`Add stop ${idx + 1}`}
+                        placeholder={`${tAddStopPrefix} ${idx + 1}`}
                         value={wp.place}
                         onSelect={(p) => updateWaypoint(wp.id, p)}
                         onClear={() => updateWaypoint(wp.id, null)}
@@ -508,12 +546,12 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                     </div>
                     <div className="flex flex-col gap-0.5 flex-shrink-0">
                       {idx > 0 && (
-                        <button onClick={() => moveWaypoint(idx, -1)} className="p-0.5 text-slate-400 hover:text-slate-600" title="Move up">
+                        <button onClick={() => moveWaypoint(idx, -1)} className="p-0.5 text-slate-400 hover:text-slate-600" title={tMoveUp}>
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
                         </button>
                       )}
                       {idx < waypoints.length - 1 && (
-                        <button onClick={() => moveWaypoint(idx, 1)} className="p-0.5 text-slate-400 hover:text-slate-600" title="Move down">
+                        <button onClick={() => moveWaypoint(idx, 1)} className="p-0.5 text-slate-400 hover:text-slate-600" title={tMoveDown}>
                           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                         </button>
                       )}
@@ -521,7 +559,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                     <button
                       onClick={() => removeWaypoint(wp.id)}
                       className="p-1 text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
-                      title="Remove stop"
+                      title={tRemoveStop}
                     >
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -547,7 +585,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
               </div>
               <div className="flex-1 min-w-0">
                 <PlaceSearchInput
-                  placeholder="Choose destination"
+                  placeholder={tChooseDestination}
                   value={endPlace}
                   onSelect={setEndPlace}
                   onClear={() => setEndPlace(null)}
@@ -574,17 +612,17 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
-            Add stop
+            {tAddStopPrefix}
           </button>
           <button
             onClick={handleSwap}
             className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-700"
-            title="Reverse route"
+            title={tReverseRoute}
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
             </svg>
-            <span className="text-xs font-medium">Swap</span>
+            <span className="text-xs font-medium">{tSwap}</span>
           </button>
         </div>
 
@@ -730,7 +768,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
             {travelMode === 'bus' && (
               <div className="mt-2 pt-2 border-t border-blue-200 flex items-start gap-2 text-[10px] text-slate-500">
                 <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-sky-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                <span>Bus times are estimated. Actual public transport schedules and stops may vary by city.</span>
+                <span>{tBusHint}</span>
               </div>
             )}
           </div>
@@ -747,14 +785,14 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           {isCalculating ? (
             <>
               <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
-              Calculating...
+              {tCalculating}
             </>
           ) : (
             <>
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
               </svg>
-              Get Directions
+              {tGetDirections}
             </>
           )}
         </button>
@@ -763,7 +801,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
             onClick={handleClear}
             className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors font-semibold text-sm"
           >
-            Clear
+            {tClear}
           </button>
         )}
       </div>

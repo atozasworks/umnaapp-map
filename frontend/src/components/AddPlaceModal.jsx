@@ -73,7 +73,20 @@ const EMPTY_ADDRESS_FIELDS = {
   country: '',
 }
 
-const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocation, onRequestMapPick, onSaved, initialLocationMethod }) => {
+const normalizePlaceNameKey = (name) => String(name || '').trim().toLowerCase()
+
+const AddPlaceModal = ({
+  isOpen,
+  onClose,
+  initialData,
+  mapLocation,
+  currentLocation,
+  onRequestMapPick,
+  onSaved,
+  initialLocationMethod,
+  existingPlaces = [],
+  excludePlaceId = null,
+}) => {
   const [formData, setFormData] = useState({
     placeNameEn: '',
     placeNameLocal: '',
@@ -94,7 +107,9 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
   const [translating, setTranslating] = useState(false)
   const [detectedTargetLang, setDetectedTargetLang] = useState('hi')
   const [localLabelTranslated, setLocalLabelTranslated] = useState('')
+  const [duplicateNameMessage, setDuplicateNameMessage] = useState(null)
   const translateTimeoutRef = useRef(null)
+  const nameDuplicateTimerRef = useRef(null)
   const addressFetchRef = useRef(null)
   const addressRequestIdRef = useRef(0)
   const addressCacheRef = useRef(new Map())
@@ -243,8 +258,40 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
     return () => {
       if (addressFetchRef.current) clearTimeout(addressFetchRef.current)
       if (translateTimeoutRef.current) clearTimeout(translateTimeoutRef.current)
+      if (nameDuplicateTimerRef.current) clearTimeout(nameDuplicateTimerRef.current)
     }
   }, [])
+
+  // Debounced check: English name already saved for this user (from DB list)
+  useEffect(() => {
+    if (!isOpen) {
+      setDuplicateNameMessage(null)
+      return
+    }
+    const raw = (formData.placeNameEn || '').trim()
+    if (raw.length < 2) {
+      setDuplicateNameMessage(null)
+      return
+    }
+    if (nameDuplicateTimerRef.current) clearTimeout(nameDuplicateTimerRef.current)
+    nameDuplicateTimerRef.current = setTimeout(() => {
+      const key = normalizePlaceNameKey(raw)
+      const list = Array.isArray(existingPlaces) ? existingPlaces : []
+      const taken = list.some((p) => {
+        if (excludePlaceId != null && String(p.id) === String(excludePlaceId)) return false
+        const existingKey = normalizePlaceNameKey(p.place_name_en || p.name)
+        return existingKey.length > 0 && existingKey === key
+      })
+      setDuplicateNameMessage(
+        taken
+          ? 'This place name is already saved. Use a different name.'
+          : null
+      )
+    }, 400)
+    return () => {
+      if (nameDuplicateTimerRef.current) clearTimeout(nameDuplicateTimerRef.current)
+    }
+  }, [formData.placeNameEn, existingPlaces, excludePlaceId, isOpen])
 
   // Translate the local label via backend /map/translate endpoint.
   useEffect(() => {
@@ -388,6 +435,11 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
 
     if (!placeNameEn) {
       setError('Place name (English) is required.')
+      setSaving(false)
+      return
+    }
+    if (duplicateNameMessage) {
+      setError(duplicateNameMessage)
       setSaving(false)
       return
     }
@@ -550,9 +602,16 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
               onChange={handleChange}
               onBlur={handleEnglishBlur}
               placeholder="e.g. Kadaba Bus Stand"
-              className="input-field"
+              className={`input-field ${duplicateNameMessage ? 'border-amber-500 ring-1 ring-amber-400/80' : ''}`}
               required
+              aria-invalid={duplicateNameMessage ? 'true' : undefined}
+              aria-describedby={duplicateNameMessage ? 'place-name-en-duplicate' : undefined}
             />
+            {duplicateNameMessage && (
+              <p id="place-name-en-duplicate" className="mt-1.5 text-xs font-medium text-amber-700" role="alert">
+                {duplicateNameMessage}
+              </p>
+            )}
           </div>
 
           <div>
@@ -714,7 +773,7 @@ const AddPlaceModal = ({ isOpen, onClose, initialData, mapLocation, currentLocat
             </button>
             <button
               type="submit"
-              disabled={saving || !hasValidLocation()}
+              disabled={saving || !hasValidLocation() || !!duplicateNameMessage}
               className="btn-primary flex-1 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {saving ? (

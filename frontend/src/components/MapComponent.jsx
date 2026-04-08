@@ -38,6 +38,47 @@ const PLACE_CLUSTER_COUNT_LAYER_ID = 'user-places-cluster-count'
 const PLACE_POINT_LAYER_ID = 'user-places-point'
 const PLACE_LABEL_LAYER_ID = 'user-places-label'
 
+/** Google Maps–style basemap overlays (raster); labels on satellite like Hybrid */
+const BASEMAP_LABEL_SOURCE_ID = 'basemap-label-overlay-source'
+const BASEMAP_LABEL_LAYER_ID = 'basemap-label-overlay-layer'
+const SATELLITE_TILES = ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']
+const TERRAIN_TILES = ['https://tile.opentopomap.org/{z}/{x}/{y}.png']
+const LABEL_OVERLAY_TILES = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
+const BASEMAP_STORAGE_KEY = 'umnaapp_basemap'
+
+/**
+ * Run fn when the map style is loaded. Retries on style.load after raster setTiles or similar,
+ * which otherwise throws "Style is not done loading" if addLayer runs in the same tick.
+ * @returns {() => void} dispose — call on unmount to cancel pending style.load callbacks
+ */
+const whenStyleReady = (map, fn) => {
+  if (!map || typeof map.isStyleLoaded !== 'function') return () => {}
+  let disposed = false
+  const run = () => {
+    if (disposed) return
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', run)
+      return
+    }
+    try {
+      fn()
+    } catch (err) {
+      if (disposed) return
+      const msg = String(err?.message || err)
+      if (msg.includes('not done loading') || msg.includes('Style is not done')) {
+        map.once('style.load', run)
+        return
+      }
+      console.error(err)
+    }
+  }
+  run()
+  return () => {
+    disposed = true
+    map.off('style.load', run)
+  }
+}
+
 const createCircleGeoJson = (centerLng, centerLat, radiusMeters, points = 64) => {
   const coordinates = []
   const latRadians = (centerLat * Math.PI) / 180
@@ -181,6 +222,7 @@ const MapComponent = forwardRef(({
   const initialFlyFallbackTimerRef = useRef(null)
   const hasRefinedFlyToGpsRef = useRef(false)
   const placePopupRef = useRef(null)
+  const streetTilesUrlRef = useRef(null)
   const { socket } = useSocket()
 
   const [mapLoaded, setMapLoaded] = useState(false)
@@ -191,6 +233,16 @@ const MapComponent = forwardRef(({
   const [currentLocation, setCurrentLocation] = useState(null)
   const [vehicles, setVehicles] = useState([])
   const [route, setRoute] = useState(null)
+  const [basemapMode, setBasemapMode] = useState(() => {
+    try {
+      const v = localStorage.getItem(BASEMAP_STORAGE_KEY)
+      if (v === 'satellite' || v === 'terrain' || v === 'street') return v
+    } catch {
+      /* ignore */
+    }
+    return 'street'
+  })
+  const [layersMenuOpen, setLayersMenuOpen] = useState(false)
 
   const toFeatureGeometry = useCallback((routeInput) => {
     if (!routeInput) return null
@@ -264,8 +316,9 @@ const MapComponent = forwardRef(({
     if (routeDragRafRef.current) return
     routeDragRafRef.current = window.requestAnimationFrame(() => {
       routeDragRafRef.current = null
-      const source = mapRef.current?.getSource('route')
-      if (source) {
+      const map = mapRef.current
+      const source = map?.getSource('route')
+      if (source && map?.isStyleLoaded?.()) {
         source.setData(routeGeoJsonRef.current)
       }
 
@@ -422,7 +475,10 @@ const MapComponent = forwardRef(({
       : env
         ? `${String(env).replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
         : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
-    const attribution = tileUrl.includes('cartocdn') ? '© CARTO © OpenStreetMap' : '© UMNAAPP'
+    streetTilesUrlRef.current = tileUrl
+    const attribution =
+      '© OpenStreetMap © CARTO © Esri © OpenTopoMap' +
+      (tileUrl.includes('cartocdn') ? '' : ' © UMNAAPP')
     const indiaBounds = [
       [68.0, 6.0],
       [97.0, 37.0],
@@ -568,101 +624,6 @@ const MapComponent = forwardRef(({
     if (!mapRef.current || !mapLoaded) return
     const map = mapRef.current
 
-    if (!map.getSource(PLACE_SOURCE_ID)) {
-      map.addSource(PLACE_SOURCE_ID, {
-        type: 'geojson',
-        data: { type: 'FeatureCollection', features: [] },
-        cluster: true,
-        clusterMaxZoom: 13,
-        clusterRadius: 50,
-      })
-    }
-
-    if (!map.getLayer(PLACE_CLUSTER_LAYER_ID)) {
-      map.addLayer({
-        id: PLACE_CLUSTER_LAYER_ID,
-        type: 'circle',
-        source: PLACE_SOURCE_ID,
-        filter: ['has', 'point_count'],
-        paint: {
-          'circle-color': '#0284C7',
-          'circle-radius': [
-            'step',
-            ['get', 'point_count'],
-            16,
-            20,
-            20,
-            60,
-            24,
-            150,
-            28,
-          ],
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': 2,
-          'circle-opacity': 0.85,
-        },
-      })
-    }
-
-    if (!map.getLayer(PLACE_CLUSTER_COUNT_LAYER_ID)) {
-      map.addLayer({
-        id: PLACE_CLUSTER_COUNT_LAYER_ID,
-        type: 'symbol',
-        source: PLACE_SOURCE_ID,
-        filter: ['has', 'point_count'],
-        layout: {
-          'text-field': '{point_count_abbreviated}',
-          'text-font': ['Noto Sans Bold'],
-          'text-size': 12,
-        },
-        paint: {
-          'text-color': '#ffffff',
-        },
-      })
-    }
-
-    if (!map.getLayer(PLACE_POINT_LAYER_ID)) {
-      map.addLayer({
-        id: PLACE_POINT_LAYER_ID,
-        type: 'circle',
-        source: PLACE_SOURCE_ID,
-        filter: ['!', ['has', 'point_count']],
-        paint: {
-          'circle-color': [
-            'match',
-            ['get', 'category'],
-            ...Object.entries(CATEGORY_COLORS).flatMap(([category, color]) => [category, color]),
-            CATEGORY_COLORS.Other,
-          ],
-          'circle-radius': 7,
-          'circle-stroke-color': '#ffffff',
-          'circle-stroke-width': 1.5,
-        },
-      })
-    }
-
-    if (!map.getLayer(PLACE_LABEL_LAYER_ID)) {
-      map.addLayer({
-        id: PLACE_LABEL_LAYER_ID,
-        type: 'symbol',
-        source: PLACE_SOURCE_ID,
-        filter: ['!', ['has', 'point_count']],
-        layout: {
-          'text-field': ['get', 'name'],
-          'text-font': ['Noto Sans Regular'],
-          'text-size': 11,
-          'text-offset': [0, 1.35],
-          'text-anchor': 'top',
-          'text-max-width': 12,
-        },
-        paint: {
-          'text-color': '#1e293b',
-          'text-halo-color': '#ffffff',
-          'text-halo-width': 1.2,
-        },
-      })
-    }
-
     const handleClusterClick = (e) => {
       const feature = e.features?.[0]
       if (!feature) return
@@ -700,14 +661,116 @@ const MapComponent = forwardRef(({
     const setPointer = () => { map.getCanvas().style.cursor = 'pointer' }
     const resetPointer = () => { map.getCanvas().style.cursor = '' }
 
-    map.on('click', PLACE_CLUSTER_LAYER_ID, handleClusterClick)
-    map.on('click', PLACE_POINT_LAYER_ID, handlePointClick)
-    map.on('mouseenter', PLACE_CLUSTER_LAYER_ID, setPointer)
-    map.on('mouseleave', PLACE_CLUSTER_LAYER_ID, resetPointer)
-    map.on('mouseenter', PLACE_POINT_LAYER_ID, setPointer)
-    map.on('mouseleave', PLACE_POINT_LAYER_ID, resetPointer)
+    const setup = () => {
+      if (!map.isStyleLoaded()) return
+
+      if (!map.getSource(PLACE_SOURCE_ID)) {
+        map.addSource(PLACE_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+          cluster: true,
+          clusterMaxZoom: 13,
+          clusterRadius: 50,
+        })
+      }
+
+      if (!map.getLayer(PLACE_CLUSTER_LAYER_ID)) {
+        map.addLayer({
+          id: PLACE_CLUSTER_LAYER_ID,
+          type: 'circle',
+          source: PLACE_SOURCE_ID,
+          filter: ['has', 'point_count'],
+          paint: {
+            'circle-color': '#0284C7',
+            'circle-radius': [
+              'step',
+              ['get', 'point_count'],
+              16,
+              20,
+              20,
+              60,
+              24,
+              150,
+              28,
+            ],
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 2,
+            'circle-opacity': 0.85,
+          },
+        })
+      }
+
+      if (!map.getLayer(PLACE_CLUSTER_COUNT_LAYER_ID)) {
+        map.addLayer({
+          id: PLACE_CLUSTER_COUNT_LAYER_ID,
+          type: 'symbol',
+          source: PLACE_SOURCE_ID,
+          filter: ['has', 'point_count'],
+          layout: {
+            'text-field': '{point_count_abbreviated}',
+            'text-font': ['Noto Sans Bold'],
+            'text-size': 12,
+          },
+          paint: {
+            'text-color': '#ffffff',
+          },
+        })
+      }
+
+      if (!map.getLayer(PLACE_POINT_LAYER_ID)) {
+        map.addLayer({
+          id: PLACE_POINT_LAYER_ID,
+          type: 'circle',
+          source: PLACE_SOURCE_ID,
+          filter: ['!', ['has', 'point_count']],
+          paint: {
+            'circle-color': [
+              'match',
+              ['get', 'category'],
+              ...Object.entries(CATEGORY_COLORS).flatMap(([category, color]) => [category, color]),
+              CATEGORY_COLORS.Other,
+            ],
+            'circle-radius': 7,
+            'circle-stroke-color': '#ffffff',
+            'circle-stroke-width': 1.5,
+          },
+        })
+      }
+
+      if (!map.getLayer(PLACE_LABEL_LAYER_ID)) {
+        map.addLayer({
+          id: PLACE_LABEL_LAYER_ID,
+          type: 'symbol',
+          source: PLACE_SOURCE_ID,
+          filter: ['!', ['has', 'point_count']],
+          layout: {
+            'text-field': ['get', 'name'],
+            'text-font': ['Noto Sans Regular'],
+            'text-size': 11,
+            'text-offset': [0, 1.35],
+            'text-anchor': 'top',
+            'text-max-width': 12,
+          },
+          paint: {
+            'text-color': '#1e293b',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1.2,
+          },
+        })
+      }
+
+      map.on('click', PLACE_CLUSTER_LAYER_ID, handleClusterClick)
+      map.on('click', PLACE_POINT_LAYER_ID, handlePointClick)
+      map.on('mouseenter', PLACE_CLUSTER_LAYER_ID, setPointer)
+      map.on('mouseleave', PLACE_CLUSTER_LAYER_ID, resetPointer)
+      map.on('mouseenter', PLACE_POINT_LAYER_ID, setPointer)
+      map.on('mouseleave', PLACE_POINT_LAYER_ID, resetPointer)
+    }
+
+    const disposeWhenReady = whenStyleReady(map, setup)
 
     return () => {
+      disposeWhenReady()
       map.off('click', PLACE_CLUSTER_LAYER_ID, handleClusterClick)
       map.off('click', PLACE_POINT_LAYER_ID, handlePointClick)
       map.off('mouseenter', PLACE_CLUSTER_LAYER_ID, setPointer)
@@ -717,11 +780,94 @@ const MapComponent = forwardRef(({
     }
   }, [mapLoaded])
 
+  // Google Maps–style basemap: Street (default / env tiles), Satellite + labels, Terrain
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+    if (!map.getLayer(PLACE_CLUSTER_LAYER_ID)) return
+
+    let cancelled = false
+    const mode = basemapMode
+
+    const applyLabelOverlay = () => {
+      if (cancelled || !mapRef.current) return
+      const m = mapRef.current
+      whenStyleReady(m, () => {
+        if (cancelled) return
+        const needsLabelOverlay = mode === 'satellite'
+        if (needsLabelOverlay) {
+          if (!m.getSource(BASEMAP_LABEL_SOURCE_ID)) {
+            m.addSource(BASEMAP_LABEL_SOURCE_ID, {
+              type: 'raster',
+              tiles: LABEL_OVERLAY_TILES,
+              tileSize: 256,
+              minzoom: 0,
+              maxzoom: 19,
+              attribution: '© CARTO © OpenStreetMap',
+            })
+            m.addLayer(
+              {
+                id: BASEMAP_LABEL_LAYER_ID,
+                type: 'raster',
+                source: BASEMAP_LABEL_SOURCE_ID,
+                minzoom: 0,
+                maxzoom: 19,
+                paint: { 'raster-opacity': 1 },
+              },
+              PLACE_CLUSTER_LAYER_ID
+            )
+          } else {
+            m.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'visible')
+          }
+        } else if (m.getLayer(BASEMAP_LABEL_LAYER_ID)) {
+          m.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'none')
+        }
+      })
+    }
+
+    const onIdleAfterTiles = () => {
+      if (cancelled) return
+      applyLabelOverlay()
+    }
+
+    const disposeStyleWait = whenStyleReady(map, () => {
+      if (cancelled) return
+      const raster = map.getSource('raster-tiles')
+      if (!raster || typeof raster.setTiles !== 'function') return
+
+      const streetUrl =
+        streetTilesUrlRef.current || 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+
+      if (mode === 'street') {
+        raster.setTiles([streetUrl])
+      } else if (mode === 'satellite') {
+        raster.setTiles(SATELLITE_TILES)
+      } else {
+        raster.setTiles(TERRAIN_TILES)
+      }
+
+      map.once('idle', onIdleAfterTiles)
+    })
+
+    return () => {
+      cancelled = true
+      map.off('idle', onIdleAfterTiles)
+      disposeStyleWait()
+    }
+  }, [mapLoaded, basemapMode])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(BASEMAP_STORAGE_KEY, basemapMode)
+    } catch {
+      /* ignore */
+    }
+  }, [basemapMode])
+
   // Update clustered place source data when category-filtered places change.
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
-    const source = mapRef.current.getSource(PLACE_SOURCE_ID)
-    if (!source || typeof source.setData !== 'function') return
+    const map = mapRef.current
 
     const features = places
       .filter((place) => Number.isFinite(place.longitude) && Number.isFinite(place.latitude))
@@ -739,10 +885,16 @@ const MapComponent = forwardRef(({
         },
       }))
 
-    source.setData({
-      type: 'FeatureCollection',
-      features,
-    })
+    const applyPlaces = () => {
+      const source = map.getSource(PLACE_SOURCE_ID)
+      if (!source || typeof source.setData !== 'function') return
+      source.setData({
+        type: 'FeatureCollection',
+        features,
+      })
+    }
+
+    return whenStyleReady(map, applyPlaces)
   }, [mapLoaded, places])
 
   // Search result markers (from umnaapp.in/search)'
@@ -974,7 +1126,14 @@ const MapComponent = forwardRef(({
 
   // Update user location marker
   const updateUserLocation = useCallback((location, isHighAccuracy) => {
-    if (!mapRef.current) return
+    const map = mapRef.current
+    if (!map) return
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', () => {
+        updateUserLocation(location, isHighAccuracy)
+      })
+      return
+    }
 
     const { lat, lng, accuracy } = location
 
@@ -982,11 +1141,11 @@ const MapComponent = forwardRef(({
     if (userMarkerRef.current) {
       userMarkerRef.current.remove()
     }
-    if (mapRef.current.getLayer(ACCURACY_CIRCLE_LAYER_ID)) {
-      mapRef.current.removeLayer(ACCURACY_CIRCLE_LAYER_ID)
+    if (map.getLayer(ACCURACY_CIRCLE_LAYER_ID)) {
+      map.removeLayer(ACCURACY_CIRCLE_LAYER_ID)
     }
-    if (mapRef.current.getSource(ACCURACY_CIRCLE_SOURCE_ID)) {
-      mapRef.current.removeSource(ACCURACY_CIRCLE_SOURCE_ID)
+    if (map.getSource(ACCURACY_CIRCLE_SOURCE_ID)) {
+      map.removeSource(ACCURACY_CIRCLE_SOURCE_ID)
     }
 
     // Create marker
@@ -1002,16 +1161,16 @@ const MapComponent = forwardRef(({
 
     userMarkerRef.current = new maplibregl.Marker({ element: el })
       .setLngLat([lng, lat])
-      .addTo(mapRef.current)
+      .addTo(map)
 
     // Create accuracy circle
     if (accuracy) {
       const radius = Math.min(accuracy, 100) // Cap at 100m for display
-      mapRef.current.addSource(ACCURACY_CIRCLE_SOURCE_ID, {
+      map.addSource(ACCURACY_CIRCLE_SOURCE_ID, {
         type: 'geojson',
         data: createCircleGeoJson(lng, lat, radius),
       })
-      mapRef.current.addLayer({
+      map.addLayer({
         id: ACCURACY_CIRCLE_LAYER_ID,
         type: 'fill',
         source: ACCURACY_CIRCLE_SOURCE_ID,
@@ -1138,7 +1297,14 @@ const MapComponent = forwardRef(({
 
   // Draw route on map
   const drawRoute = useCallback((routeData, options = {}) => {
-    if (!mapRef.current) return
+    const map = mapRef.current
+    if (!map) return
+    if (!map.isStyleLoaded()) {
+      map.once('style.load', () => {
+        drawRoute(routeData, options)
+      })
+      return
+    }
     const feature = toFeatureGeometry(routeData)
     if (!feature) return
 
@@ -1147,24 +1313,24 @@ const MapComponent = forwardRef(({
     const lineDash = options.dashArray || null
 
     // Remove existing route
-    if (mapRef.current.getLayer('route')) {
-      mapRef.current.removeLayer('route')
+    if (map.getLayer('route')) {
+      map.removeLayer('route')
     }
-    if (mapRef.current.getLayer('route-hit')) {
-      mapRef.current.removeLayer('route-hit')
+    if (map.getLayer('route-hit')) {
+      map.removeLayer('route-hit')
     }
-    if (mapRef.current.getSource('route')) {
-      mapRef.current.removeSource('route')
+    if (map.getSource('route')) {
+      map.removeSource('route')
     }
 
     // Add route source
-    mapRef.current.addSource('route', {
+    map.addSource('route', {
       type: 'geojson',
       data: feature,
     })
 
     // Invisible but wider hit target for drag interactions.
-    mapRef.current.addLayer({
+    map.addLayer({
       id: 'route-hit',
       type: 'line',
       source: 'route',
@@ -1189,7 +1355,7 @@ const MapComponent = forwardRef(({
       routePaint['line-dasharray'] = lineDash
     }
 
-    mapRef.current.addLayer({
+    map.addLayer({
       id: 'route',
       type: 'line',
       source: 'route',
@@ -1211,7 +1377,7 @@ const MapComponent = forwardRef(({
         (bounds, coord) => bounds.extend(coord),
         new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
       )
-      mapRef.current.fitBounds(bounds, {
+      map.fitBounds(bounds, {
         padding: 50,
         duration: 1000,
       })
@@ -1250,14 +1416,16 @@ const MapComponent = forwardRef(({
       return routeData
     },
     clearRoute: () => {
-      if (mapRef.current?.getLayer('route')) {
-        mapRef.current.removeLayer('route')
+      const map = mapRef.current
+      if (!map?.isStyleLoaded?.()) return
+      if (map.getLayer('route')) {
+        map.removeLayer('route')
       }
-      if (mapRef.current?.getLayer('route-hit')) {
-        mapRef.current.removeLayer('route-hit')
+      if (map.getLayer('route-hit')) {
+        map.removeLayer('route-hit')
       }
-      if (mapRef.current?.getSource('route')) {
-        mapRef.current.removeSource('route')
+      if (map.getSource('route')) {
+        map.removeSource('route')
       }
       if (routeLayerRef.current) {
         routeLayerRef.current = null
@@ -1411,6 +1579,63 @@ const MapComponent = forwardRef(({
               <p className="text-xs text-slate-600 mt-1">{locationError}</p>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Map layers — Street / Satellite / Terrain (Google Maps–style) */}
+      {mapLoaded && (
+        <div
+          className="absolute right-2 sm:right-4 z-10 flex flex-col items-end gap-2"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 6.75rem)' }}
+        >
+          {layersMenuOpen && (
+            <div className="glass rounded-xl shadow-xl p-3 w-[10.5rem] border border-white/40">
+              <p className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2">Map type</p>
+              <div className="flex flex-col gap-1">
+                {[
+                  { id: 'street', label: 'Default', sub: 'Standard map' },
+                  { id: 'satellite', label: 'Satellite', sub: 'Imagery + labels' },
+                  { id: 'terrain', label: 'Terrain', sub: 'Topographic' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    onClick={() => {
+                      setBasemapMode(opt.id)
+                      setLayersMenuOpen(false)
+                    }}
+                    className={`rounded-lg px-2.5 py-2 text-left transition-colors ${
+                      basemapMode === opt.id
+                        ? 'bg-primary-600 text-white shadow-md'
+                        : 'hover:bg-white/70 text-slate-800'
+                    }`}
+                  >
+                    <span className="text-sm font-semibold block leading-tight">{opt.label}</span>
+                    <span
+                      className={`text-[10px] leading-tight block mt-0.5 ${
+                        basemapMode === opt.id ? 'text-primary-100' : 'text-slate-500'
+                      }`}
+                    >
+                      {opt.sub}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <button
+            type="button"
+            onClick={() => setLayersMenuOpen((o) => !o)}
+            title="Map layers"
+            aria-expanded={layersMenuOpen}
+            className="glass rounded-lg shadow-lg p-2.5 hover:bg-white/80 active:scale-95 transition-all border border-white/30"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83z" />
+              <path d="M22 17.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 17.65" />
+              <path d="M22 12.65l-9.17 4.16a2 2 0 0 1-1.66 0L2 12.65" />
+            </svg>
+          </button>
         </div>
       )}
 

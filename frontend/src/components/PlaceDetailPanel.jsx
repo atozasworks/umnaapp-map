@@ -1,5 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo } from 'react'
+import { useTranslate } from 'atozas-traslate'
 import api from '../services/api'
+import TranslatedLabel from './TranslatedLabel'
 
 const CATEGORY_ICONS = {
   Restaurant: '🍽️', Hospital: '🏥', Hotel: '🏨', Parking: '🅿️', Shop: '🛍️',
@@ -75,6 +77,16 @@ const compressImage = (file, maxSizeKB = 400) =>
 export default function PlaceDetailPanel({
   place, onClose, onDirections, onSave, onEdit, onDelete, currentUser, isSaved, deletingId,
 }) {
+  const tDirections = useTranslate('Directions')
+  const tSaved = useTranslate('Saved')
+  const tSave = useTranslate('Save')
+  const tPhotos = useTranslate('Photos')
+  const tShare = useTranslate('Share')
+  const tCopied = useTranslate('Copied!')
+  const tOverview = useTranslate('Overview')
+  const tReviews = useTranslate('Reviews')
+  const tPhotosTab = useTranslate('Photos')
+
   const [entered, setEntered] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
   const [address, setAddress] = useState(null)
@@ -239,13 +251,18 @@ export default function PlaceDetailPanel({
     ? new Date(place.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
     : null
   const myReview = reviews.find((r) => r.userId === currentUser?.id)
-  const TABS = [
-    { id: 'overview', label: 'Overview' },
-    ...(isDbPlace ? [
-      { id: 'reviews', label: `Reviews${reviews.length ? ` (${reviews.length})` : ''}` },
-      { id: 'photos', label: `Photos${photos.length ? ` (${photos.length})` : ''}` },
-    ] : []),
-  ]
+  const TABS = useMemo(
+    () => [
+      { id: 'overview', label: tOverview },
+      ...(isDbPlace
+        ? [
+            { id: 'reviews', label: `${tReviews}${reviews.length ? ` (${reviews.length})` : ''}` },
+            { id: 'photos', label: `${tPhotosTab}${photos.length ? ` (${photos.length})` : ''}` },
+          ]
+        : []),
+    ],
+    [isDbPlace, tOverview, tReviews, tPhotosTab, reviews.length, photos.length]
+  )
 
   return (
     <>
@@ -323,7 +340,7 @@ export default function PlaceDetailPanel({
           <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${color}18`, color }}>
-                {icon}<span className="ml-1">{place.category}</span>
+                {icon}<span className="ml-1"><TranslatedLabel text={place.category} /></span>
               </span>
               {isOwner && <span className="text-xs text-slate-400">· Added by you</span>}
               {!isOwner && contributorName && <span className="text-xs text-slate-400">· Added by {contributorName}</span>}
@@ -340,16 +357,16 @@ export default function PlaceDetailPanel({
           {/* Action Buttons */}
           <div className="px-3 pb-3 border-b border-slate-100 grid grid-cols-4 gap-1">
             {[
-              { label: 'Directions', color: '#4285F4', onClick: () => onDirections && onDirections(place),
+              { key: 'dir', label: tDirections, color: '#4285F4', onClick: () => onDirections && onDirections(place),
                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg> },
-              { label: isSaved ? 'Saved' : 'Save', color: isSaved ? '#34A853' : '#0F9D58', onClick: () => !isSaved && onSave && onSave(place),
+              { key: 'save', label: isSaved ? tSaved : tSave, color: isSaved ? '#34A853' : '#0F9D58', onClick: () => !isSaved && onSave && onSave(place),
                 icon: <svg className="w-5 h-5" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z" /></svg> },
-              { label: 'Photos', color: '#FBBC04', onClick: () => setActiveTab('photos'),
+              { key: 'photos', label: tPhotos, color: '#FBBC04', onClick: () => setActiveTab('photos'),
                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },
-              { label: copied ? 'Copied!' : 'Share', color: '#EA4335', onClick: handleShare,
+              { key: 'share', label: copied ? tCopied : tShare, color: '#EA4335', onClick: handleShare,
                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg> },
             ].map((a) => (
-              <button key={a.label} onClick={a.onClick} className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors min-h-[68px] justify-center">
+              <button key={a.key} onClick={a.onClick} className="flex flex-col items-center gap-1.5 p-2 rounded-xl hover:bg-slate-50 active:bg-slate-100 transition-colors min-h-[68px] justify-center">
                 <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ background: `${a.color}15`, color: a.color }}>{a.icon}</div>
                 <span className="text-[10px] font-semibold text-slate-600 text-center leading-tight">{a.label}</span>
               </button>
