@@ -218,9 +218,7 @@ const MapComponent = forwardRef(({
   const watchIdRef = useRef(null)
   const lastValidLocationRef = useRef(null)
   const hasFlownToUserRef = useRef(false)
-  const lastAppliedAccuracyRef = useRef(null)
   const initialFlyFallbackTimerRef = useRef(null)
-  const hasRefinedFlyToGpsRef = useRef(false)
   const placePopupRef = useRef(null)
   const streetTilesUrlRef = useRef(null)
   const { socket } = useSocket()
@@ -997,10 +995,11 @@ const MapComponent = forwardRef(({
       maximumAge: 0,
       timeout: 60000,
     }
-
-    const AUTO_FLY_MAX_ACCURACY_M = 100
-    const REFINE_FLY_PREV_MIN_M = 70
-    const REFINE_FLY_NEW_MAX_M = 35
+    const strictOneShotRead = {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 25000,
+    }
 
     const applyPosition = (position) => {
       const { latitude, longitude, accuracy, speed, heading } = position.coords
@@ -1029,12 +1028,10 @@ const MapComponent = forwardRef(({
       }
 
       const map = mapRef.current
-      const prevAcc = lastAppliedAccuracyRef.current
-      lastAppliedAccuracyRef.current = acc
 
-      // Do not auto-fly on coarse network/IP fixes (often 1km+ off): wait for GPS-level accuracy,
-      // then fly; if nothing good arrives, fallback timer still centers on best available fix.
-      if (map && !hasFlownToUserRef.current && acc <= AUTO_FLY_MAX_ACCURACY_M) {
+      // One-time auto center on first valid location fix when app opens.
+      // After this, we keep updating the marker but avoid re-centering the map again.
+      if (map && !hasFlownToUserRef.current) {
         hasFlownToUserRef.current = true
         if (initialFlyFallbackTimerRef.current != null) {
           clearTimeout(initialFlyFallbackTimerRef.current)
@@ -1042,22 +1039,8 @@ const MapComponent = forwardRef(({
         }
         map.flyTo({
           center: [longitude, latitude],
-          zoom: acc <= 25 ? 16 : 15,
-          duration: 1200,
-        })
-      } else if (
-        map
-        && hasFlownToUserRef.current
-        && !hasRefinedFlyToGpsRef.current
-        && prevAcc != null
-        && prevAcc > REFINE_FLY_PREV_MIN_M
-        && acc <= REFINE_FLY_NEW_MAX_M
-      ) {
-        hasRefinedFlyToGpsRef.current = true
-        map.flyTo({
-          center: [longitude, latitude],
           zoom: 16,
-          duration: 700,
+          duration: 1200,
         })
       }
     }
@@ -1088,6 +1071,7 @@ const MapComponent = forwardRef(({
     }
 
     // Fast approximate marker only — do not treat this as the “true” position for auto-fly
+    navigator.geolocation.getCurrentPosition(applyPosition, () => {}, strictOneShotRead)
     navigator.geolocation.getCurrentPosition(applyPosition, () => {}, relaxedRead)
 
     watchIdRef.current = navigator.geolocation.watchPosition(
@@ -1104,7 +1088,7 @@ const MapComponent = forwardRef(({
       hasFlownToUserRef.current = true
       map.flyTo({
         center: [loc.lng, loc.lat],
-        zoom: 14,
+        zoom: 16,
         duration: 1000,
       })
     }, 14000)
@@ -1118,8 +1102,6 @@ const MapComponent = forwardRef(({
         navigator.geolocation.clearWatch(watchIdRef.current)
         watchIdRef.current = null
       }
-      hasRefinedFlyToGpsRef.current = false
-      lastAppliedAccuracyRef.current = null
     }
     // updateUserLocation: stable useCallback below; omit from deps (declared after this hook)
   }, [mapLoaded, onLocationUpdate])
@@ -1685,4 +1667,3 @@ const MapComponent = forwardRef(({
 MapComponent.displayName = 'MapComponent'
 
 export default MapComponent
-

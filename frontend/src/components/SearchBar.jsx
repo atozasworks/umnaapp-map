@@ -8,7 +8,6 @@ const CATEGORY_DEFS = [
   { id: 'directions', icon: 'route', labelEn: 'Directions', isAction: true },
   { id: 'restaurants', icon: 'restaurant', labelEn: 'Restaurants', query: 'restaurant' },
   { id: 'hotels', icon: 'hotel', labelEn: 'Hotels', query: 'hotel' },
-  { id: 'things', icon: 'attraction', labelEn: 'Things to do', query: 'attraction tourism' },
   { id: 'museums', icon: 'museum', labelEn: 'Museums', query: 'museum' },
   { id: 'transit', icon: 'transit', labelEn: 'Transit', query: 'bus station train' },
   { id: 'pharmacies', icon: 'pharmacy', labelEn: 'Pharmacies', query: 'pharmacy' },
@@ -28,7 +27,6 @@ const SearchBar = ({
   const tDirections = useTranslate('Directions')
   const tRestaurants = useTranslate('Restaurants')
   const tHotels = useTranslate('Hotels')
-  const tThingsToDo = useTranslate('Things to do')
   const tMuseums = useTranslate('Museums')
   const tTransit = useTranslate('Transit')
   const tPharmacies = useTranslate('Pharmacies')
@@ -47,7 +45,6 @@ const SearchBar = ({
           tDirections,
           tRestaurants,
           tHotels,
-          tThingsToDo,
           tMuseums,
           tTransit,
           tPharmacies,
@@ -60,7 +57,6 @@ const SearchBar = ({
       tDirections,
       tRestaurants,
       tHotels,
-      tThingsToDo,
       tMuseums,
       tTransit,
       tPharmacies,

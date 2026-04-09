@@ -82,7 +82,6 @@ const buildCategoryOptions = (placesList) => {
 const SEARCH_CHIP_MARKER_COLORS = {
   restaurants: '#EA4335',
   hotels: '#F59E0B',
-  things: '#A855F7',
   museums: '#14B8A6',
   transit: '#2563EB',
   pharmacies: '#10B981',
@@ -131,6 +130,7 @@ const HomePage = () => {
   const [mapReadyTick, setMapReadyTick] = useState(0)
   const exploreCategoryRef = useRef(null)
   const exploreMoveDebounceRef = useRef(null)
+  const hasInitialAutoCenterRef = useRef(false)
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -226,6 +226,32 @@ const HomePage = () => {
       if (exploreMoveDebounceRef.current) clearTimeout(exploreMoveDebounceRef.current)
     }
   }, [mapReadyTick, fetchCategoryExplorePlaces])
+
+  // Ensure first location update always recenters map once on app open.
+  useEffect(() => {
+    if (mapReadyTick === 0) return
+    if (hasInitialAutoCenterRef.current) return
+    if (!Number.isFinite(currentLocation?.lat) || !Number.isFinite(currentLocation?.lng)) return
+    if (!mapRef.current?.flyTo) return
+    const map = mapRef.current?.getMap?.()
+    const center = map?.getCenter?.()
+    if (center) {
+      const isAlreadyCentered =
+        Math.abs(center.lat - currentLocation.lat) < 0.0002
+        && Math.abs(center.lng - currentLocation.lng) < 0.0002
+      if (isAlreadyCentered) {
+        hasInitialAutoCenterRef.current = true
+        return
+      }
+    }
+
+    hasInitialAutoCenterRef.current = true
+    mapRef.current.flyTo({
+      center: [currentLocation.lng, currentLocation.lat],
+      zoom: 16,
+      duration: 900,
+    })
+  }, [mapReadyTick, currentLocation])
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
