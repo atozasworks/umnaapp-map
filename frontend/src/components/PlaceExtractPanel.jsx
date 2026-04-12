@@ -75,8 +75,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
   const [state, setState] = useState('')
   const [district, setDistrict] = useState('')
   const [taluk, setTaluk] = useState('')
+  const [village, setVillage] = useState('')
+  const [loadingRegion, setLoadingRegion] = useState(false)
   const [gridSize, setGridSize] = useState(2)
-  const [status, setStatus] = useState('Enter a country to begin')
+  const [status, setStatus] = useState('Enter country → state → district → taluk → village as needed, then Load region')
   const [isExtracting, setIsExtracting] = useState(false)
   const [progress, setProgress] = useState(0)
   const [extractedPlaces, setExtractedPlaces] = useState([])
@@ -106,9 +108,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
   const searchBarContainerRef = useRef(null)
   const [searchSuggestOpen, setSearchSuggestOpen] = useState(false)
 
-  const boundsRef = useRef({ state: null, district: null, taluk: null })
+  /** Keeps latest list for Places getDetails callbacks (avoids stale closure on repeat searches). */
+  const searchResultsRef = useRef([])
+
+  const boundsRef = useRef({ region: null })
   const placesArrayRef = useRef([])
-  const currentLocationRef = useRef({ country: '', state: '', district: '', taluk: '' })
+  const currentLocationRef = useRef({ country: '', state: '', district: '', taluk: '', village: '' })
 
   // Ref-backed counter for API stats (avoids stale closure in callbacks)
   const statsRef = useRef({ nearby: 0, geocode: 0, retries: 0 })
@@ -139,6 +144,20 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
     mapInstanceRef.current = map
     serviceRef.current = new window.google.maps.places.PlacesService(map)
   }, [mapsLoaded])
+
+  // Reflow map when the dialog flex layout gives the container a real size
+  useEffect(() => {
+    if (!mapsLoaded || !isOpen || !mapInstanceRef.current || !mapContainerRef.current) return
+    const map = mapInstanceRef.current
+    const el = mapContainerRef.current
+    const trigger = () => {
+      if (window.google?.maps?.event) window.google.maps.event.trigger(map, 'resize')
+    }
+    trigger()
+    const ro = new ResizeObserver(() => trigger())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mapsLoaded, isOpen])
 
   // Cleanup on unmount/close
   useEffect(() => {
@@ -225,52 +244,46 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
     })
   }, [enqueueApiCall, updateStats])
 
-  // --- Location loaders ---
-  const loadLocation = useCallback(async (type) => {
+  // --- Single geocode from full hierarchy (country required) ---
+  const loadRegion = useCallback(async () => {
     const map = mapInstanceRef.current
     if (!map) return
 
-    let address = ''
-    if (type === 'country') {
-      if (!country.trim()) return
-      currentLocationRef.current = { country: country.trim(), state: '', district: '', taluk: '' }
-      address = country.trim()
-    } else if (type === 'state') {
-      if (!currentLocationRef.current.country) { setStatus('Load a country first'); return }
-      if (!state.trim()) return
-      currentLocationRef.current.state = state.trim()
-      currentLocationRef.current.district = ''
-      currentLocationRef.current.taluk = ''
-      address = `${state.trim()}, ${currentLocationRef.current.country}`
-    } else if (type === 'district') {
-      if (!currentLocationRef.current.state) { setStatus('Load a state first'); return }
-      if (!district.trim()) return
-      currentLocationRef.current.district = district.trim()
-      currentLocationRef.current.taluk = ''
-      address = `${district.trim()}, ${currentLocationRef.current.state}, ${currentLocationRef.current.country}`
-    } else if (type === 'taluk') {
-      if (!currentLocationRef.current.district) { setStatus('Load a district first'); return }
-      if (!taluk.trim()) return
-      currentLocationRef.current.taluk = taluk.trim()
-      address = `${taluk.trim()}, ${currentLocationRef.current.district}, ${currentLocationRef.current.state}, ${currentLocationRef.current.country}`
+    const c = country.trim()
+    if (!c) {
+      setStatus('Enter at least a country, then tap Load region.')
+      return
     }
 
-    const { results, status: gStatus } = await throttledGeocode(address)
-    if (gStatus === 'OK' && results?.[0]) {
-      const viewport = results[0].geometry.viewport
-      map.fitBounds(viewport)
-      if (type === 'state') boundsRef.current.state = viewport
-      else if (type === 'district') boundsRef.current.district = viewport
-      else if (type === 'taluk') boundsRef.current.taluk = viewport
-      setStatus(`Loaded ${address}. Ready to extract places.`)
-    } else {
-      setStatus(`Could not find "${address}"`)
+    const address = [village.trim(), taluk.trim(), district.trim(), state.trim(), c].filter(Boolean).join(', ')
+    currentLocationRef.current = {
+      country: c,
+      state: state.trim(),
+      district: district.trim(),
+      taluk: taluk.trim(),
+      village: village.trim(),
     }
-  }, [country, state, district, taluk, throttledGeocode])
+
+    setLoadingRegion(true)
+    try {
+      const { results, status: gStatus } = await throttledGeocode(address)
+      if (gStatus === 'OK' && results?.[0]) {
+        const viewport = results[0].geometry.viewport
+        boundsRef.current.region = viewport
+        map.fitBounds(viewport)
+        setStatus(`Loaded ${address}. Ready to extract places.`)
+      } else {
+        boundsRef.current.region = null
+        setStatus(`Could not find "${address}"`)
+      }
+    } finally {
+      setLoadingRegion(false)
+    }
+  }, [country, state, district, taluk, village, throttledGeocode])
 
   const getLocationString = () => {
     const loc = currentLocationRef.current
-    return [loc.taluk, loc.district, loc.state, loc.country].filter(Boolean).join(', ')
+    return [loc.village, loc.taluk, loc.district, loc.state, loc.country].filter(Boolean).join(', ')
   }
 
   // --- Grid generation ---
@@ -305,9 +318,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
 
   // --- Extraction ---
   const extractPlaces = useCallback(async () => {
-    const extractionBounds = boundsRef.current.taluk || boundsRef.current.district || boundsRef.current.state
+    const extractionBounds = boundsRef.current.region
     if (!extractionBounds) {
-      setStatus('Load at least a state before extracting.')
+      setStatus('Tap Load region first (after entering location fields).')
       return
     }
     if (isExtracting) return
@@ -360,6 +373,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
                 lat,
                 lng,
                 type: place.types?.[0] || placeType,
+                village: currentLocationRef.current.village,
                 district: currentLocationRef.current.district,
                 taluk: currentLocationRef.current.taluk,
                 state: currentLocationRef.current.state,
@@ -571,6 +585,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
   }, [])
 
   useEffect(() => {
+    searchResultsRef.current = searchResults
+  }, [searchResults])
+
+  useEffect(() => {
     const onDocDown = (e) => {
       if (!searchBarContainerRef.current?.contains(e.target)) setSearchSuggestOpen(false)
     }
@@ -625,7 +643,24 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
           fields: ['formatted_address', 'geometry', 'name', 'place_id', 'types'],
         },
         (details, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && details) {
+          const refocusForNextSearch = () => {
+            setTimeout(() => {
+              searchInputRef.current?.focus()
+              setSearchSuggestOpen(true)
+            }, 0)
+          }
+
+          try {
+            if (status !== window.google.maps.places.PlacesServiceStatus.OK || !details) {
+              setSearchStatus(
+                status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS
+                  ? 'Place not found. Try another search.'
+                  : `Could not load place (${status}). Try again.`
+              )
+              refocusForNextSearch()
+              return
+            }
+
             const processedPlace = {
               name: details.name,
               lat: details.geometry.location.lat(),
@@ -635,37 +670,43 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
               type: details.types?.[0] || 'place',
             }
 
-            // Add to results if not already there
-            const exists = searchResults.some((p) => p.placeId === details.place_id)
-            if (!exists) {
-              setSearchResults((prev) => [...prev, processedPlace])
-              setSelectedSearchPlaces((prev) => new Set([...prev, processedPlace.name]))
-
-              // Add marker to map
-              addSearchMarker(processedPlace)
-
-              // Fit bounds to show all markers
-              if (searchMapInstanceRef.current && searchMarkersRef.current.length > 0) {
-                const bounds = new window.google.maps.LatLngBounds()
-                searchMarkersRef.current.forEach((marker) => {
-                  bounds.extend(marker.getPosition())
-                })
-                searchMapInstanceRef.current.fitBounds(bounds, 100)
-              }
-
-              setSearchStatus(`Added: ${processedPlace.name}`)
-            } else {
-              setSearchStatus('Place already added')
+            const exists = searchResultsRef.current.some((p) => p.placeId === processedPlace.placeId)
+            if (exists) {
+              setSearchStatus('Place already in list')
+              setSearchQuery('')
+              setSearchSuggestions([])
+              setSearchSuggestOpen(false)
+              refocusForNextSearch()
+              return
             }
+
+            const nextList = [...searchResultsRef.current, processedPlace]
+            searchResultsRef.current = nextList
+            setSearchResults(nextList)
+            setSelectedSearchPlaces((prev) => new Set([...prev, processedPlace.name]))
+
+            addSearchMarker(processedPlace)
+
+            if (searchMapInstanceRef.current && searchMarkersRef.current.length > 0) {
+              const bounds = new window.google.maps.LatLngBounds()
+              searchMarkersRef.current.forEach((marker) => {
+                bounds.extend(marker.getPosition())
+              })
+              searchMapInstanceRef.current.fitBounds(bounds, 100)
+            }
+
+            setSearchStatus(`Added: ${processedPlace.name}`)
+            setSearchQuery('')
+            setSearchSuggestions([])
+            setSearchSuggestOpen(false)
+            refocusForNextSearch()
+          } finally {
+            setIsSearching(false)
           }
-          setSearchQuery('')
-          setSearchSuggestions([])
-          setSearchSuggestOpen(false)
-          setIsSearching(false)
         }
       )
     },
-    [searchResults, addSearchMarker]
+    [addSearchMarker]
   )
 
   // --- Update marker appearance based on selection ---
@@ -779,7 +820,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
         role="dialog"
         aria-modal="true"
         aria-labelledby="place-extract-title"
-        className="relative pointer-events-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl max-h-[min(100dvh,100svh)] sm:max-h-[min(90dvh,880px)] min-h-0 animate-sheet-up sm:animate-fade-in"
+        className="relative pointer-events-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl max-h-[min(100dvh,100svh)] sm:h-[min(90dvh,880px)] sm:max-h-[min(90dvh,880px)] min-h-0 animate-sheet-up sm:animate-fade-in"
       >
         {/* Mobile drag affordance */}
         <div className="flex shrink-0 justify-center pt-2 pb-1 sm:hidden" aria-hidden>
@@ -886,85 +927,65 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
             {extractionMethod === 'grid' && (
               <>
                 {/* Main column: controls + map */}
-                <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-                  {/* Controls */}
-                  <div className="max-h-[52vh] shrink-0 overflow-y-auto border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-3 sm:max-h-none sm:p-4">
-                    <p className="mb-3 text-xs font-medium uppercase tracking-wide text-slate-500">Region &amp; grid</p>
-                    <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
-                      <div className="flex min-w-0 gap-2">
-                        <input
-                          type="text"
-                          value={country}
-                          onChange={(e) => setCountry(e.target.value)}
-                          placeholder="Country (e.g. India)"
-                          className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-primary-400/30 transition-shadow focus:border-primary-400 focus:ring-2"
-                          onKeyDown={(e) => e.key === 'Enter' && loadLocation('country')}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => loadLocation('country')}
-                          className="min-h-[44px] shrink-0 rounded-xl bg-primary-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 active:bg-primary-800"
-                        >
-                          Load
-                        </button>
-                      </div>
-                      <div className="flex min-w-0 gap-2">
-                        <input
-                          type="text"
-                          value={state}
-                          onChange={(e) => setState(e.target.value)}
-                          placeholder="State / region"
-                          className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-primary-400/30 transition-shadow focus:border-primary-400 focus:ring-2"
-                          onKeyDown={(e) => e.key === 'Enter' && loadLocation('state')}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => loadLocation('state')}
-                          className="min-h-[44px] shrink-0 rounded-xl bg-primary-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 active:bg-primary-800"
-                        >
-                          Load
-                        </button>
-                      </div>
-                      <div className="flex min-w-0 gap-2">
-                        <input
-                          type="text"
-                          value={district}
-                          onChange={(e) => setDistrict(e.target.value)}
-                          placeholder="District"
-                          className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-primary-400/30 transition-shadow focus:border-primary-400 focus:ring-2"
-                          onKeyDown={(e) => e.key === 'Enter' && loadLocation('district')}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => loadLocation('district')}
-                          className="min-h-[44px] shrink-0 rounded-xl bg-primary-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 active:bg-primary-800"
-                        >
-                          Load
-                        </button>
-                      </div>
-                      <div className="flex min-w-0 gap-2">
-                        <input
-                          type="text"
-                          value={taluk}
-                          onChange={(e) => setTaluk(e.target.value)}
-                          placeholder="Taluk / locality"
-                          className="min-h-[44px] min-w-0 flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-primary-400/30 transition-shadow focus:border-primary-400 focus:ring-2"
-                          onKeyDown={(e) => e.key === 'Enter' && loadLocation('taluk')}
-                        />
-                        <button
-                          type="button"
-                          onClick={() => loadLocation('taluk')}
-                          className="min-h-[44px] shrink-0 rounded-xl bg-primary-600 px-4 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 active:bg-primary-800"
-                        >
-                          Load
-                        </button>
-                      </div>
+                <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
+                  {/* Controls — compact so the map keeps most of the column height */}
+                  <div className="max-h-[min(34vh,260px)] shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:max-h-none sm:p-2.5">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                      <input
+                        type="text"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        placeholder="Country (required, e.g. India)"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={state}
+                        onChange={(e) => setState(e.target.value)}
+                        placeholder="State / region"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={district}
+                        onChange={(e) => setDistrict(e.target.value)}
+                        placeholder="District"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={taluk}
+                        onChange={(e) => setTaluk(e.target.value)}
+                        placeholder="Taluk / taluka"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={village}
+                        onChange={(e) => setVillage(e.target.value)}
+                        placeholder="Village / town"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1 sm:col-span-2"
+                        onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
+                      />
                     </div>
-                    <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={loadRegion}
+                        disabled={loadingRegion}
+                        className="h-8 shrink-0 rounded-lg bg-primary-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 active:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {loadingRegion ? 'Loading…' : 'Load region'}
+                      </button>
                       <select
                         value={gridSize}
                         onChange={(e) => setGridSize(parseInt(e.target.value, 10))}
-                        className="min-h-[44px] w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm outline-none ring-primary-400/20 focus:border-primary-400 focus:ring-2 sm:w-auto"
+                        className="h-8 max-w-full appearance-none rounded-lg border border-slate-200 bg-white px-2 py-0 text-xs shadow-sm outline-none ring-primary-400/20 focus:border-primary-400 focus:ring-1 sm:w-auto"
                       >
                         {GRID_OPTIONS.map((o) => (
                           <option key={o.value} value={o.value}>
@@ -972,54 +993,52 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
                           </option>
                         ))}
                       </select>
-                      <div className="flex flex-wrap gap-2">
-                        {!isExtracting ? (
-                          <button
-                            type="button"
-                            onClick={extractPlaces}
-                            className="min-h-[44px] flex-1 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 px-4 text-sm font-semibold text-white shadow-md transition hover:from-blue-700 hover:to-blue-600 sm:flex-none"
-                          >
-                            Extract places
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={stopExtraction}
-                            className="min-h-[44px] flex-1 rounded-xl bg-red-600 px-4 text-sm font-semibold text-white shadow-md transition hover:bg-red-700 sm:flex-none"
-                          >
-                            Stop
-                          </button>
-                        )}
+                      {!isExtracting ? (
                         <button
                           type="button"
-                          onClick={downloadJSON}
-                          disabled={extractedPlaces.length === 0}
-                          className="min-h-[44px] rounded-xl bg-slate-700 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                          onClick={extractPlaces}
+                          className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600"
                         >
-                          Download
+                          Extract places
                         </button>
+                      ) : (
                         <button
                           type="button"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="min-h-[44px] rounded-xl bg-amber-500 px-4 text-sm font-semibold text-white shadow-sm transition hover:bg-amber-600"
+                          onClick={stopExtraction}
+                          className="h-8 shrink-0 rounded-lg bg-red-600 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700"
                         >
-                          Upload
+                          Stop
                         </button>
-                      </div>
+                      )}
+                      <button
+                        type="button"
+                        onClick={downloadJSON}
+                        disabled={extractedPlaces.length === 0}
+                        className="h-8 shrink-0 rounded-lg bg-slate-700 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Download
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => fileInputRef.current?.click()}
+                        className="h-8 shrink-0 rounded-lg bg-amber-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600"
+                      >
+                        Upload
+                      </button>
                       <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleUploadJSON} />
                     </div>
                   </div>
 
                   {/* Status + Progress */}
-                  <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2.5 sm:px-4">
-                    <div className="flex flex-col gap-1 text-xs text-slate-600 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="min-w-0 leading-snug sm:truncate">{status}</span>
-                      <span className="shrink-0 text-[11px] text-slate-400 sm:text-xs">
+                  <div className="shrink-0 border-b border-slate-100 bg-white px-2 py-1.5 sm:px-2.5">
+                    <div className="flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="min-w-0 sm:truncate">{status}</span>
+                      <span className="shrink-0 text-[10px] text-slate-400 sm:text-[11px]">
                         API {apiStats.nearby + apiStats.geocode} · retries {apiStats.retries}
                       </span>
                     </div>
                     {isExtracting && (
-                      <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-slate-200">
+                      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
                         <div
                           className="h-full rounded-full bg-gradient-to-r from-primary-500 to-cyan-500 transition-all duration-300"
                           style={{ width: `${progress}%` }}
@@ -1028,16 +1047,18 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
                     )}
                   </div>
 
-                  {/* Google Map */}
-                  <div ref={mapContainerRef} className="min-h-[220px] flex-1 bg-slate-100 sm:min-h-[280px]" />
+                  {/* Google Map — fills remaining column height inside the dialog */}
+                  <div className="relative min-h-0 flex-1 w-full">
+                    <div ref={mapContainerRef} className="absolute inset-0 min-h-[160px] bg-slate-100" />
+                  </div>
                 </div>
 
                 {/* Places list */}
-                <div className="flex max-h-[min(42vh,360px)] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-none lg:w-80 lg:flex-shrink-0 lg:border-l lg:border-t-0 xl:w-96">
-                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-3 py-2.5 sm:px-4">
+                <div className="flex max-h-[min(42vh,360px)] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
                     <div className="flex min-w-0 items-center gap-2">
-                      <h3 className="truncate text-sm font-semibold text-slate-800">Extracted places</h3>
-                      <span className="shrink-0 rounded-full bg-slate-200/80 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                      <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
+                      <span className="shrink-0 rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 sm:text-[11px]">
                         {selectedPlaces.size}/{extractedPlaces.length}
                       </span>
                     </div>
@@ -1056,7 +1077,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
                     {extractedPlaces.length === 0 ? (
                       <div className="flex h-full min-h-[120px] items-center justify-center p-4">
                         <p className="max-w-[220px] text-center text-xs leading-relaxed text-slate-500">
-                          Load a region, run extract, then pick places to add to your map.
+                          Tap Load region, run extract, then pick places to add to your map.
                         </p>
                       </div>
                     ) : (
@@ -1097,7 +1118,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
                         type="button"
                         onClick={handleAddToMap}
                         disabled={selectedPlaces.size === 0 || addingToMap}
-                        className="flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-cyan-600 px-4 text-sm font-bold text-white shadow-lg transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-md transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {addingToMap ? (
                           <>

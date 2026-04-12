@@ -55,9 +55,13 @@ const normalizeCategory = (category) => {
   return value || 'Other'
 }
 
-const placeMatchesCategories = (place, selectedCategories) => (
-  selectedCategories.length === 0 || selectedCategories.includes(normalizeCategory(place.category))
-)
+const categoryKey = (c) => normalizeCategory(c).toLowerCase()
+
+const placeMatchesCategories = (place, selectedCategories) => {
+  if (selectedCategories.length === 0) return true
+  const cat = categoryKey(place.category)
+  return selectedCategories.some((s) => categoryKey(s) === cat)
+}
 
 const buildCategoryOptions = (placesList) => {
   const counts = new Map()
@@ -92,7 +96,7 @@ const MAX_CATEGORY_EXPLORE_RESULTS = 50
 
 const HomePage = () => {
   const { language, setLanguage } = useLanguage()
-  const { user, logout, updateProfilePicture } = useAuth()
+  const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
   const [currentLocation, setCurrentLocation] = useState(null)
@@ -227,10 +231,14 @@ const HomePage = () => {
     }
   }, [mapReadyTick, fetchCategoryExplorePlaces])
 
-  // Ensure first location update always recenters map once on app open.
+  // First GPS fix: center on user once — but not if they already have saved places (map fits to those pins).
   useEffect(() => {
     if (mapReadyTick === 0) return
     if (hasInitialAutoCenterRef.current) return
+    if (allPlaces.length > 0) {
+      hasInitialAutoCenterRef.current = true
+      return
+    }
     if (!Number.isFinite(currentLocation?.lat) || !Number.isFinite(currentLocation?.lng)) return
     if (!mapRef.current?.flyTo) return
     const map = mapRef.current?.getMap?.()
@@ -251,7 +259,7 @@ const HomePage = () => {
       zoom: 16,
       duration: 900,
     })
-  }, [mapReadyTick, currentLocation])
+  }, [mapReadyTick, currentLocation, allPlaces.length])
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
@@ -262,53 +270,38 @@ const HomePage = () => {
     setAvailableCategories(buildCategoryOptions(allPlaces))
   }, [allPlaces])
 
-  useEffect(() => {
-    const fetchAllPlaces = async () => {
-      try {
-        const { data } = await api.get('/map/places')
-        setAllPlaces(data.places || [])
-      } catch (err) {
-        console.error('Failed to fetch places:', err)
-      }
+  const refreshPlacesFromDb = useCallback(async () => {
+    try {
+      const { data } = await api.get('/map/places')
+      setAllPlaces(Array.isArray(data.places) ? data.places : [])
+    } catch (err) {
+      console.error('Failed to fetch places:', err)
     }
-    fetchAllPlaces()
   }, [])
 
+  // Load saved places from DB when session is valid; clear when logged out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAllPlaces([])
+      return
+    }
+    refreshPlacesFromDb()
+  }, [isAuthenticated, refreshPlacesFromDb])
+
+  const handleMapReady = useCallback(() => {
+    setMapReadyTick((t) => t + 1)
+    if (isAuthenticated) refreshPlacesFromDb()
+  }, [isAuthenticated, refreshPlacesFromDb])
+
+  // Derive map markers from allPlaces only so newly added places always appear once categories align
+  // (avoids overwriting visiblePlaces after bulk add / extract).
   useEffect(() => {
     if (selectedCategories.length === 0) {
       setVisiblePlaces(allPlaces)
-      setLoadingCategoryPlaces(false)
-      return
+    } else {
+      setVisiblePlaces(allPlaces.filter((place) => placeMatchesCategories(place, selectedCategories)))
     }
-
-    let active = true
-    const localFiltered = allPlaces.filter((place) => placeMatchesCategories(place, selectedCategories))
-    setVisiblePlaces(localFiltered)
-    setLoadingCategoryPlaces(true)
-
-    api.get('/map/places', {
-      params: { categories: selectedCategories.join(',') },
-    })
-      .then(({ data }) => {
-        if (!active) return
-        const serverPlaces = Array.isArray(data.places) ? data.places : []
-        const filteredServerPlaces = serverPlaces.filter((place) => placeMatchesCategories(place, selectedCategories))
-        setVisiblePlaces(filteredServerPlaces)
-      })
-      .catch((err) => {
-        if (!active) return
-        console.error('Failed to fetch filtered places:', err)
-        setVisiblePlaces(localFiltered)
-      })
-      .finally(() => {
-        if (active) {
-          setLoadingCategoryPlaces(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
+    setLoadingCategoryPlaces(false)
   }, [allPlaces, selectedCategories])
 
   const toggleCategoryFilter = (category) => {
@@ -964,9 +957,9 @@ const HomePage = () => {
           ref={mapRef}
           onLocationUpdate={handleLocationUpdate}
           onMapClick={handleMapClickForPlace}
-          onMapReady={() => setMapReadyTick((t) => t + 1)}
+          onMapReady={handleMapReady}
           addPlaceMode={addPlacePickMode || showAddPlaceModal}
-          places={visiblePlaces}
+          places={allPlaces}
           searchResultPlaces={categoryExplorePlaces}
           autoFitSearchResults={false}
           routeStartPlace={routeStartPlace}

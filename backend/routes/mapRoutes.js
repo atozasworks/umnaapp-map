@@ -572,6 +572,77 @@ const PLACE_CATEGORIES = [
   'Other',
 ]
 
+/** Map Google Places types (extract/search) to app category labels so map filters match. */
+const GOOGLE_PLACE_TYPE_TO_CATEGORY = {
+  restaurant: 'Restaurant',
+  meal_takeaway: 'Restaurant',
+  meal_delivery: 'Restaurant',
+  cafe: 'Restaurant',
+  bar: 'Restaurant',
+  bakery: 'Restaurant',
+  food: 'Restaurant',
+  night_club: 'Restaurant',
+  hospital: 'Hospital',
+  doctor: 'Hospital',
+  dentist: 'Hospital',
+  physiotherapist: 'Hospital',
+  veterinary_care: 'Hospital',
+  lodging: 'Hotel',
+  parking: 'Parking',
+  convenience_store: 'Grocery Store',
+  supermarket: 'Grocery Store',
+  grocery_or_supermarket: 'Grocery Store',
+  store: 'Shop',
+  shopping_mall: 'Shop',
+  clothing_store: 'Shop',
+  electronics_store: 'Shop',
+  furniture_store: 'Shop',
+  hardware_store: 'Shop',
+  home_goods_store: 'Shop',
+  jewelry_store: 'Shop',
+  shoe_store: 'Shop',
+  book_store: 'Shop',
+  florist: 'Shop',
+  school: 'School',
+  secondary_school: 'School',
+  primary_school: 'School',
+  university: 'School',
+  hindu_temple: 'Temple',
+  church: 'Temple',
+  mosque: 'Temple',
+  synagogue: 'Temple',
+  place_of_worship: 'Temple',
+  bank: 'Bank',
+  atm: 'ATM',
+  post_office: 'Post Office',
+  bus_station: 'Bus Stop',
+  bus_stop: 'Bus Stop',
+  subway_station: 'Transit',
+  train_station: 'Transit',
+  transit_station: 'Transit',
+  light_rail_station: 'Transit',
+  police: 'Police Station',
+  gas_station: 'Petrol Pump',
+  tourist_attraction: 'Tourist Place',
+  museum: 'Museum',
+  pharmacy: 'Pharmacy',
+  drugstore: 'Pharmacy',
+  movie_theater: 'Cinema',
+  gym: 'Gym',
+  beauty_salon: 'Salon',
+  hair_care: 'Salon',
+  spa: 'Salon',
+}
+
+function mapGoogleTypeToCategory(rawType) {
+  const type = String(rawType || '')
+    .toLowerCase()
+    .trim()
+  if (GOOGLE_PLACE_TYPE_TO_CATEGORY[type]) return GOOGLE_PLACE_TYPE_TO_CATEGORY[type]
+  if (PLACE_CATEGORIES.includes(String(rawType || '').trim())) return String(rawType).trim()
+  return 'Other'
+}
+
 /**
  * @route POST /api/map/places
  * @desc Save a new place
@@ -829,7 +900,7 @@ router.post(
           name,
           placeNameEn: name,
           placeNameLocal: null,
-          category: item.type || 'Other',
+          category: mapGoogleTypeToCategory(item.type),
           latitude: lat,
           longitude: lng,
           zoomLevel: 15,
