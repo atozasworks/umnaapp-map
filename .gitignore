@@ -9,6 +9,7 @@ node_modules/
 /frontend/dist/
 /frontend/build/
 /backend/dist/
+/admin/dist/
 
 # Environment
 .env

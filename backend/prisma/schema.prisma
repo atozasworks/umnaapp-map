@@ -146,6 +146,8 @@ model Place {
   userName         String?  @map("user_name")   // User name when place was added
   userEmail        String?  @map("user_email")  // User email when place was added
   source           String   @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
+  approvalStatus   String   @default("approved") @map("approval_status") // pending | approved
+  approvedAt       DateTime? @map("approved_at")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
@@ -158,6 +160,7 @@ model Place {
   @@index([category])
   @@index([createdAt])
   @@index([source])
+  @@index([approvalStatus])
   @@index([latitude, longitude])
 }
 

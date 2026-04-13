@@ -500,6 +500,9 @@ const HomePage = () => {
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
+    if (place?.approvalStatus === 'pending') {
+      showToast('Place submitted. Only you can see it on the map until it is approved (auto after 10 days).', 'info')
+    }
     if (mapRef.current?.flyTo) {
       mapRef.current.flyTo({
         center: [place.longitude, place.latitude],
@@ -614,7 +617,12 @@ const HomePage = () => {
         duration: 1000,
       })
     }
-    showToast(`Added ${data.added} places (${data.skipped} skipped)`, data.added > 0 ? 'success' : 'info')
+    showToast(
+      data.added > 0
+        ? `Added ${data.added} places (${data.skipped} skipped). They stay private until approved.`
+        : `Added ${data.added} places (${data.skipped} skipped)`,
+      data.added > 0 ? 'success' : 'info'
+    )
     return data
   }
 

@@ -8,8 +8,24 @@ import { cacheMiddleware } from '../middleware/cache.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import prisma from '../config/database.js'
 import { translateText, getLanguageFromAddress } from '../services/translateService.js'
+import {
+  autoApproveExpiredPendingPlaces,
+  placePublicVisibilityOr,
+  isPlaceVisibleToUser,
+  pendingAutoApproveAt,
+} from '../services/placeApproval.js'
 
 const router = express.Router()
+
+function attachApprovalMeta(p) {
+  if (!p) return p
+  const st = p.approvalStatus ?? 'approved'
+  const base = { ...p, approvalStatus: st, approvedAt: p.approvedAt ?? null }
+  if (st === 'pending' && p.createdAt) {
+    base.autoApproveAt = pendingAutoApproveAt(p.createdAt).toISOString()
+  }
+  return base
+}
 
 const ROUTE_SERVICE_URL = process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in'
 const ROUTE_BASE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in').replace(/\/+$/, '') + '/map/route'
@@ -414,17 +430,24 @@ router.get(
         address: r.address ?? null,
       }))
 
-      // User-added places from database: search ALL users' places (not just current user)
+      // User-added places: approved for everyone; pending only for the contributor
       let dbResults = []
       if (prisma.place && q.length >= 2) {
         const searchTerm = q.trim()
         try {
+          await autoApproveExpiredPendingPlaces()
+          const viewerId = req.user.id
           const dbPlaces = await prisma.place.findMany({
             where: {
-              OR: [
-                { name: { contains: searchTerm, mode: 'insensitive' } },
-                { placeNameEn: { contains: searchTerm, mode: 'insensitive' } },
-                { category: { contains: searchTerm, mode: 'insensitive' } },
+              AND: [
+                placePublicVisibilityOr(viewerId),
+                {
+                  OR: [
+                    { name: { contains: searchTerm, mode: 'insensitive' } },
+                    { placeNameEn: { contains: searchTerm, mode: 'insensitive' } },
+                    { category: { contains: searchTerm, mode: 'insensitive' } },
+                  ],
+                },
               ],
             },
             take: 15,
@@ -701,6 +724,7 @@ router.post(
         })
       }
 
+      const isSaved = source === 'saved'
       const place = await prisma.place.create({
         data: {
           name: nameEn, // legacy field = place_name_en
@@ -713,25 +737,31 @@ router.post(
           userId,
           userName,
           userEmail,
-          source: source === 'saved' ? 'saved' : 'contribution',
+          source: isSaved ? 'saved' : 'contribution',
+          approvalStatus: isSaved ? 'approved' : 'pending',
+          approvedAt: isSaved ? new Date() : null,
         },
       })
 
-      res.status(201).json({
-        id: place.id,
-        name: place.placeNameEn ?? place.name,
-        place_name_en: place.placeNameEn ?? place.name,
-        place_name_local: place.placeNameLocal,
-        category: place.category,
-        latitude: place.latitude,
-        longitude: place.longitude,
-        zoomLevel: place.zoomLevel,
-        source: place.source ?? 'contribution',
-        userId: place.userId,
-        user_name: place.userName,
-        user_email: place.userEmail,
-        createdAt: place.createdAt,
-      })
+      res.status(201).json(
+        attachApprovalMeta({
+          id: place.id,
+          name: place.placeNameEn ?? place.name,
+          place_name_en: place.placeNameEn ?? place.name,
+          place_name_local: place.placeNameLocal,
+          category: place.category,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          zoomLevel: place.zoomLevel,
+          source: place.source ?? 'contribution',
+          userId: place.userId,
+          user_name: place.userName,
+          user_email: place.userEmail,
+          createdAt: place.createdAt,
+          approvalStatus: place.approvalStatus,
+          approvedAt: place.approvedAt,
+        })
+      )
     } catch (error) {
       console.error('Save place error:', error)
       res.status(500).json({ error: 'Failed to save place', message: error.message })
@@ -799,6 +829,8 @@ router.get(
           userName: true,
           userEmail: true,
           createdAt: true,
+          approvalStatus: true,
+          approvedAt: true,
         },
       })
 
@@ -809,15 +841,19 @@ router.get(
         orderBy: { category: 'asc' },
       })
 
+      await autoApproveExpiredPendingPlaces()
+
       // Normalize for API: name = place_name_en for backward compat
-      const normalized = places.map((p) => ({
-        ...p,
-        name: p.placeNameEn ?? p.name,
-        place_name_en: p.placeNameEn ?? p.name,
-        place_name_local: p.placeNameLocal,
-        user_name: p.userName,
-        user_email: p.userEmail,
-      }))
+      const normalized = places.map((p) =>
+        attachApprovalMeta({
+          ...p,
+          name: p.placeNameEn ?? p.name,
+          place_name_en: p.placeNameEn ?? p.name,
+          place_name_local: p.placeNameLocal,
+          user_name: p.userName,
+          user_email: p.userEmail,
+        })
+      )
       res.json({
         places: normalized,
         selectedCategories,
@@ -908,6 +944,8 @@ router.post(
           userName,
           userEmail,
           source: 'contribution',
+          approvalStatus: 'pending',
+          approvedAt: null,
         })
       }
 
@@ -925,17 +963,20 @@ router.post(
             id: true, name: true, placeNameEn: true, placeNameLocal: true,
             category: true, latitude: true, longitude: true, zoomLevel: true,
             source: true, userId: true, userName: true, userEmail: true, createdAt: true,
+            approvalStatus: true, approvedAt: true,
           },
         })
 
-        created = created.map((p) => ({
-          ...p,
-          name: p.placeNameEn ?? p.name,
-          place_name_en: p.placeNameEn ?? p.name,
-          place_name_local: p.placeNameLocal,
-          user_name: p.userName,
-          user_email: p.userEmail,
-        }))
+        created = created.map((p) =>
+          attachApprovalMeta({
+            ...p,
+            name: p.placeNameEn ?? p.name,
+            place_name_en: p.placeNameEn ?? p.name,
+            place_name_local: p.placeNameLocal,
+            user_name: p.userName,
+            user_email: p.userEmail,
+          })
+        )
       }
 
       res.status(201).json({
@@ -1002,22 +1043,29 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
+      await autoApproveExpiredPendingPlaces()
       const place = await prisma.place.findUnique({
         where: { id },
         select: {
           id: true, name: true, placeNameEn: true, placeNameLocal: true,
           category: true, latitude: true, longitude: true, zoomLevel: true,
           source: true, userId: true, userName: true, userEmail: true, createdAt: true,
+          approvalStatus: true, approvedAt: true,
         },
       })
       if (!place) return res.status(404).json({ error: 'Place not found' })
-      res.json({
-        ...place,
-        name: place.placeNameEn ?? place.name,
-        place_name_en: place.placeNameEn ?? place.name,
-        place_name_local: place.placeNameLocal,
-        user_name: place.userName,
-      })
+      if (!isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+      res.json(
+        attachApprovalMeta({
+          ...place,
+          name: place.placeNameEn ?? place.name,
+          place_name_en: place.placeNameEn ?? place.name,
+          place_name_local: place.placeNameLocal,
+          user_name: place.userName,
+        })
+      )
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch place', message: error.message })
     }
@@ -1036,15 +1084,27 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
-      const place = await prisma.place.findUnique({ where: { id }, select: { latitude: true, longitude: true, category: true } })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id },
+        select: { latitude: true, longitude: true, category: true, userId: true, approvalStatus: true },
+      })
       if (!place) return res.status(404).json({ error: 'Place not found' })
+      if (!isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
 
       const delta = 0.018 // ~2km
       const nearby = await prisma.place.findMany({
         where: {
-          id: { not: id },
-          latitude:  { gte: place.latitude  - delta, lte: place.latitude  + delta },
-          longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
+          AND: [
+            placePublicVisibilityOr(req.user.id),
+            {
+              id: { not: id },
+              latitude: { gte: place.latitude - delta, lte: place.latitude + delta },
+              longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
+            },
+          ],
         },
         take: 8,
         orderBy: { createdAt: 'desc' },
@@ -1069,6 +1129,14 @@ router.get(
   async (req, res) => {
     try {
       if (!prisma.placeReview) return res.json({ reviews: [], avgRating: null })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
       const reviews = await prisma.placeReview.findMany({
         where: { placeId: req.params.id },
         orderBy: { createdAt: 'desc' },
@@ -1103,8 +1171,14 @@ router.post(
 
       const { id: placeId } = req.params
       const { rating, comment } = req.body
-      const place = await prisma.place.findUnique({ where: { id: placeId }, select: { id: true } })
-      if (!place) return res.status(404).json({ error: 'Place not found' })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: placeId },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
 
       const review = await prisma.placeReview.upsert({
         where: { placeId_userId: { placeId, userId: req.user.id } },
@@ -1156,6 +1230,14 @@ router.get(
   async (req, res) => {
     try {
       if (!prisma.placePhoto) return res.json({ photos: [] })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
       const photos = await prisma.placePhoto.findMany({
         where: { placeId: req.params.id },
         orderBy: { createdAt: 'desc' },
@@ -1187,8 +1269,14 @@ router.post(
       const errors = validationResult(req)
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
 
-      const place = await prisma.place.findUnique({ where: { id: req.params.id }, select: { id: true } })
-      if (!place) return res.status(404).json({ error: 'Place not found' })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
 
       // Limit 10 photos per place per user
       const count = await prisma.placePhoto.count({ where: { placeId: req.params.id, userId: req.user.id } })
