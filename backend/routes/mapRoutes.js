@@ -869,6 +869,146 @@ router.get(
   }
 )
 
+/** Ray-cast point-in-polygon; ring = closed or open GeoJSON ring [lng,lat][] */
+function pointInRing(lng, lat, ring) {
+  if (!Array.isArray(ring) || ring.length < 3) return false
+  const r = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.slice(0, -1)
+    : ring
+  let inside = false
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const xi = r[i][0]
+    const yi = r[i][1]
+    const xj = r[j][0]
+    const yj = r[j][1]
+    const denom = yj - yi || 1e-12
+    const intersect = (yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / denom + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+function normalizePolygonBodyRing(coordinates) {
+  if (!Array.isArray(coordinates) || coordinates.length === 0) return null
+  const outer = coordinates[0]
+  if (!Array.isArray(outer) || outer.length < 3) return null
+  const cleaned = outer
+    .map((pt) => {
+      if (!Array.isArray(pt) || pt.length < 2) return null
+      const lng = Number(pt[0])
+      const lat = Number(pt[1])
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null
+      if (lng < -180 || lng > 180 || lat < -90 || lat > 90) return null
+      return [lng, lat]
+    })
+    .filter(Boolean)
+  if (cleaned.length < 3) return null
+  const first = cleaned[0]
+  const last = cleaned[cleaned.length - 1]
+  const closed = first[0] === last[0] && first[1] === last[1]
+  const ring = closed ? cleaned : [...cleaned, [...first]]
+  if (ring.length > 601) return null
+  return ring
+}
+
+/**
+ * @route POST /api/map/places/in-polygon
+ * @desc Public places (approved + own pending) inside a GeoJSON polygon ring, optional category
+ * @access Private
+ */
+router.post(
+  '/places/in-polygon',
+  authenticateToken,
+  rateLimitMiddleware('places:in-polygon', 30, 60),
+  [
+    body('polygon').isObject().withMessage('polygon GeoJSON object required'),
+    body('polygon.type').equals('Polygon').withMessage('polygon.type must be Polygon'),
+    body('polygon.coordinates').isArray({ min: 1 }).withMessage('polygon.coordinates required'),
+    body('category').optional().trim().isLength({ min: 1, max: 80 }),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const ring = normalizePolygonBodyRing(req.body.polygon.coordinates)
+      if (!ring) {
+        return res.status(400).json({ error: 'Invalid polygon coordinates' })
+      }
+
+      const lats = ring.map((c) => c[1])
+      const lngs = ring.map((c) => c[0])
+      const minLat = Math.min(...lats)
+      const maxLat = Math.max(...lats)
+      const minLng = Math.min(...lngs)
+      const maxLng = Math.max(...lngs)
+
+      const categoryRaw = String(req.body.category || '').trim()
+      const categoryFilter = categoryRaw
+        ? { category: { equals: categoryRaw, mode: 'insensitive' } }
+        : {}
+
+      await autoApproveExpiredPendingPlaces()
+      const viewerId = req.user.id
+
+      const candidates = await prisma.place.findMany({
+        where: {
+          AND: [
+            placePublicVisibilityOr(viewerId),
+            { latitude: { gte: minLat, lte: maxLat } },
+            { longitude: { gte: minLng, lte: maxLng } },
+            categoryFilter,
+          ],
+        },
+        take: 2500,
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          name: true,
+          placeNameEn: true,
+          placeNameLocal: true,
+          category: true,
+          latitude: true,
+          longitude: true,
+          zoomLevel: true,
+          source: true,
+          userId: true,
+          userName: true,
+          userEmail: true,
+          createdAt: true,
+          approvalStatus: true,
+          approvedAt: true,
+        },
+      })
+
+      const inside = candidates.filter((p) =>
+        pointInRing(p.longitude, p.latitude, ring)
+      )
+
+      const normalized = inside.map((p) =>
+        attachApprovalMeta({
+          ...p,
+          name: p.placeNameEn ?? p.name,
+          place_name_en: p.placeNameEn ?? p.name,
+          place_name_local: p.placeNameLocal,
+          user_name: p.userName,
+          user_email: p.userEmail,
+        })
+      )
+
+      res.json({ places: normalized, count: normalized.length })
+    } catch (error) {
+      console.error('In-polygon places error:', error)
+      res.status(500).json({ error: 'Failed to fetch places in area', message: error.message })
+    }
+  }
+)
+
 /**
  * @route POST /api/map/places/bulk
  * @desc Save multiple extracted places at once, skipping duplicates

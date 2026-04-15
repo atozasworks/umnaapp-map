@@ -8,6 +8,7 @@ import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
 import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
 import PlaceDetailPanel from '../components/PlaceDetailPanel'
 import PlaceExtractPanel from '../components/PlaceExtractPanel'
+import PolygonExplorePanel from '../components/PolygonExplorePanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
 import api from '../services/api'
@@ -135,6 +136,8 @@ const HomePage = () => {
   const exploreCategoryRef = useRef(null)
   const exploreMoveDebounceRef = useRef(null)
   const hasInitialAutoCenterRef = useRef(false)
+  const [polygonOverlayPlaces, setPolygonOverlayPlaces] = useState([])
+  const [polygonMapInteraction, setPolygonMapInteraction] = useState(false)
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -163,6 +166,7 @@ const HomePage = () => {
   const filterPlacesCount = useTranslate('places')
   const ariaClose = useTranslate('Close')
   const myPlacesViewOnMap = useTranslate('View on map')
+  const menuAreaExplore = useTranslate('Area explore (draw)')
 
   const allLanguages = useMemo(() => getAllLanguages(), [])
 
@@ -959,6 +963,21 @@ const HomePage = () => {
         </>
       )}
 
+      {/* Map tools sidebar — draw area & explore by category */}
+      {showSidebar && (
+        <PolygonExplorePanel
+          mapRef={mapRef}
+          isOpen={showSidebar}
+          onInteractionChange={setPolygonMapInteraction}
+          onPlacesFound={(places) => {
+            setPolygonOverlayPlaces(places)
+          }}
+          onClearPlaces={() => {
+            setPolygonOverlayPlaces([])
+          }}
+        />
+      )}
+
       {/* Map Container */}
       <div className="flex-1 w-full relative">
         <MapComponent
@@ -967,8 +986,10 @@ const HomePage = () => {
           onMapClick={handleMapClickForPlace}
           onMapReady={handleMapReady}
           addPlaceMode={addPlacePickMode || showAddPlaceModal}
+          blockAddPlaceMapClick={polygonMapInteraction}
           places={allPlaces}
           searchResultPlaces={categoryExplorePlaces}
+          polygonOverlayPlaces={polygonOverlayPlaces}
           autoFitSearchResults={false}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
@@ -1096,6 +1117,19 @@ const HomePage = () => {
                   <div className={`relative w-11 h-6 rounded-full transition-colors ${showSidebar ? 'bg-primary-500' : 'bg-slate-300'}`}>
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${showSidebar ? 'left-6' : 'left-0.5'}`} />
                   </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    setShowSidebar(true)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuAreaExplore}</span>
                 </button>
               </div>
 

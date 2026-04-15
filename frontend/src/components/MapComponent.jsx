@@ -4,6 +4,7 @@ import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSocket } from '../contexts/SocketContext'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
+import { whenStyleReady } from '../utils/mapWhenStyleReady'
 
 const CATEGORY_COLORS = {
   Restaurant: '#EF4444',
@@ -50,39 +51,6 @@ const userPlaceLabelOpacity = (zoom) => {
   if (z <= USER_PLACE_LABEL_ZOOM_START) return 0
   if (z >= USER_PLACE_LABEL_ZOOM_FULL) return 1
   return (z - USER_PLACE_LABEL_ZOOM_START) / (USER_PLACE_LABEL_ZOOM_FULL - USER_PLACE_LABEL_ZOOM_START)
-}
-
-/**
- * Run fn when the map style is loaded. Retries on style.load after raster setTiles or similar,
- * which otherwise throws "Style is not done loading" if addLayer runs in the same tick.
- * @returns {() => void} dispose — call on unmount to cancel pending style.load callbacks
- */
-const whenStyleReady = (map, fn) => {
-  if (!map || typeof map.isStyleLoaded !== 'function') return () => {}
-  let disposed = false
-  const run = () => {
-    if (disposed) return
-    if (!map.isStyleLoaded()) {
-      map.once('style.load', run)
-      return
-    }
-    try {
-      fn()
-    } catch (err) {
-      if (disposed) return
-      const msg = String(err?.message || err)
-      if (msg.includes('not done loading') || msg.includes('Style is not done')) {
-        map.once('style.load', run)
-        return
-      }
-      console.error(err)
-    }
-  }
-  run()
-  return () => {
-    disposed = true
-    map.off('style.load', run)
-  }
 }
 
 const createCircleGeoJson = (centerLng, centerLat, radiusMeters, points = 64) => {
@@ -255,8 +223,10 @@ const MapComponent = forwardRef(({
   onMapClick,
   onMapReady,
   addPlaceMode,
+  blockAddPlaceMapClick = false,
   places = [],
   searchResultPlaces = [],
+  polygonOverlayPlaces = [],
   autoFitSearchResults = true,
   routeStartPlace = null,
   routeEndPlace = null,
@@ -267,6 +237,7 @@ const MapComponent = forwardRef(({
   const userCircleRef = useRef(null)
   const searchedMarkerRef = useRef(null)
   const searchResultMarkersRef = useRef({})
+  const polygonOverlayMarkersRef = useRef({})
   const routeEndpointMarkersRef = useRef({})
   const vehicleMarkersRef = useRef({})
   const routeLayerRef = useRef(null)
@@ -645,6 +616,8 @@ const MapComponent = forwardRef(({
       }
       Object.values(searchResultMarkersRef.current).forEach((m) => m?.remove())
       searchResultMarkersRef.current = {}
+      Object.values(polygonOverlayMarkersRef.current).forEach((m) => m?.remove())
+      polygonOverlayMarkersRef.current = {}
       Object.values(routeEndpointMarkersRef.current).forEach((m) => m?.remove())
       routeEndpointMarkersRef.current = {}
       if (placePopupRef.current) {
@@ -667,6 +640,7 @@ const MapComponent = forwardRef(({
     if (!mapRef.current || !onMapClick) return
 
     const handleMapClick = (e) => {
+      if (blockAddPlaceMapClick) return
       if (!addPlaceMode) return
       const { lng, lat } = e.lngLat
       const zoom = mapRef.current.getZoom()
@@ -679,7 +653,7 @@ const MapComponent = forwardRef(({
         mapRef.current.off('click', handleMapClick)
       }
     }
-  }, [addPlaceMode, onMapClick])
+  }, [addPlaceMode, blockAddPlaceMapClick, onMapClick])
   // Google Maps–style basemap: Street (default / env tiles), Satellite + labels, Terrain
   useEffect(() => {
     const map = mapRef.current
@@ -892,6 +866,39 @@ const MapComponent = forwardRef(({
       searchResultMarkersRef.current = {}
     }
   }, [mapLoaded, searchResultPlaces, autoFitSearchResults])
+
+  // Area-explore markers (polygon tool — same style as search chips)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return
+
+    Object.values(polygonOverlayMarkersRef.current).forEach((m) => m?.remove())
+    polygonOverlayMarkersRef.current = {}
+
+    polygonOverlayPlaces.forEach((place) => {
+      const key = place.placeId || `poly-${place.lat}-${place.lng}`
+      const addrSubtitle = place.address && typeof place.address === 'object'
+        ? (formatAddressSubtitle(place.address) || [place.address.road, place.address.city, place.address.state].filter(Boolean).join(', '))
+        : ''
+      const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
+        `<div class="p-2 min-w-[140px]"><strong class="text-slate-800">${escapeHtml(place.displayName || place.name || 'Place')}</strong>${addrSubtitle ? `<div class="text-xs text-slate-600 mt-1">${escapeHtml(addrSubtitle)}</div>` : ''}</div>`
+      )
+      const el = createSearchResultMarkerElement(place)
+      const marker = new maplibregl.Marker({
+        element: el,
+        anchor: 'top',
+        offset: [0, -10],
+      })
+        .setLngLat([place.lng, place.lat])
+        .setPopup(popup)
+        .addTo(mapRef.current)
+      polygonOverlayMarkersRef.current[key] = marker
+    })
+
+    return () => {
+      Object.values(polygonOverlayMarkersRef.current).forEach((m) => m?.remove())
+      polygonOverlayMarkersRef.current = {}
+    }
+  }, [mapLoaded, polygonOverlayPlaces])
 
   // Route start (blue) and end (red) markers
   useEffect(() => {
