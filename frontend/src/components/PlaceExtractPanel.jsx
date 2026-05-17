@@ -1,5 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import api from '../services/api'
+import {
+  enrichPlacesWithDetails,
+  mapGoogleDetailsToPayload,
+  GOOGLE_DETAILS_FIELDS,
+} from '../utils/googlePlaceDetails'
+import {
+  findDuplicateInList,
+  isDuplicateInSession,
+  DUPLICATE_MESSAGES,
+} from '../utils/placeDuplicate'
 
 const GRID_OPTIONS = [
   { value: 2, label: 'Low (2×2 grid)' },
@@ -54,7 +64,7 @@ function loadGoogleMapsScript() {
   })
 }
 
-const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
+const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShowDuplicate }) => {
   const mapContainerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const serviceRef = useRef(null)
@@ -366,21 +376,25 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
             const lat = place.geometry.location.lat()
             const lng = place.geometry.location.lng()
             // Deduplicate by name
-            const exists = placesArrayRef.current.some((p) => p.name === name)
+            const pid = place.place_id
+            const draft = {
+              name,
+              lat,
+              lng,
+              place_id: pid,
+              type: place.types?.[0] || placeType,
+              village: currentLocationRef.current.village,
+              district: currentLocationRef.current.district,
+              taluk: currentLocationRef.current.taluk,
+              state: currentLocationRef.current.state,
+              country: currentLocationRef.current.country,
+            }
+            const exists =
+              isDuplicateInSession(placesArrayRef.current, draft) ||
+              findDuplicateInList(mapPlaces, draft).duplicate
             if (!exists) {
-              const newPlace = {
-                name,
-                lat,
-                lng,
-                type: place.types?.[0] || placeType,
-                village: currentLocationRef.current.village,
-                district: currentLocationRef.current.district,
-                taluk: currentLocationRef.current.taluk,
-                state: currentLocationRef.current.state,
-                country: currentLocationRef.current.country,
-              }
-              placesArrayRef.current.push(newPlace)
-              newPlaces.push(newPlace)
+              placesArrayRef.current.push(draft)
+              newPlaces.push(draft)
 
               const marker = new window.google.maps.Marker({
                 position: place.geometry.location,
@@ -411,7 +425,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
     setIsExtracting(false)
     setProgress(100)
     setStatus(`Extraction complete. Found ${placesArrayRef.current.length} places in ${getLocationString()}.`)
-  }, [generateGrid, throttledNearbySearch, isExtracting])
+  }, [generateGrid, throttledNearbySearch, isExtracting, mapPlaces])
 
   const stopExtraction = useCallback(() => {
     stopRequestedRef.current = true
@@ -447,14 +461,42 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
     }
     setAddingToMap(true)
     try {
-      await onAddToMap(selected)
-      setStatus(`Successfully added ${selected.length} places to the map!`)
+      const svc = serviceRef.current
+      setStatus(`Fetching full details for ${selected.length} places…`)
+      const enriched = await enrichPlacesWithDetails(
+        selected,
+        svc,
+        enqueueApiCall,
+        currentLocationRef.current,
+        (i, total, name) => setStatus(`Details ${i}/${total}: ${name}`)
+      )
+      const mapZoom = mapInstanceRef.current?.getZoom?.()
+      const withZoom = enriched.map((p) => ({
+        ...p,
+        zoomLevel: typeof mapZoom === 'number' ? mapZoom : 15,
+      }))
+      await onAddToMap(withZoom)
+      setStatus(`Successfully added ${withZoom.length} places to the map!`)
     } catch (err) {
-      setStatus(`Failed to add places: ${err.message}`)
+      if (err.response?.status === 409) {
+        onShowDuplicate?.(
+          {
+            duplicate: true,
+            message: err.response?.data?.message,
+            reason: err.response?.data?.reason,
+            existingPlaceId: err.response?.data?.existingPlaceId,
+            existingPlaceName: err.response?.data?.existingPlaceName,
+          },
+          selected[0]?.name
+        )
+        setStatus(err.response?.data?.message || 'Place already on the map')
+      } else {
+        setStatus(`Failed to add places: ${err.message}`)
+      }
     } finally {
       setAddingToMap(false)
     }
-  }, [extractedPlaces, selectedPlaces, onAddToMap])
+  }, [extractedPlaces, selectedPlaces, onAddToMap, enqueueApiCall, onShowDuplicate])
 
   // --- Download JSON ---
   const downloadJSON = useCallback(() => {
@@ -484,9 +526,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
           setStatus('No valid places found in the uploaded file.')
           return
         }
-        // Deduplicate against existing
-        const existingNames = new Set(placesArrayRef.current.map((p) => p.name))
-        const newPlaces = valid.filter((p) => !existingNames.has(p.name))
+        const newPlaces = valid.filter(
+          (p) =>
+            !isDuplicateInSession(placesArrayRef.current, p) &&
+            !findDuplicateInList(mapPlaces, p).duplicate
+        )
         placesArrayRef.current = [...placesArrayRef.current, ...newPlaces]
         setExtractedPlaces([...placesArrayRef.current])
         const names = new Set([...selectedPlaces, ...newPlaces.map((p) => p.name)])
@@ -498,7 +542,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
     }
     reader.readAsText(file)
     e.target.value = ''
-  }, [selectedPlaces])
+  }, [selectedPlaces, mapPlaces])
 
   // Initialize search map when switching to search method
   useEffect(() => {
@@ -640,7 +684,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
       placesDetailServiceRef.current.getDetails(
         {
           placeId,
-          fields: ['formatted_address', 'geometry', 'name', 'place_id', 'types'],
+          fields: GOOGLE_DETAILS_FIELDS,
         },
         (details, status) => {
           const refocusForNextSearch = () => {
@@ -662,17 +706,17 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
             }
 
             const processedPlace = {
-              name: details.name,
-              lat: details.geometry.location.lat(),
-              lng: details.geometry.location.lng(),
-              address: details.formatted_address,
+              ...mapGoogleDetailsToPayload(details, currentLocationRef.current, 15),
               placeId: details.place_id,
-              type: details.types?.[0] || 'place',
             }
 
-            const exists = searchResultsRef.current.some((p) => p.placeId === processedPlace.placeId)
-            if (exists) {
-              setSearchStatus('Place already in list')
+            const inList = searchResultsRef.current.some(
+              (p) => (p.placeId || p.place_id) === (processedPlace.placeId || processedPlace.place_id)
+            )
+            const dbDup = findDuplicateInList(mapPlaces, processedPlace)
+            if (inList || dbDup.duplicate) {
+              onShowDuplicate?.(dbDup, processedPlace.name)
+              setSearchStatus(dbDup.message || 'Place already on the map')
               setSearchQuery('')
               setSearchSuggestions([])
               setSearchSuggestOpen(false)
@@ -768,8 +812,13 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap }) => {
     }
     setAddingToMap(true)
     try {
-      await onAddToMap(selected)
-      setSearchStatus(`Successfully added ${selected.length} places to the map!`)
+      const mapZoom = searchMapInstanceRef.current?.getZoom?.()
+      const payload = selected.map((p) => ({
+        ...p,
+        zoomLevel: typeof mapZoom === 'number' ? mapZoom : p.zoomLevel ?? 15,
+      }))
+      await onAddToMap(payload)
+      setSearchStatus(`Successfully added ${payload.length} places to the map!`)
       // Clear after successful add
       setTimeout(() => {
         setSearchQuery('')

@@ -64,10 +64,16 @@ export async function fetchConstraints() {
   return data
 }
 
-export async function fetchRecords(model, { page = 1, limit = 50, full = false } = {}) {
+export async function fetchRecords(model, { page = 1, limit = 50, full = false, q = '' } = {}) {
   const encoded = encodeURIComponent(model)
+  const search = String(q || '').trim()
   const { data } = await api.get(`/admin/records/${encoded}`, {
-    params: { page, limit, ...(full ? { full: 1 } : {}) },
+    params: {
+      page,
+      limit,
+      ...(full ? { full: 1 } : {}),
+      ...(search ? { q: search } : {}),
+    },
   })
   return data
 }
@@ -77,7 +83,42 @@ export async function fetchPendingPlaces() {
   return data
 }
 
+export async function fetchApprovedPlaces(limit = 100) {
+  const { data } = await api.get('/admin/places/approved', { params: { limit } })
+  return data
+}
+
 export async function approvePlace(id) {
   const { data } = await api.patch(`/admin/places/${encodeURIComponent(id)}/approve`)
+  return data
+}
+
+export async function fetchExtractedPlaces(params = {}) {
+  const { data } = await api.get('/admin/places', { params })
+  return data
+}
+
+export async function fetchPlaceDetail(id) {
+  const { data } = await api.get(`/admin/places/${encodeURIComponent(id)}`)
+  return data
+}
+
+export async function updatePlace(id, body) {
+  const { data } = await api.patch(`/admin/places/${encodeURIComponent(id)}`, body)
+  return data
+}
+
+export async function deletePlace(id) {
+  const { data } = await api.delete(`/admin/places/${encodeURIComponent(id)}`)
+  return data
+}
+
+export async function rejectPlace(id) {
+  const { data } = await api.patch(`/admin/places/${encodeURIComponent(id)}/reject`)
+  return data
+}
+
+export async function bulkPlaceAction(ids, action) {
+  const { data } = await api.post('/admin/places/bulk-action', { ids, action })
   return data
 }

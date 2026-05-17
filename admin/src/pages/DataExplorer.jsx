@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { fetchModels, fetchRecords } from '../lib/api'
 
@@ -12,6 +12,11 @@ export default function DataExplorer() {
   const [payload, setPayload] = useState(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')
+  const [placeSearch, setPlaceSearch] = useState('')
+  const [placeSearchInput, setPlaceSearchInput] = useState('')
+  const searchDebounceRef = useRef(null)
+
+  const isPlaceModel = activeLabel === 'Place'
 
   useEffect(() => {
     let cancelled = false
@@ -30,18 +35,39 @@ export default function DataExplorer() {
       const decoded = decodeURIComponent(modelParam)
       setActiveLabel(decoded)
       setPage(1)
+      setPlaceSearch('')
+      setPlaceSearchInput('')
     } else {
       setActiveLabel(null)
       setPayload(null)
+      setPlaceSearch('')
+      setPlaceSearchInput('')
     }
   }, [modelParam])
+
+  useEffect(() => {
+    if (!isPlaceModel) return
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    searchDebounceRef.current = setTimeout(() => {
+      setPlaceSearch(placeSearchInput.trim())
+      setPage(1)
+    }, 350)
+    return () => {
+      if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current)
+    }
+  }, [placeSearchInput, isPlaceModel])
 
   const load = useCallback(async () => {
     if (!activeLabel) return
     setErr('')
     setLoading(true)
     try {
-      const data = await fetchRecords(activeLabel, { page, limit, full })
+      const data = await fetchRecords(activeLabel, {
+        page,
+        limit,
+        full,
+        q: isPlaceModel ? placeSearch : '',
+      })
       setPayload(data)
     } catch (e) {
       setPayload(null)
@@ -49,7 +75,7 @@ export default function DataExplorer() {
     } finally {
       setLoading(false)
     }
-  }, [activeLabel, page, limit, full])
+  }, [activeLabel, page, limit, full, placeSearch, isPlaceModel])
 
   useEffect(() => {
     load()
@@ -122,6 +148,56 @@ export default function DataExplorer() {
             <div className="mb-4 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{err}</div>
           )}
 
+          {activeLabel && isPlaceModel && (
+            <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <label className="min-w-0 flex-1">
+                <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-admin-muted">
+                  Search by place name
+                </span>
+                <div className="relative">
+                  <svg
+                    className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-admin-muted"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+                    />
+                  </svg>
+                  <input
+                    type="search"
+                    value={placeSearchInput}
+                    onChange={(e) => setPlaceSearchInput(e.target.value)}
+                    placeholder="Name, local name, village, address…"
+                    className="w-full rounded-xl border border-admin-border bg-admin-850 py-2.5 pl-10 pr-10 text-sm text-slate-100 placeholder:text-slate-500 focus:border-admin-accent/50 focus:outline-none focus:ring-2 focus:ring-admin-accent/20"
+                  />
+                  {placeSearchInput && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setPlaceSearchInput('')
+                        setPlaceSearch('')
+                        setPage(1)
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs text-admin-muted hover:bg-admin-800 hover:text-slate-200"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+              </label>
+              {placeSearch && (
+                <p className="text-xs text-admin-muted sm:pb-2">
+                  Filtering: <span className="font-mono text-slate-300">&quot;{placeSearch}&quot;</span>
+                </p>
+              )}
+            </div>
+          )}
+
           {activeLabel && payload && (
             <>
               <div className="mb-4 flex flex-wrap items-center justify-between gap-3 text-sm text-admin-muted">
@@ -187,7 +263,9 @@ export default function DataExplorer() {
               </div>
 
               {payload.data.length === 0 && (
-                <p className="mt-4 text-center text-sm text-admin-muted">No rows in this table.</p>
+                <p className="mt-4 text-center text-sm text-admin-muted">
+                  {placeSearch ? `No places match "${placeSearch}".` : 'No rows in this table.'}
+                </p>
               )}
             </>
           )}

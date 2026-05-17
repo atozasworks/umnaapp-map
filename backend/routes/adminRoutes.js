@@ -1,11 +1,14 @@
 import express from 'express'
+import { body, query, validationResult } from 'express-validator'
 import prisma from '../config/database.js'
 import { adminAuth } from '../middleware/adminAuth.js'
 import {
   autoApproveExpiredPendingPlaces,
-  pendingAutoApproveAt,
+  enrichPlaceApprovalMeta,
   getAutoApproveDays,
+  pendingAutoApproveAt,
 } from '../services/placeApproval.js'
+import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
 
 const router = express.Router()
 router.use(adminAuth)
@@ -51,44 +54,303 @@ router.get('/models', (req, res) => {
   res.json({ models: MODEL_META })
 })
 
-/** GET /api/admin/places/pending — contributions awaiting approval (auto-approve runs first) */
+/** GET /api/admin/places/pending — all places awaiting approval */
 router.get('/places/pending', async (req, res) => {
   try {
     if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
     await autoApproveExpiredPendingPlaces()
     const rows = await prisma.place.findMany({
-      where: { approvalStatus: 'pending', source: 'contribution' },
-      orderBy: { createdAt: 'asc' },
+      where: { approvalStatus: 'pending' },
+      orderBy: [{ autoApproveAt: 'asc' }, { createdAt: 'asc' }],
       take: 500,
-      select: {
-        id: true,
-        name: true,
-        placeNameEn: true,
-        placeNameLocal: true,
-        category: true,
-        latitude: true,
-        longitude: true,
-        userId: true,
-        userName: true,
-        userEmail: true,
-        source: true,
-        createdAt: true,
-        approvalStatus: true,
-        approvedAt: true,
-      },
+      select: PLACE_DETAIL_SELECT,
     })
-    const autoApproveDays = getAutoApproveDays()
-    const places = rows.map((p) => ({
-      ...p,
-      displayName: p.placeNameEn ?? p.name,
-      autoApproveAt: pendingAutoApproveAt(p.createdAt).toISOString(),
-    }))
-    res.json({ places, count: places.length, autoApproveDays })
+    const places = rows.map((p) => {
+      const s = enrichPlaceApprovalMeta(serializePlace(p))
+      return { ...s, displayName: s.name }
+    })
+    res.json({ places, count: places.length, autoApproveDays: getAutoApproveDays() })
   } catch (e) {
     console.error('admin places/pending', e)
     res.status(500).json({ error: e.message })
   }
 })
+
+/** GET /api/admin/places/approved — recently approved places */
+router.get('/places/approved', async (req, res) => {
+  try {
+    if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
+    await autoApproveExpiredPendingPlaces()
+    const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 100))
+    const rows = await prisma.place.findMany({
+      where: { approvalStatus: 'approved' },
+      orderBy: [{ approvedAt: 'desc' }, { createdAt: 'desc' }],
+      take: limit,
+      select: PLACE_DETAIL_SELECT,
+    })
+    const places = rows.map((p) => {
+      const s = enrichPlaceApprovalMeta(serializePlace(p))
+      return { ...s, displayName: s.name }
+    })
+    res.json({ places, count: places.length, autoApproveDays: getAutoApproveDays() })
+  } catch (e) {
+    console.error('admin places/approved', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** Search places by name / address (Browse data + extracted places list). */
+function placeNameSearchWhere(q) {
+  const term = String(q || '').trim()
+  if (!term) return {}
+  return {
+    OR: [
+      { name: { contains: term, mode: 'insensitive' } },
+      { placeNameEn: { contains: term, mode: 'insensitive' } },
+      { placeNameLocal: { contains: term, mode: 'insensitive' } },
+      { fullAddress: { contains: term, mode: 'insensitive' } },
+      { village: { contains: term, mode: 'insensitive' } },
+      { district: { contains: term, mode: 'insensitive' } },
+      { googlePlaceId: { contains: term, mode: 'insensitive' } },
+    ],
+  }
+}
+
+function buildPlacesWhere(queryParams) {
+  const q = String(queryParams.q || '').trim()
+  const status = String(queryParams.status || '').trim()
+  const category = String(queryParams.category || '').trim()
+  const source = String(queryParams.source || '').trim()
+  const hasGoogle = queryParams.hasGoogle
+
+  const where = {}
+  if (status) where.approvalStatus = status
+  if (category) where.category = { equals: category, mode: 'insensitive' }
+  if (source) where.source = source
+  if (hasGoogle === '1' || hasGoogle === 'true') {
+    where.googlePlaceId = { not: null }
+  }
+  if (q) Object.assign(where, placeNameSearchWhere(q))
+  return where
+}
+
+/** GET /api/admin/places — paginated extracted places with search & filters */
+router.get(
+  '/places',
+  [
+    query('page').optional().isInt({ min: 1 }),
+    query('limit').optional().isInt({ min: 1, max: 200 }),
+    query('status').optional().isIn(['pending', 'approved', 'rejected']),
+    query('source').optional().isIn(['contribution', 'saved']),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      await autoApproveExpiredPendingPlaces()
+      const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+      const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50))
+      const skip = (page - 1) * limit
+      const where = buildPlacesWhere(req.query)
+
+      const [total, rows, categories] = await prisma.$transaction([
+        prisma.place.count({ where }),
+        prisma.place.findMany({
+          where,
+          skip,
+          take: limit,
+          orderBy: [{ extractedAt: 'desc' }, { createdAt: 'desc' }],
+          select: PLACE_DETAIL_SELECT,
+        }),
+        prisma.place.groupBy({
+          by: ['category'],
+          _count: { category: true },
+          orderBy: { category: 'asc' },
+        }),
+      ])
+
+      res.json({
+        places: rows.map(serializePlace),
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        categories: categories.map((c) => ({ category: c.category, count: c._count.category })),
+        autoApproveDays: getAutoApproveDays(),
+      })
+    } catch (e) {
+      console.error('admin places list', e)
+      res.status(500).json({ error: e.message })
+    }
+  }
+)
+
+/** GET /api/admin/places/:id — full place detail */
+router.get('/places/:id', async (req, res) => {
+  try {
+    if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
+    const id = String(req.params.id || '').trim()
+    const place = await prisma.place.findUnique({
+      where: { id },
+      select: {
+        ...PLACE_DETAIL_SELECT,
+        photos: { select: { id: true, caption: true, createdAt: true, dataUrl: true }, take: 20 },
+      },
+    })
+    if (!place) return res.status(404).json({ error: 'Place not found' })
+    const out = serializePlace(place)
+    out.photos = (place.photos || []).map((ph) => ({
+      id: ph.id,
+      caption: ph.caption,
+      createdAt: ph.createdAt,
+      dataUrl:
+        typeof ph.dataUrl === 'string' && ph.dataUrl.length > 200
+          ? `${ph.dataUrl.slice(0, 200)}…`
+          : ph.dataUrl,
+    }))
+    Object.assign(out, enrichPlaceApprovalMeta(place))
+    res.json({ place: out })
+  } catch (e) {
+    console.error('admin place detail', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** PATCH /api/admin/places/:id — edit place fields */
+router.patch(
+  '/places/:id',
+  [
+    body('place_name_en').optional().trim().isLength({ min: 1, max: 200 }),
+    body('category').optional().trim().isLength({ min: 1, max: 50 }),
+    body('approvalStatus').optional().isIn(['pending', 'approved', 'rejected']),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const id = String(req.params.id || '').trim()
+      const existing = await prisma.place.findUnique({ where: { id } })
+      if (!existing) return res.status(404).json({ error: 'Place not found' })
+
+      const data = {}
+      if (req.body.place_name_en) {
+        data.placeNameEn = req.body.place_name_en.trim()
+        data.name = data.placeNameEn
+      }
+      if (req.body.place_name_local !== undefined) {
+        data.placeNameLocal = req.body.place_name_local?.trim() || null
+      }
+      if (req.body.category) data.category = req.body.category.trim()
+      if (req.body.latitude != null) data.latitude = parseFloat(req.body.latitude)
+      if (req.body.longitude != null) data.longitude = parseFloat(req.body.longitude)
+      if (req.body.zoomLevel != null) data.zoomLevel = parseFloat(req.body.zoomLevel)
+
+      const detailPatch = buildPlaceDetailFields(req.body, {}, { forUpdate: true })
+      Object.assign(data, detailPatch)
+
+      if (req.body.approvalStatus) {
+        data.approvalStatus = req.body.approvalStatus
+        if (req.body.approvalStatus === 'approved') {
+          data.approvedAt = new Date()
+          data.autoApproveAt = null
+        }
+        if (req.body.approvalStatus === 'pending') {
+          data.approvedAt = null
+          if (!existing.autoApproveAt) data.autoApproveAt = pendingAutoApproveAt(new Date())
+        }
+        if (req.body.approvalStatus === 'rejected') {
+          data.approvedAt = null
+          data.autoApproveAt = null
+        }
+      }
+
+      const place = await prisma.place.update({ where: { id }, data })
+      res.json({ place: serializePlace(place) })
+    } catch (e) {
+      console.error('admin place patch', e)
+      res.status(500).json({ error: e.message })
+    }
+  }
+)
+
+/** DELETE /api/admin/places/:id */
+router.delete('/places/:id', async (req, res) => {
+  try {
+    if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
+    const id = String(req.params.id || '').trim()
+    await prisma.place.delete({ where: { id } })
+    res.json({ success: true })
+  } catch (e) {
+    if (e.code === 'P2025') return res.status(404).json({ error: 'Place not found' })
+    console.error('admin place delete', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** PATCH /api/admin/places/:id/reject */
+router.patch('/places/:id/reject', async (req, res) => {
+  try {
+    if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
+    const id = String(req.params.id || '').trim()
+    const result = await prisma.place.updateMany({
+      where: { id, approvalStatus: 'pending' },
+      data: { approvalStatus: 'rejected', approvedAt: null },
+    })
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Pending place not found' })
+    }
+    const place = await prisma.place.findUnique({ where: { id } })
+    res.json({ success: true, place: serializePlace(place) })
+  } catch (e) {
+    console.error('admin place reject', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** POST /api/admin/places/bulk-action — approve | reject | delete */
+router.post(
+  '/places/bulk-action',
+  [
+    body('ids').isArray({ min: 1, max: 500 }),
+    body('action').isIn(['approve', 'reject', 'delete']),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const { ids, action } = req.body
+      const uniqueIds = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))]
+
+      if (action === 'delete') {
+        const result = await prisma.place.deleteMany({ where: { id: { in: uniqueIds } } })
+        return res.json({ success: true, affected: result.count })
+      }
+
+      if (action === 'approve') {
+        const result = await prisma.place.updateMany({
+          where: { id: { in: uniqueIds } },
+          data: { approvalStatus: 'approved', approvedAt: new Date(), autoApproveAt: null },
+        })
+        return res.json({ success: true, affected: result.count })
+      }
+
+      const result = await prisma.place.updateMany({
+        where: { id: { in: uniqueIds } },
+        data: { approvalStatus: 'rejected', approvedAt: null },
+      })
+      res.json({ success: true, affected: result.count })
+    } catch (e) {
+      console.error('admin places bulk', e)
+      res.status(500).json({ error: e.message })
+    }
+  }
+)
 
 /** PATCH /api/admin/places/:id/approve — approve a pending contribution immediately */
 router.patch('/places/:id/approve', async (req, res) => {
@@ -99,13 +361,13 @@ router.patch('/places/:id/approve', async (req, res) => {
     if (!id) return res.status(400).json({ error: 'Place id required' })
     const result = await prisma.place.updateMany({
       where: { id, approvalStatus: 'pending' },
-      data: { approvalStatus: 'approved', approvedAt: new Date() },
+      data: { approvalStatus: 'approved', approvedAt: new Date(), autoApproveAt: null },
     })
     if (result.count === 0) {
       return res.status(404).json({ error: 'Pending place not found or already approved' })
     }
-    const place = await prisma.place.findUnique({ where: { id } })
-    res.json({ success: true, place })
+    const place = await prisma.place.findUnique({ where: { id }, select: PLACE_DETAIL_SELECT })
+    res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
     console.error('admin places approve', e)
     res.status(500).json({ error: e.message })
@@ -274,11 +536,14 @@ router.get('/records/:model', async (req, res) => {
   const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50))
   const skip = (page - 1) * limit
   const full = req.query.full === '1' || req.query.full === 'true'
+  const q = String(req.query.q || '').trim()
+  const where = key === 'place' && q ? placeNameSearchWhere(q) : {}
 
   try {
     const [total, rows] = await prisma.$transaction([
-      delegate.count(),
+      delegate.count({ where }),
       delegate.findMany({
+        where,
         skip,
         take: limit,
         orderBy: { id: 'desc' },
@@ -293,8 +558,9 @@ router.get('/records/:model', async (req, res) => {
       page,
       limit,
       total,
-      totalPages: Math.ceil(total / limit),
+      totalPages: Math.ceil(total / limit) || 1,
       orderBy: { id: 'desc' },
+      searchQuery: key === 'place' ? q : undefined,
       data,
     })
   } catch (e) {

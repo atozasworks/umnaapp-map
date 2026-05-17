@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../services/api'
+import { addressFromParts, findDuplicateInList } from '../utils/placeDuplicate'
 
 export const PLACE_CATEGORIES = [
   'Restaurant',
@@ -73,8 +74,6 @@ const EMPTY_ADDRESS_FIELDS = {
   country: '',
 }
 
-const normalizePlaceNameKey = (name) => String(name || '').trim().toLowerCase()
-
 const AddPlaceModal = ({
   isOpen,
   onClose,
@@ -86,6 +85,7 @@ const AddPlaceModal = ({
   initialLocationMethod,
   existingPlaces = [],
   excludePlaceId = null,
+  onShowDuplicate,
 }) => {
   const [formData, setFormData] = useState({
     placeNameEn: '',
@@ -107,7 +107,7 @@ const AddPlaceModal = ({
   const [translating, setTranslating] = useState(false)
   const [detectedTargetLang, setDetectedTargetLang] = useState('hi')
   const [localLabelTranslated, setLocalLabelTranslated] = useState('')
-  const [duplicateNameMessage, setDuplicateNameMessage] = useState(null)
+  const [duplicateMessage, setDuplicateMessage] = useState(null)
   const translateTimeoutRef = useRef(null)
   const nameDuplicateTimerRef = useRef(null)
   const addressFetchRef = useRef(null)
@@ -262,36 +262,69 @@ const AddPlaceModal = ({
     }
   }, [])
 
-  // Debounced check: English name already saved for this user (from DB list)
+  // Debounced duplicate check: Google ID, coordinates, name + address (map + API)
   useEffect(() => {
     if (!isOpen) {
-      setDuplicateNameMessage(null)
+      setDuplicateMessage(null)
       return
     }
-    const raw = (formData.placeNameEn || '').trim()
-    if (raw.length < 2) {
-      setDuplicateNameMessage(null)
+    const name = (formData.placeNameEn || '').trim()
+    const lat = parseFloat(formData.latitude)
+    const lng = parseFloat(formData.longitude)
+    if (name.length < 2) {
+      setDuplicateMessage(null)
       return
     }
     if (nameDuplicateTimerRef.current) clearTimeout(nameDuplicateTimerRef.current)
-    nameDuplicateTimerRef.current = setTimeout(() => {
-      const key = normalizePlaceNameKey(raw)
-      const list = Array.isArray(existingPlaces) ? existingPlaces : []
-      const taken = list.some((p) => {
-        if (excludePlaceId != null && String(p.id) === String(excludePlaceId)) return false
-        const existingKey = normalizePlaceNameKey(p.place_name_en || p.name)
-        return existingKey.length > 0 && existingKey === key
-      })
-      setDuplicateNameMessage(
-        taken
-          ? 'This place name is already saved. Use a different name.'
-          : null
-      )
-    }, 400)
+    nameDuplicateTimerRef.current = setTimeout(async () => {
+      const payload = {
+        place_name_en: name,
+        latitude: lat,
+        longitude: lng,
+        village: formData.village,
+        taluk: formData.taluk,
+        district: formData.district,
+        state: formData.state,
+        country: formData.country,
+        pincode: formData.pincode,
+        address: addressFromParts(formData),
+      }
+      const local = findDuplicateInList(existingPlaces, payload, { excludePlaceId })
+      if (local.duplicate) {
+        setDuplicateMessage(local.message)
+        return
+      }
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        setDuplicateMessage(null)
+        return
+      }
+      try {
+        const { data } = await api.post('/map/places/check-duplicate', {
+          ...payload,
+          excludePlaceId,
+        })
+        setDuplicateMessage(data.duplicate ? data.message : null)
+      } catch {
+        setDuplicateMessage(null)
+      }
+    }, 450)
     return () => {
       if (nameDuplicateTimerRef.current) clearTimeout(nameDuplicateTimerRef.current)
     }
-  }, [formData.placeNameEn, existingPlaces, excludePlaceId, isOpen])
+  }, [
+    formData.placeNameEn,
+    formData.latitude,
+    formData.longitude,
+    formData.village,
+    formData.taluk,
+    formData.district,
+    formData.state,
+    formData.country,
+    formData.pincode,
+    existingPlaces,
+    excludePlaceId,
+    isOpen,
+  ])
 
   // Translate the local label via backend /map/translate endpoint.
   useEffect(() => {
@@ -438,8 +471,15 @@ const AddPlaceModal = ({
       setSaving(false)
       return
     }
-    if (duplicateNameMessage) {
-      setError(duplicateNameMessage)
+    if (duplicateMessage) {
+      onShowDuplicate?.(
+        {
+          duplicate: true,
+          message: duplicateMessage,
+          reason: 'name_address',
+        },
+        placeNameEn
+      )
       setSaving(false)
       return
     }
@@ -480,8 +520,21 @@ const AddPlaceModal = ({
       }
       onClose()
     } catch (err) {
-      const msg = err.response?.data?.message ?? err.response?.data?.error ?? err.message
-      setError(msg || 'Failed to save place.')
+      if (err.response?.status === 409) {
+        onShowDuplicate?.(
+          {
+            duplicate: true,
+            message: err.response?.data?.message,
+            reason: err.response?.data?.reason,
+            existingPlaceId: err.response?.data?.existingPlaceId,
+            existingPlaceName: err.response?.data?.existingPlaceName,
+          },
+          placeNameEn
+        )
+      } else {
+        const msg = err.response?.data?.message ?? err.response?.data?.error ?? err.message
+        setError(msg || 'Failed to save place.')
+      }
     } finally {
       setSaving(false)
     }
@@ -602,14 +655,14 @@ const AddPlaceModal = ({
               onChange={handleChange}
               onBlur={handleEnglishBlur}
               placeholder="e.g. Kadaba Bus Stand"
-              className={`input-field ${duplicateNameMessage ? 'border-amber-500 ring-1 ring-amber-400/80' : ''}`}
+              className={`input-field ${duplicateMessage ? 'border-amber-500 ring-1 ring-amber-400/80' : ''}`}
               required
-              aria-invalid={duplicateNameMessage ? 'true' : undefined}
-              aria-describedby={duplicateNameMessage ? 'place-name-en-duplicate' : undefined}
+              aria-invalid={duplicateMessage ? 'true' : undefined}
+              aria-describedby={duplicateMessage ? 'place-name-en-duplicate' : undefined}
             />
-            {duplicateNameMessage && (
-              <p id="place-name-en-duplicate" className="mt-1.5 text-xs font-medium text-amber-700" role="alert">
-                {duplicateNameMessage}
+            {duplicateMessage && (
+              <p id="place-name-en-duplicate" className="mt-1.5 text-xs font-medium text-amber-700" role="status">
+                This place is already on the map. Save is blocked until you change the name or location.
               </p>
             )}
           </div>
@@ -773,7 +826,7 @@ const AddPlaceModal = ({
             </button>
             <button
               type="submit"
-              disabled={saving || !hasValidLocation() || !!duplicateNameMessage}
+              disabled={saving || !hasValidLocation() || !!duplicateMessage}
               className="btn-primary flex-1 disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {saving ? (

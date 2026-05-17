@@ -15,18 +15,42 @@ export function autoApproveCutoffDate() {
   return new Date(Date.now() - getAutoApproveMs())
 }
 
+export function pendingAutoApproveAt(createdAt) {
+  return new Date(new Date(createdAt).getTime() + getAutoApproveMs())
+}
+
+/** Fields set when a place is created (extracted or manually added). */
+export function initialApprovalFields(createdAt = new Date()) {
+  return {
+    approvalStatus: 'pending',
+    approvedAt: null,
+    autoApproveAt: pendingAutoApproveAt(createdAt),
+  }
+}
+
+export function pendingDaysRemaining(autoApproveAt) {
+  if (!autoApproveAt) return null
+  const ms = new Date(autoApproveAt).getTime() - Date.now()
+  if (ms <= 0) return 0
+  return Math.ceil(ms / DAY_MS)
+}
+
 export async function autoApproveExpiredPendingPlaces() {
   if (!prisma.place) return { count: 0 }
+  const now = new Date()
   const cutoff = autoApproveCutoffDate()
   try {
     const result = await prisma.place.updateMany({
       where: {
         approvalStatus: 'pending',
-        createdAt: { lte: cutoff },
+        OR: [
+          { autoApproveAt: { lte: now } },
+          { autoApproveAt: null, createdAt: { lte: cutoff } },
+        ],
       },
       data: {
         approvalStatus: 'approved',
-        approvedAt: new Date(),
+        approvedAt: now,
       },
     })
     return { count: result.count }
@@ -36,12 +60,20 @@ export async function autoApproveExpiredPendingPlaces() {
   }
 }
 
-/** DB filter: approved for everyone, or pending only for the contributor */
+/**
+ * Map visibility: approved → everyone; pending/rejected → contributor only.
+ * Admin panel uses separate routes (adminAuth), not this filter.
+ */
 export function placePublicVisibilityOr(viewerUserId) {
   return {
     OR: [
       { approvalStatus: 'approved' },
-      { AND: [{ approvalStatus: 'pending' }, { userId: viewerUserId }] },
+      {
+        AND: [
+          { approvalStatus: { in: ['pending', 'rejected'] } },
+          { userId: viewerUserId },
+        ],
+      },
     ],
   }
 }
@@ -50,18 +82,46 @@ export function isPlaceVisibleToUser(place, viewerUserId) {
   if (!place) return false
   const st = place.approvalStatus ?? 'approved'
   if (st === 'approved') return true
-  if (st === 'pending') return place.userId === viewerUserId
+  if (st === 'pending' || st === 'rejected') return place.userId === viewerUserId
   return false
 }
 
-export function pendingAutoApproveAt(createdAt) {
-  return new Date(new Date(createdAt).getTime() + getAutoApproveMs())
+export function enrichPlaceApprovalMeta(place) {
+  if (!place) return place
+  const st = place.approvalStatus ?? 'approved'
+  const out = {
+    ...place,
+    approvalStatus: st,
+    approvedAt: place.approvedAt ?? null,
+    autoApproveAt: place.autoApproveAt ?? null,
+  }
+  if (st === 'pending') {
+    const autoAt =
+      place.autoApproveAt != null
+        ? new Date(place.autoApproveAt)
+        : place.createdAt
+          ? pendingAutoApproveAt(place.createdAt)
+          : null
+    if (autoAt) {
+      out.autoApproveAt = autoAt.toISOString()
+      out.pendingDaysRemaining = pendingDaysRemaining(autoAt)
+    }
+  }
+  return out
 }
 
 export function startPlaceApprovalScheduler() {
   const HOUR = 60 * 60 * 1000
-  autoApproveExpiredPendingPlaces().catch(() => {})
+  autoApproveExpiredPendingPlaces()
+    .then(({ count }) => {
+      if (count > 0) console.log(`Place approval: auto-approved ${count} pending place(s)`)
+    })
+    .catch(() => {})
   setInterval(() => {
-    autoApproveExpiredPendingPlaces().catch(() => {})
+    autoApproveExpiredPendingPlaces()
+      .then(({ count }) => {
+        if (count > 0) console.log(`Place approval: auto-approved ${count} pending place(s)`)
+      })
+      .catch(() => {})
   }, HOUR)
 }

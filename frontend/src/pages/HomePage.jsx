@@ -8,6 +8,8 @@ import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
 import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
 import PlaceDetailPanel from '../components/PlaceDetailPanel'
 import PlaceExtractPanel from '../components/PlaceExtractPanel'
+import DuplicatePlaceModal, { buildDuplicatePopupPayload } from '../components/DuplicatePlaceModal'
+import PlaceAddedSuccessModal, { buildPlaceAddedPayload } from '../components/PlaceAddedSuccessModal'
 import PolygonExplorePanel from '../components/PolygonExplorePanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
@@ -127,6 +129,8 @@ const HomePage = () => {
   const profileFileInputRef = useRef(null)
   const [toast, setToast] = useState(null)
   const [confirmModal, setConfirmModal] = useState(null)
+  const [duplicatePopup, setDuplicatePopup] = useState(null)
+  const [successPopup, setSuccessPopup] = useState(null)
   const [shareModal, setShareModal] = useState(null)
   const [showExtractPanel, setShowExtractPanel] = useState(false)
   const [showLanguageModal, setShowLanguageModal] = useState(false)
@@ -269,6 +273,31 @@ const HomePage = () => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
+
+  const showDuplicatePopup = useCallback((dup, placeName = '') => {
+    const payload = buildDuplicatePopupPayload(dup, placeName)
+    if (payload) setDuplicatePopup(payload)
+  }, [])
+
+  const showPlaceAddedPopup = useCallback((places, opts = {}) => {
+    const payload = buildPlaceAddedPayload(places, opts)
+    if (payload) setSuccessPopup(payload)
+  }, [])
+
+  const flyToExistingPlace = useCallback(
+    (placeId) => {
+      if (!placeId) return
+      const existing = allPlaces.find((p) => String(p.id) === String(placeId))
+      if (existing && mapRef.current?.flyTo) {
+        mapRef.current.flyTo({
+          center: [existing.longitude, existing.latitude],
+          zoom: existing.zoomLevel || 15,
+          duration: 800,
+        })
+      }
+    },
+    [allPlaces]
+  )
 
   useEffect(() => {
     setAvailableCategories(buildCategoryOptions(allPlaces))
@@ -448,12 +477,26 @@ const HomePage = () => {
       if (placeMatchesCategories(data, selectedCategories)) {
         setVisiblePlaces((prev) => [data, ...prev.filter((place) => place.id !== data.id)])
       }
+      showPlaceAddedPopup([data], { variant: 'saved' })
       setShowMenu(false)
       setShowContributionsOnly(false)
       setShowMyPlaces(true)
     } catch (err) {
-      const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
-      showToast(msg, 'error')
+      if (err.response?.status === 409) {
+        showDuplicatePopup(
+          {
+            duplicate: true,
+            message: err.response?.data?.message,
+            reason: err.response?.data?.reason,
+            existingPlaceId: err.response?.data?.existingPlaceId,
+            existingPlaceName: err.response?.data?.existingPlaceName,
+          },
+          result.displayName
+        )
+      } else {
+        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
+        showToast(msg, 'error')
+      }
     } finally {
       setSavingPlaceId(null)
     }
@@ -504,9 +547,7 @@ const HomePage = () => {
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
-    if (place?.approvalStatus === 'pending') {
-      showToast('Place submitted. Only you can see it on the map until it is approved (auto after 10 days).', 'info')
-    }
+    showPlaceAddedPopup([place], { variant: 'manual' })
     if (mapRef.current?.flyTo) {
       mapRef.current.flyTo({
         center: [place.longitude, place.latitude],
@@ -587,9 +628,23 @@ const HomePage = () => {
       if (placeMatchesCategories(data, selectedCategories)) {
         setVisiblePlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
       }
+      showPlaceAddedPopup([data], { variant: 'saved' })
     } catch (err) {
-      const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
-      showToast(msg, 'error')
+      if (err.response?.status === 409) {
+        showDuplicatePopup(
+          {
+            duplicate: true,
+            message: err.response?.data?.message,
+            reason: err.response?.data?.reason,
+            existingPlaceId: err.response?.data?.existingPlaceId,
+            existingPlaceName: err.response?.data?.existingPlaceName,
+          },
+          place.place_name_en || place.name
+        )
+      } else {
+        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
+        showToast(msg, 'error')
+      }
     } finally {
       setSavingPlaceId(null)
     }
@@ -621,12 +676,23 @@ const HomePage = () => {
         duration: 1000,
       })
     }
-    showToast(
-      data.added > 0
-        ? `Added ${data.added} places (${data.skipped} skipped). They stay private until approved.`
-        : `Added ${data.added} places (${data.skipped} skipped)`,
-      data.added > 0 ? 'success' : 'info'
-    )
+    const dupSkipped = (data.skippedDetails || []).filter((s) => s.reason && s.reason !== 'invalid')
+    if (data.added === 0 && dupSkipped.length > 0) {
+      setDuplicatePopup({
+        message: 'No new places were added — they already exist on the map.',
+        reason: dupSkipped[0]?.reason || 'coordinates',
+        skippedList: dupSkipped,
+      })
+    } else if (dupSkipped.length > 0) {
+      setDuplicatePopup({
+        message: `${dupSkipped.length} place(s) were skipped because they already exist.`,
+        reason: 'duplicate_in_batch',
+        skippedList: dupSkipped,
+      })
+      showPlaceAddedPopup(data.places, { variant: 'extract', skippedCount: dupSkipped.length })
+    } else if (data.added > 0) {
+      showPlaceAddedPopup(data.places, { variant: 'extract' })
+    }
     return data
   }
 
@@ -674,6 +740,35 @@ const HomePage = () => {
           <button onClick={() => setToast(null)} className="ml-1 opacity-70 hover:opacity-100 text-lg leading-none">✕</button>
         </div>
       )}
+
+      <PlaceAddedSuccessModal
+        isOpen={!!successPopup}
+        onClose={() => setSuccessPopup(null)}
+        places={successPopup?.places}
+        count={successPopup?.count}
+        skippedCount={successPopup?.skippedCount}
+        variant={successPopup?.variant}
+        onViewOnMap={
+          successPopup?.places?.[0]?.id
+            ? () => flyToExistingPlace(successPopup.places[0].id)
+            : undefined
+        }
+      />
+
+      <DuplicatePlaceModal
+        isOpen={!!duplicatePopup}
+        onClose={() => setDuplicatePopup(null)}
+        message={duplicatePopup?.message}
+        reason={duplicatePopup?.reason}
+        placeName={duplicatePopup?.placeName}
+        existingPlaceName={duplicatePopup?.existingPlaceName}
+        skippedList={duplicatePopup?.skippedList}
+        onViewOnMap={
+          duplicatePopup?.existingPlaceId
+            ? () => flyToExistingPlace(duplicatePopup.existingPlaceId)
+            : undefined
+        }
+      />
 
       {/* ── Confirm modal ── */}
       {confirmModal && (
@@ -891,6 +986,7 @@ const HomePage = () => {
         initialLocationMethod={addPlaceLocationMethod}
         existingPlaces={allPlaces}
         excludePlaceId={addPlaceExcludeId}
+        onShowDuplicate={showDuplicatePopup}
         onRequestMapPick={() => {
           setShowAddPlaceModal(false)
           setAddPlacePickMode(true)
@@ -964,19 +1060,18 @@ const HomePage = () => {
       )}
 
       {/* Map tools sidebar — draw area & explore by category */}
-      {showSidebar && (
-        <PolygonExplorePanel
-          mapRef={mapRef}
-          isOpen={showSidebar}
-          onInteractionChange={setPolygonMapInteraction}
-          onPlacesFound={(places) => {
-            setPolygonOverlayPlaces(places)
-          }}
-          onClearPlaces={() => {
-            setPolygonOverlayPlaces([])
-          }}
-        />
-      )}
+      <PolygonExplorePanel
+        mapRef={mapRef}
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        onInteractionChange={setPolygonMapInteraction}
+        onPlacesFound={(places) => {
+          setPolygonOverlayPlaces(places)
+        }}
+        onClearPlaces={() => {
+          setPolygonOverlayPlaces([])
+        }}
+      />
 
       {/* Map Container */}
       <div className="flex-1 w-full relative">
@@ -1375,6 +1470,8 @@ const HomePage = () => {
         isOpen={showExtractPanel}
         onClose={() => setShowExtractPanel(false)}
         onAddToMap={handleAddExtractedPlaces}
+        mapPlaces={allPlaces}
+        onShowDuplicate={showDuplicatePopup}
       />
 
       {/* My Places panel - slide in from left */}
@@ -1464,10 +1561,18 @@ const HomePage = () => {
                         {place.place_name_local && place.place_name_local !== place.place_name_en && (
                           <p className="text-xs text-slate-500 truncate">{place.place_name_local}</p>
                         )}
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                           <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">
                             <TranslatedLabel text={place.category} />
                           </span>
+                          {place.approvalStatus === 'pending' && (
+                            <span className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 font-medium">
+                              Pending
+                              {place.pendingDaysRemaining != null
+                                ? ` · ${place.pendingDaysRemaining}d`
+                                : ''}
+                            </span>
+                          )}
                           <button
                             onClick={() => {
                               setShowMyPlaces(false)

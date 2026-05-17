@@ -113,6 +113,7 @@ function screenDist(map, a, b) {
  * @param {object} props
  * @param {import('react').RefObject<any>} props.mapRef
  * @param {boolean} props.isOpen
+ * @param {() => void} props.onClose
  * @param {(active: boolean) => void} props.onInteractionChange
  * @param {(places: object[], count: number) => void} props.onPlacesFound
  * @param {() => void} props.onClearPlaces
@@ -120,10 +121,14 @@ function screenDist(map, a, b) {
 export default function PolygonExplorePanel({
   mapRef,
   isOpen,
+  onClose,
   onInteractionChange,
   onPlacesFound,
   onClearPlaces,
 }) {
+  const [visible, setVisible] = useState(isOpen)
+  const [entered, setEntered] = useState(false)
+  const [isExiting, setIsExiting] = useState(false)
   const [shapeTool, setShapeTool] = useState('polygon')
   const [drawPhase, setDrawPhase] = useState('idle')
   const [completedFeature, setCompletedFeature] = useState(null)
@@ -149,6 +154,36 @@ export default function PolygonExplorePanel({
   useEffect(() => {
     phaseRef.current = drawPhase
   }, [drawPhase])
+
+  useEffect(() => {
+    if (isOpen) {
+      setVisible(true)
+      setIsExiting(false)
+      const id = requestAnimationFrame(() => {
+        requestAnimationFrame(() => setEntered(true))
+      })
+      return () => cancelAnimationFrame(id)
+    }
+    if (!visible) return undefined
+    setEntered(false)
+    setIsExiting(true)
+    const timer = setTimeout(() => {
+      setVisible(false)
+      setIsExiting(false)
+    }, 280)
+    return () => clearTimeout(timer)
+  }, [isOpen, visible])
+
+  const handleClose = useCallback(() => {
+    if (isExiting) return
+    setEntered(false)
+    setIsExiting(true)
+    setTimeout(() => {
+      setVisible(false)
+      setIsExiting(false)
+      onClose?.()
+    }, 280)
+  }, [isExiting, onClose])
 
   const clearVertexMarkers = useCallback(() => {
     vertexMarkersRef.current.forEach((m) => m.remove())
@@ -570,18 +605,40 @@ export default function PolygonExplorePanel({
     [completedFeature, onPlacesFound]
   )
 
-  if (!isOpen) return null
+  if (!visible && !isOpen) return null
+
+  const panelMotion = entered && !isExiting
+    ? { transform: 'translateX(0)', opacity: 1 }
+    : { transform: 'translateX(calc(-100% - 0.75rem))', opacity: 0 }
 
   return (
     <div
-      className="absolute z-[28] w-[min(100vw-0.5rem,18rem)] max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom))] flex flex-col glass rounded-r-2xl border border-white/40 shadow-xl overflow-hidden"
-      style={{ top: 'calc(env(safe-area-inset-top) + 3.75rem)', left: 0 }}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="area-explore-title"
+      className="absolute z-[28] w-[min(100vw-0.5rem,18rem)] max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom))] flex flex-col glass rounded-r-2xl border border-white/40 shadow-xl overflow-hidden pointer-events-auto"
+      style={{
+        top: 'calc(env(safe-area-inset-top) + 3.75rem)',
+        left: 0,
+        ...panelMotion,
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
     >
-      <div className="px-3 py-2.5 border-b border-white/40 bg-white/50">
-        <h2 className="text-sm font-bold text-slate-800">Area explore</h2>
-        <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
+      <div className="relative shrink-0 border-b border-white/40 bg-white/50 px-3 py-2.5 pr-12">
+        <h2 id="area-explore-title" className="text-sm font-bold text-slate-800 pr-1">Area explore</h2>
+        <p className="text-[11px] text-slate-600 mt-0.5 leading-snug pr-1">
           Draw a region, pick a category, then see matching places inside the shape.
         </p>
+        <button
+          type="button"
+          onClick={handleClose}
+          className="absolute top-2 right-2 flex h-10 w-10 min-h-[44px] min-w-[44px] items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm ring-1 ring-slate-200/90 transition-all duration-200 hover:bg-white hover:text-slate-800 hover:shadow active:scale-95 touch-manipulation"
+          aria-label="Close Area explore"
+        >
+          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
