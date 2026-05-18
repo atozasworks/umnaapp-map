@@ -5,6 +5,7 @@ import { useSocket } from '../contexts/SocketContext'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { whenStyleReady } from '../utils/mapWhenStyleReady'
+import { formatMeasureLabel } from '../utils/measureDistance'
 
 const CATEGORY_COLORS = {
   Restaurant: '#EF4444',
@@ -40,6 +41,9 @@ const SATELLITE_TILES = ['https://services.arcgisonline.com/ArcGIS/rest/services
 const TERRAIN_TILES = ['https://tile.opentopomap.org/{z}/{x}/{y}.png']
 const LABEL_OVERLAY_TILES = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
 const BASEMAP_STORAGE_KEY = 'umnaapp_basemap'
+const MEASURE_SOURCE_ID = 'measure-distance-source'
+const MEASURE_LINE_OUTLINE_LAYER_ID = 'measure-distance-line-outline'
+const MEASURE_LINE_LAYER_ID = 'measure-distance-line'
 
 /** Saved-place names: hidden when zoomed out; fade in while zooming in (between these levels). */
 const USER_PLACE_LABEL_ZOOM_START = 10.5
@@ -313,9 +317,13 @@ const createRouteEndpointMarker = (place, isStart) => {
 const MapComponent = forwardRef(({
   onLocationUpdate,
   onMapClick,
+  onMapContextMenu,
   onMapReady,
   addPlaceMode,
   blockAddPlaceMapClick = false,
+  blockContextMenu = false,
+  measureDistanceActive = false,
+  onMeasureDistanceChange,
   places = [],
   searchResultPlaces = [],
   polygonOverlayPlaces = [],
@@ -348,7 +356,15 @@ const MapComponent = forwardRef(({
   const userPlaceMarkersRef = useRef({})
   const userPlaceCollisionRafRef = useRef(null)
   const streetTilesUrlRef = useRef(null)
+  const measurePointsRef = useRef([])
+  const measureLabelMarkersRef = useRef([])
+  const measureVertexMarkersRef = useRef([])
+  const measureDraggingRef = useRef(false)
+  const longPressTimerRef = useRef(null)
+  const longPressStartRef = useRef(null)
   const { socket } = useSocket()
+  const [measureTotalMeters, setMeasureTotalMeters] = useState(0)
+  const [measurePointCount, setMeasurePointCount] = useState(0)
 
   const [mapLoaded, setMapLoaded] = useState(false)
   const [mapZoom, setMapZoom] = useState(null)
@@ -423,6 +439,213 @@ const MapComponent = forwardRef(({
       edited: true,
     })
   }, [getLineDistanceMeters])
+
+  const clearMeasureLabelMarkers = useCallback(() => {
+    measureLabelMarkersRef.current.forEach((m) => m?.remove())
+    measureLabelMarkersRef.current = []
+  }, [])
+
+  const clearMeasureVertexMarkers = useCallback(() => {
+    measureVertexMarkersRef.current.forEach((m) => m?.remove())
+    measureVertexMarkersRef.current = []
+  }, [])
+
+  const setMeasureLineData = useCallback((map, points) => {
+    if (!map?.isStyleLoaded?.()) return
+    const features =
+      points.length >= 2
+        ? [
+            {
+              type: 'Feature',
+              properties: {},
+              geometry: { type: 'LineString', coordinates: points },
+            },
+          ]
+        : []
+    const source = map.getSource(MEASURE_SOURCE_ID)
+    if (source) {
+      source.setData({ type: 'FeatureCollection', features })
+    }
+  }, [])
+
+  const ensureMeasureLayers = useCallback((map) => {
+    if (!map?.isStyleLoaded?.()) return
+    if (!map.getSource(MEASURE_SOURCE_ID)) {
+      map.addSource(MEASURE_SOURCE_ID, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      })
+    }
+    if (!map.getLayer(MEASURE_LINE_OUTLINE_LAYER_ID)) {
+      map.addLayer({
+        id: MEASURE_LINE_OUTLINE_LAYER_ID,
+        type: 'line',
+        source: MEASURE_SOURCE_ID,
+        filter: ['==', ['geometry-type'], 'LineString'],
+        paint: {
+          'line-color': '#ffffff',
+          'line-width': 6,
+          'line-opacity': 0.95,
+        },
+      })
+    }
+    if (!map.getLayer(MEASURE_LINE_LAYER_ID)) {
+      map.addLayer({
+        id: MEASURE_LINE_LAYER_ID,
+        type: 'line',
+        source: MEASURE_SOURCE_ID,
+        filter: ['==', ['geometry-type'], 'LineString'],
+        paint: {
+          'line-color': '#1a73e8',
+          'line-width': 4,
+        },
+      })
+    }
+  }, [])
+
+  const rebuildMeasureSegmentLabels = useCallback(
+    (map, points) => {
+      clearMeasureLabelMarkers()
+      for (let i = 1; i < points.length; i += 1) {
+        const a = points[i - 1]
+        const b = points[i]
+        const segM = haversineDistanceMeters(a, b)
+        const mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2]
+        const el = document.createElement('div')
+        el.className = 'measure-segment-label'
+        el.textContent = formatMeasureLabel(segM)
+        Object.assign(el.style, {
+          background: '#fff',
+          color: '#1a73e8',
+          fontSize: '11px',
+          fontWeight: '600',
+          padding: '3px 8px',
+          borderRadius: '12px',
+          border: '1px solid rgba(26,115,232,0.25)',
+          boxShadow: '0 1px 4px rgba(0,0,0,0.18)',
+          pointerEvents: 'none',
+          whiteSpace: 'nowrap',
+        })
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat(mid)
+          .addTo(map)
+        measureLabelMarkersRef.current.push(marker)
+      }
+    },
+    [clearMeasureLabelMarkers, haversineDistanceMeters]
+  )
+
+  const rebuildMeasureVertexMarkers = useCallback(
+    (map, points) => {
+      clearMeasureVertexMarkers()
+      points.forEach((coord, idx) => {
+        const el = document.createElement('div')
+        el.style.width = '14px'
+        el.style.height = '14px'
+        el.style.borderRadius = '50%'
+        el.style.background = '#ffffff'
+        el.style.border = '2px solid #1a73e8'
+        el.style.boxShadow = '0 1px 4px rgba(0,0,0,0.35)'
+        el.style.cursor = 'grab'
+        el.style.touchAction = 'none'
+        el.addEventListener('mousedown', () => {
+          el.style.cursor = 'grabbing'
+        })
+        el.addEventListener('mouseup', () => {
+          el.style.cursor = 'grab'
+        })
+        const marker = new maplibregl.Marker({ element: el, draggable: true })
+          .setLngLat(coord)
+          .addTo(map)
+        marker.on('dragstart', () => {
+          measureDraggingRef.current = true
+          if (map.dragPan) map.dragPan.disable()
+        })
+        marker.on('drag', () => {
+          const ll = marker.getLngLat()
+          const next = [...measurePointsRef.current]
+          next[idx] = [ll.lng, ll.lat]
+          measurePointsRef.current = next
+          setMeasureLineData(map, next)
+          const runningTotal = getLineDistanceMeters(next)
+          setMeasureTotalMeters(runningTotal)
+          setMeasurePointCount(next.length)
+          if (onMeasureDistanceChange) {
+            onMeasureDistanceChange({ totalMeters: runningTotal, pointCount: next.length })
+          }
+        })
+        marker.on('dragend', () => {
+          measureDraggingRef.current = false
+          if (map.dragPan) map.dragPan.enable()
+          const ll = marker.getLngLat()
+          const next = [...measurePointsRef.current]
+          next[idx] = [ll.lng, ll.lat]
+          measurePointsRef.current = next
+          const total = getLineDistanceMeters(next)
+          setMeasureTotalMeters(total)
+          setMeasurePointCount(next.length)
+          setMeasureLineData(map, next)
+          rebuildMeasureSegmentLabels(map, next)
+          if (onMeasureDistanceChange) {
+            onMeasureDistanceChange({ totalMeters: total, pointCount: next.length })
+          }
+        })
+        measureVertexMarkersRef.current.push(marker)
+      })
+    },
+    [
+      clearMeasureVertexMarkers,
+      getLineDistanceMeters,
+      onMeasureDistanceChange,
+      rebuildMeasureSegmentLabels,
+      setMeasureLineData,
+    ]
+  )
+
+  const syncMeasurePath = useCallback(
+    (points) => {
+      const map = mapRef.current
+      measurePointsRef.current = points
+      const total = getLineDistanceMeters(points)
+      setMeasureTotalMeters(total)
+      setMeasurePointCount(points.length)
+      if (map?.isStyleLoaded?.()) {
+        ensureMeasureLayers(map)
+        setMeasureLineData(map, points)
+        rebuildMeasureSegmentLabels(map, points)
+        rebuildMeasureVertexMarkers(map, points)
+      }
+      if (onMeasureDistanceChange) {
+        onMeasureDistanceChange({ totalMeters: total, pointCount: points.length })
+      }
+    },
+    [
+      ensureMeasureLayers,
+      getLineDistanceMeters,
+      onMeasureDistanceChange,
+      rebuildMeasureSegmentLabels,
+      rebuildMeasureVertexMarkers,
+      setMeasureLineData,
+    ]
+  )
+
+  const clearMeasureDistance = useCallback(() => {
+    const map = mapRef.current
+    measurePointsRef.current = []
+    setMeasureTotalMeters(0)
+    setMeasurePointCount(0)
+    clearMeasureLabelMarkers()
+    clearMeasureVertexMarkers()
+    if (map?.isStyleLoaded?.()) {
+      const source = map.getSource(MEASURE_SOURCE_ID)
+      if (source) {
+        source.setData({ type: 'FeatureCollection', features: [] })
+      }
+    }
+    if (onMeasureDistanceChange) {
+      onMeasureDistanceChange({ totalMeters: 0, pointCount: 0 })
+    }
+  }, [clearMeasureLabelMarkers, clearMeasureVertexMarkers, onMeasureDistanceChange])
 
   const scheduleRouteSourceUpdate = useCallback((coords, emitUpdate = true) => {
     if (!mapRef.current) return
@@ -747,6 +970,125 @@ const MapComponent = forwardRef(({
       }
     }
   }, [addPlaceMode, blockAddPlaceMapClick, onMapClick])
+
+  // Right-click / long-press context menu
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !onMapContextMenu) return undefined
+
+    const openMenuAt = (lngLat, point) => {
+      if (blockContextMenu || addPlaceMode || blockAddPlaceMapClick || measureDistanceActive) return
+      const rect = map.getContainer().getBoundingClientRect()
+      onMapContextMenu({
+        lat: lngLat.lat,
+        lng: lngLat.lng,
+        x: rect.left + point.x,
+        y: rect.top + point.y,
+      })
+    }
+
+    const onContextMenu = (e) => {
+      e.preventDefault()
+      openMenuAt(e.lngLat, e.point)
+    }
+
+    const clearLongPress = () => {
+      if (longPressTimerRef.current) {
+        clearTimeout(longPressTimerRef.current)
+        longPressTimerRef.current = null
+      }
+      longPressStartRef.current = null
+    }
+
+    const onTouchStart = (e) => {
+      if (blockContextMenu || addPlaceMode || blockAddPlaceMapClick || measureDistanceActive) return
+      if (e.originalEvent?.touches?.length !== 1) return
+      const touch = e.originalEvent.touches[0]
+      longPressStartRef.current = { x: touch.clientX, y: touch.clientY, point: e.point }
+      clearLongPress()
+      longPressTimerRef.current = window.setTimeout(() => {
+        const start = longPressStartRef.current
+        if (!start) return
+        const rect = map.getContainer().getBoundingClientRect()
+        const x = start.point?.x ?? touch.clientX - rect.left
+        const y = start.point?.y ?? touch.clientY - rect.top
+        const lngLat = map.unproject([x, y])
+        openMenuAt(lngLat, { x, y })
+        if (navigator.vibrate) navigator.vibrate(30)
+      }, 520)
+    }
+
+    const onTouchMove = (e) => {
+      const start = longPressStartRef.current
+      if (!start || !e.originalEvent?.touches?.[0]) return
+      const touch = e.originalEvent.touches[0]
+      const dx = touch.clientX - start.x
+      const dy = touch.clientY - start.y
+      if (Math.hypot(dx, dy) > 12) clearLongPress()
+    }
+
+    const onTouchEnd = () => clearLongPress()
+
+    map.on('contextmenu', onContextMenu)
+    map.on('touchstart', onTouchStart)
+    map.on('touchmove', onTouchMove)
+    map.on('touchend', onTouchEnd)
+    map.on('touchcancel', onTouchEnd)
+
+    return () => {
+      clearLongPress()
+      map.off('contextmenu', onContextMenu)
+      map.off('touchstart', onTouchStart)
+      map.off('touchmove', onTouchMove)
+      map.off('touchend', onTouchEnd)
+      map.off('touchcancel', onTouchEnd)
+    }
+  }, [
+    addPlaceMode,
+    blockAddPlaceMapClick,
+    blockContextMenu,
+    measureDistanceActive,
+    onMapContextMenu,
+  ])
+
+  // Measure distance mode
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !measureDistanceActive) return undefined
+
+    const onMeasureClick = (e) => {
+      if (measureDraggingRef.current) return
+      if (e.originalEvent?.button > 0) return
+      if (e.originalEvent?.target?.closest?.('.maplibregl-marker')) return
+      const coord = [e.lngLat.lng, e.lngLat.lat]
+      const points = [...measurePointsRef.current, coord]
+      syncMeasurePath(points)
+    }
+
+    const onMeasureDblClick = (e) => {
+      e.preventDefault()
+    }
+
+    whenStyleReady(map, () => ensureMeasureLayers(map))
+    map.getCanvas().style.cursor = 'crosshair'
+    map.doubleClickZoom.disable()
+    map.on('click', onMeasureClick)
+    map.on('dblclick', onMeasureDblClick)
+
+    return () => {
+      map.getCanvas().style.cursor = ''
+      map.doubleClickZoom.enable()
+      map.off('click', onMeasureClick)
+      map.off('dblclick', onMeasureDblClick)
+    }
+  }, [measureDistanceActive, ensureMeasureLayers, syncMeasurePath])
+
+  useEffect(() => {
+    if (!measureDistanceActive) {
+      clearMeasureDistance()
+    }
+  }, [measureDistanceActive, clearMeasureDistance])
+
   // Google Maps–style basemap: Street (default / env tiles), Satellite + labels, Terrain
   useEffect(() => {
     const map = mapRef.current
@@ -1628,6 +1970,15 @@ const MapComponent = forwardRef(({
         mapRef.current.flyTo(options)
       }
     },
+    clearMeasureDistance,
+    addMeasurePoint: (lat, lng) => {
+      const points = [...measurePointsRef.current, [lng, lat]]
+      syncMeasurePath(points)
+    },
+    getMeasureStats: () => ({
+      totalMeters: measureTotalMeters,
+      pointCount: measurePointCount,
+    }),
     showSearchedLocation: (location, options = {}) => {
       if (!mapRef.current || !location) return
 
@@ -1696,10 +2047,10 @@ const MapComponent = forwardRef(({
         }
       })
     },
-  }), [drawRoute])
+  }), [clearMeasureDistance, drawRoute, measurePointCount, measureTotalMeters, syncMeasurePath])
 
   return (
-    <div className={`relative w-full h-full ${addPlaceMode ? 'cursor-crosshair' : ''}`}>
+    <div className={`relative w-full h-full ${addPlaceMode || measureDistanceActive ? 'cursor-crosshair' : ''}`}>
       {mapInitError ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6 bg-slate-100">
           <p className="text-slate-700 font-medium">Map could not load</p>

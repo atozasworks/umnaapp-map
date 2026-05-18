@@ -2,6 +2,9 @@ import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useTranslate, useLanguage, getAllLanguages } from 'atozas-traslate'
 import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
+import MapContextMenu from '../components/MapContextMenu'
+import MeasureDistancePanel from '../components/MeasureDistancePanel'
+import AskMapsPanel from '../components/AskMapsPanel'
 import SearchBar from '../components/SearchBar'
 import RoutePanel from '../components/RoutePanel'
 import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
@@ -102,6 +105,8 @@ const HomePage = () => {
   const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
+  const [showAskMapsPanel, setShowAskMapsPanel] = useState(false)
+  const [askMapsPlaces, setAskMapsPlaces] = useState([])
   const [currentLocation, setCurrentLocation] = useState(null)
   const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
   const [addPlaceExcludeId, setAddPlaceExcludeId] = useState(null)
@@ -126,6 +131,10 @@ const HomePage = () => {
   const [uploadingPicture, setUploadingPicture] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState(null)
   const [routePanelEndPlace, setRoutePanelEndPlace] = useState(null)
+  const [routePanelStartPlace, setRoutePanelStartPlace] = useState(null)
+  const [mapContextMenu, setMapContextMenu] = useState(null)
+  const [measureDistanceActive, setMeasureDistanceActive] = useState(false)
+  const [measureStats, setMeasureStats] = useState({ totalMeters: 0, pointCount: 0 })
   const profileFileInputRef = useRef(null)
   const [toast, setToast] = useState(null)
   const [confirmModal, setConfirmModal] = useState(null)
@@ -171,14 +180,55 @@ const HomePage = () => {
   const ariaClose = useTranslate('Close')
   const myPlacesViewOnMap = useTranslate('View on map')
   const menuAreaExplore = useTranslate('Area explore (draw)')
+  const menuAskMaps = useTranslate('Ask Maps')
 
   const allLanguages = useMemo(() => getAllLanguages(), [])
+
+  const closeMapContextMenu = useCallback(() => {
+    setMapContextMenu(null)
+  }, [])
 
   useEffect(() => {
     if (showLanguageModal) {
       setPendingLanguage(language)
     }
   }, [showLanguageModal, language])
+
+  useEffect(() => {
+    if (!measureDistanceActive) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setMeasureDistanceActive(false)
+        mapRef.current?.clearMeasureDistance?.()
+        setMeasureStats({ totalMeters: 0, pointCount: 0 })
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [measureDistanceActive])
+
+  const handleMeasureClear = () => {
+    mapRef.current?.clearMeasureDistance?.()
+    setMeasureStats({ totalMeters: 0, pointCount: 0 })
+  }
+
+  const handleMeasureClose = () => {
+    setMeasureDistanceActive(false)
+    mapRef.current?.clearMeasureDistance?.()
+    setMeasureStats({ totalMeters: 0, pointCount: 0 })
+  }
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap?.()
+    if (!map || !mapContextMenu) return undefined
+    const close = () => closeMapContextMenu()
+    map.on('movestart', close)
+    map.on('zoomstart', close)
+    return () => {
+      map.off('movestart', close)
+      map.off('zoomstart', close)
+    }
+  }, [mapContextMenu, closeMapContextMenu, mapReadyTick])
 
   const fetchCategoryExplorePlaces = useCallback(async (cat) => {
     if (!cat?.query) {
@@ -213,6 +263,7 @@ const HomePage = () => {
         setCategoryExplorePlaces([])
         return
       }
+      setAskMapsPlaces([])
       fetchCategoryExplorePlaces(cat)
     },
     [fetchCategoryExplorePlaces]
@@ -420,18 +471,12 @@ const HomePage = () => {
     }
   }
 
-  const handleLocationSharing = () => {
-    setShowMenu(false)
+  const shareLocationAt = (lat, lng, zoomOverride) => {
     const map = mapRef.current?.getMap?.()
-    const center = map?.getCenter()
-    const zoom = map ? Math.round(map.getZoom()) : 15
-    const lat = center ? center.lat.toFixed(6) : currentLocation?.lat?.toFixed(6)
-    const lng = center ? center.lng.toFixed(6) : currentLocation?.lng?.toFixed(6)
-    if (!lat || !lng) {
-      showToast('Location not available', 'error')
-      return
-    }
-    const appUrl = `https://umnaapptst.testatozas.in/?lat=${lat}&lng=${lng}&z=${zoom}`
+    const zoom = zoomOverride ?? (map ? Math.round(map.getZoom()) : 15)
+    const latStr = Number(lat).toFixed(6)
+    const lngStr = Number(lng).toFixed(6)
+    const appUrl = `https://umnaapptst.testatozas.in/?lat=${latStr}&lng=${lngStr}&z=${zoom}`
     const text = `Check out this location on UMNAAPP`
     const shareText = `${text}\n${appUrl}`
 
@@ -439,7 +484,173 @@ const HomePage = () => {
       navigator.share({ title: 'UMNAAPP - Shared Location', text: shareText, url: appUrl })
         .catch(() => {})
     } else {
-      setShareModal({ lat, lng, zoom, appUrl, text, shareText })
+      setShareModal({ lat: latStr, lng: lngStr, zoom, appUrl, text, shareText })
+    }
+  }
+
+  const handleLocationSharing = () => {
+    setShowMenu(false)
+    const map = mapRef.current?.getMap?.()
+    const center = map?.getCenter()
+    const lat = center ? center.lat : currentLocation?.lat
+    const lng = center ? center.lng : currentLocation?.lng
+    if (lat == null || lng == null) {
+      showToast('Location not available', 'error')
+      return
+    }
+    shareLocationAt(lat, lng)
+  }
+
+  const findPlaceNearCoordinates = (lat, lng, thresholdDeg = 0.00045) => {
+    return allPlaces.find(
+      (p) =>
+        Math.abs(p.latitude - lat) < thresholdDeg &&
+        Math.abs(p.longitude - lng) < thresholdDeg
+    )
+  }
+
+  const openAddPlaceAt = async (lat, lng, { category } = {}) => {
+    const map = mapRef.current?.getMap?.()
+    const zoom = map ? Math.round(map.getZoom()) : 15
+    const details = await fetchPlaceDetails({
+      latitude: lat,
+      longitude: lng,
+      zoomLevel: zoom,
+    })
+    if (category) {
+      details.category = category
+    }
+    setMapLocation(details)
+    setAddPlaceLocationMethod('map-or-current')
+    setShowAddPlaceModal(true)
+  }
+
+  const handleWhatsHere = async (lat, lng) => {
+    try {
+      const { data } = await api.get('/map/reverse', { params: { lat, lng } })
+      const name = data.displayName || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      const nearbyDb = findPlaceNearCoordinates(lat, lng)
+      if (nearbyDb) {
+        setSelectedPlace({ ...nearbyDb, _isDbPlace: true })
+        return
+      }
+      if (mapRef.current?.showSearchedLocation) {
+        mapRef.current.showSearchedLocation({
+          lat,
+          lng,
+          name,
+          displayName: name,
+        })
+      }
+    } catch {
+      if (mapRef.current?.showSearchedLocation) {
+        mapRef.current.showSearchedLocation({
+          lat,
+          lng,
+          name: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        })
+      }
+    }
+  }
+
+  const handleSearchNearby = async (lat, lng) => {
+    const map = mapRef.current?.getMap?.()
+    if (!map) return
+    const bounds = map.getBounds()
+    const q = `places near ${lat.toFixed(4)},${lng.toFixed(4)}`
+    try {
+      const { data } = await api.get('/map/search-simple', { params: { q } })
+      const raw = Array.isArray(data.results) ? data.results : []
+      const valid = raw.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
+      const inView = valid.filter((r) => bounds.contains([r.lng, r.lat]))
+      const pool = inView.length > 0 ? inView : valid
+      setCategoryExplorePlaces(
+        pool.slice(0, MAX_CATEGORY_EXPLORE_RESULTS).map((r) => ({
+          ...r,
+          markerColor: '#4285F4',
+        }))
+      )
+      if (pool.length === 0) {
+        showToast('No nearby places found', 'info')
+      } else {
+        showToast(`Found ${pool.length} nearby place(s)`, 'success')
+      }
+    } catch {
+      showToast('Search failed. Try again.', 'error')
+    }
+  }
+
+  const handleMapContextMenuAction = async (actionId) => {
+    if (!mapContextMenu) return
+    const { lat, lng } = mapContextMenu
+    closeMapContextMenu()
+
+    switch (actionId) {
+      case 'share':
+        shareLocationAt(lat, lng)
+        break
+      case 'directionsFrom': {
+        const start = { lat, lng, name: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }
+        setRoutePanelStartPlace(start)
+        setRoutePanelEndPlace(null)
+        setShowRoutePanel(true)
+        api.get('/map/reverse', { params: { lat, lng } }).then(({ data }) => {
+          if (data?.displayName) {
+            setRoutePanelStartPlace({ lat, lng, name: data.displayName })
+          }
+        }).catch(() => {})
+        break
+      }
+      case 'directionsTo': {
+        const end = { lat, lng, name: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }
+        setRoutePanelEndPlace(end)
+        setRoutePanelStartPlace(null)
+        setShowRoutePanel(true)
+        api.get('/map/reverse', { params: { lat, lng } }).then(({ data }) => {
+          if (data?.displayName) {
+            setRoutePanelEndPlace({ lat, lng, name: data.displayName })
+          }
+        }).catch(() => {})
+        break
+      }
+      case 'whatsHere':
+        await handleWhatsHere(lat, lng)
+        break
+      case 'searchNearby':
+        await handleSearchNearby(lat, lng)
+        break
+      case 'print':
+        handlePrint()
+        break
+      case 'addPlace':
+        await openAddPlaceAt(lat, lng)
+        break
+      case 'addBusiness':
+        await openAddPlaceAt(lat, lng, { category: 'Shop' })
+        showToast('Add your business details below', 'info')
+        break
+      case 'report': {
+        const existing = findPlaceNearCoordinates(lat, lng)
+        if (existing) {
+          handlePlaceEdit(existing)
+          showToast('Edit the place to report a data problem', 'info')
+        } else {
+          await openAddPlaceAt(lat, lng)
+          showToast('Add or correct place details to report a problem', 'info')
+        }
+        break
+      }
+      case 'measure':
+        setMeasureDistanceActive(true)
+        if (mapRef.current?.flyTo) {
+          mapRef.current.flyTo({ center: [lng, lat], duration: 400 })
+        }
+        window.setTimeout(() => {
+          mapRef.current?.addMeasurePoint?.(lat, lng)
+        }, 50)
+        break
+      default:
+        break
     }
   }
 
@@ -596,6 +807,45 @@ const HomePage = () => {
     setRoutePanelEndPlace({ lat: place.latitude, lng: place.longitude, name: place.place_name_en || place.name })
     setShowRoutePanel(true)
   }
+
+  const handleAskMapsOpen = () => {
+    setCategoryExplorePlaces([])
+    setShowAskMapsPanel(true)
+  }
+
+  const handleAskMapsClose = () => {
+    setShowAskMapsPanel(false)
+    setAskMapsPlaces([])
+  }
+
+  const handleAskMapsResults = useCallback((markers, center) => {
+    setAskMapsPlaces(markers)
+    if (center?.lat != null && center?.lng != null && mapRef.current?.flyTo) {
+      mapRef.current.flyTo({
+        center: [center.lng, center.lat],
+        zoom: markers.length === 1 ? 15 : 13,
+        duration: 800,
+      })
+    }
+  }, [])
+
+  const handleAskMapsPlaceSelect = (place) => {
+    setSelectedPlace({ ...place, _isDbPlace: true })
+    if (mapRef.current?.flyTo) {
+      mapRef.current.flyTo({
+        center: [place.longitude, place.latitude],
+        zoom: Math.max(14, place.zoomLevel || 14),
+        duration: 600,
+      })
+    }
+  }
+
+  const handleAskMapsDirections = (place) => {
+    setShowAskMapsPanel(false)
+    handlePlaceDirections(place)
+  }
+
+  const mapSearchResultPlaces = askMapsPlaces.length > 0 ? askMapsPlaces : categoryExplorePlaces
 
   const handlePlaceEdit = (place) => {
     setSelectedPlace(null)
@@ -858,6 +1108,7 @@ const HomePage = () => {
           userPlaces={allPlaces}
           onSelect={handleSearchSelect}
           onRoute={() => setShowRoutePanel(!showRoutePanel)}
+          onAskMaps={handleAskMapsOpen}
           onResultsChange={() => {}}
           onCategoryExploreChange={handleCategoryExploreChange}
           onSavePlace={handleSavePlaceFromSearch}
@@ -994,6 +1245,29 @@ const HomePage = () => {
         onSaved={handlePlaceSaved}
       />
 
+      {/* Ask Maps — AI natural-language search */}
+      {showAskMapsPanel && (
+        <div className="absolute inset-0 z-40 flex pointer-events-none" style={{ top: 0 }}>
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
+            onClick={handleAskMapsClose}
+          />
+          <div
+            className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+            style={{ marginTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}
+          >
+            <AskMapsPanel
+              mapRef={mapRef}
+              currentLocation={currentLocation}
+              onClose={handleAskMapsClose}
+              onResults={handleAskMapsResults}
+              onPlaceSelect={handleAskMapsPlaceSelect}
+              onDirections={handleAskMapsDirections}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Route Panel - LEFT side popup like Google Maps */}
       {showRoutePanel && (
         <div className="absolute inset-0 z-40 flex pointer-events-none" style={{ top: 0 }}>
@@ -1014,11 +1288,13 @@ const HomePage = () => {
               currentLocation={currentLocation}
               onCalculateRoute={handleCalculateRoute}
               initialEndPlace={routePanelEndPlace}
+              initialStartPlace={routePanelStartPlace}
               onClose={() => {
                 setShowRoutePanel(false)
                 setRouteStartPlace(null)
                 setRouteEndPlace(null)
                 setRoutePanelEndPlace(null)
+                setRoutePanelStartPlace(null)
               }}
               onSearchResultsChange={() => {}}
               onRoutePlacesChange={(start, end) => {
@@ -1079,17 +1355,39 @@ const HomePage = () => {
           ref={mapRef}
           onLocationUpdate={handleLocationUpdate}
           onMapClick={handleMapClickForPlace}
+          onMapContextMenu={setMapContextMenu}
           onMapReady={handleMapReady}
           addPlaceMode={addPlacePickMode || showAddPlaceModal}
           blockAddPlaceMapClick={polygonMapInteraction}
+          blockContextMenu={polygonMapInteraction || addPlacePickMode}
+          measureDistanceActive={measureDistanceActive}
+          onMeasureDistanceChange={setMeasureStats}
           places={allPlaces}
-          searchResultPlaces={categoryExplorePlaces}
+          searchResultPlaces={mapSearchResultPlaces}
           polygonOverlayPlaces={polygonOverlayPlaces}
-          autoFitSearchResults={false}
+          autoFitSearchResults={askMapsPlaces.length > 1}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
         />
       </div>
+
+      {mapContextMenu && (
+        <MapContextMenu
+          position={{ x: mapContextMenu.x, y: mapContextMenu.y }}
+          coordinates={{ lat: mapContextMenu.lat, lng: mapContextMenu.lng }}
+          onAction={handleMapContextMenuAction}
+          onClose={closeMapContextMenu}
+        />
+      )}
+
+      {measureDistanceActive && (
+        <MeasureDistancePanel
+          totalMeters={measureStats.totalMeters}
+          pointCount={measureStats.pointCount}
+          onClear={handleMeasureClear}
+          onClose={handleMeasureClose}
+        />
+      )}
 
       {/* Place Detail Panel - opens when a contributed/saved place is selected from search */}
       {selectedPlace && (
@@ -1225,6 +1523,19 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
                   </svg>
                   <span className="text-sm font-medium text-slate-800">{menuAreaExplore}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    handleAskMapsOpen()
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-violet-50 active:bg-violet-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuAskMaps}</span>
                 </button>
               </div>
 

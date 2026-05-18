@@ -24,6 +24,7 @@ import {
   candidateFromPayload,
   DUPLICATE_MESSAGES,
 } from '../utils/placeDuplicate.js'
+import { runAskMapsQuery } from '../services/groqAskMapsService.js'
 
 const router = express.Router()
 
@@ -1464,6 +1465,46 @@ router.delete(
       res.json({ success: true })
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete photo', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/ask
+ * @desc Natural-language place search (Groq intent + DB results)
+ * @access Private
+ */
+router.post(
+  '/ask',
+  authenticateToken,
+  rateLimitMiddleware('map:ask', 40, 60),
+  [
+    body('query').trim().isLength({ min: 2, max: 500 }).withMessage('Query must be 2–500 characters'),
+    body('lat').optional().isFloat({ min: -90, max: 90 }),
+    body('lng').optional().isFloat({ min: -180, max: 180 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const { query, lat, lng } = req.body
+      const userLat = lat != null ? parseFloat(lat) : null
+      const userLng = lng != null ? parseFloat(lng) : null
+
+      const result = await runAskMapsQuery({
+        query,
+        userLat: Number.isFinite(userLat) ? userLat : null,
+        userLng: Number.isFinite(userLng) ? userLng : null,
+        viewerId: req.user.id,
+      })
+
+      res.json(result)
+    } catch (error) {
+      console.error('Ask Maps error:', error)
+      res.status(500).json({ error: 'Ask Maps failed', message: error.message })
     }
   }
 )

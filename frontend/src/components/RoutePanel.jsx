@@ -219,7 +219,7 @@ const StepIcon = ({ modifier }) => {
   return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5m0 0l-4 4m4-4l4 4" /></svg>
 }
 
-const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, initialEndPlace }) => {
+const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, initialEndPlace, initialStartPlace }) => {
   const tDirections = useTranslate('Directions')
   const tGetDirections = useTranslate('Get Directions')
   const tCalculating = useTranslate('Calculating...')
@@ -256,8 +256,16 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     [tCar, tBike, tWalk, tCycle, tBus]
   )
 
-  const [startPlace, setStartPlace] = useState(null)
+  const [startPlace, setStartPlace] = useState(() => initialStartPlace || null)
   const [endPlace, setEndPlace] = useState(() => initialEndPlace || null)
+
+  useEffect(() => {
+    if (initialStartPlace) setStartPlace(initialStartPlace)
+  }, [initialStartPlace])
+
+  useEffect(() => {
+    if (initialEndPlace) setEndPlace(initialEndPlace)
+  }, [initialEndPlace])
   const [waypoints, setWaypoints] = useState([])
   const [travelMode, setTravelMode] = useState('driving')
   const [isCalculating, setIsCalculating] = useState(false)
