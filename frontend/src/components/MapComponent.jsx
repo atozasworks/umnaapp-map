@@ -279,11 +279,30 @@ const createRouteEndpointMarker = (place, isStart) => {
   return wrapper
 }
 
+const applyPlaceMarkerSelected = (el, placeId, selectedPlaceId) => {
+  if (!el) return
+  const id = placeId != null ? String(placeId) : ''
+  const isSelected = Boolean(selectedPlaceId && id && String(selectedPlaceId) === id)
+  el.classList.toggle('user-place-marker--selected', isSelected)
+}
+
+const placeFromSearchMarker = (place) => ({
+  id: place.placeId,
+  place_name_en: place.displayName || place.name,
+  name: place.displayName || place.name,
+  latitude: place.lat,
+  longitude: place.lng,
+  category: place.category || 'Other',
+  _isDbPlace: Boolean(place.placeId && /^[0-9a-f-]{36}$/.test(String(place.placeId))),
+})
+
 const MapComponent = forwardRef(({
   onLocationUpdate,
   onMapClick,
   onMapContextMenu,
   onMapReady,
+  onPlaceClick,
+  selectedPlaceId = null,
   addPlaceMode,
   blockAddPlaceMapClick = false,
   blockContextMenu = false,
@@ -1142,25 +1161,6 @@ const MapComponent = forwardRef(({
     Object.values(userPlaceMarkersRef.current).forEach((m) => m?.remove())
     userPlaceMarkersRef.current = {}
 
-    const openUserPlacePopup = (lng, lat, place) => {
-      const name = place.name || place.place_name_en || 'Place'
-      const category = place.category || 'Other'
-      const sourceType = place.source || 'contribution'
-      const pendingNote =
-        place.approvalStatus === 'pending'
-          ? '<div class="text-[11px] text-amber-700 mt-1 font-medium">Pending approval — only you see this</div>'
-          : ''
-      const popupHtml = `<div class="p-2 min-w-[150px]"><strong class="text-slate-800">${escapeHtml(name)}</strong><div class="text-xs text-slate-600 mt-1">${escapeHtml(category)}</div><div class="text-[11px] text-slate-500 mt-1">${escapeHtml(sourceType)}</div>${pendingNote}</div>`
-
-      if (placePopupRef.current) {
-        placePopupRef.current.remove()
-      }
-      placePopupRef.current = new maplibregl.Popup({ offset: 14 })
-        .setLngLat([lng, lat])
-        .setHTML(popupHtml)
-        .addTo(map)
-    }
-
     const coordsList = []
     const markerEntries = []
 
@@ -1174,11 +1174,20 @@ const MapComponent = forwardRef(({
       coordsList.push([ll.lng, ll.lat])
 
       const el = createUserPlaceMarkerElement(place, render)
+      applyPlaceMarkerSelected(el, place.id, selectedPlaceId)
       const onMarkerClick = (e) => {
         e.stopPropagation()
-        openUserPlacePopup(ll.lng, ll.lat, place)
+        if (onPlaceClick) {
+          if (placePopupRef.current) {
+            placePopupRef.current.remove()
+            placePopupRef.current = null
+          }
+          onPlaceClick(place)
+        }
       }
-      el.addEventListener('click', onMarkerClick)
+      if (onPlaceClick) {
+        el.addEventListener('click', onMarkerClick)
+      }
 
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([ll.lng, ll.lat])
@@ -1289,10 +1298,13 @@ const MapComponent = forwardRef(({
       markerEntries.forEach(({ marker, place }) => {
         const el = marker.getElement?.()
         if (!el) return
+        applyPlaceMarkerSelected(el, place.id, selectedPlaceId)
         const op = userPlaceLabelOpacity(z, place)
         el.style.opacity = String(op)
         const labelVisible = el.querySelector?.('.user-place-marker-label')?.style?.display === 'block'
-        el.style.pointerEvents = labelVisible && op >= 0.05 ? 'auto' : 'none'
+        const interactive = Boolean(onPlaceClick) && labelVisible && op >= 0.05
+        el.style.pointerEvents = interactive ? 'auto' : 'none'
+        el.style.cursor = interactive ? 'pointer' : ''
       })
       scheduleUserPlaceLabelCollision()
     }
@@ -1346,7 +1358,7 @@ const MapComponent = forwardRef(({
       Object.values(userPlaceMarkersRef.current).forEach((marker) => marker.remove())
       userPlaceMarkersRef.current = {}
     }
-  }, [mapLoaded, places])
+  }, [mapLoaded, places, onPlaceClick, selectedPlaceId])
 
   // Search result markers (from umnaapp.in/search)'
   useEffect(() => {
@@ -1357,20 +1369,27 @@ const MapComponent = forwardRef(({
 
     searchResultPlaces.forEach((place) => {
       const key = place.placeId || `${place.lat}-${place.lng}`
-      const addrSubtitle = place.address && typeof place.address === 'object'
-        ? (formatAddressSubtitle(place.address) || [place.address.road, place.address.city, place.address.state].filter(Boolean).join(', '))
-        : ''
-      const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-        `<div class="p-2 min-w-[140px]"><strong class="text-slate-800">${place.displayName || place.name || 'Place'}</strong>${addrSubtitle ? `<div class="text-xs text-slate-600 mt-1">${addrSubtitle}</div>` : ''}</div>`
-      )
       const el = createSearchResultMarkerElement(place)
-      const marker = new maplibregl.Marker({
-        element: el,
-        anchor: 'bottom',
-      })
+      applyPlaceMarkerSelected(el, place.placeId, selectedPlaceId)
+      const markerOpts = { element: el, anchor: 'bottom' }
+      const marker = new maplibregl.Marker(markerOpts)
         .setLngLat([place.lng, place.lat])
-        .setPopup(popup)
-        .addTo(mapRef.current)
+      if (onPlaceClick) {
+        el.style.cursor = 'pointer'
+        el.addEventListener('click', (e) => {
+          e.stopPropagation()
+          onPlaceClick(placeFromSearchMarker(place))
+        })
+      } else {
+        const addrSubtitle = place.address && typeof place.address === 'object'
+          ? (formatAddressSubtitle(place.address) || [place.address.road, place.address.city, place.address.state].filter(Boolean).join(', '))
+          : ''
+        const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
+          `<div class="p-2 min-w-[140px]"><strong class="text-slate-800">${escapeHtml(place.displayName || place.name || 'Place')}</strong>${addrSubtitle ? `<div class="text-xs text-slate-600 mt-1">${escapeHtml(addrSubtitle)}</div>` : ''}</div>`
+        )
+        marker.setPopup(popup)
+      }
+      marker.addTo(mapRef.current)
       searchResultMarkersRef.current[key] = marker
     })
 
@@ -1389,7 +1408,7 @@ const MapComponent = forwardRef(({
       Object.values(searchResultMarkersRef.current).forEach((m) => m?.remove())
       searchResultMarkersRef.current = {}
     }
-  }, [mapLoaded, searchResultPlaces, autoFitSearchResults])
+  }, [mapLoaded, searchResultPlaces, autoFitSearchResults, onPlaceClick, selectedPlaceId])
 
   // Area-explore markers (polygon tool — same style as search chips)
   useEffect(() => {
@@ -1400,20 +1419,26 @@ const MapComponent = forwardRef(({
 
     polygonOverlayPlaces.forEach((place) => {
       const key = place.placeId || `poly-${place.lat}-${place.lng}`
-      const addrSubtitle = place.address && typeof place.address === 'object'
-        ? (formatAddressSubtitle(place.address) || [place.address.road, place.address.city, place.address.state].filter(Boolean).join(', '))
-        : ''
-      const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-        `<div class="p-2 min-w-[140px]"><strong class="text-slate-800">${escapeHtml(place.displayName || place.name || 'Place')}</strong>${addrSubtitle ? `<div class="text-xs text-slate-600 mt-1">${escapeHtml(addrSubtitle)}</div>` : ''}</div>`
-      )
       const el = createSearchResultMarkerElement(place)
-      const marker = new maplibregl.Marker({
-        element: el,
-        anchor: 'bottom',
-      })
+      applyPlaceMarkerSelected(el, place.placeId, selectedPlaceId)
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([place.lng, place.lat])
-        .setPopup(popup)
-        .addTo(mapRef.current)
+      if (onPlaceClick) {
+        el.style.cursor = 'pointer'
+        el.addEventListener('click', (e) => {
+          e.stopPropagation()
+          onPlaceClick(placeFromSearchMarker(place))
+        })
+      } else {
+        const addrSubtitle = place.address && typeof place.address === 'object'
+          ? (formatAddressSubtitle(place.address) || [place.address.road, place.address.city, place.address.state].filter(Boolean).join(', '))
+          : ''
+        const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
+          `<div class="p-2 min-w-[140px]"><strong class="text-slate-800">${escapeHtml(place.displayName || place.name || 'Place')}</strong>${addrSubtitle ? `<div class="text-xs text-slate-600 mt-1">${escapeHtml(addrSubtitle)}</div>` : ''}</div>`
+        )
+        marker.setPopup(popup)
+      }
+      marker.addTo(mapRef.current)
       polygonOverlayMarkersRef.current[key] = marker
     })
 
@@ -1421,7 +1446,7 @@ const MapComponent = forwardRef(({
       Object.values(polygonOverlayMarkersRef.current).forEach((m) => m?.remove())
       polygonOverlayMarkersRef.current = {}
     }
-  }, [mapLoaded, polygonOverlayPlaces])
+  }, [mapLoaded, polygonOverlayPlaces, onPlaceClick, selectedPlaceId])
 
   // Route start (blue) and end (red) markers
   useEffect(() => {

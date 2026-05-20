@@ -406,16 +406,43 @@ const HomePage = () => {
     setSelectedCategories([])
   }
 
+  const openPlaceDetail = useCallback(
+    async (place, { fly = true } = {}) => {
+      if (!place) return
+      closeMapContextMenu()
+      const isDb = (id) => id && /^[0-9a-f-]{36}$/.test(String(id))
+      const apply = (p) => {
+        const id = p?.id ?? p?.placeId
+        setSelectedPlace({
+          ...p,
+          id: id ?? p?.id,
+          _isDbPlace: isDb(id),
+        })
+        if (fly && mapRef.current?.flyTo && p?.latitude != null && p?.longitude != null) {
+          mapRef.current.flyTo({
+            center: [p.longitude, p.latitude],
+            zoom: Math.max(14, p.zoomLevel || 14),
+            duration: 600,
+          })
+        }
+      }
+      apply(place)
+      const placeId = place.id ?? place.placeId
+      if (!isDb(placeId)) return
+      const cached = allPlaces.find((p) => String(p.id) === String(placeId))
+      if (cached) apply(cached)
+      try {
+        const { data } = await api.get(`/map/places/${placeId}`)
+        apply(data)
+      } catch {
+        /* keep cached / marker data */
+      }
+    },
+    [allPlaces, closeMapContextMenu]
+  )
+
   const focusPlaceFromResults = (place) => {
-    if (!place) return
-    setSelectedPlace({ ...place, _isDbPlace: true })
-    if (mapRef.current?.flyTo) {
-      mapRef.current.flyTo({
-        center: [place.longitude, place.latitude],
-        zoom: Math.max(14, place.zoomLevel || 14),
-        duration: 700,
-      })
-    }
+    openPlaceDetail(place, { fly: true })
   }
 
   const handleProfileImageChange = async (e) => {
@@ -548,7 +575,7 @@ const HomePage = () => {
       const name = data.displayName || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
       const nearbyDb = findPlaceNearCoordinates(lat, lng)
       if (nearbyDb) {
-        setSelectedPlace({ ...nearbyDb, _isDbPlace: true })
+        openPlaceDetail(nearbyDb, { fly: false })
         return
       }
       if (mapRef.current?.showSearchedLocation) {
@@ -791,27 +818,24 @@ const HomePage = () => {
   }
 
   const handleSearchSelect = async (location) => {
-    // UUID placeId → could be own place or another user's place
     if (location.placeId && /^[0-9a-f-]{36}$/.test(String(location.placeId))) {
-      // Try own places cache first (instant)
       const cached = allPlaces.find((p) => String(p.id) === String(location.placeId))
       if (cached) {
-        setSelectedPlace({ ...cached, _isDbPlace: true })
-        if (mapRef.current?.flyTo) {
-          mapRef.current.flyTo({ center: [cached.longitude, cached.latitude], zoom: cached.zoomLevel || 15, duration: 800 })
-        }
+        await openPlaceDetail(cached)
         return
       }
-      // Fetch from server (another user's place)
       try {
-        const { data } = await api.get(`/map/places/${location.placeId}`)
-        setSelectedPlace({ ...data, _isDbPlace: true })
-        if (mapRef.current?.flyTo) {
-          mapRef.current.flyTo({ center: [data.longitude, data.latitude], zoom: data.zoomLevel || 15, duration: 800 })
-        }
+        await openPlaceDetail({
+          id: location.placeId,
+          place_name_en: location.name,
+          name: location.name,
+          latitude: location.lat,
+          longitude: location.lng,
+          category: location.category || 'Other',
+        })
         return
       } catch {
-        // Fall through to normal fly-to
+        /* fall through */
       }
     }
     // Regular nominatim/OSM result — just fly to location
@@ -852,14 +876,7 @@ const HomePage = () => {
   }, [])
 
   const handleAskMapsPlaceSelect = (place) => {
-    setSelectedPlace({ ...place, _isDbPlace: true })
-    if (mapRef.current?.flyTo) {
-      mapRef.current.flyTo({
-        center: [place.longitude, place.latitude],
-        zoom: Math.max(14, place.zoomLevel || 14),
-        duration: 600,
-      })
-    }
+    openPlaceDetail(place)
   }
 
   const handleAskMapsDirections = (place) => {
@@ -1412,6 +1429,8 @@ const HomePage = () => {
           onMapClick={handleMapClickForPlace}
           onMapContextMenu={setMapContextMenu}
           onMapReady={handleMapReady}
+          onPlaceClick={openPlaceDetail}
+          selectedPlaceId={selectedPlace?.id ?? null}
           addPlaceMode={addPlacePickMode || showAddPlaceModal}
           blockAddPlaceMapClick={polygonMapInteraction}
           blockContextMenu={polygonMapInteraction || addPlacePickMode}
@@ -1444,7 +1463,7 @@ const HomePage = () => {
         />
       )}
 
-      {/* Place Detail Panel - opens when a contributed/saved place is selected from search */}
+      {/* Place detail panel — map labels, search, Ask Maps, filters */}
       {selectedPlace && (
         <div className="absolute inset-0 z-40 pointer-events-none">
           <PlaceDetailPanel
@@ -1950,13 +1969,7 @@ const HomePage = () => {
                           <button
                             onClick={() => {
                               setShowMyPlaces(false)
-                              if (mapRef.current?.flyTo) {
-                                mapRef.current.flyTo({
-                                  center: [place.longitude, place.latitude],
-                                  zoom: place.zoomLevel || 15,
-                                  duration: 800,
-                                })
-                              }
+                              openPlaceDetail(place)
                             }}
                             className="text-xs text-slate-400 hover:text-primary-600 transition-colors"
                           >

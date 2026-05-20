@@ -101,6 +101,7 @@ export default function PlaceDetailPanel({
   const [nearbyLoading, setNearbyLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
   const [businessOpen, setBusinessOpen] = useState(true)
+  const [hoursExpanded, setHoursExpanded] = useState(false)
   const [copied, setCopied] = useState(false)
   const [showLabelInput, setShowLabelInput] = useState(false)
   const [labelInput, setLabelInput] = useState('')
@@ -130,6 +131,19 @@ export default function PlaceDetailPanel({
     setNearbyLoading(true); setNearby([])
     setActiveTab('overview')
     setReviewRating(0); setReviewComment(''); setReviewError(null)
+    setHoursExpanded(false)
+
+    const hours = place.opening_hours ?? place.openingHours
+    if (hours && typeof hours.open_now === 'boolean') {
+      setBusinessOpen(hours.open_now)
+    } else {
+      const status = place.business_status ?? place.businessStatus
+      if (status === 'CLOSED_PERMANENTLY' || status === 'CLOSED_TEMPORARILY') {
+        setBusinessOpen(false)
+      } else if (status === 'OPERATIONAL') {
+        setBusinessOpen(true)
+      }
+    }
 
     api.get('/map/reverse', { params: { lat: place.latitude, lng: place.longitude } })
       .then(({ data }) => setAddress(data.address || null))
@@ -177,6 +191,11 @@ export default function PlaceDetailPanel({
     if (address.country) addrParts.push(address.country)
   }
   const addrString = addrParts.join(', ')
+    || place.full_address
+    || place.fullAddress
+    || null
+  const openingHours = place.opening_hours ?? place.openingHours
+  const weekdayHours = Array.isArray(openingHours?.weekday_text) ? openingHours.weekday_text : []
 
   const handleShare = async () => {
     const mapUrl = `https://maps.google.com/?q=${place.latitude},${place.longitude}`
@@ -389,14 +408,28 @@ export default function PlaceDetailPanel({
             <div>
               {/* Status */}
               <div className="border-b border-slate-100">
-                <button onClick={() => setBusinessOpen((b) => !b)} className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left">
+                <button
+                  onClick={() => (weekdayHours.length ? setHoursExpanded((e) => !e) : setBusinessOpen((b) => !b))}
+                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                >
                   <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${businessOpen ? 'bg-green-500' : 'bg-orange-400'}`} />
                   <div className="flex-1">
-                    <span className={`text-sm font-semibold ${businessOpen ? 'text-green-700' : 'text-orange-600'}`}>{businessOpen ? 'Open' : 'Temporarily Closed'}</span>
-                    <p className="text-xs text-slate-400 mt-0.5">Tap to toggle status</p>
+                    <span className={`text-sm font-semibold ${businessOpen ? 'text-green-700' : 'text-orange-600'}`}>
+                      {businessOpen ? 'Open' : 'Closed'}
+                    </span>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      {weekdayHours.length ? (hoursExpanded ? 'Hide hours' : 'See opening hours') : 'Tap to toggle status'}
+                    </p>
                   </div>
-                  <svg className="w-4 h-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                 </button>
+                {hoursExpanded && weekdayHours.length > 0 && (
+                  <div className="px-5 pb-3 -mt-1 space-y-1">
+                    {weekdayHours.map((line) => (
+                      <p key={line} className="text-xs text-slate-600">{line}</p>
+                    ))}
+                  </div>
+                )}
               </div>
 
               {/* Quick facts */}

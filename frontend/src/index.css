@@ -261,6 +261,17 @@
 .user-place-marker--pending .user-place-marker-label {
   color: #b45309;
 }
+.user-place-marker--selected .user-place-marker-label {
+  font-weight: 700;
+  color: #1a73e8;
+  background: rgba(26, 115, 232, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(26, 115, 232, 0.25);
+}
+.maplibregl-marker:has(.user-place-marker--selected) {
+  z-index: 24 !important;
+}
 .user-place-marker-anchor {
   width: 1px;
   height: 1px;

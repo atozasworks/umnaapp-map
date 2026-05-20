@@ -15,7 +15,7 @@ import {
   enrichPlaceApprovalMeta,
   initialApprovalFields,
 } from '../services/placeApproval.js'
-import { buildPlaceDetailFields, serializePlace } from '../utils/placePayload.js'
+import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
 import {
   PlaceDuplicateIndex,
   findPlaceDuplicate,
@@ -1203,27 +1203,13 @@ router.get(
       await autoApproveExpiredPendingPlaces()
       const place = await prisma.place.findUnique({
         where: { id },
-        select: {
-          id: true, name: true, placeNameEn: true, placeNameLocal: true,
-          category: true, latitude: true, longitude: true, zoomLevel: true,
-          source: true, userId: true, userName: true, userEmail: true, createdAt: true,
-          approvalStatus: true, approvedAt: true, autoApproveAt: true,
-        },
+        select: PLACE_DETAIL_SELECT,
       })
       if (!place) return res.status(404).json({ error: 'Place not found' })
       if (!isPlaceVisibleToUser(place, req.user.id)) {
         return res.status(404).json({ error: 'Place not found' })
       }
-      res.json(
-        attachApprovalMeta({
-          ...place,
-          name: place.placeNameEn ?? place.name,
-          place_name_en: place.placeNameEn ?? place.name,
-          place_name_local: place.placeNameLocal,
-          user_name: place.userName,
-          user_email: place.userEmail,
-        })
-      )
+      res.json(attachApprovalMeta(serializePlace(place)))
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch place', message: error.message })
     }
