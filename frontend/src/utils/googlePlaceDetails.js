@@ -1,3 +1,9 @@
+import { extractMapRenderingConfig, withMapRenderingConfig } from './mapRenderingConfig'
+import {
+  assertGoogleApiAvailable,
+  recordGoogleApiUse,
+} from './googleApiQuota'
+
 /** Google Places API fields for full place detail extraction. */
 export const GOOGLE_DETAILS_FIELDS = [
   'place_id',
@@ -65,13 +71,13 @@ function mapReviews(reviews) {
 }
 
 /** Map Google getDetails result + region context to bulk-save payload. */
-export function mapGoogleDetailsToPayload(details, regionContext = {}, zoomLevel = 15) {
+export function mapGoogleDetailsToPayload(details, regionContext = {}, zoomLevel = 15, mapContext = {}) {
   if (!details) return null
   const addr = parseAddressComponents(details.address_components)
   const lat = details.geometry?.location?.lat?.() ?? details.geometry?.location?.lat
   const lng = details.geometry?.location?.lng?.() ?? details.geometry?.location?.lng
 
-  return {
+  const base = {
     name: details.name,
     lat,
     lng,
@@ -106,33 +112,64 @@ export function mapGoogleDetailsToPayload(details, regionContext = {}, zoomLevel
     maps_url: details.url,
     extracted_at: new Date().toISOString(),
   }
+
+  const mapRenderingConfig = extractMapRenderingConfig({
+    map: mapContext.map,
+    place: base,
+    details,
+  })
+
+  return {
+    ...base,
+    mapRenderingConfig,
+    map_rendering_config: mapRenderingConfig,
+  }
 }
 
 /** Fetch full details for a place via PlacesService.getDetails (queued). */
-export function fetchPlaceDetails(placesService, placeId, enqueueApiCall) {
-  return new Promise((resolve) => {
-    const run = (done) => {
-      placesService.getDetails(
-        { placeId, fields: GOOGLE_DETAILS_FIELDS },
-        (details, status) => {
-          if (status === window.google.maps.places.PlacesServiceStatus.OK && details) {
-            done(details)
-          } else {
-            done(null)
-          }
+export function fetchPlaceDetails(placesService, placeId, enqueueApiCall, detailsCache = null) {
+  if (detailsCache) {
+    const cached = detailsCache.get(placeId)
+    if (cached) return Promise.resolve(cached)
+  }
+
+  const quotaCheck = assertGoogleApiAvailable('getDetails')
+  if (!quotaCheck.ok) {
+    return Promise.resolve({ quotaBlocked: true, message: quotaCheck.message })
+  }
+
+  const run = (done) => {
+    recordGoogleApiUse('getDetails')
+    placesService.getDetails(
+      { placeId, fields: GOOGLE_DETAILS_FIELDS },
+      (details, status) => {
+        if (status === window.google.maps.places.PlacesServiceStatus.OK && details) {
+          detailsCache?.set(placeId, details)
+          done(details)
+        } else {
+          done(null)
         }
-      )
-    }
-    if (enqueueApiCall) {
-      enqueueApiCall((done) => run(done))
-    } else {
-      run(resolve)
-    }
+      }
+    )
+  }
+  if (enqueueApiCall) {
+    return enqueueApiCall((done) => run(done))
+  }
+  return new Promise((resolve) => {
+    run(resolve)
   })
 }
 
 /** Enrich an array of places that have place_id; merges region context. */
-export async function enrichPlacesWithDetails(places, placesService, enqueueApiCall, regionContext = {}, onProgress) {
+export async function enrichPlacesWithDetails(
+  places,
+  placesService,
+  enqueueApiCall,
+  regionContext = {},
+  onProgress,
+  mapContext = {},
+  detailsCache = null
+) {
   const out = []
   let i = 0
   for (const place of places) {
@@ -140,23 +177,46 @@ export async function enrichPlacesWithDetails(places, placesService, enqueueApiC
     onProgress?.(i, places.length, place.name)
     const pid = place.place_id || place.placeId
     if (pid && placesService) {
-      const details = await fetchPlaceDetails(placesService, pid, enqueueApiCall)
+      const details = await fetchPlaceDetails(placesService, pid, enqueueApiCall, detailsCache)
+      if (details?.quotaBlocked) {
+        onProgress?.(i, places.length, place.name)
+        out.push(
+          withMapRenderingConfig(
+            {
+              ...place,
+              extracted_at: place.extracted_at || new Date().toISOString(),
+            },
+            { map: mapContext.map, place }
+          )
+        )
+        continue
+      }
       if (details) {
-        const mapped = mapGoogleDetailsToPayload(details, {
-          village: place.village || regionContext.village,
-          taluk: place.taluk || regionContext.taluk,
-          district: place.district || regionContext.district,
-          state: place.state || regionContext.state,
-          country: place.country || regionContext.country,
-        }, place.zoomLevel ?? 15)
+        const mapped = mapGoogleDetailsToPayload(
+          details,
+          {
+            village: place.village || regionContext.village,
+            taluk: place.taluk || regionContext.taluk,
+            district: place.district || regionContext.district,
+            state: place.state || regionContext.state,
+            country: place.country || regionContext.country,
+          },
+          place.zoomLevel ?? mapContext.map?.getZoom?.() ?? 15,
+          mapContext
+        )
         out.push({ ...place, ...mapped })
         continue
       }
     }
-    out.push({
-      ...place,
-      extracted_at: place.extracted_at || new Date().toISOString(),
-    })
+    out.push(
+      withMapRenderingConfig(
+        {
+          ...place,
+          extracted_at: place.extracted_at || new Date().toISOString(),
+        },
+        { map: mapContext.map, place }
+      )
+    )
   }
   return out
 }

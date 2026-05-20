@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslate } from 'atozas-traslate'
 import api from '../services/api'
 import TranslatedLabel from './TranslatedLabel'
+import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
 
 const CATEGORY_ICONS = {
   Restaurant: '🍽️', Hospital: '🏥', Hotel: '🏨', Parking: '🅿️', Shop: '🛍️',
@@ -161,7 +162,8 @@ export default function PlaceDetailPanel({
   const localName = place.place_name_local
   const icon = CATEGORY_ICONS[place.category] || '📍'
   const color = CATEGORY_COLORS[place.category] || '#0284C7'
-  const isOwner = currentUser && place.userId === currentUser.id
+  const isOwner = isPlaceOwner(place, currentUser)
+  const mayDelete = canDeletePlace(place, currentUser)
   const contributorName = place.user_name || place.userName || 'a user'
 
   const addrParts = []
@@ -510,10 +512,15 @@ export default function PlaceDetailPanel({
                 </div>
               )}
 
-              {/* Owner delete */}
-              {isOwner && (
+              {/* Delete — creator only (admins flagged via isPlaceDeleteAdmin) */}
+              {mayDelete && onDelete && (
                 <div className="px-5 py-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:pb-4">
-                  {formattedDate && <p className="text-xs text-slate-400 mb-3">Added {formattedDate} · by you</p>}
+                  {formattedDate && (
+                    <p className="text-xs text-slate-400 mb-3">
+                      Added {formattedDate}
+                      {isOwner ? ' · by you' : currentUser?.isPlaceDeleteAdmin ? ' · admin delete' : ''}
+                    </p>
+                  )}
                   <button
                     onClick={() => setShowDeleteConfirm(true)}
                     disabled={deletingId === place.id}

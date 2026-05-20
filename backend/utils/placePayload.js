@@ -1,5 +1,7 @@
 /** Normalize incoming place body (extract / bulk / admin edit) into Prisma data fields. */
 
+import { normalizeMapRenderingConfig } from './mapRenderingConfig.js'
+
 function str(v, max = 2000) {
   if (v == null) return null
   const s = String(v).trim()
@@ -85,7 +87,14 @@ export function buildPlaceDetailFields(item, regionDefaults = {}, { forUpdate = 
     ? typesRaw.map((t) => String(t).trim()).filter(Boolean)
     : null
 
+  const zoomForRender = num(item.zoomLevel ?? item.zoom_level) ?? 15
+  const mapRenderingConfig = normalizeMapRenderingConfig(
+    item.mapRenderingConfig ?? item.map_rendering_config,
+    { zoomLevel: zoomForRender }
+  )
+
   return {
+    mapRenderingConfig,
     googlePlaceId: str(item.place_id ?? item.placeId ?? item.google_place_id ?? item.googlePlaceId, 255),
     googleType: str(item.type ?? item.google_type ?? item.googleType ?? googleTypes?.[0], 100),
     googleTypes: googleTypes?.length ? googleTypes : null,
@@ -153,6 +162,8 @@ export function serializePlace(p) {
     google_reviews: p.googleReviews,
     nearby_places: p.nearbyPlaces,
     google_photos: p.googlePhotos,
+    map_rendering_config: p.mapRenderingConfig,
+    mapRenderingConfig: p.mapRenderingConfig,
     extracted_at: p.extractedAt,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
@@ -197,6 +208,7 @@ export const PLACE_DETAIL_SELECT = {
   googleReviews: true,
   nearbyPlaces: true,
   googlePhotos: true,
+  mapRenderingConfig: true,
   extractedAt: true,
   createdAt: true,
   updatedAt: true,

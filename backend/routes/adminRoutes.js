@@ -54,66 +54,121 @@ router.get('/models', (req, res) => {
   res.json({ models: MODEL_META })
 })
 
-/** GET /api/admin/places/pending — all places awaiting approval */
+/** GET /api/admin/places/pending — places awaiting approval (search & filters) */
 router.get('/places/pending', async (req, res) => {
   try {
     if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
     await autoApproveExpiredPendingPlaces()
-    const rows = await prisma.place.findMany({
-      where: { approvalStatus: 'pending' },
-      orderBy: [{ autoApproveAt: 'asc' }, { createdAt: 'asc' }],
-      take: 500,
-      select: PLACE_DETAIL_SELECT,
-    })
+    const where = buildApprovalPlacesWhere('pending', req.query)
+    const baseWhere = { approvalStatus: 'pending' }
+    const [rows, count, total, categories] = await prisma.$transaction([
+      prisma.place.findMany({
+        where,
+        orderBy: [{ autoApproveAt: 'asc' }, { createdAt: 'asc' }],
+        take: 500,
+        select: PLACE_DETAIL_SELECT,
+      }),
+      prisma.place.count({ where }),
+      prisma.place.count({ where: baseWhere }),
+      prisma.place.groupBy({
+        by: ['category'],
+        where: baseWhere,
+        _count: { category: true },
+        orderBy: { category: 'asc' },
+      }),
+    ])
     const places = rows.map((p) => {
       const s = enrichPlaceApprovalMeta(serializePlace(p))
       return { ...s, displayName: s.name }
     })
-    res.json({ places, count: places.length, autoApproveDays: getAutoApproveDays() })
+    res.json({
+      places,
+      count,
+      total,
+      categories: categories.map((c) => ({ category: c.category, count: c._count.category })),
+      autoApproveDays: getAutoApproveDays(),
+    })
   } catch (e) {
     console.error('admin places/pending', e)
     res.status(500).json({ error: e.message })
   }
 })
 
-/** GET /api/admin/places/approved — recently approved places */
+/** GET /api/admin/places/approved — recently approved places (search & filters) */
 router.get('/places/approved', async (req, res) => {
   try {
     if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
     await autoApproveExpiredPendingPlaces()
     const limit = Math.min(500, Math.max(1, parseInt(req.query.limit, 10) || 100))
-    const rows = await prisma.place.findMany({
-      where: { approvalStatus: 'approved' },
-      orderBy: [{ approvedAt: 'desc' }, { createdAt: 'desc' }],
-      take: limit,
-      select: PLACE_DETAIL_SELECT,
-    })
+    const where = buildApprovalPlacesWhere('approved', req.query)
+    const baseWhere = { approvalStatus: 'approved' }
+    const [rows, count, total, categories] = await prisma.$transaction([
+      prisma.place.findMany({
+        where,
+        orderBy: [{ approvedAt: 'desc' }, { createdAt: 'desc' }],
+        take: limit,
+        select: PLACE_DETAIL_SELECT,
+      }),
+      prisma.place.count({ where }),
+      prisma.place.count({ where: baseWhere }),
+      prisma.place.groupBy({
+        by: ['category'],
+        where: baseWhere,
+        _count: { category: true },
+        orderBy: { category: 'asc' },
+      }),
+    ])
     const places = rows.map((p) => {
       const s = enrichPlaceApprovalMeta(serializePlace(p))
       return { ...s, displayName: s.name }
     })
-    res.json({ places, count: places.length, autoApproveDays: getAutoApproveDays() })
+    res.json({
+      places,
+      count,
+      total,
+      categories: categories.map((c) => ({ category: c.category, count: c._count.category })),
+      autoApproveDays: getAutoApproveDays(),
+    })
   } catch (e) {
     console.error('admin places/approved', e)
     res.status(500).json({ error: e.message })
   }
 })
 
-/** Search places by name / address (Browse data + extracted places list). */
+/** Search places by name / address / contributor (admin lists). */
 function placeNameSearchWhere(q) {
   const term = String(q || '').trim()
   if (!term) return {}
-  return {
-    OR: [
-      { name: { contains: term, mode: 'insensitive' } },
-      { placeNameEn: { contains: term, mode: 'insensitive' } },
-      { placeNameLocal: { contains: term, mode: 'insensitive' } },
-      { fullAddress: { contains: term, mode: 'insensitive' } },
-      { village: { contains: term, mode: 'insensitive' } },
-      { district: { contains: term, mode: 'insensitive' } },
-      { googlePlaceId: { contains: term, mode: 'insensitive' } },
-    ],
+  const or = [
+    { name: { contains: term, mode: 'insensitive' } },
+    { placeNameEn: { contains: term, mode: 'insensitive' } },
+    { placeNameLocal: { contains: term, mode: 'insensitive' } },
+    { fullAddress: { contains: term, mode: 'insensitive' } },
+    { village: { contains: term, mode: 'insensitive' } },
+    { taluk: { contains: term, mode: 'insensitive' } },
+    { district: { contains: term, mode: 'insensitive' } },
+    { state: { contains: term, mode: 'insensitive' } },
+    { pincode: { contains: term, mode: 'insensitive' } },
+    { googlePlaceId: { contains: term, mode: 'insensitive' } },
+    { userName: { contains: term, mode: 'insensitive' } },
+    { userEmail: { contains: term, mode: 'insensitive' } },
+    { category: { contains: term, mode: 'insensitive' } },
+  ]
+  if (/^[0-9a-f-]{8,}$/i.test(term)) {
+    or.push({ id: { contains: term, mode: 'insensitive' } })
   }
+  return { OR: or }
+}
+
+function buildApprovalPlacesWhere(approvalStatus, queryParams = {}) {
+  const where = { approvalStatus }
+  const q = String(queryParams.q || '').trim()
+  const category = String(queryParams.category || '').trim()
+  const source = String(queryParams.source || '').trim()
+  if (q) Object.assign(where, placeNameSearchWhere(q))
+  if (category) where.category = { equals: category, mode: 'insensitive' }
+  if (source) where.source = source
+  return where
 }
 
 function buildPlacesWhere(queryParams) {

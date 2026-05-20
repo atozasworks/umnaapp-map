@@ -9,7 +9,6 @@ const MENU_ITEMS = [
   { id: 'searchNearby', icon: 'search' },
   { id: 'print', icon: 'print' },
   { id: 'addPlace', icon: 'add' },
-  { id: 'addBusiness', icon: 'business' },
   { id: 'report', icon: 'report' },
   { id: 'measure', icon: 'measure' },
 ]
@@ -64,12 +63,6 @@ const MenuIcon = ({ type }) => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-6-6h12" />
         </svg>
       )
-    case 'business':
-      return (
-        <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-        </svg>
-      )
     case 'report':
       return (
         <svg className={cls} fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -99,7 +92,6 @@ const MapContextMenu = ({ position, coordinates, onAction, onClose }) => {
   const tSearchNearby = useTranslate('Search nearby')
   const tPrint = useTranslate('Print')
   const tAddPlace = useTranslate('Add a missing place')
-  const tAddBusiness = useTranslate('Add your business')
   const tReport = useTranslate('Report a data problem')
   const tMeasure = useTranslate('Measure distance')
 
@@ -111,7 +103,6 @@ const MapContextMenu = ({ position, coordinates, onAction, onClose }) => {
     searchNearby: tSearchNearby,
     print: tPrint,
     addPlace: tAddPlace,
-    addBusiness: tAddBusiness,
     report: tReport,
     measure: tMeasure,
   }
@@ -180,7 +171,11 @@ const MapContextMenu = ({ position, coordinates, onAction, onClose }) => {
             <button
               type="button"
               role="menuitem"
-              onClick={() => onAction(item.id)}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onAction(item.id)
+              }}
               className="w-full flex items-center gap-3 px-3 py-2.5 text-left text-sm text-slate-800 hover:bg-slate-50 active:bg-slate-100 transition-colors touch-manipulation min-h-[44px] sm:min-h-[40px] sm:py-2"
             >
               <MenuIcon type={item.icon} />

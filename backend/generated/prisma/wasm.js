@@ -234,6 +234,7 @@ exports.Prisma.PlaceScalarFieldEnum = {
   googleReviews: 'googleReviews',
   nearbyPlaces: 'nearbyPlaces',
   googlePhotos: 'googlePhotos',
+  mapRenderingConfig: 'mapRenderingConfig',
   extractedAt: 'extractedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'

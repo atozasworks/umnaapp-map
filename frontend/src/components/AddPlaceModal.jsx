@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../services/api'
 import { addressFromParts, findDuplicateInList } from '../utils/placeDuplicate'
+import { extractMapRenderingConfig } from '../utils/mapRenderingConfig'
 
 export const PLACE_CATEGORIES = [
   'Restaurant',
@@ -499,6 +500,17 @@ const AddPlaceModal = ({
       : formData.category
 
     try {
+      const mapRenderingConfig =
+        mapLocation?.mapRenderingConfig ||
+        mapLocation?.map_rendering_config ||
+        extractMapRenderingConfig({
+          place: {
+            latitude: lat,
+            longitude: lng,
+            zoomLevel: zoom,
+            category: categoryToSave,
+          },
+        })
       const response = await api.post('/map/places', {
         place_name_en: placeNameEn,
         place_name_local: placeNameLocal,
@@ -506,6 +518,7 @@ const AddPlaceModal = ({
         latitude: lat,
         longitude: lng,
         zoomLevel: zoom,
+        mapRenderingConfig,
         village: formData.village.trim(),
         taluk: formData.taluk.trim(),
         district: formData.district.trim(),

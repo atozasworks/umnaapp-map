@@ -25,6 +25,8 @@ import {
   DUPLICATE_MESSAGES,
 } from '../utils/placeDuplicate.js'
 import { runAskMapsQuery } from '../services/groqAskMapsService.js'
+import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
+import { canUserDeletePlace } from '../utils/placeOwnership.js'
 
 const router = express.Router()
 
@@ -863,6 +865,7 @@ router.get(
           latitude: true,
           longitude: true,
           zoomLevel: true,
+          mapRenderingConfig: true,
           source: true,
           userId: true,
           userName: true,
@@ -887,6 +890,7 @@ router.get(
           name: p.placeNameEn ?? p.name,
           place_name_en: p.placeNameEn ?? p.name,
           place_name_local: p.placeNameLocal,
+          map_rendering_config: p.mapRenderingConfig,
           user_name: p.userName,
           user_email: p.userEmail,
         })
@@ -1161,14 +1165,17 @@ router.delete(
         return res.status(400).json({ error: 'Place ID required' })
       }
 
-      // Verify the place belongs to the authenticated user before deleting
-      const place = await prisma.place.findFirst({
-        where: { id: id.trim(), userId: req.user.id },
-        select: { id: true },
+      const place = await prisma.place.findUnique({
+        where: { id: id.trim() },
+        select: { id: true, userId: true },
       })
 
       if (!place) {
-        return res.status(404).json({ error: 'Place not found or not authorized' })
+        return res.status(404).json({ error: 'Place not found' })
+      }
+
+      if (!canUserDeletePlace(place, req.user)) {
+        return res.status(403).json({ error: 'Not authorized to delete this place' })
       }
 
       await prisma.place.delete({ where: { id: id.trim() } })
@@ -1517,6 +1524,7 @@ router.post(
 router.get('/config', authenticateToken, (req, res) => {
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+    placesQuota: getPlacesQuotaConfig(),
   })
 })
 

@@ -78,13 +78,26 @@ export async function fetchRecords(model, { page = 1, limit = 50, full = false, 
   return data
 }
 
-export async function fetchPendingPlaces() {
-  const { data } = await api.get('/admin/places/pending')
+export async function fetchPendingPlaces(params = {}) {
+  const { data } = await api.get('/admin/places/pending', {
+    params: {
+      q: params.q?.trim() || undefined,
+      category: params.category || undefined,
+      source: params.source || undefined,
+    },
+  })
   return data
 }
 
-export async function fetchApprovedPlaces(limit = 100) {
-  const { data } = await api.get('/admin/places/approved', { params: { limit } })
+export async function fetchApprovedPlaces(params = {}) {
+  const { data } = await api.get('/admin/places/approved', {
+    params: {
+      limit: params.limit ?? 150,
+      q: params.q?.trim() || undefined,
+      category: params.category || undefined,
+      source: params.source || undefined,
+    },
+  })
   return data
 }
 

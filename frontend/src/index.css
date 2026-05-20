@@ -225,3 +225,47 @@
   }
 }
 
+/* Saved-place map labels — Google Maps style (text only, white halo) */
+.user-place-marker {
+  will-change: opacity;
+  z-index: 8 !important;
+}
+.maplibregl-marker:has(.user-place-marker) {
+  z-index: 8 !important;
+}
+.user-place-marker-label {
+  max-width: 200px;
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.25;
+  color: #3c4043;
+  font-family: Roboto, system-ui, 'Segoe UI', 'Noto Sans', 'Noto Sans Kannada', 'Noto Sans Devanagari', sans-serif;
+  background: transparent;
+  padding: 0;
+  margin: 0 0 2px 0;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  white-space: normal;
+  word-break: break-word;
+  text-shadow:
+    0 0 1px rgba(255, 255, 255, 0.95),
+    0 0 3px rgba(255, 255, 255, 0.9),
+    1px 0 1px rgba(255, 255, 255, 0.85),
+    -1px 0 1px rgba(255, 255, 255, 0.85),
+    0 1px 1px rgba(255, 255, 255, 0.85),
+    0 -1px 1px rgba(255, 255, 255, 0.85);
+  transition: opacity 0.15s ease-out;
+  pointer-events: none;
+}
+.user-place-marker--pending .user-place-marker-label {
+  color: #b45309;
+}
+.user-place-marker-anchor {
+  width: 1px;
+  height: 1px;
+  flex-shrink: 0;
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+}

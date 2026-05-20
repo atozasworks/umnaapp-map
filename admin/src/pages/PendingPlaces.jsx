@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { fetchPendingPlaces, fetchApprovedPlaces, approvePlace, rejectPlace } from '../lib/api'
 
 function fmtDate(iso) {
@@ -23,11 +23,15 @@ function StatusBadge({ status }) {
   return <span className={`rounded px-2 py-0.5 text-xs font-medium ${cls}`}>{status}</span>
 }
 
-function PlaceTable({ places, tab, busyId, onApprove, onReject }) {
+function PlaceTable({ places, tab, busyId, onApprove, onReject, hasFilters }) {
   if (places.length === 0) {
     return (
       <p className="p-8 text-sm text-admin-muted">
-        {tab === 'pending' ? 'No places awaiting approval.' : 'No approved places yet.'}
+        {hasFilters
+          ? 'No places match your search or filters.'
+          : tab === 'pending'
+            ? 'No places awaiting approval.'
+            : 'No approved places yet.'}
       </p>
     )
   }
@@ -60,6 +64,11 @@ function PlaceTable({ places, tab, busyId, onApprove, onReject }) {
               <div className="mt-1 font-mono text-[11px] text-admin-muted">
                 {p.latitude?.toFixed(5)}, {p.longitude?.toFixed(5)}
               </div>
+              {p.village || p.district ? (
+                <div className="mt-0.5 text-xs text-admin-muted">
+                  {[p.village, p.district, p.state].filter(Boolean).join(', ')}
+                </div>
+              ) : null}
             </td>
             <td className="px-4 py-3 text-admin-muted">{p.category}</td>
             <td className="px-4 py-3 text-admin-muted">{p.source || 'contribution'}</td>
@@ -113,6 +122,12 @@ function PlaceTable({ places, tab, busyId, onApprove, onReject }) {
   )
 }
 
+const filterParams = (q, category, source) => ({
+  q: q.trim() || undefined,
+  category: category || undefined,
+  source: source || undefined,
+})
+
 export default function PendingPlaces() {
   const [tab, setTab] = useState('pending')
   const [pending, setPending] = useState(null)
@@ -120,14 +135,20 @@ export default function PendingPlaces() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [busyId, setBusyId] = useState(null)
+  const [q, setQ] = useState('')
+  const [category, setCategory] = useState('')
+  const [source, setSource] = useState('')
+
+  const hasFilters = Boolean(q.trim() || category || source)
 
   const load = useCallback(async () => {
     setErr('')
     setLoading(true)
+    const params = filterParams(q, category, source)
     try {
       const [pendingData, approvedData] = await Promise.all([
-        fetchPendingPlaces(),
-        fetchApprovedPlaces(150),
+        fetchPendingPlaces(params),
+        fetchApprovedPlaces({ ...params, limit: 150 }),
       ])
       setPending(pendingData)
       setApproved(approvedData)
@@ -138,7 +159,7 @@ export default function PendingPlaces() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [q, category, source])
 
   useEffect(() => {
     load()
@@ -171,8 +192,32 @@ export default function PendingPlaces() {
   }
 
   const days = pending?.autoApproveDays ?? approved?.autoApproveDays ?? 10
-  const pendingList = pending?.places ?? []
-  const approvedList = approved?.places ?? []
+  const active = tab === 'pending' ? pending : approved
+  const places = active?.places ?? []
+  const resultCount = active?.count ?? places.length
+  const totalCount = active?.total ?? resultCount
+
+  const categories = useMemo(() => {
+    const fromPending = pending?.categories ?? []
+    const fromApproved = approved?.categories ?? []
+    const map = new Map()
+    for (const c of [...fromPending, ...fromApproved]) {
+      if (!c?.category) continue
+      map.set(c.category, (map.get(c.category) || 0) + (c.count || 0))
+    }
+    return [...map.entries()]
+      .map(([category, count]) => ({ category, count }))
+      .sort((a, b) => a.category.localeCompare(b.category))
+  }, [pending?.categories, approved?.categories])
+
+  const pendingTotal = pending?.total ?? pending?.count ?? 0
+  const approvedTotal = approved?.total ?? approved?.count ?? 0
+
+  function clearFilters() {
+    setQ('')
+    setCategory('')
+    setSource('')
+  }
 
   return (
     <div className="space-y-8">
@@ -189,6 +234,55 @@ export default function PendingPlaces() {
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{err}</div>
       )}
 
+      <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-admin-border bg-admin-900/50 p-4">
+        <label className="min-w-[200px] flex-1 text-xs text-admin-muted">
+          Search
+          <input
+            type="search"
+            className="mt-1 w-full rounded-lg border border-admin-border bg-admin-850 px-3 py-2 text-sm text-white placeholder:text-slate-500"
+            placeholder="Name, address, village, contributor, place ID…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </label>
+        <label className="text-xs text-admin-muted">
+          Category
+          <select
+            className="mt-1 block max-w-[180px] rounded-lg border border-admin-border bg-admin-850 px-3 py-2 text-sm text-white"
+            value={category}
+            onChange={(e) => setCategory(e.target.value)}
+          >
+            <option value="">All</option>
+            {categories.map((c) => (
+              <option key={c.category} value={c.category}>
+                {c.category} ({c.count})
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="text-xs text-admin-muted">
+          Source
+          <select
+            className="mt-1 block rounded-lg border border-admin-border bg-admin-850 px-3 py-2 text-sm text-white"
+            value={source}
+            onChange={(e) => setSource(e.target.value)}
+          >
+            <option value="">All</option>
+            <option value="contribution">Contribution</option>
+            <option value="saved">Saved</option>
+          </select>
+        </label>
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={clearFilters}
+            className="rounded-lg border border-admin-border bg-admin-850 px-3 py-2 text-sm text-slate-300 hover:text-white"
+          >
+            Clear
+          </button>
+        )}
+      </div>
+
       <div className="flex flex-wrap items-center gap-3">
         <div className="inline-flex rounded-xl border border-admin-border bg-admin-850 p-1">
           <button
@@ -200,7 +294,7 @@ export default function PendingPlaces() {
                 : 'text-admin-muted hover:text-slate-200'
             }`}
           >
-            Pending ({pendingList.length})
+            Pending ({pendingTotal})
           </button>
           <button
             type="button"
@@ -211,7 +305,7 @@ export default function PendingPlaces() {
                 : 'text-admin-muted hover:text-slate-200'
             }`}
           >
-            Approved ({approvedList.length})
+            Approved ({approvedTotal})
           </button>
         </div>
         <button
@@ -222,6 +316,17 @@ export default function PendingPlaces() {
         >
           Refresh
         </button>
+        {!loading && hasFilters && (
+          <p className="text-sm text-admin-muted">
+            Showing {resultCount} of {totalCount} {tab === 'pending' ? 'pending' : 'approved'} place
+            {totalCount === 1 ? '' : 's'}
+          </p>
+        )}
+        {!loading && !hasFilters && places.length > 0 && (
+          <p className="text-sm text-admin-muted">
+            {resultCount} {tab === 'pending' ? 'pending' : 'approved'} place{resultCount === 1 ? '' : 's'}
+          </p>
+        )}
       </div>
 
       <div className="overflow-x-auto rounded-2xl border border-admin-border bg-admin-900/50">
@@ -229,11 +334,12 @@ export default function PendingPlaces() {
           <p className="p-8 text-sm text-admin-muted">Loading…</p>
         ) : (
           <PlaceTable
-            places={tab === 'pending' ? pendingList : approvedList}
+            places={places}
             tab={tab}
             busyId={busyId}
             onApprove={onApprove}
             onReject={onReject}
+            hasFilters={hasFilters}
           />
         )}
       </div>

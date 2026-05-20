@@ -1,15 +1,42 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import api from '../services/api'
+import { useAuth } from '../contexts/AuthContext'
 import {
   enrichPlacesWithDetails,
+  fetchPlaceDetails,
   mapGoogleDetailsToPayload,
-  GOOGLE_DETAILS_FIELDS,
 } from '../utils/googlePlaceDetails'
+import {
+  mergePlacesQuotaConfig,
+  createPlacesQuotaToolkit,
+  attachMapIdleGuard,
+  isZoomSufficient,
+  SKIP_STATUS,
+  canUseGoogleApi,
+  assertGoogleApiAvailable,
+  recordGoogleApiUse,
+  subscribeGoogleApiQuota,
+  getGoogleApiQuotaStatus,
+  QUOTA_EXHAUSTED_MESSAGE_DAILY,
+} from '../utils/placesQuotaOptimizer'
 import {
   findDuplicateInList,
   isDuplicateInSession,
   DUPLICATE_MESSAGES,
 } from '../utils/placeDuplicate'
+import {
+  withMapRenderingConfig,
+  downloadPlacesExport,
+} from '../utils/mapRenderingConfig'
+
+function formatAddToMapStatus(bulkResult, fallbackCount) {
+  const added = bulkResult?.added ?? fallbackCount
+  const skipped = bulkResult?.skipped ?? 0
+  if (skipped > 0) {
+    return `Added ${added} place(s) to the map (${skipped} skipped).`
+  }
+  return `Added ${added} place(s) to the map!`
+}
 
 const GRID_OPTIONS = [
   { value: 2, label: 'Low (2×2 grid)' },
@@ -23,12 +50,16 @@ const RATE_CONFIG = {
 }
 
 let _googleMapsApiKey = null
+let _placesQuotaConfig = null
 
-async function fetchGoogleMapsApiKey() {
-  if (_googleMapsApiKey) return _googleMapsApiKey
+async function fetchMapClientConfig() {
+  if (_googleMapsApiKey && _placesQuotaConfig) {
+    return { googleMapsApiKey: _googleMapsApiKey, placesQuota: _placesQuotaConfig }
+  }
   const { data } = await api.get('/map/config')
   _googleMapsApiKey = data.googleMapsApiKey || ''
-  return _googleMapsApiKey
+  _placesQuotaConfig = mergePlacesQuotaConfig(data.placesQuota)
+  return { googleMapsApiKey: _googleMapsApiKey, placesQuota: _placesQuotaConfig }
 }
 
 function loadGoogleMapsScript() {
@@ -46,8 +77,8 @@ function loadGoogleMapsScript() {
       }, 100)
       return
     }
-    fetchGoogleMapsApiKey()
-      .then((key) => {
+    fetchMapClientConfig()
+      .then(({ googleMapsApiKey: key }) => {
         if (!key) {
           reject(new Error('Google Maps API key not configured on the server.'))
           return
@@ -65,6 +96,7 @@ function loadGoogleMapsScript() {
 }
 
 const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShowDuplicate }) => {
+  const { user } = useAuth()
   const mapContainerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const serviceRef = useRef(null)
@@ -93,9 +125,22 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const [progress, setProgress] = useState(0)
   const [extractedPlaces, setExtractedPlaces] = useState([])
   const [selectedPlaces, setSelectedPlaces] = useState(new Set())
-  const [apiStats, setApiStats] = useState({ nearby: 0, geocode: 0, retries: 0 })
+  const [apiStats, setApiStats] = useState({
+    nearby: 0,
+    geocode: 0,
+    retries: 0,
+    boundsCacheHits: 0,
+    detailsCacheHits: 0,
+    skipped: 0,
+  })
+  const [mapZoom, setMapZoom] = useState(null)
+  const [googleQuotaStatus, setGoogleQuotaStatus] = useState(() => getGoogleApiQuotaStatus())
+  const googleApiBlocked = googleQuotaStatus.exhausted
+  const nearbyQuotaRemaining = googleQuotaStatus.remainingSession
+  const dailyQuotaRemaining = googleQuotaStatus.remainingDaily
   const [addingToMap, setAddingToMap] = useState(false)
   const [selectAll, setSelectAll] = useState(true)
+  const [exportFormat, setExportFormat] = useState('json')
 
   // Search-based extraction states
   const [searchQuery, setSearchQuery] = useState('')
@@ -125,8 +170,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const placesArrayRef = useRef([])
   const currentLocationRef = useRef({ country: '', state: '', district: '', taluk: '', village: '' })
 
+  const quotaToolkitRef = useRef(null)
+  const mapIdleCleanupRef = useRef(null)
+  const rateConfigRef = useRef({ ...RATE_CONFIG })
+
   // Ref-backed counter for API stats (avoids stale closure in callbacks)
-  const statsRef = useRef({ nearby: 0, geocode: 0, retries: 0 })
+  const statsRef = useRef({
+    nearby: 0,
+    geocode: 0,
+    retries: 0,
+    boundsCacheHits: 0,
+    detailsCacheHits: 0,
+    skipped: 0,
+  })
 
   const updateStats = useCallback((type) => {
     if (type === 'nearby') statsRef.current.nearby++
@@ -135,12 +191,47 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     setApiStats({ ...statsRef.current })
   }, [])
 
-  // Load Google Maps
+  const syncQuotaUi = useCallback(() => {
+    const toolkit = quotaToolkitRef.current
+    setGoogleQuotaStatus(getGoogleApiQuotaStatus())
+    if (!toolkit) return
+    setApiStats({
+      ...statsRef.current,
+      boundsCacheHits: toolkit.boundsCache.hits,
+      detailsCacheHits: toolkit.detailsCache.hits,
+    })
+  }, [])
+
+  // Load Google Maps + quota config
   useEffect(() => {
     if (!isOpen) return
-    loadGoogleMapsScript()
-      .then(() => setMapsLoaded(true))
-      .catch((err) => setMapsError(err.message))
+    let cancelled = false
+    fetchMapClientConfig()
+      .then(({ placesQuota }) => {
+        if (cancelled) return
+        quotaToolkitRef.current = createPlacesQuotaToolkit(placesQuota, user?.id || 'anonymous')
+        rateConfigRef.current = {
+          ...RATE_CONFIG,
+          minDelayBetweenCalls: placesQuota.minDelayBetweenCalls ?? RATE_CONFIG.minDelayBetweenCalls,
+          cellDelay: placesQuota.cellDelay ?? RATE_CONFIG.cellDelay,
+        }
+        syncQuotaUi()
+        return loadGoogleMapsScript()
+      })
+      .then(() => {
+        if (!cancelled) setMapsLoaded(true)
+      })
+      .catch((err) => {
+        if (!cancelled) setMapsError(err.message)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [isOpen, user?.id, syncQuotaUi])
+
+  useEffect(() => {
+    if (!isOpen) return undefined
+    return subscribeGoogleApiQuota(setGoogleQuotaStatus)
   }, [isOpen])
 
   // Init map when loaded
@@ -153,7 +244,23 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     })
     mapInstanceRef.current = map
     serviceRef.current = new window.google.maps.places.PlacesService(map)
+    setMapZoom(map.getZoom())
+
+    mapIdleCleanupRef.current?.()
+    const debounceMs = quotaToolkitRef.current?.config.mapIdleDebounceMs ?? 400
+    mapIdleCleanupRef.current = attachMapIdleGuard(map, {
+      debounceMs,
+      onZoomChange: (z) => setMapZoom(z),
+      onIdle: ({ zoom }) => setMapZoom(zoom),
+    })
   }, [mapsLoaded])
+
+  useEffect(() => {
+    return () => {
+      mapIdleCleanupRef.current?.()
+      mapIdleCleanupRef.current = null
+    }
+  }, [])
 
   // Reflow map when the dialog flex layout gives the container a real size
   useEffect(() => {
@@ -191,7 +298,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
     const now = Date.now()
     const timeSinceLast = now - lastApiCallTimeRef.current
-    const waitTime = Math.max(0, RATE_CONFIG.minDelayBetweenCalls - timeSinceLast)
+    const waitTime = Math.max(0, rateConfigRef.current.minDelayBetweenCalls - timeSinceLast)
 
     setTimeout(() => {
       if (requestQueueRef.current.length === 0) {
@@ -210,16 +317,35 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   // --- Throttled geocode ---
   const throttledGeocode = useCallback((address) => {
+    const check = assertGoogleApiAvailable('geocode')
+    if (!check.ok) {
+      syncQuotaUi()
+      return Promise.resolve({
+        results: null,
+        status: SKIP_STATUS.QUOTA_EXCEEDED,
+        message: check.message,
+        skipped: true,
+      })
+    }
     return enqueueApiCall((done) => {
+      recordGoogleApiUse('geocode')
       const geocoder = new window.google.maps.Geocoder()
       geocoder.geocode({ address }, (results, gStatus) => {
         updateStats('geocode')
+        syncQuotaUi()
         if (gStatus === 'OVER_QUERY_LIMIT') {
+          const retryCheck = assertGoogleApiAvailable('geocode')
+          if (!retryCheck.ok) {
+            done({ results: null, status: SKIP_STATUS.QUOTA_EXCEEDED, message: retryCheck.message })
+            return
+          }
           updateStats('retry')
           setStatus('Rate limited on geocode. Waiting 3s...')
           setTimeout(() => {
+            recordGoogleApiUse('geocode')
             geocoder.geocode({ address }, (r2, s2) => {
               updateStats('geocode')
+              syncQuotaUi()
               done({ results: r2, status: s2 })
             })
           }, 3000)
@@ -228,15 +354,36 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         }
       })
     })
-  }, [enqueueApiCall, updateStats])
+  }, [enqueueApiCall, updateStats, syncQuotaUi])
 
   // --- Throttled nearby search ---
   const throttledNearbySearch = useCallback((request, retryCount = 0) => {
+    const check = assertGoogleApiAvailable('nearbySearch')
+    if (!check.ok) {
+      syncQuotaUi()
+      return Promise.resolve({
+        results: [],
+        status: SKIP_STATUS.QUOTA_EXCEEDED,
+        message: check.message,
+        skipped: true,
+      })
+    }
     return enqueueApiCall((done) => {
+      recordGoogleApiUse('nearbySearch')
       serviceRef.current.nearbySearch(request, (results, nStatus) => {
         updateStats('nearby')
+        syncQuotaUi()
         if (nStatus === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
           if (retryCount < RATE_CONFIG.maxRetries) {
+            const retryCheck = assertGoogleApiAvailable('nearbySearch')
+            if (!retryCheck.ok) {
+              done({
+                results: [],
+                status: SKIP_STATUS.QUOTA_EXCEEDED,
+                message: retryCheck.message,
+              })
+              return
+            }
             updateStats('retry')
             const delay = RATE_CONFIG.baseRetryDelay * Math.pow(2, retryCount)
             setStatus(`Rate limited (attempt ${retryCount + 1}/${RATE_CONFIG.maxRetries}). Waiting ${delay / 1000}s...`)
@@ -252,12 +399,70 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         }
       })
     })
-  }, [enqueueApiCall, updateStats])
+  }, [enqueueApiCall, updateStats, syncQuotaUi])
+
+  const executeOptimizedNearbySearch = useCallback(
+    async (request) => {
+      const toolkit = quotaToolkitRef.current
+      const map = mapInstanceRef.current
+      const minZoom = toolkit?.config.minZoomForNearbySearch ?? 14
+
+      if (map && !isZoomSufficient(map, minZoom)) {
+        statsRef.current.skipped++
+        setApiStats({ ...statsRef.current })
+        return { results: [], status: SKIP_STATUS.ZOOM_TOO_LOW, skipped: true }
+      }
+
+      if (toolkit) {
+        const cached = toolkit.boundsCache.get(request.bounds, request.type)
+        if (cached) {
+          statsRef.current.boundsCacheHits = toolkit.boundsCache.hits
+          setApiStats({ ...statsRef.current })
+          return { ...cached, cached: true }
+        }
+
+        if (!canUseGoogleApi()) {
+          statsRef.current.skipped++
+          setApiStats({ ...statsRef.current })
+          const guard = toolkit.quota
+          return {
+            results: [],
+            status: SKIP_STATUS.QUOTA_EXCEEDED,
+            message: guard?.getBlockMessage?.() ?? QUOTA_EXHAUSTED_MESSAGE_DAILY,
+            skipped: true,
+          }
+        }
+      }
+
+      const result = await throttledNearbySearch(request)
+      if (result?.skipped) return result
+
+      if (toolkit && !result?.cached) {
+        if (
+          result?.status === window.google.maps.places.PlacesServiceStatus.OK &&
+          result.results
+        ) {
+          toolkit.boundsCache.set(request.bounds, request.type, {
+            results: result.results,
+            status: result.status,
+          })
+        }
+        syncQuotaUi()
+      }
+
+      return result
+    },
+    [throttledNearbySearch, syncQuotaUi]
+  )
 
   // --- Single geocode from full hierarchy (country required) ---
   const loadRegion = useCallback(async () => {
     const map = mapInstanceRef.current
     if (!map) return
+    if (!canUseGoogleApi()) {
+      setStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+      return
+    }
 
     const c = country.trim()
     if (!c) {
@@ -276,7 +481,13 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
     setLoadingRegion(true)
     try {
-      const { results, status: gStatus } = await throttledGeocode(address)
+      const { results, status: gStatus, message: geoMsg } = await throttledGeocode(address)
+      if (gStatus === SKIP_STATUS.QUOTA_EXCEEDED) {
+        boundsRef.current.region = null
+        setStatus(geoMsg || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+        syncQuotaUi()
+        return
+      }
       if (gStatus === 'OK' && results?.[0]) {
         const viewport = results[0].geometry.viewport
         boundsRef.current.region = viewport
@@ -289,7 +500,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setLoadingRegion(false)
     }
-  }, [country, state, district, taluk, village, throttledGeocode])
+  }, [country, state, district, taluk, village, throttledGeocode, syncQuotaUi])
 
   const getLocationString = () => {
     const loc = currentLocationRef.current
@@ -335,6 +546,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
     if (isExtracting) return
 
+    const map = mapInstanceRef.current
+    const minZoom = quotaToolkitRef.current?.config.minZoomForNearbySearch ?? 14
+    if (map && !isZoomSufficient(map, minZoom)) {
+      setStatus(`Zoom in to level ${minZoom}+ before extracting (current: ${map.getZoom() ?? '—'}).`)
+      return
+    }
+    if (!canUseGoogleApi()) {
+      const msg =
+        getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY
+      setStatus(msg)
+      return
+    }
+
     // Reset
     placesArrayRef.current = []
     setExtractedPlaces([])
@@ -342,8 +566,22 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     setSelectAll(true)
     markersRef.current.forEach((m) => m.setMap(null))
     markersRef.current = []
-    statsRef.current = { nearby: 0, geocode: 0, retries: 0 }
-    setApiStats({ nearby: 0, geocode: 0, retries: 0 })
+    statsRef.current = {
+      nearby: 0,
+      geocode: 0,
+      retries: 0,
+      boundsCacheHits: 0,
+      detailsCacheHits: 0,
+      skipped: 0,
+    }
+    setApiStats({
+      nearby: 0,
+      geocode: 0,
+      retries: 0,
+      boundsCacheHits: 0,
+      detailsCacheHits: 0,
+      skipped: 0,
+    })
     stopRequestedRef.current = false
     setIsExtracting(true)
     setProgress(0)
@@ -368,7 +606,17 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
       for (const placeType of placeTypes) {
         if (stopRequestedRef.current) break
-        const result = await throttledNearbySearch({ bounds: grid[cellIdx], type: placeType })
+        const result = await executeOptimizedNearbySearch({ bounds: grid[cellIdx], type: placeType })
+        if (result?.status === SKIP_STATUS.QUOTA_EXCEEDED) {
+          setStatus(result.message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+          stopRequestedRef.current = true
+          break
+        }
+        if (result?.status === SKIP_STATUS.ZOOM_TOO_LOW) {
+          setStatus(`Zoom in to level ${minZoom}+ to extract places in this view.`)
+          stopRequestedRef.current = true
+          break
+        }
         if (result?.results && result.status === window.google.maps.places.PlacesServiceStatus.OK) {
           const newPlaces = []
           result.results.forEach((place) => {
@@ -377,18 +625,23 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             const lng = place.geometry.location.lng()
             // Deduplicate by name
             const pid = place.place_id
-            const draft = {
-              name,
-              lat,
-              lng,
-              place_id: pid,
-              type: place.types?.[0] || placeType,
-              village: currentLocationRef.current.village,
-              district: currentLocationRef.current.district,
-              taluk: currentLocationRef.current.taluk,
-              state: currentLocationRef.current.state,
-              country: currentLocationRef.current.country,
-            }
+            const draft = withMapRenderingConfig(
+              {
+                name,
+                lat,
+                lng,
+                place_id: pid,
+                type: place.types?.[0] || placeType,
+                types: place.types,
+                village: currentLocationRef.current.village,
+                district: currentLocationRef.current.district,
+                taluk: currentLocationRef.current.taluk,
+                state: currentLocationRef.current.state,
+                country: currentLocationRef.current.country,
+                zoomLevel: mapInstanceRef.current?.getZoom?.(),
+              },
+              { map: mapInstanceRef.current, place }
+            )
             const exists =
               isDuplicateInSession(placesArrayRef.current, draft) ||
               findDuplicateInList(mapPlaces, draft).duplicate
@@ -418,14 +671,21 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
       // Delay between cells
       if (!stopRequestedRef.current) {
-        await new Promise((r) => setTimeout(r, RATE_CONFIG.cellDelay))
+        await new Promise((r) => setTimeout(r, rateConfigRef.current.cellDelay))
       }
     }
 
     setIsExtracting(false)
     setProgress(100)
-    setStatus(`Extraction complete. Found ${placesArrayRef.current.length} places in ${getLocationString()}.`)
-  }, [generateGrid, throttledNearbySearch, isExtracting, mapPlaces])
+    syncQuotaUi()
+    const cacheNote =
+      statsRef.current.boundsCacheHits > 0
+        ? ` · ${statsRef.current.boundsCacheHits} cached cell(s)`
+        : ''
+    setStatus(
+      `Extraction complete. Found ${placesArrayRef.current.length} places in ${getLocationString()}${cacheNote}.`
+    )
+  }, [generateGrid, executeOptimizedNearbySearch, isExtracting, mapPlaces, syncQuotaUi])
 
   const stopExtraction = useCallback(() => {
     stopRequestedRef.current = true
@@ -459,24 +719,38 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       setStatus('No places selected. Select places to add.')
       return
     }
+    if (!canUseGoogleApi()) {
+      setStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+      return
+    }
     setAddingToMap(true)
     try {
       const svc = serviceRef.current
       setStatus(`Fetching full details for ${selected.length} places…`)
+      const activeMap =
+        extractionMethod === 'search' ? searchMapInstanceRef.current : mapInstanceRef.current
       const enriched = await enrichPlacesWithDetails(
         selected,
         svc,
         enqueueApiCall,
         currentLocationRef.current,
-        (i, total, name) => setStatus(`Details ${i}/${total}: ${name}`)
+        (i, total, name) => setStatus(`Details ${i}/${total}: ${name}`),
+        { map: activeMap },
+        quotaToolkitRef.current?.detailsCache ?? null
       )
-      const mapZoom = mapInstanceRef.current?.getZoom?.()
-      const withZoom = enriched.map((p) => ({
-        ...p,
-        zoomLevel: typeof mapZoom === 'number' ? mapZoom : 15,
-      }))
-      await onAddToMap(withZoom)
-      setStatus(`Successfully added ${withZoom.length} places to the map!`)
+      syncQuotaUi()
+      const mapZoom = activeMap?.getZoom?.()
+      const withZoom = enriched.map((p) =>
+        withMapRenderingConfig(
+          {
+            ...p,
+            zoomLevel: typeof mapZoom === 'number' ? mapZoom : p.zoomLevel ?? 15,
+          },
+          { map: activeMap, place: p }
+        )
+      )
+      const bulkResult = await onAddToMap(withZoom)
+      setStatus(formatAddToMapStatus(bulkResult, withZoom.length))
     } catch (err) {
       if (err.response?.status === 409) {
         onShowDuplicate?.(
@@ -496,20 +770,44 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setAddingToMap(false)
     }
-  }, [extractedPlaces, selectedPlaces, onAddToMap, enqueueApiCall, onShowDuplicate])
+  }, [extractedPlaces, selectedPlaces, onAddToMap, enqueueApiCall, onShowDuplicate, extractionMethod, syncQuotaUi])
 
-  // --- Download JSON ---
-  const downloadJSON = useCallback(() => {
-    if (extractedPlaces.length === 0) return
-    const blob = new Blob([JSON.stringify(extractedPlaces, null, 2)], { type: 'application/json' })
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(blob)
-    a.download = `${getLocationString().replace(/,\s+/g, '_') || 'places'}_extracted.json`
-    document.body.appendChild(a)
-    a.click()
-    document.body.removeChild(a)
-    URL.revokeObjectURL(a.href)
-  }, [extractedPlaces])
+  const getExportPlaces = useCallback(() => {
+    if (extractionMethod === 'search') {
+      return searchResults.filter((p) => selectedSearchPlaces.has(p.name))
+    }
+    return extractedPlaces.filter((p) => selectedPlaces.has(p.name))
+  }, [extractionMethod, extractedPlaces, selectedPlaces, searchResults, selectedSearchPlaces])
+
+  const downloadExport = useCallback(async () => {
+    const toExport =
+      extractionMethod === 'search'
+        ? searchResults.length > 0
+          ? getExportPlaces().length > 0
+            ? getExportPlaces()
+            : searchResults
+          : []
+        : extractedPlaces.length > 0
+          ? getExportPlaces().length > 0
+            ? getExportPlaces()
+            : extractedPlaces
+          : []
+    if (toExport.length === 0) return
+    const activeMap =
+      extractionMethod === 'search' ? searchMapInstanceRef.current : mapInstanceRef.current
+    const baseName = `${getLocationString().replace(/,\s+/g, '_') || 'places'}_extracted`
+    const dl = await downloadPlacesExport(toExport, {
+      format: exportFormat,
+      filename: baseName,
+      map: activeMap,
+      meta: { source: 'place-extract-panel' },
+    })
+    if (dl.ok && !dl.aborted) {
+      setStatus(`Exported ${toExport.length} place(s)${dl.filename ? ` — ${dl.filename}` : ''}.`)
+    } else if (dl.aborted) {
+      setStatus('Export cancelled.')
+    }
+  }, [extractionMethod, extractedPlaces, searchResults, getExportPlaces, exportFormat])
 
   // --- Upload JSON ---
   const fileInputRef = useRef(null)
@@ -521,12 +819,27 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       try {
         const data = JSON.parse(ev.target.result)
         const items = Array.isArray(data) ? data : []
-        const valid = items.filter((p) => p.name && typeof p.lat === 'number' && typeof p.lng === 'number')
+        const valid = items
+          .map((p) => {
+            if (p.coordinates?.lat != null && p.coordinates?.lng != null) {
+              return { ...p, lat: p.coordinates.lat, lng: p.coordinates.lng }
+            }
+            if (p.geometry?.type === 'Point' && Array.isArray(p.geometry.coordinates)) {
+              return { ...p, lng: p.geometry.coordinates[0], lat: p.geometry.coordinates[1], name: p.properties?.name || p.name }
+            }
+            return p
+          })
+          .filter((p) => p.name && typeof p.lat === 'number' && typeof p.lng === 'number')
         if (valid.length === 0) {
           setStatus('No valid places found in the uploaded file.')
           return
         }
-        const newPlaces = valid.filter(
+        const normalized = valid.map((p) =>
+          p.mapRenderingConfig || p.map_rendering_config
+            ? p
+            : withMapRenderingConfig(p, { map: mapInstanceRef.current, place: p })
+        )
+        const newPlaces = normalized.filter(
           (p) =>
             !isDuplicateInSession(placesArrayRef.current, p) &&
             !findDuplicateInList(mapPlaces, p).duplicate
@@ -563,10 +876,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       if (b) setSearchBounds(b)
     }
     syncSearchBounds()
-    const idleListener = searchMap.addListener('idle', syncSearchBounds)
-    return () => {
-      if (idleListener) window.google.maps.event.removeListener(idleListener)
-    }
+    const cleanupIdle = attachMapIdleGuard(searchMap, {
+      debounceMs: quotaToolkitRef.current?.config.mapIdleDebounceMs ?? 400,
+      onIdle: syncSearchBounds,
+    })
+    return () => cleanupIdle()
   }, [extractionMethod, mapsLoaded])
 
   // Clean up search markers on unmount
@@ -587,6 +901,15 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         return
       }
 
+      const check = assertGoogleApiAvailable('autocomplete')
+      if (!check.ok) {
+        setSearchSuggestions([])
+        setIsSearchingSuggestions(false)
+        setSearchStatus(check.message)
+        syncQuotaUi()
+        return
+      }
+
       setIsSearchingSuggestions(true)
       const request = {
         input: q,
@@ -595,8 +918,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       }
       if (searchBounds) request.bounds = searchBounds
 
+      recordGoogleApiUse('autocomplete')
       autocompleteServiceRef.current.getPlacePredictions(request, (predictions, status) => {
         setIsSearchingSuggestions(false)
+        syncQuotaUi()
         if (status === window.google.maps.places.PlacesServiceStatus.OK && predictions?.length) {
           setSearchSuggestions(predictions.slice(0, 8))
         } else {
@@ -604,7 +929,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         }
       })
     },
-    [searchBounds]
+    [searchBounds, syncQuotaUi]
   )
 
   const handleSearchInputChange = useCallback((value) => {
@@ -615,6 +940,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       setSearchSuggestions([])
       setIsSearchingSuggestions(false)
       setSearchSuggestOpen(false)
+      return
+    }
+    if (!canUseGoogleApi()) {
+      setSearchSuggestions([])
+      setSearchSuggestOpen(false)
+      setSearchStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
       return
     }
     searchSuggestDebounceRef.current = setTimeout(() => {
@@ -677,80 +1008,94 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   // --- Handle suggestion selection ---
   const handleSuggestionSelect = useCallback(
-    (placeId, description) => {
-      if (!placesDetailServiceRef.current) return
+    async (placeId) => {
+      if (!placesDetailServiceRef.current || !placeId) return
 
       setIsSearching(true)
-      placesDetailServiceRef.current.getDetails(
-        {
-          placeId,
-          fields: GOOGLE_DETAILS_FIELDS,
-        },
-        (details, status) => {
-          const refocusForNextSearch = () => {
-            setTimeout(() => {
-              searchInputRef.current?.focus()
-              setSearchSuggestOpen(true)
-            }, 0)
-          }
+      const refocusForNextSearch = () => {
+        setTimeout(() => {
+          searchInputRef.current?.focus()
+          setSearchSuggestOpen(true)
+        }, 0)
+      }
 
-          try {
-            if (status !== window.google.maps.places.PlacesServiceStatus.OK || !details) {
-              setSearchStatus(
-                status === window.google.maps.places.PlacesServiceStatus.ZERO_RESULTS
-                  ? 'Place not found. Try another search.'
-                  : `Could not load place (${status}). Try again.`
-              )
-              refocusForNextSearch()
-              return
-            }
-
-            const processedPlace = {
-              ...mapGoogleDetailsToPayload(details, currentLocationRef.current, 15),
-              placeId: details.place_id,
-            }
-
-            const inList = searchResultsRef.current.some(
-              (p) => (p.placeId || p.place_id) === (processedPlace.placeId || processedPlace.place_id)
-            )
-            const dbDup = findDuplicateInList(mapPlaces, processedPlace)
-            if (inList || dbDup.duplicate) {
-              onShowDuplicate?.(dbDup, processedPlace.name)
-              setSearchStatus(dbDup.message || 'Place already on the map')
-              setSearchQuery('')
-              setSearchSuggestions([])
-              setSearchSuggestOpen(false)
-              refocusForNextSearch()
-              return
-            }
-
-            const nextList = [...searchResultsRef.current, processedPlace]
-            searchResultsRef.current = nextList
-            setSearchResults(nextList)
-            setSelectedSearchPlaces((prev) => new Set([...prev, processedPlace.name]))
-
-            addSearchMarker(processedPlace)
-
-            if (searchMapInstanceRef.current && searchMarkersRef.current.length > 0) {
-              const bounds = new window.google.maps.LatLngBounds()
-              searchMarkersRef.current.forEach((marker) => {
-                bounds.extend(marker.getPosition())
-              })
-              searchMapInstanceRef.current.fitBounds(bounds, 100)
-            }
-
-            setSearchStatus(`Added: ${processedPlace.name}`)
-            setSearchQuery('')
-            setSearchSuggestions([])
-            setSearchSuggestOpen(false)
-            refocusForNextSearch()
-          } finally {
-            setIsSearching(false)
-          }
+      try {
+        if (!canUseGoogleApi()) {
+          setSearchStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+          refocusForNextSearch()
+          return
         }
-      )
+
+        const details = await fetchPlaceDetails(
+          placesDetailServiceRef.current,
+          placeId,
+          enqueueApiCall,
+          quotaToolkitRef.current?.detailsCache ?? null
+        )
+        syncQuotaUi()
+
+        if (details?.quotaBlocked) {
+          setSearchStatus(details.message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+          refocusForNextSearch()
+          return
+        }
+
+        if (!details) {
+          setSearchStatus('Could not load place details. Try again.')
+          refocusForNextSearch()
+          return
+        }
+
+        const searchZoom = searchMapInstanceRef.current?.getZoom?.() ?? 15
+        const processedPlace = {
+          ...mapGoogleDetailsToPayload(
+            details,
+            currentLocationRef.current,
+            searchZoom,
+            { map: searchMapInstanceRef.current }
+          ),
+          placeId: details.place_id,
+        }
+
+        const inList = searchResultsRef.current.some(
+          (p) => (p.placeId || p.place_id) === (processedPlace.placeId || processedPlace.place_id)
+        )
+        const dbDup = findDuplicateInList(mapPlaces, processedPlace)
+        if (inList || dbDup.duplicate) {
+          onShowDuplicate?.(dbDup, processedPlace.name)
+          setSearchStatus(dbDup.message || 'Place already on the map')
+          setSearchQuery('')
+          setSearchSuggestions([])
+          setSearchSuggestOpen(false)
+          refocusForNextSearch()
+          return
+        }
+
+        const nextList = [...searchResultsRef.current, processedPlace]
+        searchResultsRef.current = nextList
+        setSearchResults(nextList)
+        setSelectedSearchPlaces((prev) => new Set([...prev, processedPlace.name]))
+
+        addSearchMarker(processedPlace)
+
+        if (searchMapInstanceRef.current && searchMarkersRef.current.length > 0) {
+          const bounds = new window.google.maps.LatLngBounds()
+          searchMarkersRef.current.forEach((marker) => {
+            bounds.extend(marker.getPosition())
+          })
+          searchMapInstanceRef.current.fitBounds(bounds, 100)
+        }
+
+        setSearchStatus(`Added: ${processedPlace.name}`)
+        setSearchQuery('')
+        setSearchSuggestions([])
+        setSearchSuggestOpen(false)
+        refocusForNextSearch()
+      } finally {
+        setIsSearching(false)
+      }
     },
-    [addSearchMarker]
+    [addSearchMarker, enqueueApiCall, mapPlaces, onShowDuplicate, syncQuotaUi]
   )
 
   // --- Update marker appearance based on selection ---
@@ -812,13 +1157,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
     setAddingToMap(true)
     try {
-      const mapZoom = searchMapInstanceRef.current?.getZoom?.()
-      const payload = selected.map((p) => ({
-        ...p,
-        zoomLevel: typeof mapZoom === 'number' ? mapZoom : p.zoomLevel ?? 15,
-      }))
-      await onAddToMap(payload)
-      setSearchStatus(`Successfully added ${payload.length} places to the map!`)
+      const activeMap = searchMapInstanceRef.current
+      const mapZoom = activeMap?.getZoom?.()
+      const payload = selected.map((p) =>
+        withMapRenderingConfig(
+          {
+            ...p,
+            zoomLevel: typeof mapZoom === 'number' ? mapZoom : p.zoomLevel ?? 15,
+          },
+          { map: activeMap, place: p }
+        )
+      )
+      const bulkResult = await onAddToMap(payload)
+      setSearchStatus(formatAddToMapStatus(bulkResult, payload.length))
       // Clear after successful add
       setTimeout(() => {
         setSearchQuery('')
@@ -913,6 +1264,27 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             </svg>
           </button>
         </div>
+
+        {googleApiBlocked && (
+          <div
+            role="alert"
+            className="shrink-0 border-b border-amber-200 bg-amber-50 px-3 py-2.5 sm:px-4"
+          >
+            <p className="text-xs font-semibold text-amber-900">Google API quota exhausted</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-amber-800">
+              {googleQuotaStatus.message || QUOTA_EXHAUSTED_MESSAGE_DAILY}
+            </p>
+          </div>
+        )}
+
+        {!googleApiBlocked && googleQuotaStatus.initialized && nearbyQuotaRemaining != null && (
+          <div className="shrink-0 border-b border-slate-100 bg-slate-50/90 px-3 py-1.5 sm:px-4">
+            <p className="text-[10px] text-slate-500 sm:text-[11px]">
+              Google API quota: {nearbyQuotaRemaining} left this session
+              {dailyQuotaRemaining != null ? ` · ${dailyQuotaRemaining} left today` : ''}
+            </p>
+          </div>
+        )}
 
         {/* Method tabs — segmented control */}
         <div className="shrink-0 border-b border-slate-200/80 bg-slate-50 px-3 py-2.5 sm:px-4">
@@ -1026,7 +1398,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       <button
                         type="button"
                         onClick={loadRegion}
-                        disabled={loadingRegion}
+                        disabled={loadingRegion || googleApiBlocked}
                         className="h-8 shrink-0 rounded-lg bg-primary-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 active:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-60"
                       >
                         {loadingRegion ? 'Loading…' : 'Load region'}
@@ -1046,7 +1418,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         <button
                           type="button"
                           onClick={extractPlaces}
-                          className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600"
+                          disabled={googleApiBlocked}
+                          className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           Extract places
                         </button>
@@ -1059,13 +1432,22 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                           Stop
                         </button>
                       )}
+                      <select
+                        value={exportFormat}
+                        onChange={(e) => setExportFormat(e.target.value)}
+                        className="h-8 max-w-[5.5rem] rounded-lg border border-slate-200 bg-white px-1.5 text-[11px] shadow-sm"
+                        title="Export format"
+                      >
+                        <option value="json">JSON</option>
+                        <option value="geojson">GeoJSON</option>
+                      </select>
                       <button
                         type="button"
-                        onClick={downloadJSON}
+                        onClick={downloadExport}
                         disabled={extractedPlaces.length === 0}
                         className="h-8 shrink-0 rounded-lg bg-slate-700 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
                       >
-                        Download
+                        Export
                       </button>
                       <button
                         type="button"
@@ -1074,7 +1456,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       >
                         Upload
                       </button>
-                      <input ref={fileInputRef} type="file" accept=".json" className="hidden" onChange={handleUploadJSON} />
+                      <input ref={fileInputRef} type="file" accept=".json,.geojson" className="hidden" onChange={handleUploadJSON} />
                     </div>
                   </div>
 
@@ -1083,7 +1465,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     <div className="flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                       <span className="min-w-0 sm:truncate">{status}</span>
                       <span className="shrink-0 text-[10px] text-slate-400 sm:text-[11px]">
-                        API {apiStats.nearby + apiStats.geocode} · retries {apiStats.retries}
+                        API {apiStats.nearby + apiStats.geocode}
+                        {apiStats.boundsCacheHits > 0 ? ` · cache ${apiStats.boundsCacheHits}` : ''}
+                        {apiStats.skipped > 0 ? ` · skip ${apiStats.skipped}` : ''}
+                        {nearbyQuotaRemaining != null ? ` · session ${nearbyQuotaRemaining}` : ''}
+                        {dailyQuotaRemaining != null ? ` · day ${dailyQuotaRemaining}` : ''}
+                        {mapZoom != null ? ` · z${mapZoom}` : ''}
                       </span>
                     </div>
                     {isExtracting && (
@@ -1166,7 +1553,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       <button
                         type="button"
                         onClick={handleAddToMap}
-                        disabled={selectedPlaces.size === 0 || addingToMap}
+                        disabled={selectedPlaces.size === 0 || addingToMap || googleApiBlocked}
                         className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-md transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {addingToMap ? (
@@ -1220,7 +1607,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                           }}
                           placeholder="Search for a place…"
                           autoComplete="off"
-                          className="min-h-[44px] min-w-0 flex-1 bg-transparent py-2 text-base text-slate-900 placeholder:text-slate-400 outline-none sm:text-sm"
+                          disabled={googleApiBlocked}
+                          className="min-h-[44px] min-w-0 flex-1 bg-transparent py-2 text-base text-slate-900 placeholder:text-slate-400 outline-none disabled:cursor-not-allowed disabled:opacity-60 sm:text-sm"
                         />
                         {isSearchingSuggestions && (
                           <svg className="w-4 h-4 animate-spin text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>

@@ -6,6 +6,19 @@ import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { whenStyleReady } from '../utils/mapWhenStyleReady'
 import { formatMeasureLabel } from '../utils/measureDistance'
+import { resolvePlaceRendering } from '../utils/mapRenderingConfig'
+import {
+  applyMarkerLabelState,
+  collectMapLabelReservedRects,
+  computeLabelSafeBounds,
+  layoutUserPlaceLabels,
+  resolveUserPlaceLabelCap,
+  setMarkerLabelMeasureMode,
+  throttle,
+} from '../utils/userPlaceLabelLayout'
+
+/** Below search/nav overlays (z-20 / z-30) — place names stay on the map layer only. */
+const USER_PLACE_MARKER_Z_INDEX = 8
 
 const CATEGORY_COLORS = {
   Restaurant: '#EF4444',
@@ -45,90 +58,53 @@ const MEASURE_SOURCE_ID = 'measure-distance-source'
 const MEASURE_LINE_OUTLINE_LAYER_ID = 'measure-distance-line-outline'
 const MEASURE_LINE_LAYER_ID = 'measure-distance-line'
 
-/** Saved-place names: hidden when zoomed out; fade in while zooming in (between these levels). */
-const USER_PLACE_LABEL_ZOOM_START = 10.5
-const USER_PLACE_LABEL_ZOOM_FULL = 13
+/** Saved-place labels: fade in by zoom; full names from z12.5; all in-view names from z14+. */
+const USER_PLACE_LABEL_ZOOM_START = 10
+const USER_PLACE_LABEL_ZOOM_FULL = 12.5
+const USER_PLACE_LABEL_MIN_ZOOM = 11
+const USER_PLACE_SHOW_ALL_NAMES_ZOOM = 14
 
-/** Screen-space padding between saved-place name labels (CSS px). */
-const USER_PLACE_LABEL_COLLISION_PAD = 8
-
-/**
- * Rough priority for which saved-place label wins a collision (higher = keep on map first).
- * Tuned so civic / transit / medical read at a glance when zoomed out-ish.
- */
-const USER_PLACE_CATEGORY_LABEL_PRIORITY = {
-  Hospital: 110,
-  'Police Station': 108,
-  Pharmacy: 102,
-  School: 100,
-  Bank: 96,
-  'Post Office': 94,
-  'Bus Stop': 92,
-  Transit: 92,
-  Restaurant: 78,
-  Hotel: 76,
-  'Tourist Place': 74,
-  Museum: 72,
-  Temple: 70,
-  Cinema: 68,
-  Gym: 66,
-  Salon: 64,
-  Shop: 62,
-  'Grocery Store': 62,
-  Parking: 58,
-  'Petrol Pump': 56,
-  ATM: 54,
-  Other: 50,
-}
-
-const userPlaceLabelOpacity = (zoom) => {
+const userPlaceLabelOpacity = (zoom, place = null) => {
   const z = Number(zoom)
   if (!Number.isFinite(z)) return 0
-  if (z <= USER_PLACE_LABEL_ZOOM_START) return 0
-  if (z >= USER_PLACE_LABEL_ZOOM_FULL) return 1
-  return (z - USER_PLACE_LABEL_ZOOM_START) / (USER_PLACE_LABEL_ZOOM_FULL - USER_PLACE_LABEL_ZOOM_START)
+  const start = USER_PLACE_LABEL_ZOOM_START
+  const full = USER_PLACE_LABEL_ZOOM_FULL
+  const placeOpacity = place ? (resolvePlaceRendering(place, z).opacity ?? 1) : 1
+  if (z <= start) return 0
+  if (z >= full) return placeOpacity
+  return ((z - start) / (full - start)) * placeOpacity
 }
 
-/** Minimum map zoom before a place’s text label is even considered (ties to capture zoom when set). */
-const userPlaceTextLabelMinZoom = (place) => {
-  const z = Number(place?.zoomLevel)
-  if (Number.isFinite(z)) {
-    return Math.max(USER_PLACE_LABEL_ZOOM_START, z - 3.5)
-  }
-  return USER_PLACE_LABEL_ZOOM_START + 0.25
+/** Minimum zoom before a place name is eligible (map-wide, not per stored extract config). */
+const userPlaceTextLabelMinZoom = (_place, mapZoom) => {
+  const z = Number(mapZoom)
+  if (!Number.isFinite(z) || z < USER_PLACE_LABEL_ZOOM_START) return 99
+  return USER_PLACE_LABEL_MIN_ZOOM
+}
+
+const LABEL_PRIORITY_CATEGORY_BOOST = {
+  Hospital: 18,
+  'Police Station': 16,
+  'Tourist Place': 14,
+  Temple: 12,
+  Museum: 12,
+  School: 10,
+  Bank: 8,
+  Transit: 8,
+  'Bus Stop': 8,
 }
 
 const userPlaceLabelPriority = (place, mapZoom) => {
-  const cat = place?.category && String(place.category)
-  let p = USER_PLACE_CATEGORY_LABEL_PRIORITY[cat] ?? USER_PLACE_CATEGORY_LABEL_PRIORITY.Other
-  const zl = Number(place?.zoomLevel)
-  if (Number.isFinite(zl)) {
-    // Places added while zoomed out are usually broader landmarks — prefer them when the map is still zoomed out.
-    p += Math.max(0, 16 - zl) * 1.2
-    if (mapZoom + 0.5 >= zl) p += 8
+  const render = resolvePlaceRendering(place, mapZoom)
+  let p = render.priority
+  const cat = place?.category
+  if (cat && LABEL_PRIORITY_CATEGORY_BOOST[cat]) {
+    p += LABEL_PRIORITY_CATEGORY_BOOST[cat]
   }
+  const zl = Number(place?.zoomLevel)
+  if (Number.isFinite(zl) && mapZoom + 0.5 >= zl) p += 8
   return p
 }
-
-/** Hard cap on simultaneous text labels so dense datasets stay readable and cheap to lay out. */
-const maxUserPlaceTextLabelsForZoom = (zoom) => {
-  const z = Number(zoom)
-  if (!Number.isFinite(z)) return 12
-  if (z < 11) return 6
-  if (z < 12) return 14
-  if (z < 13.5) return 28
-  if (z < 15) return 48
-  return 80
-}
-
-const inflateScreenRect = (r, pad) => ({
-  left: r.left - pad,
-  top: r.top - pad,
-  right: r.right + pad,
-  bottom: r.bottom + pad,
-})
-
-const screenRectsOverlap = (a, b) => !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom)
 
 const createCircleGeoJson = (centerLng, centerLat, radiusMeters, points = 64) => {
   const coordinates = []
@@ -170,8 +146,14 @@ const getPlaceLngLat = (place) => {
   return null
 }
 
-/** DOM marker: label with optional dot when the label loses collision or zoom gating (Google Maps–like). */
-const createUserPlaceMarkerElement = (place) => {
+const PLACE_LABEL_TEXT_SHADOW =
+  '0 0 1px rgba(255,255,255,0.95), 0 0 3px rgba(255,255,255,0.9), '
+  + '1px 0 1px rgba(255,255,255,0.85), -1px 0 1px rgba(255,255,255,0.85), '
+  + '0 1px 1px rgba(255,255,255,0.85), 0 -1px 1px rgba(255,255,255,0.85)'
+
+/** DOM marker: place name label only (no pin dots), Google Maps–style. */
+const createUserPlaceMarkerElement = (place, rendering = null) => {
+  const render = rendering || resolvePlaceRendering(place, 15)
   const displayName = String(
     (place.place_name_local && String(place.place_name_local).trim())
     || (place.name && String(place.name).trim())
@@ -179,97 +161,80 @@ const createUserPlaceMarkerElement = (place) => {
     || 'Place'
   )
 
-  const dotColor = CATEGORY_COLORS[place?.category] || CATEGORY_COLORS.Other
   const isPending = place?.approvalStatus === 'pending'
 
   const wrapper = document.createElement('div')
-  wrapper.className = 'user-place-marker'
-  wrapper.style.display = 'block'
+  wrapper.className = isPending ? 'user-place-marker user-place-marker--pending' : 'user-place-marker'
+  wrapper.style.display = 'flex'
+  wrapper.style.flexDirection = 'column'
+  wrapper.style.alignItems = 'center'
+  wrapper.style.justifyContent = 'flex-end'
   wrapper.style.cursor = 'pointer'
-  wrapper.style.pointerEvents = 'auto'
+  wrapper.style.pointerEvents = 'none'
   wrapper.style.textAlign = 'center'
   wrapper.style.background = 'transparent'
   wrapper.style.transition = 'opacity 0.2s ease-out'
   wrapper.style.opacity = '0'
-
-  const dot = document.createElement('div')
-  dot.className = 'user-place-marker-dot'
-  dot.setAttribute('aria-hidden', 'true')
-  dot.style.display = 'none'
-  dot.style.margin = '0 auto'
-  dot.style.width = '10px'
-  dot.style.height = '10px'
-  dot.style.borderRadius = '50%'
-  dot.style.backgroundColor = dotColor
-  dot.style.border = isPending ? '2px dashed #f59e0b' : '2px solid #ffffff'
-  dot.style.boxShadow = isPending
-    ? '0 0 0 2px rgba(245,158,11,0.35), 0 1px 4px rgba(0,0,0,0.35)'
-    : '0 1px 4px rgba(0,0,0,0.35)'
+  wrapper.dataset.labelPlacement = 'top'
 
   const label = document.createElement('div')
   label.className = 'user-place-marker-label'
   label.textContent = displayName
-  label.style.maxWidth = '240px'
-  label.style.fontSize = '13px'
-  label.style.fontWeight = '500'
-  label.style.lineHeight = '1.3'
-  label.style.color = '#1a1a1a'
-  label.style.fontFamily =
-    'system-ui, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Kannada", "Noto Sans Devanagari", sans-serif'
-  label.style.background = 'transparent'
-  label.style.padding = '0'
-  label.style.margin = '0 auto 2px auto'
-  label.style.border = 'none'
-  label.style.borderRadius = '0'
-  label.style.boxShadow = 'none'
-  label.style.whiteSpace = 'normal'
-  label.style.wordBreak = 'break-word'
-  // Light halo so text stays readable on green/beige/roads (like basemap toponyms)
-  label.style.textShadow =
-    '0 0 1px rgba(255,255,255,0.95), 0 0 3px rgba(255,255,255,0.9), '
-    + '1px 0 1px rgba(255,255,255,0.85), -1px 0 1px rgba(255,255,255,0.85), '
-    + '0 1px 1px rgba(255,255,255,0.85), 0 -1px 1px rgba(255,255,255,0.85)'
+  label.style.display = 'none'
+  label.style.pointerEvents = 'none'
+
+  const anchor = document.createElement('div')
+  anchor.className = 'user-place-marker-anchor'
+  anchor.setAttribute('aria-hidden', 'true')
+  anchor.style.display = 'none'
+
+  wrapper.style.zIndex = String(USER_PLACE_MARKER_Z_INDEX)
+  wrapper.dataset.renderPriority = String(render.priority ?? 50)
 
   wrapper.appendChild(label)
-  wrapper.appendChild(dot)
+  wrapper.appendChild(anchor)
   wrapper.title = displayName
   return wrapper
 }
 
 const createSearchResultMarkerElement = (place) => {
   const wrapper = document.createElement('div')
-  wrapper.className = 'search-result-marker-wrapper'
+  wrapper.className = 'search-result-marker-wrapper user-place-marker'
   wrapper.style.display = 'flex'
   wrapper.style.flexDirection = 'column'
   wrapper.style.alignItems = 'center'
+  wrapper.style.justifyContent = 'flex-end'
   wrapper.style.cursor = 'pointer'
-
-  const dot = document.createElement('div')
-  dot.style.width = '20px'
-  dot.style.height = '20px'
-  dot.style.borderRadius = '50%'
-  dot.style.backgroundColor = place.markerColor || '#EA4335'
-  dot.style.border = '2px solid white'
-  dot.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)'
+  wrapper.style.pointerEvents = 'auto'
+  wrapper.style.textAlign = 'center'
+  wrapper.style.background = 'transparent'
 
   const label = document.createElement('div')
+  label.className = 'user-place-marker-label'
   label.textContent = place.displayName || place.name || 'Place'
-  label.style.maxWidth = '140px'
-  label.style.fontSize = '10px'
-  label.style.fontWeight = '600'
-  label.style.color = '#1e293b'
-  label.style.background = 'rgba(255,255,255,0.95)'
-  label.style.padding = '2px 6px'
-  label.style.borderRadius = '4px'
-  label.style.marginTop = '4px'
+  label.style.maxWidth = '180px'
+  label.style.fontSize = '12px'
+  label.style.fontWeight = '500'
+  label.style.lineHeight = '1.25'
+  label.style.color = '#1a1a1a'
+  label.style.background = 'transparent'
+  label.style.padding = '0'
+  label.style.margin = '0 0 2px 0'
   label.style.textAlign = 'center'
-  label.style.whiteSpace = 'nowrap'
-  label.style.overflow = 'hidden'
-  label.style.textOverflow = 'ellipsis'
-  label.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+  label.style.whiteSpace = 'normal'
+  label.style.wordBreak = 'break-word'
+  label.style.textShadow = PLACE_LABEL_TEXT_SHADOW
 
-  wrapper.appendChild(dot)
+  const anchor = document.createElement('div')
+  anchor.className = 'user-place-marker-anchor'
+  anchor.setAttribute('aria-hidden', 'true')
+  anchor.style.width = '1px'
+  anchor.style.height = '1px'
+  anchor.style.flexShrink = '0'
+  anchor.style.opacity = '0'
+
   wrapper.appendChild(label)
+  wrapper.appendChild(anchor)
   wrapper.title = place.displayName || place.name || ''
   return wrapper
 }
@@ -1199,133 +1164,105 @@ const MapComponent = forwardRef(({
     const coordsList = []
     const markerEntries = []
 
+    const initialZoom = map.getZoom()
+
     places.forEach((place, index) => {
       const ll = getPlaceLngLat(place)
       if (!ll) return
+      const render = resolvePlaceRendering(place, initialZoom)
+      if (!render.visible) return
       coordsList.push([ll.lng, ll.lat])
 
-      const el = createUserPlaceMarkerElement(place)
+      const el = createUserPlaceMarkerElement(place, render)
       const onMarkerClick = (e) => {
         e.stopPropagation()
         openUserPlacePopup(ll.lng, ll.lat, place)
       }
       el.addEventListener('click', onMarkerClick)
 
-      const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([ll.lng, ll.lat])
         .addTo(map)
 
       const key = `p-${index}-${place.id ?? 'noid'}-${ll.lng}-${ll.lat}`
       userPlaceMarkersRef.current[key] = marker
-      markerEntries.push({ key, marker, place })
+      markerEntries.push({ key, marker, place, render })
     })
-
-    const applyUserPlaceMarkerParts = (marker, { labelOn, dotOn }) => {
-      const el = marker.getElement?.()
-      if (!el) return
-      const label = el.querySelector?.('.user-place-marker-label')
-      const dot = el.querySelector?.('.user-place-marker-dot')
-      if (label) {
-        if (labelOn) {
-          label.style.display = 'block'
-          label.style.opacity = '1'
-        } else {
-          label.style.display = 'none'
-          label.style.opacity = ''
-        }
-      }
-      if (dot) {
-        dot.style.display = dotOn ? 'block' : 'none'
-      }
-    }
-
-    const hideAllUserPlaceMarkerLabelsForMeasure = (marker) => {
-      const el = marker.getElement?.()
-      if (!el) return
-      const label = el.querySelector?.('.user-place-marker-label')
-      const dot = el.querySelector?.('.user-place-marker-dot')
-      if (dot) dot.style.display = 'none'
-      if (label) {
-        label.style.display = 'block'
-        label.style.opacity = '0'
-      }
-    }
 
     const runUserPlaceLabelCollision = () => {
       const m = mapRef.current
       if (!m || markerEntries.length === 0) return
       const z = m.getZoom()
-      const baseOp = userPlaceLabelOpacity(z)
-
-      if (baseOp < 0.02) {
-        markerEntries.forEach(({ marker }) => {
-          applyUserPlaceMarkerParts(marker, { labelOn: false, dotOn: false })
-        })
-        return
-      }
 
       const candidateKeys = new Set()
-      markerEntries.forEach(({ key, marker, place }) => {
-        const textMin = userPlaceTextLabelMinZoom(place)
-        if (z >= textMin) candidateKeys.add(key)
-        else {
-          applyUserPlaceMarkerParts(marker, { labelOn: false, dotOn: true })
+      const layoutCandidates = []
+
+      const mapBounds = m.getBounds()
+      const showAllNames = z >= USER_PLACE_SHOW_ALL_NAMES_ZOOM
+
+      markerEntries.forEach(({ key, marker, place, render }) => {
+        const liveRender = render || resolvePlaceRendering(place, z)
+        if (!liveRender.visible) {
+          applyMarkerLabelState(marker, { labelOn: false })
+          return
+        }
+        const ll = getPlaceLngLat(place)
+        const inViewport =
+          ll && mapBounds && mapBounds.contains([ll.lng, ll.lat])
+        if (!inViewport) {
+          applyMarkerLabelState(marker, { labelOn: false })
+          return
+        }
+        const op = userPlaceLabelOpacity(z, place)
+        if (op < 0.02) {
+          applyMarkerLabelState(marker, { labelOn: false })
+          return
+        }
+        const textMin = userPlaceTextLabelMinZoom(place, z)
+        if (z >= textMin) {
+          candidateKeys.add(key)
+          layoutCandidates.push({
+            key,
+            marker,
+            place,
+            priority: userPlaceLabelPriority(place, z),
+          })
+        } else {
+          applyMarkerLabelState(marker, { labelOn: false })
         }
       })
 
-      markerEntries.forEach(({ key, marker }) => {
-        if (!candidateKeys.has(key)) return
-        hideAllUserPlaceMarkerLabelsForMeasure(marker)
-      })
+      if (candidateKeys.size === 0) return
 
-      const pad = USER_PLACE_LABEL_COLLISION_PAD
-      const maxLabels = maxUserPlaceTextLabelsForZoom(z)
+      layoutCandidates.forEach(({ marker }) => setMarkerLabelMeasureMode(marker, true))
+
+      const maxLabels = showAllNames
+        ? layoutCandidates.length
+        : resolveUserPlaceLabelCap(z, layoutCandidates.length)
 
       const measureAndResolve = () => {
         const m2 = mapRef.current
         if (!m2) return
 
-        const measured = []
-        markerEntries.forEach(({ key, marker, place }) => {
-          if (!candidateKeys.has(key)) return
-          const el = marker.getElement?.()
-          const label = el?.querySelector?.('.user-place-marker-label')
-          if (!label) return
-          const rect = label.getBoundingClientRect()
-          if (!rect || rect.width < 4 || rect.height < 4) return
-          measured.push({
-            key,
-            marker,
-            place,
-            rect,
-            pri: userPlaceLabelPriority(place, z),
-          })
+        const reservedRects = collectMapLabelReservedRects()
+        const safeBounds = computeLabelSafeBounds(mapContainerRef.current, reservedRects)
+        const winners = layoutUserPlaceLabels(layoutCandidates, {
+          zoom: z,
+          maxLabels,
+          reservedRects,
+          safeBounds,
         })
-
-        measured.sort((a, b) => {
-          const d = b.pri - a.pri
-          if (d !== 0) return d
-          const ida = String(a.place?.id ?? a.key)
-          const idb = String(b.place?.id ?? b.key)
-          return ida.localeCompare(idb)
-        })
-
-        const kept = []
-        const winnerKeys = new Set()
-        for (const row of measured) {
-          if (winnerKeys.size >= maxLabels) break
-          const inflated = inflateScreenRect(row.rect, pad)
-          if (kept.some((r) => screenRectsOverlap(inflated, r))) continue
-          kept.push(inflated)
-          winnerKeys.add(row.key)
-        }
 
         markerEntries.forEach(({ key, marker }) => {
           if (!candidateKeys.has(key)) return
-          if (winnerKeys.has(key)) {
-            applyUserPlaceMarkerParts(marker, { labelOn: true, dotOn: false })
+          const win = winners.get(key)
+          if (win) {
+            applyMarkerLabelState(marker, {
+              labelOn: true,
+              placement: win.placement,
+            })
           } else {
-            applyUserPlaceMarkerParts(marker, { labelOn: false, dotOn: true })
+            applyMarkerLabelState(marker, { labelOn: false })
           }
         })
       }
@@ -1348,18 +1285,23 @@ const MapComponent = forwardRef(({
     const syncUserPlaceLabelsZoom = () => {
       const m = mapRef.current
       if (!m) return
-      const op = userPlaceLabelOpacity(m.getZoom())
-      Object.values(userPlaceMarkersRef.current).forEach((marker) => {
+      const z = m.getZoom()
+      markerEntries.forEach(({ marker, place }) => {
         const el = marker.getElement?.()
         if (!el) return
+        const op = userPlaceLabelOpacity(z, place)
         el.style.opacity = String(op)
-        el.style.pointerEvents = op < 0.05 ? 'none' : 'auto'
+        const labelVisible = el.querySelector?.('.user-place-marker-label')?.style?.display === 'block'
+        el.style.pointerEvents = labelVisible && op >= 0.05 ? 'auto' : 'none'
       })
       scheduleUserPlaceLabelCollision()
     }
 
+    const onMapMoveLabels = throttle(scheduleUserPlaceLabelCollision, 120)
+
     map.on('zoom', syncUserPlaceLabelsZoom)
     map.on('zoomend', syncUserPlaceLabelsZoom)
+    map.on('move', onMapMoveLabels)
     map.on('moveend', scheduleUserPlaceLabelCollision)
     map.on('rotateend', scheduleUserPlaceLabelCollision)
     map.on('pitchend', scheduleUserPlaceLabelCollision)
@@ -1378,7 +1320,7 @@ const MapComponent = forwardRef(({
           (b, c) => b.extend(c),
           new maplibregl.LngLatBounds(coordsList[0], coordsList[0])
         )
-        map.fitBounds(bounds, { padding: 72, maxZoom: 15, duration: 800 })
+        map.fitBounds(bounds, { padding: 72, maxZoom: 14, duration: 800 })
       } catch {
         /* ignore invalid bounds */
       }
@@ -1392,6 +1334,7 @@ const MapComponent = forwardRef(({
       map.off('moveend', onAfterInitialFit)
       map.off('zoom', syncUserPlaceLabelsZoom)
       map.off('zoomend', syncUserPlaceLabelsZoom)
+      map.off('move', onMapMoveLabels)
       map.off('moveend', scheduleUserPlaceLabelCollision)
       map.off('rotateend', scheduleUserPlaceLabelCollision)
       map.off('pitchend', scheduleUserPlaceLabelCollision)
@@ -1423,8 +1366,7 @@ const MapComponent = forwardRef(({
       const el = createSearchResultMarkerElement(place)
       const marker = new maplibregl.Marker({
         element: el,
-        anchor: 'top',
-        offset: [0, -10],
+        anchor: 'bottom',
       })
         .setLngLat([place.lng, place.lat])
         .setPopup(popup)
@@ -1467,8 +1409,7 @@ const MapComponent = forwardRef(({
       const el = createSearchResultMarkerElement(place)
       const marker = new maplibregl.Marker({
         element: el,
-        anchor: 'top',
-        offset: [0, -10],
+        anchor: 'bottom',
       })
         .setLngLat([place.lng, place.lat])
         .setPopup(popup)

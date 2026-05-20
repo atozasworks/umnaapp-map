@@ -172,6 +172,7 @@ model Place {
   googleReviews    Json?    @map("google_reviews")
   nearbyPlaces     Json?    @map("nearby_places")
   googlePhotos     Json?    @map("google_photos")
+  mapRenderingConfig Json?  @map("map_rendering_config")
   extractedAt      DateTime? @map("extracted_at")
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt

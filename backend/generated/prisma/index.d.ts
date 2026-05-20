@@ -8161,6 +8161,7 @@ export namespace Prisma {
     googleReviews: number
     nearbyPlaces: number
     googlePhotos: number
+    mapRenderingConfig: number
     extractedAt: number
     createdAt: number
     updatedAt: number
@@ -8298,6 +8299,7 @@ export namespace Prisma {
     googleReviews?: true
     nearbyPlaces?: true
     googlePhotos?: true
+    mapRenderingConfig?: true
     extractedAt?: true
     createdAt?: true
     updatedAt?: true
@@ -8428,6 +8430,7 @@ export namespace Prisma {
     googleReviews: JsonValue | null
     nearbyPlaces: JsonValue | null
     googlePhotos: JsonValue | null
+    mapRenderingConfig: JsonValue | null
     extractedAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -8490,6 +8493,7 @@ export namespace Prisma {
     googleReviews?: boolean
     nearbyPlaces?: boolean
     googlePhotos?: boolean
+    mapRenderingConfig?: boolean
     extractedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8537,6 +8541,7 @@ export namespace Prisma {
     googleReviews?: boolean
     nearbyPlaces?: boolean
     googlePhotos?: boolean
+    mapRenderingConfig?: boolean
     extractedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8581,6 +8586,7 @@ export namespace Prisma {
     googleReviews?: boolean
     nearbyPlaces?: boolean
     googlePhotos?: boolean
+    mapRenderingConfig?: boolean
     extractedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -8641,6 +8647,7 @@ export namespace Prisma {
       googleReviews: Prisma.JsonValue | null
       nearbyPlaces: Prisma.JsonValue | null
       googlePhotos: Prisma.JsonValue | null
+      mapRenderingConfig: Prisma.JsonValue | null
       extractedAt: Date | null
       createdAt: Date
       updatedAt: Date
@@ -9077,6 +9084,7 @@ export namespace Prisma {
     readonly googleReviews: FieldRef<"Place", 'Json'>
     readonly nearbyPlaces: FieldRef<"Place", 'Json'>
     readonly googlePhotos: FieldRef<"Place", 'Json'>
+    readonly mapRenderingConfig: FieldRef<"Place", 'Json'>
     readonly extractedAt: FieldRef<"Place", 'DateTime'>
     readonly createdAt: FieldRef<"Place", 'DateTime'>
     readonly updatedAt: FieldRef<"Place", 'DateTime'>
@@ -11568,6 +11576,7 @@ export namespace Prisma {
     googleReviews: 'googleReviews',
     nearbyPlaces: 'nearbyPlaces',
     googlePhotos: 'googlePhotos',
+    mapRenderingConfig: 'mapRenderingConfig',
     extractedAt: 'extractedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -12260,6 +12269,7 @@ export namespace Prisma {
     googleReviews?: JsonNullableFilter<"Place">
     nearbyPlaces?: JsonNullableFilter<"Place">
     googlePhotos?: JsonNullableFilter<"Place">
+    mapRenderingConfig?: JsonNullableFilter<"Place">
     extractedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
     createdAt?: DateTimeFilter<"Place"> | Date | string
     updatedAt?: DateTimeFilter<"Place"> | Date | string
@@ -12306,6 +12316,7 @@ export namespace Prisma {
     googleReviews?: SortOrderInput | SortOrder
     nearbyPlaces?: SortOrderInput | SortOrder
     googlePhotos?: SortOrderInput | SortOrder
+    mapRenderingConfig?: SortOrderInput | SortOrder
     extractedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12356,6 +12367,7 @@ export namespace Prisma {
     googleReviews?: JsonNullableFilter<"Place">
     nearbyPlaces?: JsonNullableFilter<"Place">
     googlePhotos?: JsonNullableFilter<"Place">
+    mapRenderingConfig?: JsonNullableFilter<"Place">
     extractedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
     createdAt?: DateTimeFilter<"Place"> | Date | string
     updatedAt?: DateTimeFilter<"Place"> | Date | string
@@ -12402,6 +12414,7 @@ export namespace Prisma {
     googleReviews?: SortOrderInput | SortOrder
     nearbyPlaces?: SortOrderInput | SortOrder
     googlePhotos?: SortOrderInput | SortOrder
+    mapRenderingConfig?: SortOrderInput | SortOrder
     extractedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -12453,6 +12466,7 @@ export namespace Prisma {
     googleReviews?: JsonNullableWithAggregatesFilter<"Place">
     nearbyPlaces?: JsonNullableWithAggregatesFilter<"Place">
     googlePhotos?: JsonNullableWithAggregatesFilter<"Place">
+    mapRenderingConfig?: JsonNullableWithAggregatesFilter<"Place">
     extractedAt?: DateTimeNullableWithAggregatesFilter<"Place"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Place"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Place"> | Date | string
@@ -13190,6 +13204,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13236,6 +13251,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13280,6 +13296,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13326,6 +13343,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13371,6 +13389,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -13413,6 +13432,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -13456,6 +13476,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -14258,6 +14279,7 @@ export namespace Prisma {
     googleReviews?: SortOrder
     nearbyPlaces?: SortOrder
     googlePhotos?: SortOrder
+    mapRenderingConfig?: SortOrder
     extractedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -15655,6 +15677,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15699,6 +15722,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -15988,6 +16012,7 @@ export namespace Prisma {
     googleReviews?: JsonNullableFilter<"Place">
     nearbyPlaces?: JsonNullableFilter<"Place">
     googlePhotos?: JsonNullableFilter<"Place">
+    mapRenderingConfig?: JsonNullableFilter<"Place">
     extractedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
     createdAt?: DateTimeFilter<"Place"> | Date | string
     updatedAt?: DateTimeFilter<"Place"> | Date | string
@@ -16971,6 +16996,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17016,6 +17042,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17118,6 +17145,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17163,6 +17191,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17255,6 +17284,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17300,6 +17330,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17402,6 +17433,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17447,6 +17479,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17596,6 +17629,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -17832,6 +17866,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17876,6 +17911,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -17920,6 +17956,7 @@ export namespace Prisma {
     googleReviews?: NullableJsonNullValueInput | InputJsonValue
     nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
     googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
     extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string

@@ -17,6 +17,11 @@ import PolygonExplorePanel from '../components/PolygonExplorePanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
 import api from '../services/api'
+import {
+  extractMapRenderingConfig,
+  withMapRenderingConfig,
+} from '../utils/mapRenderingConfig'
+import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
 
 const MAX_AVATAR_SIZE = 200
 
@@ -53,7 +58,7 @@ const resizeImageToDataUrl = (file, maxSize = MAX_AVATAR_SIZE) =>
 // Filter places to only those owned by the current user (by userId; each user sees only their own)
 const filterPlacesByUser = (placesList, currentUser) => {
   if (!currentUser) return []
-  return placesList.filter((p) => p.userId === currentUser.id)
+  return placesList.filter((p) => isPlaceOwner(p, currentUser))
 }
 
 const normalizeCategory = (category) => {
@@ -512,17 +517,29 @@ const HomePage = () => {
   const openAddPlaceAt = async (lat, lng, { category } = {}) => {
     const map = mapRef.current?.getMap?.()
     const zoom = map ? Math.round(map.getZoom()) : 15
-    const details = await fetchPlaceDetails({
+    // Open modal immediately so the user sees feedback; enrich location in the background.
+    setMapLocation({
       latitude: lat,
       longitude: lng,
       zoomLevel: zoom,
+      ...(category ? { category } : {}),
     })
-    if (category) {
-      details.category = category
-    }
-    setMapLocation(details)
     setAddPlaceLocationMethod('map-or-current')
     setShowAddPlaceModal(true)
+
+    try {
+      const details = await fetchPlaceDetails({
+        latitude: lat,
+        longitude: lng,
+        zoomLevel: zoom,
+      })
+      if (category) {
+        details.category = category
+      }
+      setMapLocation(details)
+    } catch (err) {
+      console.warn('openAddPlaceAt: failed to load place details', err)
+    }
   }
 
   const handleWhatsHere = async (lat, lng) => {
@@ -623,11 +640,12 @@ const HomePage = () => {
         handlePrint()
         break
       case 'addPlace':
-        await openAddPlaceAt(lat, lng)
-        break
-      case 'addBusiness':
-        await openAddPlaceAt(lat, lng, { category: 'Shop' })
-        showToast('Add your business details below', 'info')
+        try {
+          await openAddPlaceAt(lat, lng)
+        } catch (err) {
+          console.error('Add place from context menu failed:', err)
+          showToast('Could not open Add Place. Try again.', 'error')
+        }
         break
       case 'report': {
         const existing = findPlaceNearCoordinates(lat, lng)
@@ -723,22 +741,26 @@ const HomePage = () => {
       const { data } = await api.get('/map/reverse', {
         params: { lat: loc.latitude, lng: loc.longitude },
       })
-      return {
+      const map = mapRef.current?.getMap?.()
+      const base = {
         latitude: loc.latitude,
         longitude: loc.longitude,
         zoomLevel: loc.zoomLevel,
         name: data.displayName || '',
         address: data.address || {},
-        targetLang: data.targetLang || 'hi', // For auto-translation: kn, ta, ml, te, hi
+        targetLang: data.targetLang || 'hi',
       }
+      return withMapRenderingConfig(base, { map, place: base })
     } catch (err) {
-      return {
+      const map = mapRef.current?.getMap?.()
+      const base = {
         latitude: loc.latitude,
         longitude: loc.longitude,
         zoomLevel: loc.zoomLevel,
         name: '',
         targetLang: 'hi',
       }
+      return withMapRenderingConfig(base, { map, place: base })
     } finally {
       setFetchingPlaceDetails(false)
     }
@@ -856,6 +878,7 @@ const HomePage = () => {
       latitude: place.latitude,
       longitude: place.longitude,
       zoomLevel: place.zoomLevel || 15,
+      mapRenderingConfig: place.mapRenderingConfig || place.map_rendering_config,
     })
     setShowAddPlaceModal(true)
   }
@@ -865,6 +888,11 @@ const HomePage = () => {
     if (savingPlaceId === placeKey) return
     setSavingPlaceId(placeKey)
     try {
+      const map = mapRef.current?.getMap?.()
+      const mapRenderingConfig =
+        place.mapRenderingConfig ||
+        place.map_rendering_config ||
+        extractMapRenderingConfig({ map, place })
       const { data } = await api.post('/map/places', {
         place_name_en: place.place_name_en || place.name,
         place_name_local: place.place_name_local || '',
@@ -872,6 +900,7 @@ const HomePage = () => {
         latitude: place.latitude,
         longitude: place.longitude,
         zoomLevel: place.zoomLevel || 15,
+        mapRenderingConfig,
         source: 'saved',
       })
       setAllPlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
@@ -952,6 +981,14 @@ const HomePage = () => {
   }
 
   const handleDeletePlace = async (placeId) => {
+    const place =
+      allPlaces.find((p) => p.id === placeId) ||
+      (selectedPlace?.id === placeId ? selectedPlace : null)
+    if (!canDeletePlace(place, user)) {
+      showToast('You can only delete places you added.', 'error')
+      return
+    }
+
     setDeletingPlaceId(placeId)
     try {
       await api.delete(`/map/places/${placeId}`)
@@ -961,13 +998,24 @@ const HomePage = () => {
       showToast('Place deleted successfully.', 'success')
     } catch (err) {
       console.error('Delete place error:', err)
-      showToast('Failed to delete place. Please try again.', 'error')
+      const msg =
+        err.response?.status === 403
+          ? 'You are not allowed to delete this place.'
+          : 'Failed to delete place. Please try again.'
+      showToast(msg, 'error')
     } finally {
       setDeletingPlaceId(null)
     }
   }
 
   const confirmDeletePlace = (placeId, placeName) => {
+    const place =
+      allPlaces.find((p) => p.id === placeId) ||
+      (selectedPlace?.id === placeId ? selectedPlace : null)
+    if (!canDeletePlace(place, user)) {
+      showToast('You can only delete places you added.', 'error')
+      return
+    }
     setConfirmModal({
       title: 'Delete this place?',
       message: `Are you sure you want to delete "${placeName}" from the map? This cannot be undone.`,
@@ -1048,7 +1096,10 @@ const HomePage = () => {
         </div>
       )}
       {/* Navbar - Logo, Menu icon, Add Place (My Places & Logout in menu) */}
-      <nav className="absolute top-0 left-0 right-0 z-30 glass border-b border-white/30 pt-[env(safe-area-inset-top)] shadow-lg">
+      <nav
+        data-map-ui-chrome
+        className="absolute top-0 left-0 right-0 z-30 glass border-b border-white/30 pt-[env(safe-area-inset-top)] shadow-lg"
+      >
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
           {/* Logo + Hamburger */}
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -1103,7 +1154,11 @@ const HomePage = () => {
       </nav>
 
       {/* Search Bar + Categories - positioned below navbar (safe-area + ~4.5rem) */}
-      <div className="absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl" style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}>
+      <div
+        data-map-ui-chrome
+        className="absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl"
+        style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}
+      >
         <SearchBar
           userPlaces={allPlaces}
           onSelect={handleSearchSelect}
@@ -1398,7 +1453,15 @@ const HomePage = () => {
             onDirections={handlePlaceDirections}
             onSave={handlePlaceSaveFromPanel}
             onEdit={handlePlaceEdit}
-            onDelete={(placeId) => confirmDeletePlace(placeId, selectedPlace?.place_name_en || selectedPlace?.name || 'this place')}
+            onDelete={
+              canDeletePlace(selectedPlace, user)
+                ? (placeId) =>
+                    confirmDeletePlace(
+                      placeId,
+                      selectedPlace?.place_name_en || selectedPlace?.name || 'this place'
+                    )
+                : undefined
+            }
             currentUser={user}
             deletingId={deletingPlaceId}
             isSaved={allPlaces.some(
@@ -1901,8 +1964,8 @@ const HomePage = () => {
                           </button>
                         </div>
                       </div>
-                      {/* Delete button - only in Your contributions */}
-                      {showContributionsOnly && (
+                      {/* Delete — only for places this user created (or admin) */}
+                      {canDeletePlace(place, user) && (
                         <button
                           onClick={() => confirmDeletePlace(place.id, place.place_name_en || place.name || 'this place')}
                           disabled={deletingPlaceId === place.id}
