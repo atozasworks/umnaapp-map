@@ -1,4 +1,4 @@
-import 'dotenv/config' // Load .env first, before any module reads process.env
+import './loadEnv.js' // Load backend/.env regardless of process cwd
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
@@ -15,24 +15,40 @@ import atozasAuthRoutes from './routes/atozasAuthRoutes.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
+import adminRoutes from './routes/adminRoutes.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
 import prisma from './config/database.js'
+import { startPlaceApprovalScheduler } from './services/placeApproval.js'
+
+const defaultOrigins = [
+  process.env.FRONTEND_URL || 'http://localhost:3000',
+  process.env.ADMIN_URL || 'http://localhost:5174',
+].filter(Boolean)
+
+const corsOrigin =
+  process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean) || defaultOrigins
 
 const app = express()
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: corsOrigin.length === 1 ? corsOrigin[0] : corsOrigin,
     methods: ['GET', 'POST'],
     credentials: true,
   },
 })
 
 // Middleware
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true,
-}))
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true)
+      if (corsOrigin.includes(origin)) return callback(null, true)
+      callback(null, false)
+    },
+    credentials: true,
+  })
+)
 app.use(express.json({ limit: '5mb' }))
 app.use(express.urlencoded({ extended: true, limit: '5mb' }))
 app.use(passport.initialize())
@@ -43,11 +59,27 @@ app.use('/api', atozasAuthRoutes) // Atozas Auth Kit routes (/api/email/send-otp
 app.use('/api/test', testRoutes)
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
+app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'UMNAAPP API is running' })
 })
+
+// Admin panel at /admin: env, or ../admin/dist (repo), or ./admin/dist (common on server under backend/)
+const adminBuildPath = (() => {
+  if (process.env.ADMIN_BUILD_PATH) return process.env.ADMIN_BUILD_PATH
+  const sibling = path.join(__dirname, '../admin/dist')
+  if (fs.existsSync(sibling)) return sibling
+  const insideBackend = path.join(__dirname, 'admin/dist')
+  if (fs.existsSync(insideBackend)) return insideBackend
+  return path.join(__dirname, 'admin-dist')
+})()
+const adminIndexFile = path.join(adminBuildPath, 'index.html')
+console.log(
+  `📁 Admin UI: ${adminBuildPath} (exists: ${fs.existsSync(adminBuildPath)}, index.html: ${fs.existsSync(adminIndexFile)})`
+)
+app.use('/admin', express.static(adminBuildPath))
 
 // Serve frontend build (production: set FRONTEND_BUILD_PATH)
 const buildPath = process.env.FRONTEND_BUILD_PATH || 
@@ -66,9 +98,25 @@ const serveIndex = (req, res, next) => {
     }
   })
 }
+const serveAdminIndex = (req, res, next) => {
+  if (!fs.existsSync(adminIndexFile)) {
+    return res
+      .status(503)
+      .send('Admin build not found. Run: cd admin && npm run build (creates admin/dist), or set ADMIN_BUILD_PATH.')
+  }
+  res.sendFile(adminIndexFile, (err) => {
+    if (err) {
+      console.error('sendFile admin error:', err.message)
+      res.status(500).send('Failed to serve admin UI')
+    }
+  })
+}
 app.get('/', serveIndex)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next()
+  if (req.path === '/admin' || req.path.startsWith('/admin/')) {
+    return serveAdminIndex(req, res, next)
+  }
   serveIndex(req, res, next)
 })
 
@@ -226,6 +274,7 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000
 
 httpServer.listen(PORT, () => {
+  startPlaceApprovalScheduler()
   console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
   console.log(`📡 Socket.io server ready`)
 })

@@ -1,4 +1,5 @@
 import prisma from '../config/database.js'
+import { isPlaceDeleteAdmin } from '../utils/placeOwnership.js'
 import atozasAuth from '../config/atozasAuth.js'
 import { generateToken, createSession } from '../utils/jwt.js'
 import bcrypt from 'bcryptjs'
@@ -213,7 +214,14 @@ export const getCurrentUser = async (req, res) => {
       },
     })
 
-    res.json({ user })
+    res.json({
+      user: user
+        ? {
+            ...user,
+            isPlaceDeleteAdmin: isPlaceDeleteAdmin(user),
+          }
+        : null,
+    })
   } catch (error) {
     console.error('Get current user error:', error)
     res.status(500).json({ error: 'Failed to get user' })

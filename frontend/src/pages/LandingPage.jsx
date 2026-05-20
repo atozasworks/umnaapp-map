@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import AppLogo from '../components/AppLogo'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -19,9 +20,12 @@ const LandingPage = () => {
       <nav className="glass border-b border-white/20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <div className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
-              UMNAAPP
-            </div>
+            <Link to="/" className="flex items-center gap-2.5 min-w-0" aria-label="UMNAAPP home">
+              <AppLogo decorative imgClassName="h-8 w-auto max-h-10 object-contain flex-shrink-0" />
+              <span className="text-2xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent truncate">
+                UMNAAPP
+              </span>
+            </Link>
             <div className="flex gap-4">
               <Link to="/login" className="btn-secondary">
                 Login

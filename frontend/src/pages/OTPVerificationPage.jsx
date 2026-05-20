@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import AppLogo from '../components/AppLogo'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -133,8 +134,11 @@ const OTPVerificationPage = () => {
       <div className="w-full max-w-md">
         <div className="card">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent mb-2">
-              UMNAAPP
+            <h1 className="flex items-center justify-center gap-3 mb-3">
+              <AppLogo decorative imgClassName="h-10 w-auto max-h-12 object-contain flex-shrink-0" />
+              <span className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
+                UMNAAPP
+              </span>
             </h1>
             <h2 className="text-2xl font-semibold text-slate-800">Verify Your Email</h2>
             <p className="text-slate-600 mt-2">

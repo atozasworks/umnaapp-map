@@ -8,8 +8,31 @@ import { cacheMiddleware } from '../middleware/cache.js'
 import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import prisma from '../config/database.js'
 import { translateText, getLanguageFromAddress } from '../services/translateService.js'
+import {
+  autoApproveExpiredPendingPlaces,
+  placePublicVisibilityOr,
+  isPlaceVisibleToUser,
+  enrichPlaceApprovalMeta,
+  initialApprovalFields,
+} from '../services/placeApproval.js'
+import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
+import {
+  PlaceDuplicateIndex,
+  findPlaceDuplicate,
+  checkAgainstBatch,
+  rememberInBatch,
+  candidateFromPayload,
+  DUPLICATE_MESSAGES,
+} from '../utils/placeDuplicate.js'
+import { runAskMapsQuery } from '../services/groqAskMapsService.js'
+import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
+import { canUserDeletePlace } from '../utils/placeOwnership.js'
 
 const router = express.Router()
+
+function attachApprovalMeta(p) {
+  return enrichPlaceApprovalMeta(p)
+}
 
 const ROUTE_SERVICE_URL = process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in'
 const ROUTE_BASE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in').replace(/\/+$/, '') + '/map/route'
@@ -414,17 +437,24 @@ router.get(
         address: r.address ?? null,
       }))
 
-      // User-added places from database: search ALL users' places (not just current user)
+      // User-added places: approved for everyone; pending only for the contributor
       let dbResults = []
       if (prisma.place && q.length >= 2) {
         const searchTerm = q.trim()
         try {
+          await autoApproveExpiredPendingPlaces()
+          const viewerId = req.user.id
           const dbPlaces = await prisma.place.findMany({
             where: {
-              OR: [
-                { name: { contains: searchTerm, mode: 'insensitive' } },
-                { placeNameEn: { contains: searchTerm, mode: 'insensitive' } },
-                { category: { contains: searchTerm, mode: 'insensitive' } },
+              AND: [
+                placePublicVisibilityOr(viewerId),
+                {
+                  OR: [
+                    { name: { contains: searchTerm, mode: 'insensitive' } },
+                    { placeNameEn: { contains: searchTerm, mode: 'insensitive' } },
+                    { category: { contains: searchTerm, mode: 'insensitive' } },
+                  ],
+                },
               ],
             },
             take: 15,
@@ -572,6 +602,130 @@ const PLACE_CATEGORIES = [
   'Other',
 ]
 
+/** Map Google Places types (extract/search) to app category labels so map filters match. */
+const GOOGLE_PLACE_TYPE_TO_CATEGORY = {
+  restaurant: 'Restaurant',
+  meal_takeaway: 'Restaurant',
+  meal_delivery: 'Restaurant',
+  cafe: 'Restaurant',
+  bar: 'Restaurant',
+  bakery: 'Restaurant',
+  food: 'Restaurant',
+  night_club: 'Restaurant',
+  hospital: 'Hospital',
+  doctor: 'Hospital',
+  dentist: 'Hospital',
+  physiotherapist: 'Hospital',
+  veterinary_care: 'Hospital',
+  lodging: 'Hotel',
+  parking: 'Parking',
+  convenience_store: 'Grocery Store',
+  supermarket: 'Grocery Store',
+  grocery_or_supermarket: 'Grocery Store',
+  store: 'Shop',
+  shopping_mall: 'Shop',
+  clothing_store: 'Shop',
+  electronics_store: 'Shop',
+  furniture_store: 'Shop',
+  hardware_store: 'Shop',
+  home_goods_store: 'Shop',
+  jewelry_store: 'Shop',
+  shoe_store: 'Shop',
+  book_store: 'Shop',
+  florist: 'Shop',
+  school: 'School',
+  secondary_school: 'School',
+  primary_school: 'School',
+  university: 'School',
+  hindu_temple: 'Temple',
+  church: 'Temple',
+  mosque: 'Temple',
+  synagogue: 'Temple',
+  place_of_worship: 'Temple',
+  bank: 'Bank',
+  atm: 'ATM',
+  post_office: 'Post Office',
+  bus_station: 'Bus Stop',
+  bus_stop: 'Bus Stop',
+  subway_station: 'Transit',
+  train_station: 'Transit',
+  transit_station: 'Transit',
+  light_rail_station: 'Transit',
+  police: 'Police Station',
+  gas_station: 'Petrol Pump',
+  tourist_attraction: 'Tourist Place',
+  museum: 'Museum',
+  pharmacy: 'Pharmacy',
+  drugstore: 'Pharmacy',
+  movie_theater: 'Cinema',
+  gym: 'Gym',
+  beauty_salon: 'Salon',
+  hair_care: 'Salon',
+  spa: 'Salon',
+}
+
+function mapGoogleTypeToCategory(rawType) {
+  const type = String(rawType || '')
+    .toLowerCase()
+    .trim()
+  if (GOOGLE_PLACE_TYPE_TO_CATEGORY[type]) return GOOGLE_PLACE_TYPE_TO_CATEGORY[type]
+  if (PLACE_CATEGORIES.includes(String(rawType || '').trim())) return String(rawType).trim()
+  return 'Other'
+}
+
+function buildPlaceCreateRow(item, userId, userName, userEmail, options = {}) {
+  const lat = parseFloat(item.lat ?? item.latitude)
+  const lng = parseFloat(item.lng ?? item.longitude)
+  const name = String(item.name || item.place_name_en || '').trim()
+  const details = buildPlaceDetailFields(item, {
+    village: item.village,
+    taluk: item.taluk,
+    district: item.district,
+    state: item.state,
+    country: item.country,
+  })
+  const source = options.source || 'contribution'
+  const zoomLevel = parseFloat(item.zoomLevel ?? item.zoom_level ?? 15)
+
+  return {
+    name,
+    placeNameEn: name,
+    placeNameLocal: (item.place_name_local || '').trim() || null,
+    category: mapGoogleTypeToCategory(item.category || item.type || details.googleType),
+    latitude: lat,
+    longitude: lng,
+    zoomLevel: Number.isFinite(zoomLevel) ? zoomLevel : 15,
+    userId,
+    userName,
+    userEmail,
+    source: source === 'saved' ? 'saved' : 'contribution',
+    ...initialApprovalFields(),
+    ...details,
+  }
+}
+
+/**
+ * @route POST /api/map/places/check-duplicate
+ * @desc Check if a place already exists (Google ID, coordinates, name+address)
+ * @access Private
+ */
+router.post(
+  '/places/check-duplicate',
+  authenticateToken,
+  rateLimitMiddleware('places:check-dup', 120, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.place) return res.status(503).json({ error: 'Place model not available' })
+      const excludePlaceId = req.body.excludePlaceId || req.body.exclude_place_id || null
+      const dup = await findPlaceDuplicate(prisma, req.body, { excludePlaceId })
+      res.json(dup)
+    } catch (error) {
+      console.error('Check duplicate error:', error)
+      res.status(500).json({ error: 'Failed to check duplicate', message: error.message })
+    }
+  }
+)
+
 /**
  * @route POST /api/map/places
  * @desc Save a new place
@@ -614,25 +768,22 @@ router.post(
       const nameEn = (place_name_en || '').trim()
       const nameLocal = (place_name_local || '').trim() || null
 
-      // Prevent duplicates: same user, same coordinates (within ~11m at equator)
-      const duplicate = await prisma.place.findFirst({
-        where: {
-          userId,
-          latitude: { gte: latitude - 0.0001, lte: latitude + 0.0001 },
-          longitude: { gte: longitude - 0.0001, lte: longitude + 0.0001 },
-        },
-      })
-
-      if (duplicate) {
+      const dup = await findPlaceDuplicate(prisma, req.body)
+      if (dup.duplicate) {
         return res.status(409).json({
           error: 'Duplicate place',
-          message: 'A place already exists at this location.',
+          reason: dup.reason,
+          message: dup.message,
+          existingPlaceId: dup.existingPlaceId,
+          existingPlaceName: dup.existingPlaceName,
         })
       }
 
+      const isSaved = source === 'saved'
+      const detailFields = buildPlaceDetailFields(req.body)
       const place = await prisma.place.create({
         data: {
-          name: nameEn, // legacy field = place_name_en
+          name: nameEn,
           placeNameEn: nameEn,
           placeNameLocal: nameLocal,
           category,
@@ -642,25 +793,13 @@ router.post(
           userId,
           userName,
           userEmail,
-          source: source === 'saved' ? 'saved' : 'contribution',
+          source: isSaved ? 'saved' : 'contribution',
+          ...initialApprovalFields(),
+          ...detailFields,
         },
       })
 
-      res.status(201).json({
-        id: place.id,
-        name: place.placeNameEn ?? place.name,
-        place_name_en: place.placeNameEn ?? place.name,
-        place_name_local: place.placeNameLocal,
-        category: place.category,
-        latitude: place.latitude,
-        longitude: place.longitude,
-        zoomLevel: place.zoomLevel,
-        source: place.source ?? 'contribution',
-        userId: place.userId,
-        user_name: place.userName,
-        user_email: place.userEmail,
-        createdAt: place.createdAt,
-      })
+      res.status(201).json(attachApprovalMeta(serializePlace(place)))
     } catch (error) {
       console.error('Save place error:', error)
       res.status(500).json({ error: 'Failed to save place', message: error.message })
@@ -670,7 +809,7 @@ router.post(
 
 /**
  * @route GET /api/map/places
- * @desc List places for the current user
+ * @desc Places visible on the map: all approved + current user's pending/rejected
  * @access Private
  */
 router.get(
@@ -698,21 +837,176 @@ router.get(
         return res.status(400).json({ errors: errors.array() })
       }
 
+      await autoApproveExpiredPendingPlaces()
+      const viewerId = req.user.id
+
       const selectedCategories = String(req.query.categories || '')
         .split(',')
         .map((category) => category.trim())
         .filter(Boolean)
 
-      const where = {
-        userId: req.user.id,
-        ...(selectedCategories.length > 0
-          ? { category: { in: selectedCategories } }
-          : {}),
+      const categoryFilter =
+        selectedCategories.length > 0 ? { category: { in: selectedCategories } } : {}
+
+      const visibilityWhere = {
+        AND: [placePublicVisibilityOr(viewerId), categoryFilter],
       }
 
-      // Only return places belonging to this user (filter by userId; each user sees only their own)
       const places = await prisma.place.findMany({
-        where,
+        where: visibilityWhere,
+        orderBy: { createdAt: 'desc' },
+        take: 5000,
+        select: {
+          id: true,
+          name: true,
+          placeNameEn: true,
+          placeNameLocal: true,
+          category: true,
+          latitude: true,
+          longitude: true,
+          zoomLevel: true,
+          mapRenderingConfig: true,
+          source: true,
+          userId: true,
+          userName: true,
+          userEmail: true,
+          createdAt: true,
+          approvalStatus: true,
+          approvedAt: true,
+          autoApproveAt: true,
+        },
+      })
+
+      const categoryCounts = await prisma.place.groupBy({
+        by: ['category'],
+        where: placePublicVisibilityOr(viewerId),
+        _count: { category: true },
+        orderBy: { category: 'asc' },
+      })
+
+      const normalized = places.map((p) =>
+        attachApprovalMeta({
+          ...p,
+          name: p.placeNameEn ?? p.name,
+          place_name_en: p.placeNameEn ?? p.name,
+          place_name_local: p.placeNameLocal,
+          map_rendering_config: p.mapRenderingConfig,
+          user_name: p.userName,
+          user_email: p.userEmail,
+        })
+      )
+      res.json({
+        places: normalized,
+        selectedCategories,
+        availableCategories: categoryCounts.map((item) => ({
+          category: item.category,
+          count: item._count.category,
+        })),
+      })
+    } catch (error) {
+      console.error('List places error:', error)
+      res.status(500).json({ error: 'Failed to fetch places', message: error.message })
+    }
+  }
+)
+
+/** Ray-cast point-in-polygon; ring = closed or open GeoJSON ring [lng,lat][] */
+function pointInRing(lng, lat, ring) {
+  if (!Array.isArray(ring) || ring.length < 3) return false
+  const r = ring[0][0] === ring[ring.length - 1][0] && ring[0][1] === ring[ring.length - 1][1]
+    ? ring.slice(0, -1)
+    : ring
+  let inside = false
+  for (let i = 0, j = r.length - 1; i < r.length; j = i++) {
+    const xi = r[i][0]
+    const yi = r[i][1]
+    const xj = r[j][0]
+    const yj = r[j][1]
+    const denom = yj - yi || 1e-12
+    const intersect = (yi > lat) !== (yj > lat) && lng < ((xj - xi) * (lat - yi)) / denom + xi
+    if (intersect) inside = !inside
+  }
+  return inside
+}
+
+function normalizePolygonBodyRing(coordinates) {
+  if (!Array.isArray(coordinates) || coordinates.length === 0) return null
+  const outer = coordinates[0]
+  if (!Array.isArray(outer) || outer.length < 3) return null
+  const cleaned = outer
+    .map((pt) => {
+      if (!Array.isArray(pt) || pt.length < 2) return null
+      const lng = Number(pt[0])
+      const lat = Number(pt[1])
+      if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null
+      if (lng < -180 || lng > 180 || lat < -90 || lat > 90) return null
+      return [lng, lat]
+    })
+    .filter(Boolean)
+  if (cleaned.length < 3) return null
+  const first = cleaned[0]
+  const last = cleaned[cleaned.length - 1]
+  const closed = first[0] === last[0] && first[1] === last[1]
+  const ring = closed ? cleaned : [...cleaned, [...first]]
+  if (ring.length > 601) return null
+  return ring
+}
+
+/**
+ * @route POST /api/map/places/in-polygon
+ * @desc Public places (approved + own pending) inside a GeoJSON polygon ring, optional category
+ * @access Private
+ */
+router.post(
+  '/places/in-polygon',
+  authenticateToken,
+  rateLimitMiddleware('places:in-polygon', 30, 60),
+  [
+    body('polygon').isObject().withMessage('polygon GeoJSON object required'),
+    body('polygon.type').equals('Polygon').withMessage('polygon.type must be Polygon'),
+    body('polygon.coordinates').isArray({ min: 1 }).withMessage('polygon.coordinates required'),
+    body('category').optional().trim().isLength({ min: 1, max: 80 }),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const ring = normalizePolygonBodyRing(req.body.polygon.coordinates)
+      if (!ring) {
+        return res.status(400).json({ error: 'Invalid polygon coordinates' })
+      }
+
+      const lats = ring.map((c) => c[1])
+      const lngs = ring.map((c) => c[0])
+      const minLat = Math.min(...lats)
+      const maxLat = Math.max(...lats)
+      const minLng = Math.min(...lngs)
+      const maxLng = Math.max(...lngs)
+
+      const categoryRaw = String(req.body.category || '').trim()
+      const categoryFilter = categoryRaw
+        ? { category: { equals: categoryRaw, mode: 'insensitive' } }
+        : {}
+
+      await autoApproveExpiredPendingPlaces()
+      const viewerId = req.user.id
+
+      const candidates = await prisma.place.findMany({
+        where: {
+          AND: [
+            placePublicVisibilityOr(viewerId),
+            { latitude: { gte: minLat, lte: maxLat } },
+            { longitude: { gte: minLng, lte: maxLng } },
+            categoryFilter,
+          ],
+        },
+        take: 2500,
         orderBy: { createdAt: 'desc' },
         select: {
           id: true,
@@ -728,36 +1022,30 @@ router.get(
           userName: true,
           userEmail: true,
           createdAt: true,
+          approvalStatus: true,
+          approvedAt: true,
         },
       })
 
-      const categoryCounts = await prisma.place.groupBy({
-        by: ['category'],
-        where: { userId: req.user.id },
-        _count: { category: true },
-        orderBy: { category: 'asc' },
-      })
+      const inside = candidates.filter((p) =>
+        pointInRing(p.longitude, p.latitude, ring)
+      )
 
-      // Normalize for API: name = place_name_en for backward compat
-      const normalized = places.map((p) => ({
-        ...p,
-        name: p.placeNameEn ?? p.name,
-        place_name_en: p.placeNameEn ?? p.name,
-        place_name_local: p.placeNameLocal,
-        user_name: p.userName,
-        user_email: p.userEmail,
-      }))
-      res.json({
-        places: normalized,
-        selectedCategories,
-        availableCategories: categoryCounts.map((item) => ({
-          category: item.category,
-          count: item._count.category,
-        })),
-      })
+      const normalized = inside.map((p) =>
+        attachApprovalMeta({
+          ...p,
+          name: p.placeNameEn ?? p.name,
+          place_name_en: p.placeNameEn ?? p.name,
+          place_name_local: p.placeNameLocal,
+          user_name: p.userName,
+          user_email: p.userEmail,
+        })
+      )
+
+      res.json({ places: normalized, count: normalized.length })
     } catch (error) {
-      console.error('List places error:', error)
-      res.status(500).json({ error: 'Failed to fetch places', message: error.message })
+      console.error('In-polygon places error:', error)
+      res.status(500).json({ error: 'Failed to fetch places in area', message: error.message })
     }
   }
 )
@@ -777,6 +1065,8 @@ router.post(
     body('places.*.lat').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude required'),
     body('places.*.lng').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
     body('places.*.type').optional().trim().isLength({ max: 100 }),
+    body('places.*.place_id').optional().trim().isLength({ max: 255 }),
+    body('places.*.zoomLevel').optional().isFloat({ min: 0, max: 22 }),
   ],
   async (req, res) => {
     try {
@@ -794,82 +1084,58 @@ router.post(
       const userName = req.user.name || null
       const userEmail = req.user.email || null
 
-      // Fetch existing places for this user to check duplicates by coordinates
-      const existing = await prisma.place.findMany({
-        where: { userId },
-        select: { latitude: true, longitude: true },
-      })
-
-      const isDuplicate = (lat, lng) =>
-        existing.some(
-          (p) => Math.abs(p.latitude - lat) < 0.0001 && Math.abs(p.longitude - lng) < 0.0001
-        )
-
-      const toCreate = []
+      const dupIndex = await PlaceDuplicateIndex.load(prisma)
+      const batchSeen = []
+      const created = []
       const skipped = []
 
       for (const item of incoming) {
-        const lat = parseFloat(item.lat)
-        const lng = parseFloat(item.lng)
         const name = (item.name || '').trim()
-        if (!name || isNaN(lat) || isNaN(lng)) {
-          skipped.push({ name, reason: 'invalid' })
+        const candidate = candidateFromPayload(item)
+        if (!name || !Number.isFinite(candidate.lat) || !Number.isFinite(candidate.lng)) {
+          skipped.push({ name, reason: 'invalid', message: DUPLICATE_MESSAGES.invalid })
           continue
         }
-        if (isDuplicate(lat, lng)) {
-          skipped.push({ name, reason: 'duplicate' })
+
+        const dbDup = dupIndex.check(candidate)
+        if (dbDup.duplicate) {
+          skipped.push({ name, reason: dbDup.reason, message: dbDup.message })
           continue
         }
-        // Also deduplicate within the batch itself
-        if (toCreate.some((c) => Math.abs(c.latitude - lat) < 0.0001 && Math.abs(c.longitude - lng) < 0.0001)) {
-          skipped.push({ name, reason: 'duplicate_in_batch' })
+
+        const batchDup = checkAgainstBatch(batchSeen, candidate)
+        if (batchDup.duplicate) {
+          skipped.push({ name, reason: batchDup.reason, message: batchDup.message })
           continue
         }
-        toCreate.push({
-          name,
-          placeNameEn: name,
-          placeNameLocal: null,
-          category: item.type || 'Other',
-          latitude: lat,
-          longitude: lng,
-          zoomLevel: 15,
-          userId,
-          userName,
-          userEmail,
-          source: 'contribution',
-        })
-      }
 
-      let created = []
-      if (toCreate.length > 0) {
-        // Use createMany for efficiency, then fetch created records
-        await prisma.place.createMany({ data: toCreate, skipDuplicates: true })
-
-        // Fetch back the newly created places for this user
-        created = await prisma.place.findMany({
-          where: { userId },
-          orderBy: { createdAt: 'desc' },
-          take: toCreate.length,
-          select: {
-            id: true, name: true, placeNameEn: true, placeNameLocal: true,
-            category: true, latitude: true, longitude: true, zoomLevel: true,
-            source: true, userId: true, userName: true, userEmail: true, createdAt: true,
-          },
-        })
-
-        created = created.map((p) => ({
-          ...p,
-          name: p.placeNameEn ?? p.name,
-          place_name_en: p.placeNameEn ?? p.name,
-          place_name_local: p.placeNameLocal,
-          user_name: p.userName,
-          user_email: p.userEmail,
-        }))
+        try {
+          const row = buildPlaceCreateRow(item, userId, userName, userEmail)
+          const place = await prisma.place.create({ data: row })
+          dupIndex.byGoogleId.set(place.googlePlaceId, place)
+          dupIndex.coordRows.push({ row: place, lat: place.latitude, lng: place.longitude })
+          if (candidate.nameKey && candidate.addressKey) {
+            dupIndex.nameAddress.set(`${candidate.nameKey}|${candidate.addressKey}`, place)
+          }
+          rememberInBatch(batchSeen, candidate)
+          created.push(attachApprovalMeta(serializePlace(place)))
+        } catch (err) {
+          if (err.code === 'P2002') {
+            skipped.push({
+              name,
+              reason: 'google_place_id',
+              message: DUPLICATE_MESSAGES.google_place_id,
+            })
+          } else {
+            throw err
+          }
+        }
       }
 
       res.status(201).json({
         added: created.length,
         skipped: skipped.length,
+        skippedDetails: skipped,
         places: created,
       })
     } catch (error) {
@@ -899,14 +1165,17 @@ router.delete(
         return res.status(400).json({ error: 'Place ID required' })
       }
 
-      // Verify the place belongs to the authenticated user before deleting
-      const place = await prisma.place.findFirst({
-        where: { id: id.trim(), userId: req.user.id },
-        select: { id: true },
+      const place = await prisma.place.findUnique({
+        where: { id: id.trim() },
+        select: { id: true, userId: true },
       })
 
       if (!place) {
-        return res.status(404).json({ error: 'Place not found or not authorized' })
+        return res.status(404).json({ error: 'Place not found' })
+      }
+
+      if (!canUserDeletePlace(place, req.user)) {
+        return res.status(403).json({ error: 'Not authorized to delete this place' })
       }
 
       await prisma.place.delete({ where: { id: id.trim() } })
@@ -931,22 +1200,16 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
+      await autoApproveExpiredPendingPlaces()
       const place = await prisma.place.findUnique({
         where: { id },
-        select: {
-          id: true, name: true, placeNameEn: true, placeNameLocal: true,
-          category: true, latitude: true, longitude: true, zoomLevel: true,
-          source: true, userId: true, userName: true, userEmail: true, createdAt: true,
-        },
+        select: PLACE_DETAIL_SELECT,
       })
       if (!place) return res.status(404).json({ error: 'Place not found' })
-      res.json({
-        ...place,
-        name: place.placeNameEn ?? place.name,
-        place_name_en: place.placeNameEn ?? place.name,
-        place_name_local: place.placeNameLocal,
-        user_name: place.userName,
-      })
+      if (!isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+      res.json(attachApprovalMeta(serializePlace(place)))
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch place', message: error.message })
     }
@@ -965,15 +1228,27 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
-      const place = await prisma.place.findUnique({ where: { id }, select: { latitude: true, longitude: true, category: true } })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id },
+        select: { latitude: true, longitude: true, category: true, userId: true, approvalStatus: true },
+      })
       if (!place) return res.status(404).json({ error: 'Place not found' })
+      if (!isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
 
       const delta = 0.018 // ~2km
       const nearby = await prisma.place.findMany({
         where: {
-          id: { not: id },
-          latitude:  { gte: place.latitude  - delta, lte: place.latitude  + delta },
-          longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
+          AND: [
+            placePublicVisibilityOr(req.user.id),
+            {
+              id: { not: id },
+              latitude: { gte: place.latitude - delta, lte: place.latitude + delta },
+              longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
+            },
+          ],
         },
         take: 8,
         orderBy: { createdAt: 'desc' },
@@ -998,6 +1273,14 @@ router.get(
   async (req, res) => {
     try {
       if (!prisma.placeReview) return res.json({ reviews: [], avgRating: null })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
       const reviews = await prisma.placeReview.findMany({
         where: { placeId: req.params.id },
         orderBy: { createdAt: 'desc' },
@@ -1032,8 +1315,14 @@ router.post(
 
       const { id: placeId } = req.params
       const { rating, comment } = req.body
-      const place = await prisma.place.findUnique({ where: { id: placeId }, select: { id: true } })
-      if (!place) return res.status(404).json({ error: 'Place not found' })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: placeId },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
 
       const review = await prisma.placeReview.upsert({
         where: { placeId_userId: { placeId, userId: req.user.id } },
@@ -1085,6 +1374,14 @@ router.get(
   async (req, res) => {
     try {
       if (!prisma.placePhoto) return res.json({ photos: [] })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
       const photos = await prisma.placePhoto.findMany({
         where: { placeId: req.params.id },
         orderBy: { createdAt: 'desc' },
@@ -1116,8 +1413,14 @@ router.post(
       const errors = validationResult(req)
       if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
 
-      const place = await prisma.place.findUnique({ where: { id: req.params.id }, select: { id: true } })
-      if (!place) return res.status(404).json({ error: 'Place not found' })
+      await autoApproveExpiredPendingPlaces()
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
 
       // Limit 10 photos per place per user
       const count = await prisma.placePhoto.count({ where: { placeId: req.params.id, userId: req.user.id } })
@@ -1160,6 +1463,46 @@ router.delete(
 )
 
 /**
+ * @route POST /api/map/ask
+ * @desc Natural-language place search (Groq intent + DB results)
+ * @access Private
+ */
+router.post(
+  '/ask',
+  authenticateToken,
+  rateLimitMiddleware('map:ask', 40, 60),
+  [
+    body('query').trim().isLength({ min: 2, max: 500 }).withMessage('Query must be 2–500 characters'),
+    body('lat').optional().isFloat({ min: -90, max: 90 }),
+    body('lng').optional().isFloat({ min: -180, max: 180 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const { query, lat, lng } = req.body
+      const userLat = lat != null ? parseFloat(lat) : null
+      const userLng = lng != null ? parseFloat(lng) : null
+
+      const result = await runAskMapsQuery({
+        query,
+        userLat: Number.isFinite(userLat) ? userLat : null,
+        userLng: Number.isFinite(userLng) ? userLng : null,
+        viewerId: req.user.id,
+      })
+
+      res.json(result)
+    } catch (error) {
+      console.error('Ask Maps error:', error)
+      res.status(500).json({ error: 'Ask Maps failed', message: error.message })
+    }
+  }
+)
+
+/**
  * @route GET /api/map/config
  * @desc Return public client-side config (Google Maps API key)
  * @access Private
@@ -1167,6 +1510,7 @@ router.delete(
 router.get('/config', authenticateToken, (req, res) => {
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
+    placesQuota: getPlacesQuotaConfig(),
   })
 })
 

@@ -1,13 +1,27 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useTranslate, useLanguage, getAllLanguages } from 'atozas-traslate'
 import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
+import MapContextMenu from '../components/MapContextMenu'
+import MeasureDistancePanel from '../components/MeasureDistancePanel'
+import AskMapsPanel from '../components/AskMapsPanel'
 import SearchBar from '../components/SearchBar'
 import RoutePanel from '../components/RoutePanel'
 import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
 import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
 import PlaceDetailPanel from '../components/PlaceDetailPanel'
 import PlaceExtractPanel from '../components/PlaceExtractPanel'
+import DuplicatePlaceModal, { buildDuplicatePopupPayload } from '../components/DuplicatePlaceModal'
+import PlaceAddedSuccessModal, { buildPlaceAddedPayload } from '../components/PlaceAddedSuccessModal'
+import PolygonExplorePanel from '../components/PolygonExplorePanel'
+import TranslatedLabel from '../components/TranslatedLabel'
+import AppLogo from '../components/AppLogo'
 import api from '../services/api'
+import {
+  extractMapRenderingConfig,
+  withMapRenderingConfig,
+} from '../utils/mapRenderingConfig'
+import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
 
 const MAX_AVATAR_SIZE = 200
 
@@ -44,7 +58,7 @@ const resizeImageToDataUrl = (file, maxSize = MAX_AVATAR_SIZE) =>
 // Filter places to only those owned by the current user (by userId; each user sees only their own)
 const filterPlacesByUser = (placesList, currentUser) => {
   if (!currentUser) return []
-  return placesList.filter((p) => p.userId === currentUser.id)
+  return placesList.filter((p) => isPlaceOwner(p, currentUser))
 }
 
 const normalizeCategory = (category) => {
@@ -52,9 +66,13 @@ const normalizeCategory = (category) => {
   return value || 'Other'
 }
 
-const placeMatchesCategories = (place, selectedCategories) => (
-  selectedCategories.length === 0 || selectedCategories.includes(normalizeCategory(place.category))
-)
+const categoryKey = (c) => normalizeCategory(c).toLowerCase()
+
+const placeMatchesCategories = (place, selectedCategories) => {
+  if (selectedCategories.length === 0) return true
+  const cat = categoryKey(place.category)
+  return selectedCategories.some((s) => categoryKey(s) === cat)
+}
 
 const buildCategoryOptions = (placesList) => {
   const counts = new Map()
@@ -75,12 +93,28 @@ const buildCategoryOptions = (placesList) => {
   return [...prioritized, ...extras]
 }
 
+/** Pin colors for SearchBar category chips (hotels, ATM, …) — Google-style hues */
+const SEARCH_CHIP_MARKER_COLORS = {
+  restaurants: '#EA4335',
+  hotels: '#F59E0B',
+  museums: '#14B8A6',
+  transit: '#2563EB',
+  pharmacies: '#10B981',
+  atm: '#15803D',
+}
+
+const MAX_CATEGORY_EXPLORE_RESULTS = 50
+
 const HomePage = () => {
-  const { user, logout, updateProfilePicture } = useAuth()
+  const { language, setLanguage } = useLanguage()
+  const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
+  const [showAskMapsPanel, setShowAskMapsPanel] = useState(false)
+  const [askMapsPlaces, setAskMapsPlaces] = useState([])
   const [currentLocation, setCurrentLocation] = useState(null)
   const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
+  const [addPlaceExcludeId, setAddPlaceExcludeId] = useState(null)
   const [showAddPlaceMethodModal, setShowAddPlaceMethodModal] = useState(false)
   const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
   const [mapLocation, setMapLocation] = useState(null)
@@ -102,68 +136,261 @@ const HomePage = () => {
   const [uploadingPicture, setUploadingPicture] = useState(false)
   const [selectedPlace, setSelectedPlace] = useState(null)
   const [routePanelEndPlace, setRoutePanelEndPlace] = useState(null)
+  const [routePanelStartPlace, setRoutePanelStartPlace] = useState(null)
+  const [mapContextMenu, setMapContextMenu] = useState(null)
+  const [measureDistanceActive, setMeasureDistanceActive] = useState(false)
+  const [measureStats, setMeasureStats] = useState({ totalMeters: 0, pointCount: 0 })
   const profileFileInputRef = useRef(null)
   const [toast, setToast] = useState(null)
   const [confirmModal, setConfirmModal] = useState(null)
+  const [duplicatePopup, setDuplicatePopup] = useState(null)
+  const [successPopup, setSuccessPopup] = useState(null)
   const [shareModal, setShareModal] = useState(null)
   const [showExtractPanel, setShowExtractPanel] = useState(false)
+  const [showLanguageModal, setShowLanguageModal] = useState(false)
+  const [pendingLanguage, setPendingLanguage] = useState('en')
+  const [categoryExplorePlaces, setCategoryExplorePlaces] = useState([])
+  const [mapReadyTick, setMapReadyTick] = useState(0)
+  const exploreCategoryRef = useRef(null)
+  const exploreMoveDebounceRef = useRef(null)
+  const hasInitialAutoCenterRef = useRef(false)
+  const [polygonOverlayPlaces, setPolygonOverlayPlaces] = useState([])
+  const [polygonMapInteraction, setPolygonMapInteraction] = useState(false)
+
+  const menuShowSidebar = useTranslate('Show side bar')
+  const menuSaved = useTranslate('Saved')
+  const menuRecents = useTranslate('Recents')
+  const menuYourContributions = useTranslate('Your contributions')
+  const menuLocationSharing = useTranslate('Location sharing')
+  const menuPrint = useTranslate('Print')
+  const menuAddMissingPlace = useTranslate('Add a missing place')
+  const menuExtractPlaces = useTranslate('Extract Places')
+  const menuLanguage = useTranslate('Language')
+  const menuLogout = useTranslate('Logout')
+  const menuTapPhotoHint = useTranslate('Tap photo to change')
+  const languageModalTitle = useTranslate('App language')
+  const languageModalHint = useTranslate(
+    'Pick a language, then tap Apply. Menu and labels update after a short load.'
+  )
+  const applyButtonLabel = useTranslate('Apply')
+  const navAppTitle = useTranslate('UMNAAPP')
+  const navAddPlace = useTranslate('Add Place')
+  const navAddPlaceTitle = useTranslate('Add a new place')
+  const navMenuAria = useTranslate('Menu')
+  const filterAll = useTranslate('All')
+  const filterLoading = useTranslate('Loading filtered places...')
+  const filterEmpty = useTranslate('No places found for the selected categories.')
+  const filterResults = useTranslate('Results')
+  const filterPlacesCount = useTranslate('places')
+  const ariaClose = useTranslate('Close')
+  const myPlacesViewOnMap = useTranslate('View on map')
+  const menuAreaExplore = useTranslate('Area explore (draw)')
+  const menuAskMaps = useTranslate('Ask Maps')
+
+  const allLanguages = useMemo(() => getAllLanguages(), [])
+
+  const closeMapContextMenu = useCallback(() => {
+    setMapContextMenu(null)
+  }, [])
+
+  useEffect(() => {
+    if (showLanguageModal) {
+      setPendingLanguage(language)
+    }
+  }, [showLanguageModal, language])
+
+  useEffect(() => {
+    if (!measureDistanceActive) return undefined
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        setMeasureDistanceActive(false)
+        mapRef.current?.clearMeasureDistance?.()
+        setMeasureStats({ totalMeters: 0, pointCount: 0 })
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [measureDistanceActive])
+
+  const handleMeasureClear = () => {
+    mapRef.current?.clearMeasureDistance?.()
+    setMeasureStats({ totalMeters: 0, pointCount: 0 })
+  }
+
+  const handleMeasureClose = () => {
+    setMeasureDistanceActive(false)
+    mapRef.current?.clearMeasureDistance?.()
+    setMeasureStats({ totalMeters: 0, pointCount: 0 })
+  }
+
+  useEffect(() => {
+    const map = mapRef.current?.getMap?.()
+    if (!map || !mapContextMenu) return undefined
+    const close = () => closeMapContextMenu()
+    map.on('movestart', close)
+    map.on('zoomstart', close)
+    return () => {
+      map.off('movestart', close)
+      map.off('zoomstart', close)
+    }
+  }, [mapContextMenu, closeMapContextMenu, mapReadyTick])
+
+  const fetchCategoryExplorePlaces = useCallback(async (cat) => {
+    if (!cat?.query) {
+      setCategoryExplorePlaces([])
+      return
+    }
+    const map = mapRef.current?.getMap?.()
+    if (!map) return
+    const center = map.getCenter()
+    const bounds = map.getBounds()
+    const q = `${cat.query} near ${center.lat.toFixed(4)},${center.lng.toFixed(4)}`
+    try {
+      const { data } = await api.get('/map/search-simple', { params: { q } })
+      const raw = Array.isArray(data.results) ? data.results : []
+      const valid = raw.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
+      const inView = valid.filter((r) => bounds.contains([r.lng, r.lat]))
+      const pool = inView.length > 0 ? inView : valid
+      const color = SEARCH_CHIP_MARKER_COLORS[cat.id] || '#EA4335'
+      setCategoryExplorePlaces(
+        pool.slice(0, MAX_CATEGORY_EXPLORE_RESULTS).map((r) => ({ ...r, markerColor: color }))
+      )
+    } catch (err) {
+      console.warn('Category explore search failed:', err)
+      setCategoryExplorePlaces([])
+    }
+  }, [])
+
+  const handleCategoryExploreChange = useCallback(
+    (cat) => {
+      exploreCategoryRef.current = cat && !cat.isAction ? cat : null
+      if (!cat?.query) {
+        setCategoryExplorePlaces([])
+        return
+      }
+      setAskMapsPlaces([])
+      fetchCategoryExplorePlaces(cat)
+    },
+    [fetchCategoryExplorePlaces]
+  )
+
+  useEffect(() => {
+    if (mapReadyTick === 0) return
+    const map = mapRef.current?.getMap?.()
+    if (!map) return
+
+    const onMoveEnd = () => {
+      const cat = exploreCategoryRef.current
+      if (!cat?.query) return
+      if (exploreMoveDebounceRef.current) clearTimeout(exploreMoveDebounceRef.current)
+      exploreMoveDebounceRef.current = setTimeout(() => {
+        fetchCategoryExplorePlaces(cat)
+      }, 500)
+    }
+
+    map.on('moveend', onMoveEnd)
+    return () => {
+      map.off('moveend', onMoveEnd)
+      if (exploreMoveDebounceRef.current) clearTimeout(exploreMoveDebounceRef.current)
+    }
+  }, [mapReadyTick, fetchCategoryExplorePlaces])
+
+  // First GPS fix: center on user once — but not if they already have saved places (map fits to those pins).
+  useEffect(() => {
+    if (mapReadyTick === 0) return
+    if (hasInitialAutoCenterRef.current) return
+    if (allPlaces.length > 0) {
+      hasInitialAutoCenterRef.current = true
+      return
+    }
+    if (!Number.isFinite(currentLocation?.lat) || !Number.isFinite(currentLocation?.lng)) return
+    if (!mapRef.current?.flyTo) return
+    const map = mapRef.current?.getMap?.()
+    const center = map?.getCenter?.()
+    if (center) {
+      const isAlreadyCentered =
+        Math.abs(center.lat - currentLocation.lat) < 0.0002
+        && Math.abs(center.lng - currentLocation.lng) < 0.0002
+      if (isAlreadyCentered) {
+        hasInitialAutoCenterRef.current = true
+        return
+      }
+    }
+
+    hasInitialAutoCenterRef.current = true
+    mapRef.current.flyTo({
+      center: [currentLocation.lng, currentLocation.lat],
+      zoom: 16,
+      duration: 900,
+    })
+  }, [mapReadyTick, currentLocation, allPlaces.length])
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
   }
 
+  const showDuplicatePopup = useCallback((dup, placeName = '') => {
+    const payload = buildDuplicatePopupPayload(dup, placeName)
+    if (payload) setDuplicatePopup(payload)
+  }, [])
+
+  const showPlaceAddedPopup = useCallback((places, opts = {}) => {
+    const payload = buildPlaceAddedPayload(places, opts)
+    if (payload) setSuccessPopup(payload)
+  }, [])
+
+  const flyToExistingPlace = useCallback(
+    (placeId) => {
+      if (!placeId) return
+      const existing = allPlaces.find((p) => String(p.id) === String(placeId))
+      if (existing && mapRef.current?.flyTo) {
+        mapRef.current.flyTo({
+          center: [existing.longitude, existing.latitude],
+          zoom: existing.zoomLevel || 15,
+          duration: 800,
+        })
+      }
+    },
+    [allPlaces]
+  )
+
   useEffect(() => {
     setAvailableCategories(buildCategoryOptions(allPlaces))
   }, [allPlaces])
 
-  useEffect(() => {
-    const fetchAllPlaces = async () => {
-      try {
-        const { data } = await api.get('/map/places')
-        setAllPlaces(data.places || [])
-      } catch (err) {
-        console.error('Failed to fetch places:', err)
-      }
+  const refreshPlacesFromDb = useCallback(async () => {
+    try {
+      const { data } = await api.get('/map/places')
+      setAllPlaces(Array.isArray(data.places) ? data.places : [])
+    } catch (err) {
+      console.error('Failed to fetch places:', err)
     }
-    fetchAllPlaces()
   }, [])
 
+  // Load saved places from DB when session is valid; clear when logged out
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setAllPlaces([])
+      return
+    }
+    refreshPlacesFromDb()
+  }, [isAuthenticated, refreshPlacesFromDb])
+
+  const handleMapReady = useCallback(() => {
+    setMapReadyTick((t) => t + 1)
+    if (isAuthenticated) refreshPlacesFromDb()
+  }, [isAuthenticated, refreshPlacesFromDb])
+
+  // Derive map markers from allPlaces only so newly added places always appear once categories align
+  // (avoids overwriting visiblePlaces after bulk add / extract).
   useEffect(() => {
     if (selectedCategories.length === 0) {
       setVisiblePlaces(allPlaces)
-      setLoadingCategoryPlaces(false)
-      return
+    } else {
+      setVisiblePlaces(allPlaces.filter((place) => placeMatchesCategories(place, selectedCategories)))
     }
-
-    let active = true
-    const localFiltered = allPlaces.filter((place) => placeMatchesCategories(place, selectedCategories))
-    setVisiblePlaces(localFiltered)
-    setLoadingCategoryPlaces(true)
-
-    api.get('/map/places', {
-      params: { categories: selectedCategories.join(',') },
-    })
-      .then(({ data }) => {
-        if (!active) return
-        const serverPlaces = Array.isArray(data.places) ? data.places : []
-        const filteredServerPlaces = serverPlaces.filter((place) => placeMatchesCategories(place, selectedCategories))
-        setVisiblePlaces(filteredServerPlaces)
-      })
-      .catch((err) => {
-        if (!active) return
-        console.error('Failed to fetch filtered places:', err)
-        setVisiblePlaces(localFiltered)
-      })
-      .finally(() => {
-        if (active) {
-          setLoadingCategoryPlaces(false)
-        }
-      })
-
-    return () => {
-      active = false
-    }
+    setLoadingCategoryPlaces(false)
   }, [allPlaces, selectedCategories])
 
   const toggleCategoryFilter = (category) => {
@@ -179,16 +406,43 @@ const HomePage = () => {
     setSelectedCategories([])
   }
 
+  const openPlaceDetail = useCallback(
+    async (place, { fly = true } = {}) => {
+      if (!place) return
+      closeMapContextMenu()
+      const isDb = (id) => id && /^[0-9a-f-]{36}$/.test(String(id))
+      const apply = (p) => {
+        const id = p?.id ?? p?.placeId
+        setSelectedPlace({
+          ...p,
+          id: id ?? p?.id,
+          _isDbPlace: isDb(id),
+        })
+        if (fly && mapRef.current?.flyTo && p?.latitude != null && p?.longitude != null) {
+          mapRef.current.flyTo({
+            center: [p.longitude, p.latitude],
+            zoom: Math.max(14, p.zoomLevel || 14),
+            duration: 600,
+          })
+        }
+      }
+      apply(place)
+      const placeId = place.id ?? place.placeId
+      if (!isDb(placeId)) return
+      const cached = allPlaces.find((p) => String(p.id) === String(placeId))
+      if (cached) apply(cached)
+      try {
+        const { data } = await api.get(`/map/places/${placeId}`)
+        apply(data)
+      } catch {
+        /* keep cached / marker data */
+      }
+    },
+    [allPlaces, closeMapContextMenu]
+  )
+
   const focusPlaceFromResults = (place) => {
-    if (!place) return
-    setSelectedPlace({ ...place, _isDbPlace: true })
-    if (mapRef.current?.flyTo) {
-      mapRef.current.flyTo({
-        center: [place.longitude, place.latitude],
-        zoom: Math.max(14, place.zoomLevel || 14),
-        duration: 700,
-      })
-    }
+    openPlaceDetail(place, { fly: true })
   }
 
   const handleProfileImageChange = async (e) => {
@@ -249,18 +503,12 @@ const HomePage = () => {
     }
   }
 
-  const handleLocationSharing = () => {
-    setShowMenu(false)
+  const shareLocationAt = (lat, lng, zoomOverride) => {
     const map = mapRef.current?.getMap?.()
-    const center = map?.getCenter()
-    const zoom = map ? Math.round(map.getZoom()) : 15
-    const lat = center ? center.lat.toFixed(6) : currentLocation?.lat?.toFixed(6)
-    const lng = center ? center.lng.toFixed(6) : currentLocation?.lng?.toFixed(6)
-    if (!lat || !lng) {
-      showToast('Location not available', 'error')
-      return
-    }
-    const appUrl = `https://umnaapptst.testatozas.in/?lat=${lat}&lng=${lng}&z=${zoom}`
+    const zoom = zoomOverride ?? (map ? Math.round(map.getZoom()) : 15)
+    const latStr = Number(lat).toFixed(6)
+    const lngStr = Number(lng).toFixed(6)
+    const appUrl = `https://umnaapptst.testatozas.in/?lat=${latStr}&lng=${lngStr}&z=${zoom}`
     const text = `Check out this location on UMNAAPP`
     const shareText = `${text}\n${appUrl}`
 
@@ -268,7 +516,186 @@ const HomePage = () => {
       navigator.share({ title: 'UMNAAPP - Shared Location', text: shareText, url: appUrl })
         .catch(() => {})
     } else {
-      setShareModal({ lat, lng, zoom, appUrl, text, shareText })
+      setShareModal({ lat: latStr, lng: lngStr, zoom, appUrl, text, shareText })
+    }
+  }
+
+  const handleLocationSharing = () => {
+    setShowMenu(false)
+    const map = mapRef.current?.getMap?.()
+    const center = map?.getCenter()
+    const lat = center ? center.lat : currentLocation?.lat
+    const lng = center ? center.lng : currentLocation?.lng
+    if (lat == null || lng == null) {
+      showToast('Location not available', 'error')
+      return
+    }
+    shareLocationAt(lat, lng)
+  }
+
+  const findPlaceNearCoordinates = (lat, lng, thresholdDeg = 0.00045) => {
+    return allPlaces.find(
+      (p) =>
+        Math.abs(p.latitude - lat) < thresholdDeg &&
+        Math.abs(p.longitude - lng) < thresholdDeg
+    )
+  }
+
+  const openAddPlaceAt = async (lat, lng, { category } = {}) => {
+    const map = mapRef.current?.getMap?.()
+    const zoom = map ? Math.round(map.getZoom()) : 15
+    // Open modal immediately so the user sees feedback; enrich location in the background.
+    setMapLocation({
+      latitude: lat,
+      longitude: lng,
+      zoomLevel: zoom,
+      ...(category ? { category } : {}),
+    })
+    setAddPlaceLocationMethod('map-or-current')
+    setShowAddPlaceModal(true)
+
+    try {
+      const details = await fetchPlaceDetails({
+        latitude: lat,
+        longitude: lng,
+        zoomLevel: zoom,
+      })
+      if (category) {
+        details.category = category
+      }
+      setMapLocation(details)
+    } catch (err) {
+      console.warn('openAddPlaceAt: failed to load place details', err)
+    }
+  }
+
+  const handleWhatsHere = async (lat, lng) => {
+    try {
+      const { data } = await api.get('/map/reverse', { params: { lat, lng } })
+      const name = data.displayName || `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+      const nearbyDb = findPlaceNearCoordinates(lat, lng)
+      if (nearbyDb) {
+        openPlaceDetail(nearbyDb, { fly: false })
+        return
+      }
+      if (mapRef.current?.showSearchedLocation) {
+        mapRef.current.showSearchedLocation({
+          lat,
+          lng,
+          name,
+          displayName: name,
+        })
+      }
+    } catch {
+      if (mapRef.current?.showSearchedLocation) {
+        mapRef.current.showSearchedLocation({
+          lat,
+          lng,
+          name: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+        })
+      }
+    }
+  }
+
+  const handleSearchNearby = async (lat, lng) => {
+    const map = mapRef.current?.getMap?.()
+    if (!map) return
+    const bounds = map.getBounds()
+    const q = `places near ${lat.toFixed(4)},${lng.toFixed(4)}`
+    try {
+      const { data } = await api.get('/map/search-simple', { params: { q } })
+      const raw = Array.isArray(data.results) ? data.results : []
+      const valid = raw.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
+      const inView = valid.filter((r) => bounds.contains([r.lng, r.lat]))
+      const pool = inView.length > 0 ? inView : valid
+      setCategoryExplorePlaces(
+        pool.slice(0, MAX_CATEGORY_EXPLORE_RESULTS).map((r) => ({
+          ...r,
+          markerColor: '#4285F4',
+        }))
+      )
+      if (pool.length === 0) {
+        showToast('No nearby places found', 'info')
+      } else {
+        showToast(`Found ${pool.length} nearby place(s)`, 'success')
+      }
+    } catch {
+      showToast('Search failed. Try again.', 'error')
+    }
+  }
+
+  const handleMapContextMenuAction = async (actionId) => {
+    if (!mapContextMenu) return
+    const { lat, lng } = mapContextMenu
+    closeMapContextMenu()
+
+    switch (actionId) {
+      case 'share':
+        shareLocationAt(lat, lng)
+        break
+      case 'directionsFrom': {
+        const start = { lat, lng, name: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }
+        setRoutePanelStartPlace(start)
+        setRoutePanelEndPlace(null)
+        setShowRoutePanel(true)
+        api.get('/map/reverse', { params: { lat, lng } }).then(({ data }) => {
+          if (data?.displayName) {
+            setRoutePanelStartPlace({ lat, lng, name: data.displayName })
+          }
+        }).catch(() => {})
+        break
+      }
+      case 'directionsTo': {
+        const end = { lat, lng, name: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }
+        setRoutePanelEndPlace(end)
+        setRoutePanelStartPlace(null)
+        setShowRoutePanel(true)
+        api.get('/map/reverse', { params: { lat, lng } }).then(({ data }) => {
+          if (data?.displayName) {
+            setRoutePanelEndPlace({ lat, lng, name: data.displayName })
+          }
+        }).catch(() => {})
+        break
+      }
+      case 'whatsHere':
+        await handleWhatsHere(lat, lng)
+        break
+      case 'searchNearby':
+        await handleSearchNearby(lat, lng)
+        break
+      case 'print':
+        handlePrint()
+        break
+      case 'addPlace':
+        try {
+          await openAddPlaceAt(lat, lng)
+        } catch (err) {
+          console.error('Add place from context menu failed:', err)
+          showToast('Could not open Add Place. Try again.', 'error')
+        }
+        break
+      case 'report': {
+        const existing = findPlaceNearCoordinates(lat, lng)
+        if (existing) {
+          handlePlaceEdit(existing)
+          showToast('Edit the place to report a data problem', 'info')
+        } else {
+          await openAddPlaceAt(lat, lng)
+          showToast('Add or correct place details to report a problem', 'info')
+        }
+        break
+      }
+      case 'measure':
+        setMeasureDistanceActive(true)
+        if (mapRef.current?.flyTo) {
+          mapRef.current.flyTo({ center: [lng, lat], duration: 400 })
+        }
+        window.setTimeout(() => {
+          mapRef.current?.addMeasurePoint?.(lat, lng)
+        }, 50)
+        break
+      default:
+        break
     }
   }
 
@@ -306,12 +733,26 @@ const HomePage = () => {
       if (placeMatchesCategories(data, selectedCategories)) {
         setVisiblePlaces((prev) => [data, ...prev.filter((place) => place.id !== data.id)])
       }
+      showPlaceAddedPopup([data], { variant: 'saved' })
       setShowMenu(false)
       setShowContributionsOnly(false)
       setShowMyPlaces(true)
     } catch (err) {
-      const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
-      showToast(msg, 'error')
+      if (err.response?.status === 409) {
+        showDuplicatePopup(
+          {
+            duplicate: true,
+            message: err.response?.data?.message,
+            reason: err.response?.data?.reason,
+            existingPlaceId: err.response?.data?.existingPlaceId,
+            existingPlaceName: err.response?.data?.existingPlaceName,
+          },
+          result.displayName
+        )
+      } else {
+        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
+        showToast(msg, 'error')
+      }
     } finally {
       setSavingPlaceId(null)
     }
@@ -327,22 +768,26 @@ const HomePage = () => {
       const { data } = await api.get('/map/reverse', {
         params: { lat: loc.latitude, lng: loc.longitude },
       })
-      return {
+      const map = mapRef.current?.getMap?.()
+      const base = {
         latitude: loc.latitude,
         longitude: loc.longitude,
         zoomLevel: loc.zoomLevel,
         name: data.displayName || '',
         address: data.address || {},
-        targetLang: data.targetLang || 'hi', // For auto-translation: kn, ta, ml, te, hi
+        targetLang: data.targetLang || 'hi',
       }
+      return withMapRenderingConfig(base, { map, place: base })
     } catch (err) {
-      return {
+      const map = mapRef.current?.getMap?.()
+      const base = {
         latitude: loc.latitude,
         longitude: loc.longitude,
         zoomLevel: loc.zoomLevel,
         name: '',
         targetLang: 'hi',
       }
+      return withMapRenderingConfig(base, { map, place: base })
     } finally {
       setFetchingPlaceDetails(false)
     }
@@ -362,6 +807,7 @@ const HomePage = () => {
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
+    showPlaceAddedPopup([place], { variant: 'manual' })
     if (mapRef.current?.flyTo) {
       mapRef.current.flyTo({
         center: [place.longitude, place.latitude],
@@ -372,27 +818,24 @@ const HomePage = () => {
   }
 
   const handleSearchSelect = async (location) => {
-    // UUID placeId → could be own place or another user's place
     if (location.placeId && /^[0-9a-f-]{36}$/.test(String(location.placeId))) {
-      // Try own places cache first (instant)
       const cached = allPlaces.find((p) => String(p.id) === String(location.placeId))
       if (cached) {
-        setSelectedPlace({ ...cached, _isDbPlace: true })
-        if (mapRef.current?.flyTo) {
-          mapRef.current.flyTo({ center: [cached.longitude, cached.latitude], zoom: cached.zoomLevel || 15, duration: 800 })
-        }
+        await openPlaceDetail(cached)
         return
       }
-      // Fetch from server (another user's place)
       try {
-        const { data } = await api.get(`/map/places/${location.placeId}`)
-        setSelectedPlace({ ...data, _isDbPlace: true })
-        if (mapRef.current?.flyTo) {
-          mapRef.current.flyTo({ center: [data.longitude, data.latitude], zoom: data.zoomLevel || 15, duration: 800 })
-        }
+        await openPlaceDetail({
+          id: location.placeId,
+          place_name_en: location.name,
+          name: location.name,
+          latitude: location.lat,
+          longitude: location.lng,
+          category: location.category || 'Other',
+        })
         return
       } catch {
-        // Fall through to normal fly-to
+        /* fall through */
       }
     }
     // Regular nominatim/OSM result — just fly to location
@@ -411,14 +854,48 @@ const HomePage = () => {
     setShowRoutePanel(true)
   }
 
+  const handleAskMapsOpen = () => {
+    setCategoryExplorePlaces([])
+    setShowAskMapsPanel(true)
+  }
+
+  const handleAskMapsClose = () => {
+    setShowAskMapsPanel(false)
+    setAskMapsPlaces([])
+  }
+
+  const handleAskMapsResults = useCallback((markers, center) => {
+    setAskMapsPlaces(markers)
+    if (center?.lat != null && center?.lng != null && mapRef.current?.flyTo) {
+      mapRef.current.flyTo({
+        center: [center.lng, center.lat],
+        zoom: markers.length === 1 ? 15 : 13,
+        duration: 800,
+      })
+    }
+  }, [])
+
+  const handleAskMapsPlaceSelect = (place) => {
+    openPlaceDetail(place)
+  }
+
+  const handleAskMapsDirections = (place) => {
+    setShowAskMapsPanel(false)
+    handlePlaceDirections(place)
+  }
+
+  const mapSearchResultPlaces = askMapsPlaces.length > 0 ? askMapsPlaces : categoryExplorePlaces
+
   const handlePlaceEdit = (place) => {
     setSelectedPlace(null)
+    setAddPlaceExcludeId(place?.id != null ? place.id : null)
     setMapLocation({
       name: place.place_name_en || place.name,
       category: place.category,
       latitude: place.latitude,
       longitude: place.longitude,
       zoomLevel: place.zoomLevel || 15,
+      mapRenderingConfig: place.mapRenderingConfig || place.map_rendering_config,
     })
     setShowAddPlaceModal(true)
   }
@@ -428,6 +905,11 @@ const HomePage = () => {
     if (savingPlaceId === placeKey) return
     setSavingPlaceId(placeKey)
     try {
+      const map = mapRef.current?.getMap?.()
+      const mapRenderingConfig =
+        place.mapRenderingConfig ||
+        place.map_rendering_config ||
+        extractMapRenderingConfig({ map, place })
       const { data } = await api.post('/map/places', {
         place_name_en: place.place_name_en || place.name,
         place_name_local: place.place_name_local || '',
@@ -435,15 +917,30 @@ const HomePage = () => {
         latitude: place.latitude,
         longitude: place.longitude,
         zoomLevel: place.zoomLevel || 15,
+        mapRenderingConfig,
         source: 'saved',
       })
       setAllPlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
       if (placeMatchesCategories(data, selectedCategories)) {
         setVisiblePlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
       }
+      showPlaceAddedPopup([data], { variant: 'saved' })
     } catch (err) {
-      const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
-      showToast(msg, 'error')
+      if (err.response?.status === 409) {
+        showDuplicatePopup(
+          {
+            duplicate: true,
+            message: err.response?.data?.message,
+            reason: err.response?.data?.reason,
+            existingPlaceId: err.response?.data?.existingPlaceId,
+            existingPlaceName: err.response?.data?.existingPlaceName,
+          },
+          place.place_name_en || place.name
+        )
+      } else {
+        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
+        showToast(msg, 'error')
+      }
     } finally {
       setSavingPlaceId(null)
     }
@@ -475,7 +972,23 @@ const HomePage = () => {
         duration: 1000,
       })
     }
-    showToast(`Added ${data.added} places (${data.skipped} skipped)`, data.added > 0 ? 'success' : 'info')
+    const dupSkipped = (data.skippedDetails || []).filter((s) => s.reason && s.reason !== 'invalid')
+    if (data.added === 0 && dupSkipped.length > 0) {
+      setDuplicatePopup({
+        message: 'No new places were added — they already exist on the map.',
+        reason: dupSkipped[0]?.reason || 'coordinates',
+        skippedList: dupSkipped,
+      })
+    } else if (dupSkipped.length > 0) {
+      setDuplicatePopup({
+        message: `${dupSkipped.length} place(s) were skipped because they already exist.`,
+        reason: 'duplicate_in_batch',
+        skippedList: dupSkipped,
+      })
+      showPlaceAddedPopup(data.places, { variant: 'extract', skippedCount: dupSkipped.length })
+    } else if (data.added > 0) {
+      showPlaceAddedPopup(data.places, { variant: 'extract' })
+    }
     return data
   }
 
@@ -485,6 +998,14 @@ const HomePage = () => {
   }
 
   const handleDeletePlace = async (placeId) => {
+    const place =
+      allPlaces.find((p) => p.id === placeId) ||
+      (selectedPlace?.id === placeId ? selectedPlace : null)
+    if (!canDeletePlace(place, user)) {
+      showToast('You can only delete places you added.', 'error')
+      return
+    }
+
     setDeletingPlaceId(placeId)
     try {
       await api.delete(`/map/places/${placeId}`)
@@ -494,13 +1015,24 @@ const HomePage = () => {
       showToast('Place deleted successfully.', 'success')
     } catch (err) {
       console.error('Delete place error:', err)
-      showToast('Failed to delete place. Please try again.', 'error')
+      const msg =
+        err.response?.status === 403
+          ? 'You are not allowed to delete this place.'
+          : 'Failed to delete place. Please try again.'
+      showToast(msg, 'error')
     } finally {
       setDeletingPlaceId(null)
     }
   }
 
   const confirmDeletePlace = (placeId, placeName) => {
+    const place =
+      allPlaces.find((p) => p.id === placeId) ||
+      (selectedPlace?.id === placeId ? selectedPlace : null)
+    if (!canDeletePlace(place, user)) {
+      showToast('You can only delete places you added.', 'error')
+      return
+    }
     setConfirmModal({
       title: 'Delete this place?',
       message: `Are you sure you want to delete "${placeName}" from the map? This cannot be undone.`,
@@ -523,6 +1055,35 @@ const HomePage = () => {
           <button onClick={() => setToast(null)} className="ml-1 opacity-70 hover:opacity-100 text-lg leading-none">✕</button>
         </div>
       )}
+
+      <PlaceAddedSuccessModal
+        isOpen={!!successPopup}
+        onClose={() => setSuccessPopup(null)}
+        places={successPopup?.places}
+        count={successPopup?.count}
+        skippedCount={successPopup?.skippedCount}
+        variant={successPopup?.variant}
+        onViewOnMap={
+          successPopup?.places?.[0]?.id
+            ? () => flyToExistingPlace(successPopup.places[0].id)
+            : undefined
+        }
+      />
+
+      <DuplicatePlaceModal
+        isOpen={!!duplicatePopup}
+        onClose={() => setDuplicatePopup(null)}
+        message={duplicatePopup?.message}
+        reason={duplicatePopup?.reason}
+        placeName={duplicatePopup?.placeName}
+        existingPlaceName={duplicatePopup?.existingPlaceName}
+        skippedList={duplicatePopup?.skippedList}
+        onViewOnMap={
+          duplicatePopup?.existingPlaceId
+            ? () => flyToExistingPlace(duplicatePopup.existingPlaceId)
+            : undefined
+        }
+      />
 
       {/* ── Confirm modal ── */}
       {confirmModal && (
@@ -552,7 +1113,10 @@ const HomePage = () => {
         </div>
       )}
       {/* Navbar - Logo, Menu icon, Add Place (My Places & Logout in menu) */}
-      <nav className="absolute top-0 left-0 right-0 z-30 glass border-b border-white/30 pt-[env(safe-area-inset-top)] shadow-lg">
+      <nav
+        data-map-ui-chrome
+        className="absolute top-0 left-0 right-0 z-30 glass border-b border-white/30 pt-[env(safe-area-inset-top)] shadow-lg"
+      >
         <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
           {/* Logo + Hamburger */}
           <div className="flex items-center gap-1 flex-shrink-0">
@@ -560,14 +1124,20 @@ const HomePage = () => {
             <button
               onClick={() => setShowMenu(!showMenu)}
               className="p-2.5 sm:p-2 rounded-xl hover:bg-white/60 active:bg-white/80 transition-colors text-slate-600 flex items-center justify-center min-h-[44px] sm:min-h-0"
-              aria-label="Menu"
+              aria-label={navMenuAria}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
               </svg>
             </button>
-            <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
-              UMNAAPP
+            <h1 className="m-0 min-w-0 flex items-center gap-2">
+              <AppLogo
+                decorative
+                imgClassName="h-7 w-auto max-h-8 sm:h-8 sm:max-h-9 object-contain flex-shrink-0"
+              />
+              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
+                {navAppTitle}
+              </span>
             </h1>
           </div>
 
@@ -589,49 +1159,34 @@ const HomePage = () => {
                   ? 'bg-primary-100 border-2 border-primary-400 text-primary-700 shadow-md'
                   : 'bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white shadow-lg hover:shadow-xl border border-primary-400/30'
               }`}
-              title="Add a new place"
+              title={navAddPlaceTitle}
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
-              <span className="hidden sm:inline">Add Place</span>
+              <span className="hidden sm:inline">{navAddPlace}</span>
             </button>
           </div>
         </div>
       </nav>
 
       {/* Search Bar + Categories - positioned below navbar (safe-area + ~4.5rem) */}
-      <div className="absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl" style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}>
+      <div
+        data-map-ui-chrome
+        className="absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl"
+        style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}
+      >
         <SearchBar
           userPlaces={allPlaces}
           onSelect={handleSearchSelect}
           onRoute={() => setShowRoutePanel(!showRoutePanel)}
+          onAskMaps={handleAskMapsOpen}
           onResultsChange={() => {}}
+          onCategoryExploreChange={handleCategoryExploreChange}
           onSavePlace={handleSavePlaceFromSearch}
           savingPlaceId={savingPlaceId}
         />
         <div className="mt-2 glass rounded-2xl border border-white/40 shadow-lg px-2 py-2">
-          <div className="flex items-center justify-between gap-2 px-2 pb-2">
-            <div className="min-w-0">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">
-                Explore Categories
-              </p>
-              <p className="text-xs text-slate-600">
-                {selectedCategories.length === 0
-                  ? `Showing all ${visiblePlaces.length} places`
-                  : `Showing ${visiblePlaces.length} of ${allPlaces.length} places`}
-              </p>
-            </div>
-            {selectedCategories.length > 0 && (
-              <button
-                onClick={clearCategoryFilters}
-                className="text-xs font-semibold text-primary-600 hover:text-primary-700 whitespace-nowrap"
-              >
-                Clear all
-              </button>
-            )}
-          </div>
-
           <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
             <button
               onClick={clearCategoryFilters}
@@ -641,7 +1196,7 @@ const HomePage = () => {
                   : 'border-slate-200 bg-white/80 text-slate-600 hover:border-slate-300 hover:bg-white'
               }`}
             >
-              All
+              {filterAll}
             </button>
 
             {availableCategories.map(({ category, count }) => {
@@ -656,7 +1211,7 @@ const HomePage = () => {
                       : 'border-slate-200 bg-white/80 text-slate-700 hover:border-primary-200 hover:bg-primary-50'
                   }`}
                 >
-                  {category}
+                  <TranslatedLabel text={category} />
                   <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
                     selected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
                   }`}>
@@ -669,7 +1224,7 @@ const HomePage = () => {
 
           {(loadingCategoryPlaces || (selectedCategories.length > 0 && visiblePlaces.length === 0)) && (
             <div className="px-2 pt-2 text-xs text-slate-500">
-              {loadingCategoryPlaces ? 'Loading filtered places...' : 'No places found for the selected categories.'}
+              {loadingCategoryPlaces ? filterLoading : filterEmpty}
             </div>
           )}
 
@@ -677,10 +1232,10 @@ const HomePage = () => {
             <div className="px-2 pt-2">
               <div className="flex items-center justify-between mb-1.5">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Results
+                  {filterResults}
                 </p>
                 <p className="text-[11px] text-slate-500">
-                  {visiblePlaces.length} places
+                  {visiblePlaces.length} {filterPlacesCount}
                 </p>
               </div>
               <div className="max-h-44 overflow-y-auto pr-1 space-y-1.5 scrollbar-hide">
@@ -695,7 +1250,7 @@ const HomePage = () => {
                     </p>
                     <div className="mt-1 flex items-center justify-between gap-2">
                       <span className="text-[11px] font-medium text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full truncate">
-                        {place.category || 'Other'}
+                        <TranslatedLabel text={place.category || 'Other'} />
                       </span>
                       <span className="text-[11px] text-slate-500 font-mono">
                         {place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}
@@ -746,17 +1301,44 @@ const HomePage = () => {
           setMapLocation(null)
           setAddPlacePickMode(false)
           setAddPlaceLocationMethod(null)
+          setAddPlaceExcludeId(null)
         }}
         initialData={null}
         mapLocation={mapLocation}
         currentLocation={currentLocation}
         initialLocationMethod={addPlaceLocationMethod}
+        existingPlaces={allPlaces}
+        excludePlaceId={addPlaceExcludeId}
+        onShowDuplicate={showDuplicatePopup}
         onRequestMapPick={() => {
           setShowAddPlaceModal(false)
           setAddPlacePickMode(true)
         }}
         onSaved={handlePlaceSaved}
       />
+
+      {/* Ask Maps — AI natural-language search */}
+      {showAskMapsPanel && (
+        <div className="absolute inset-0 z-40 flex pointer-events-none" style={{ top: 0 }}>
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
+            onClick={handleAskMapsClose}
+          />
+          <div
+            className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+            style={{ marginTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}
+          >
+            <AskMapsPanel
+              mapRef={mapRef}
+              currentLocation={currentLocation}
+              onClose={handleAskMapsClose}
+              onResults={handleAskMapsResults}
+              onPlaceSelect={handleAskMapsPlaceSelect}
+              onDirections={handleAskMapsDirections}
+            />
+          </div>
+        </div>
+      )}
 
       {/* Route Panel - LEFT side popup like Google Maps */}
       {showRoutePanel && (
@@ -778,11 +1360,13 @@ const HomePage = () => {
               currentLocation={currentLocation}
               onCalculateRoute={handleCalculateRoute}
               initialEndPlace={routePanelEndPlace}
+              initialStartPlace={routePanelStartPlace}
               onClose={() => {
                 setShowRoutePanel(false)
                 setRouteStartPlace(null)
                 setRouteEndPlace(null)
                 setRoutePanelEndPlace(null)
+                setRoutePanelStartPlace(null)
               }}
               onSearchResultsChange={() => {}}
               onRoutePlacesChange={(start, end) => {
@@ -823,21 +1407,63 @@ const HomePage = () => {
         </>
       )}
 
+      {/* Map tools sidebar — draw area & explore by category */}
+      <PolygonExplorePanel
+        mapRef={mapRef}
+        isOpen={showSidebar}
+        onClose={() => setShowSidebar(false)}
+        onInteractionChange={setPolygonMapInteraction}
+        onPlacesFound={(places) => {
+          setPolygonOverlayPlaces(places)
+        }}
+        onClearPlaces={() => {
+          setPolygonOverlayPlaces([])
+        }}
+      />
+
       {/* Map Container */}
       <div className="flex-1 w-full relative">
         <MapComponent
           ref={mapRef}
           onLocationUpdate={handleLocationUpdate}
           onMapClick={handleMapClickForPlace}
+          onMapContextMenu={setMapContextMenu}
+          onMapReady={handleMapReady}
+          onPlaceClick={openPlaceDetail}
+          selectedPlaceId={selectedPlace?.id ?? null}
           addPlaceMode={addPlacePickMode || showAddPlaceModal}
-          places={visiblePlaces}
-          searchResultPlaces={[]}
+          blockAddPlaceMapClick={polygonMapInteraction}
+          blockContextMenu={polygonMapInteraction || addPlacePickMode}
+          measureDistanceActive={measureDistanceActive}
+          onMeasureDistanceChange={setMeasureStats}
+          places={allPlaces}
+          searchResultPlaces={mapSearchResultPlaces}
+          polygonOverlayPlaces={polygonOverlayPlaces}
+          autoFitSearchResults={askMapsPlaces.length > 1}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
         />
       </div>
 
-      {/* Place Detail Panel - opens when a contributed/saved place is selected from search */}
+      {mapContextMenu && (
+        <MapContextMenu
+          position={{ x: mapContextMenu.x, y: mapContextMenu.y }}
+          coordinates={{ lat: mapContextMenu.lat, lng: mapContextMenu.lng }}
+          onAction={handleMapContextMenuAction}
+          onClose={closeMapContextMenu}
+        />
+      )}
+
+      {measureDistanceActive && (
+        <MeasureDistancePanel
+          totalMeters={measureStats.totalMeters}
+          pointCount={measureStats.pointCount}
+          onClear={handleMeasureClear}
+          onClose={handleMeasureClose}
+        />
+      )}
+
+      {/* Place detail panel — map labels, search, Ask Maps, filters */}
       {selectedPlace && (
         <div className="absolute inset-0 z-40 pointer-events-none">
           <PlaceDetailPanel
@@ -846,7 +1472,15 @@ const HomePage = () => {
             onDirections={handlePlaceDirections}
             onSave={handlePlaceSaveFromPanel}
             onEdit={handlePlaceEdit}
-            onDelete={(placeId) => confirmDeletePlace(placeId, selectedPlace?.place_name_en || selectedPlace?.name || 'this place')}
+            onDelete={
+              canDeletePlace(selectedPlace, user)
+                ? (placeId) =>
+                    confirmDeletePlace(
+                      placeId,
+                      selectedPlace?.place_name_en || selectedPlace?.name || 'this place'
+                    )
+                : undefined
+            }
             currentUser={user}
             deletingId={deletingPlaceId}
             isSaved={allPlaces.some(
@@ -870,13 +1504,19 @@ const HomePage = () => {
           <div className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
             {/* Header */}
             <div className="flex items-center justify-between px-4 sm:px-5 py-4 border-b border-slate-200">
-              <h1 className="text-lg font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent">
-                UMNAAPP
+              <h1 className="m-0 flex min-w-0 items-center gap-2.5 pr-2">
+                <AppLogo
+                  decorative
+                  imgClassName="h-8 w-auto max-h-9 object-contain flex-shrink-0"
+                />
+                <span className="text-lg font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
+                  {navAppTitle}
+                </span>
               </h1>
               <button
                 onClick={() => setShowMenu(false)}
                 className="p-2.5 sm:p-2 min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center rounded-lg hover:bg-slate-100 active:bg-slate-200 text-slate-500 hover:text-slate-700 transition-colors touch-manipulation"
-                aria-label="Close"
+                aria-label={ariaClose}
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -931,7 +1571,7 @@ const HomePage = () => {
                         {user.name || 'User'}
                       </p>
                       <p className="text-xs text-slate-600 truncate">{user.email}</p>
-                      <p className="text-xs text-primary-600 mt-0.5">Tap photo to change</p>
+                      <p className="text-xs text-primary-600 mt-0.5">{menuTapPhotoHint}</p>
                     </div>
                   </div>
                 </div>
@@ -947,11 +1587,37 @@ const HomePage = () => {
                     <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                     </svg>
-                    <span className="text-sm font-medium text-slate-800">Show side bar</span>
+                    <span className="text-sm font-medium text-slate-800">{menuShowSidebar}</span>
                   </div>
                   <div className={`relative w-11 h-6 rounded-full transition-colors ${showSidebar ? 'bg-primary-500' : 'bg-slate-300'}`}>
                     <div className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200 ${showSidebar ? 'left-6' : 'left-0.5'}`} />
                   </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    setShowSidebar(true)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuAreaExplore}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    handleAskMapsOpen()
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-violet-50 active:bg-violet-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuAskMaps}</span>
                 </button>
               </div>
 
@@ -964,7 +1630,7 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
                     <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Saved</span>
+                  <span className="text-sm font-medium text-slate-800">{menuSaved}</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
                   {allPlaces.filter((p) => (p.source || 'contribution') === 'saved').length}
                 </span>
@@ -973,7 +1639,7 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
                   </svg>
-                  <span className="text-sm text-slate-500">Recents</span>
+                  <span className="text-sm text-slate-500">{menuRecents}</span>
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); setShowContributionsOnly(true); setShowMyPlaces(true); }}
@@ -982,7 +1648,7 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Your contributions</span>
+                  <span className="text-sm font-medium text-slate-800">{menuYourContributions}</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
                     {filterPlacesByUser(
                       allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
@@ -998,7 +1664,7 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Location sharing</span>
+                  <span className="text-sm font-medium text-slate-800">{menuLocationSharing}</span>
                 </button>
 
               </div>
@@ -1012,13 +1678,13 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5M9 21V5a2 2 0 012-2h2a2 2 0 012 2v4m2 4a2 2 0 01-2 2H9" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Print</span>
+                  <span className="text-sm font-medium text-slate-800">{menuPrint}</span>
                 </button>
                 <button
                   onClick={openAddPlace}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
                 >
-                  <span className="text-sm font-medium text-slate-800">Add a missing place</span>
+                  <span className="text-sm font-medium text-slate-800">{menuAddMissingPlace}</span>
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); setShowExtractPanel(true) }}
@@ -1027,20 +1693,21 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Extract Places</span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
-                  <span className="text-sm font-medium text-slate-800">Edit the map</span>
+                  <span className="text-sm font-medium text-slate-800">{menuExtractPlaces}</span>
                 </button>
               </div>
 
               {/* Section 4: Settings */}
               <div className="border-b border-slate-200 py-2">
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation">
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); setShowLanguageModal(true) }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">Language</span>
+                  <span className="text-sm font-medium text-slate-800">{menuLanguage}</span>
                 </button>
               </div>
 
@@ -1053,10 +1720,68 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-700">Logout</span>
+                  <span className="text-sm font-medium text-slate-700">{menuLogout}</span>
                 </button>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showLanguageModal && (
+        <div
+          className="fixed inset-0 z-[450] flex items-center justify-center p-4"
+          onClick={() => setShowLanguageModal(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="language-modal-title"
+        >
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+          <div
+            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-3">
+              <h3 id="language-modal-title" className="text-base font-bold text-slate-800">
+                {languageModalTitle}
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowLanguageModal(false)}
+                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-xs text-slate-500 mb-3">{languageModalHint}</p>
+            <label className="sr-only" htmlFor="atozas-language-selector">
+              {menuLanguage}
+            </label>
+            <select
+              id="atozas-language-selector"
+              value={pendingLanguage}
+              onChange={(e) => setPendingLanguage(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
+            >
+              {allLanguages.map((lang) => (
+                <option key={lang.code} value={lang.code}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => {
+                setLanguage(pendingLanguage)
+                setShowLanguageModal(false)
+              }}
+              className="w-full mt-4 rounded-xl bg-primary-600 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-primary-700 active:bg-primary-800"
+            >
+              {applyButtonLabel}
+            </button>
           </div>
         </div>
       )}
@@ -1138,6 +1863,8 @@ const HomePage = () => {
         isOpen={showExtractPanel}
         onClose={() => setShowExtractPanel(false)}
         onAddToMap={handleAddExtractedPlaces}
+        mapPlaces={allPlaces}
+        onShowDuplicate={showDuplicatePopup}
       />
 
       {/* My Places panel - slide in from left */}
@@ -1227,27 +1954,31 @@ const HomePage = () => {
                         {place.place_name_local && place.place_name_local !== place.place_name_en && (
                           <p className="text-xs text-slate-500 truncate">{place.place_name_local}</p>
                         )}
-                        <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">{place.category}</span>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">
+                            <TranslatedLabel text={place.category} />
+                          </span>
+                          {place.approvalStatus === 'pending' && (
+                            <span className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 font-medium">
+                              Pending
+                              {place.pendingDaysRemaining != null
+                                ? ` · ${place.pendingDaysRemaining}d`
+                                : ''}
+                            </span>
+                          )}
                           <button
                             onClick={() => {
                               setShowMyPlaces(false)
-                              if (mapRef.current?.flyTo) {
-                                mapRef.current.flyTo({
-                                  center: [place.longitude, place.latitude],
-                                  zoom: place.zoomLevel || 15,
-                                  duration: 800,
-                                })
-                              }
+                              openPlaceDetail(place)
                             }}
                             className="text-xs text-slate-400 hover:text-primary-600 transition-colors"
                           >
-                            View on map
+                            {myPlacesViewOnMap}
                           </button>
                         </div>
                       </div>
-                      {/* Delete button - only in Your contributions */}
-                      {showContributionsOnly && (
+                      {/* Delete — only for places this user created (or admin) */}
+                      {canDeletePlace(place, user) && (
                         <button
                           onClick={() => confirmDeletePlace(place.id, place.place_name_en || place.name || 'this place')}
                           disabled={deletingPlaceId === place.id}

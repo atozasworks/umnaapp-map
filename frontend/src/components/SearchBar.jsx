@@ -1,20 +1,71 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useMemo } from 'react'
+import { useTranslate } from 'atozas-traslate'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { parseQueryFromInput } from '../utils/parseSearchQuery'
 
-const CATEGORIES = [
-  { id: 'directions', icon: 'route', label: 'Directions', isAction: true },
-  { id: 'restaurants', icon: 'restaurant', label: 'Restaurants', query: 'restaurant' },
-  { id: 'hotels', icon: 'hotel', label: 'Hotels', query: 'hotel' },
-  { id: 'things', icon: 'attraction', label: 'Things to do', query: 'attraction tourism' },
-  { id: 'museums', icon: 'museum', label: 'Museums', query: 'museum' },
-  { id: 'transit', icon: 'transit', label: 'Transit', query: 'bus station train' },
-  { id: 'pharmacies', icon: 'pharmacy', label: 'Pharmacies', query: 'pharmacy' },
-  { id: 'atm', icon: 'atm', label: 'ATMs', query: 'atm' },
+const CATEGORY_DEFS = [
+  { id: 'directions', icon: 'route', labelEn: 'Directions', isAction: true },
+  { id: 'restaurants', icon: 'restaurant', labelEn: 'Restaurants', query: 'restaurant' },
+  { id: 'hotels', icon: 'hotel', labelEn: 'Hotels', query: 'hotel' },
+  { id: 'museums', icon: 'museum', labelEn: 'Museums', query: 'museum' },
+  { id: 'transit', icon: 'transit', labelEn: 'Transit', query: 'bus station train' },
+  { id: 'pharmacies', icon: 'pharmacy', labelEn: 'Pharmacies', query: 'pharmacy' },
+  { id: 'atm', icon: 'atm', labelEn: 'ATMs', query: 'atm' },
 ]
 
-const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces = [], savingPlaceId = null }) => {
+const SearchBar = ({
+  onSelect,
+  onRoute,
+  onAskMaps,
+  onResultsChange,
+  onSavePlace,
+  onCategoryExploreChange,
+  userPlaces = [],
+  savingPlaceId = null,
+}) => {
+  const searchPlaceholder = useTranslate('Search places...')
+  const tDirections = useTranslate('Directions')
+  const tRestaurants = useTranslate('Restaurants')
+  const tHotels = useTranslate('Hotels')
+  const tMuseums = useTranslate('Museums')
+  const tTransit = useTranslate('Transit')
+  const tPharmacies = useTranslate('Pharmacies')
+  const tAtms = useTranslate('ATMs')
+  const tSaved = useTranslate('Saved')
+  const tSaving = useTranslate('Saving...')
+  const tSavePlace = useTranslate('Save place')
+  const tSaveToSaved = useTranslate('Save to Saved')
+  const tSearchFailed = useTranslate('Search failed. Try again.')
+  const tNoPlacesFound = useTranslate('No places found')
+  const tAskMaps = useTranslate('Ask Maps')
+
+  const categories = useMemo(
+    () =>
+      CATEGORY_DEFS.map((def, i) => {
+        const labels = [
+          tDirections,
+          tRestaurants,
+          tHotels,
+          tMuseums,
+          tTransit,
+          tPharmacies,
+          tAtms,
+        ]
+        const { labelEn, ...rest } = def
+        return { ...rest, label: labels[i] }
+      }),
+    [
+      tDirections,
+      tRestaurants,
+      tHotels,
+      tMuseums,
+      tTransit,
+      tPharmacies,
+      tAtms,
+    ]
+  )
+
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
@@ -95,6 +146,13 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
     }
   }, [isFocused, query, activeCategory?.id, activeCategory?.query, userPlaces])
 
+  // Notify parent when a map-explore category chip is toggled (Hotels, ATMs, etc.)
+  useEffect(() => {
+    if (!onCategoryExploreChange) return
+    const explore = activeCategory && !activeCategory.isAction ? activeCategory : null
+    onCategoryExploreChange(explore)
+  }, [activeCategory, onCategoryExploreChange])
+
   // Close results when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -158,7 +216,7 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
             value={query}
             onChange={(e) => setQuery(parseQueryFromInput(e.target.value))}
             onFocus={() => setIsFocused(true)}
-            placeholder="Search places..."
+            placeholder={searchPlaceholder}
             className="flex-1 min-w-0 bg-transparent border-none focus:outline-none focus:ring-0 text-slate-700 placeholder-slate-500 text-base sm:text-sm py-1 min-h-[24px]"
           />
           {isSearching ? (
@@ -180,11 +238,26 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
           )}
         </div>
 
+        {/* Ask Maps — AI search */}
+        {onAskMaps && (
+          <button
+            type="button"
+            onClick={onAskMaps}
+            className="flex-shrink-0 p-2.5 sm:p-2 rounded-full hover:bg-violet-100 active:bg-violet-200 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
+            aria-label={tAskMaps}
+            title={tAskMaps}
+          >
+            <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </button>
+        )}
+
         {/* Directions button - blue arrow like Google Maps */}
         <button
           onClick={handleDirectionsClick}
           className="flex-shrink-0 p-2.5 sm:p-2 rounded-full hover:bg-blue-100 active:bg-blue-200 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
-          aria-label="Directions"
+          aria-label={tDirections}
         >
           <svg
             className="w-5 h-5 text-[#4285F4]"
@@ -202,7 +275,7 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
 
       {/* Category chips - scrollable on mobile */}
       <div className="flex gap-2 mt-2 sm:mt-3 overflow-x-auto scrollbar-hide pb-1 -mx-1 snap-x snap-mandatory">
-        {CATEGORIES.map((cat) => (
+        {categories.map((cat) => (
           <button
             key={cat.id}
             onClick={() => handleCategoryClick(cat)}
@@ -284,8 +357,8 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
                       ? 'text-primary-500 cursor-wait'
                       : 'text-slate-400 hover:text-primary-600 hover:bg-white/50 active:bg-white/70'
                   }`}
-                  aria-label={saved ? 'Saved' : isSaving ? 'Saving...' : 'Save place'}
-                  title={saved ? 'Saved' : isSaving ? 'Saving...' : 'Save to Saved'}
+                  aria-label={saved ? tSaved : isSaving ? tSaving : tSavePlace}
+                  title={saved ? tSaved : isSaving ? tSaving : tSaveToSaved}
                 >
                   {isSaving ? (
                     <div className="w-5 h-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
@@ -314,9 +387,9 @@ const SearchBar = ({ onSelect, onRoute, onResultsChange, onSavePlace, userPlaces
       {showResults && results.length === 0 && buildSearchQuery().length >= 2 && !isSearching && (
         <div className="absolute z-50 w-full mt-2 glass rounded-xl shadow-2xl border border-white/30 p-4 text-center text-sm">
           {searchError ? (
-            <span className="text-amber-600">Search failed. Try again.</span>
+            <span className="text-amber-600">{tSearchFailed}</span>
           ) : (
-            <span className="text-slate-500">No places found</span>
+            <span className="text-slate-500">{tNoPlacesFound}</span>
           )}
         </div>
       )}
