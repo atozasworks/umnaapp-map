@@ -1,14 +1,11 @@
 // Atozas React Auth Kit Integration
 import { AuthProvider as AtozasAuthProvider } from 'atozas-react-auth-kit'
 import { useNavigate } from 'react-router-dom'
+import { getAuthKitApiUrl } from '../utils/apiBase'
 
 export const AtozasAuthContextProvider = ({ children }) => {
   const navigate = useNavigate()
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-  const normalizedApiUrl = apiUrl.replace(/\/+$/, '')
-  const authKitApiUrl = normalizedApiUrl.endsWith('/api')
-    ? normalizedApiUrl
-    : `${normalizedApiUrl}/api`
+  const authKitApiUrl = getAuthKitApiUrl()
 
   return (
     <AtozasAuthProvider

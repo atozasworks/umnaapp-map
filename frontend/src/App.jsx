@@ -9,13 +9,10 @@ import RegisterPage from './pages/RegisterPage'
 import OTPVerificationPage from './pages/OTPVerificationPage'
 import HomePage from './pages/HomePage'
 import ProtectedRoute from './components/ProtectedRoute'
+import { getAuthKitApiUrl } from './utils/apiBase'
 
 function App() {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-  const normalizedApiUrl = apiUrl.replace(/\/+$/, '')
-  const authKitApiUrl = normalizedApiUrl.endsWith('/api')
-    ? normalizedApiUrl
-    : `${normalizedApiUrl}/api`
+  const authKitApiUrl = getAuthKitApiUrl()
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
 
   const atozasAuthProps = {

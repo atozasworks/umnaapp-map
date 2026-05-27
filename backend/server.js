@@ -66,6 +66,16 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'UMNAAPP API is running' })
 })
 
+app.get('/api/health/db', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ok', database: 'connected' })
+  } catch (err) {
+    console.error('Database health check failed:', err)
+    res.status(503).json({ status: 'error', database: 'disconnected', error: err.message })
+  }
+})
+
 // Admin panel at /admin: env, or ../admin/dist (repo), or ./admin/dist (common on server under backend/)
 const adminBuildPath = (() => {
   if (process.env.ADMIN_BUILD_PATH) return process.env.ADMIN_BUILD_PATH

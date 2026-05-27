@@ -22,6 +22,7 @@ import {
   withMapRenderingConfig,
 } from '../utils/mapRenderingConfig'
 import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
+import { getAppOrigin } from '../utils/apiBase'
 
 const MAX_AVATAR_SIZE = 200
 
@@ -508,7 +509,7 @@ const HomePage = () => {
     const zoom = zoomOverride ?? (map ? Math.round(map.getZoom()) : 15)
     const latStr = Number(lat).toFixed(6)
     const lngStr = Number(lng).toFixed(6)
-    const appUrl = `https://umnaapptst.testatozas.in/?lat=${latStr}&lng=${lngStr}&z=${zoom}`
+    const appUrl = `${getAppOrigin()}/?lat=${latStr}&lng=${lngStr}&z=${zoom}`
     const text = `Check out this location on UMNAAPP`
     const shareText = `${text}\n${appUrl}`
 

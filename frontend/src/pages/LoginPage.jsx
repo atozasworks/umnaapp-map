@@ -6,6 +6,7 @@ import api from '../services/api'
 const errorMessages = {
   google_not_configured: 'Google login is not configured. Please use email OTP instead.',
   google_auth_failed: 'Google sign-in failed. Please try again or use email OTP.',
+  database_error: 'Sign-in succeeded but the server could not reach the database. Try again later or use email OTP.',
   auth_failed: 'Authentication failed. Please try again.',
 }
 
@@ -40,7 +41,7 @@ const LoginPage = () => {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/auth/google`
+    window.location.href = '/api/auth/google'
   }
 
   return (

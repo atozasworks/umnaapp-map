@@ -75,7 +75,13 @@ router.get(
       return res.redirect(`${frontendUrl}/login?error=google_not_configured`)
     }
     passport.authenticate('google', { session: false }, (err, user) => {
-      if (err) return next(err)
+      if (err) {
+        console.error('Google OAuth callback error:', err)
+        const code = /database|prisma|Authentication failed/i.test(String(err.message))
+          ? 'database_error'
+          : 'google_auth_failed'
+        return res.redirect(`${frontendUrl}/login?error=${code}`)
+      }
       if (!user) return res.redirect(`${frontendUrl}/login?error=google_auth_failed`)
       try {
         const token = user.token
