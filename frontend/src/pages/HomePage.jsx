@@ -794,14 +794,23 @@ const HomePage = () => {
     }
   }
 
-  const handleMapClickForPlace = async (loc) => {
-    if (addPlacePickMode) {
+  const handleMapClickForPlace = useCallback(async (loc) => {
+    if (!addPlacePickMode) return
+    setAddPlaceLocationMethod('map-or-current')
+    setMapLocation({
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      zoomLevel: loc.zoomLevel,
+    })
+    setShowAddPlaceModal(true)
+    setAddPlacePickMode(false)
+    try {
       const details = await fetchPlaceDetails(loc)
       setMapLocation(details)
-      setShowAddPlaceModal(true)
-      setAddPlacePickMode(false)
+    } catch (err) {
+      console.warn('handleMapClickForPlace: failed to load place details', err)
     }
-  }
+  }, [addPlacePickMode])
 
   const handlePlaceSaved = (place) => {
     setAllPlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
@@ -1432,7 +1441,7 @@ const HomePage = () => {
           onMapReady={handleMapReady}
           onPlaceClick={openPlaceDetail}
           selectedPlaceId={selectedPlace?.id ?? null}
-          addPlaceMode={addPlacePickMode || showAddPlaceModal}
+          addPlaceMode={addPlacePickMode}
           blockAddPlaceMapClick={polygonMapInteraction}
           blockContextMenu={polygonMapInteraction || addPlacePickMode}
           measureDistanceActive={measureDistanceActive}

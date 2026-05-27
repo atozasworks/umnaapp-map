@@ -346,6 +346,10 @@ const MapComponent = forwardRef(({
   const measureDraggingRef = useRef(false)
   const longPressTimerRef = useRef(null)
   const longPressStartRef = useRef(null)
+  const addPlaceModeRef = useRef(addPlaceMode)
+  const onMapClickRef = useRef(onMapClick)
+  addPlaceModeRef.current = addPlaceMode
+  onMapClickRef.current = onMapClick
   const { socket } = useSocket()
   const [measureTotalMeters, setMeasureTotalMeters] = useState(0)
   const [measurePointCount, setMeasurePointCount] = useState(0)
@@ -935,25 +939,31 @@ const MapComponent = forwardRef(({
     }
   }, [])
 
+  const emitAddPlaceMapPick = useCallback((lat, lng) => {
+    const map = mapRef.current
+    const pick = onMapClickRef.current
+    if (!map || !pick) return
+    pick({ latitude: lat, longitude: lng, zoomLevel: map.getZoom() })
+  }, [])
+
   // Map click for Add Place location selection
   useEffect(() => {
-    if (!mapRef.current || !onMapClick) return
+    const map = mapRef.current
+    if (!map || !mapLoaded || !onMapClick) return
 
     const handleMapClick = (e) => {
       if (blockAddPlaceMapClick) return
       if (!addPlaceMode) return
+      if (e.originalEvent?.target?.closest?.('.maplibregl-marker')) return
       const { lng, lat } = e.lngLat
-      const zoom = mapRef.current.getZoom()
-      onMapClick({ latitude: lat, longitude: lng, zoomLevel: zoom })
+      emitAddPlaceMapPick(lat, lng)
     }
 
-    mapRef.current.on('click', handleMapClick)
+    map.on('click', handleMapClick)
     return () => {
-      if (mapRef.current) {
-        mapRef.current.off('click', handleMapClick)
-      }
+      map.off('click', handleMapClick)
     }
-  }, [addPlaceMode, blockAddPlaceMapClick, onMapClick])
+  }, [addPlaceMode, blockAddPlaceMapClick, mapLoaded, onMapClick, emitAddPlaceMapPick])
 
   // Right-click / long-press context menu
   useEffect(() => {
@@ -1177,6 +1187,10 @@ const MapComponent = forwardRef(({
       applyPlaceMarkerSelected(el, place.id, selectedPlaceId)
       const onMarkerClick = (e) => {
         e.stopPropagation()
+        if (addPlaceModeRef.current && onMapClickRef.current) {
+          emitAddPlaceMapPick(ll.lat, ll.lng)
+          return
+        }
         if (onPlaceClick) {
           if (placePopupRef.current) {
             placePopupRef.current.remove()
@@ -1185,7 +1199,7 @@ const MapComponent = forwardRef(({
           onPlaceClick(place)
         }
       }
-      if (onPlaceClick) {
+      if (onPlaceClick || onMapClick) {
         el.addEventListener('click', onMarkerClick)
       }
 
@@ -1358,7 +1372,7 @@ const MapComponent = forwardRef(({
       Object.values(userPlaceMarkersRef.current).forEach((marker) => marker.remove())
       userPlaceMarkersRef.current = {}
     }
-  }, [mapLoaded, places, onPlaceClick, selectedPlaceId])
+  }, [mapLoaded, places, onPlaceClick, onMapClick, selectedPlaceId, emitAddPlaceMapPick])
 
   // Search result markers (from umnaapp.in/search)'
   useEffect(() => {
@@ -1374,11 +1388,15 @@ const MapComponent = forwardRef(({
       const markerOpts = { element: el, anchor: 'bottom' }
       const marker = new maplibregl.Marker(markerOpts)
         .setLngLat([place.lng, place.lat])
-      if (onPlaceClick) {
+      if (onPlaceClick || onMapClick) {
         el.style.cursor = 'pointer'
         el.addEventListener('click', (e) => {
           e.stopPropagation()
-          onPlaceClick(placeFromSearchMarker(place))
+          if (addPlaceModeRef.current && onMapClickRef.current) {
+            emitAddPlaceMapPick(place.lat, place.lng)
+            return
+          }
+          if (onPlaceClick) onPlaceClick(placeFromSearchMarker(place))
         })
       } else {
         const addrSubtitle = place.address && typeof place.address === 'object'
@@ -1408,7 +1426,7 @@ const MapComponent = forwardRef(({
       Object.values(searchResultMarkersRef.current).forEach((m) => m?.remove())
       searchResultMarkersRef.current = {}
     }
-  }, [mapLoaded, searchResultPlaces, autoFitSearchResults, onPlaceClick, selectedPlaceId])
+  }, [mapLoaded, searchResultPlaces, autoFitSearchResults, onPlaceClick, onMapClick, selectedPlaceId, emitAddPlaceMapPick])
 
   // Area-explore markers (polygon tool — same style as search chips)
   useEffect(() => {
@@ -1423,11 +1441,15 @@ const MapComponent = forwardRef(({
       applyPlaceMarkerSelected(el, place.placeId, selectedPlaceId)
       const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
         .setLngLat([place.lng, place.lat])
-      if (onPlaceClick) {
+      if (onPlaceClick || onMapClick) {
         el.style.cursor = 'pointer'
         el.addEventListener('click', (e) => {
           e.stopPropagation()
-          onPlaceClick(placeFromSearchMarker(place))
+          if (addPlaceModeRef.current && onMapClickRef.current) {
+            emitAddPlaceMapPick(place.lat, place.lng)
+            return
+          }
+          if (onPlaceClick) onPlaceClick(placeFromSearchMarker(place))
         })
       } else {
         const addrSubtitle = place.address && typeof place.address === 'object'
@@ -1446,7 +1468,7 @@ const MapComponent = forwardRef(({
       Object.values(polygonOverlayMarkersRef.current).forEach((m) => m?.remove())
       polygonOverlayMarkersRef.current = {}
     }
-  }, [mapLoaded, polygonOverlayPlaces, onPlaceClick, selectedPlaceId])
+  }, [mapLoaded, polygonOverlayPlaces, onPlaceClick, onMapClick, selectedPlaceId, emitAddPlaceMapPick])
 
   // Route start (blue) and end (red) markers
   useEffect(() => {
