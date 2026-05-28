@@ -29,8 +29,16 @@ import {
   downloadPlacesExport,
 } from '../utils/mapRenderingConfig'
 import GridExtractCompleteModal from './GridExtractCompleteModal.jsx'
+import { pointInRing, ringBBox } from '../utils/polygonGeo'
+import {
+  AREA_SHAPE_TOOLS,
+  areaShapeHint,
+  needsCompleteButton,
+  attachAreaShapeDrawing,
+} from '../utils/areaShapeDrawing'
 
 const GRID_EXTRACT_MAX_PLACES_DEFAULT = 20
+const AREA_GRID_SIZE_DEFAULT = 3
 
 function formatAddToMapStatus(bulkResult, fallbackCount) {
   const added = bulkResult?.added ?? fallbackCount
@@ -121,7 +129,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const stopRequestedRef = useRef(false)
 
   // Method selection state
-  const [extractionMethod, setExtractionMethod] = useState('grid') // 'grid' or 'search'
+  const [extractionMethod, setExtractionMethod] = useState('grid') // 'grid' | 'search' | 'area'
 
   // Grid-based extraction states
   const [mapsLoaded, setMapsLoaded] = useState(false)
@@ -183,6 +191,39 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const searchSuggestDebounceRef = useRef(null)
   const searchBarContainerRef = useRef(null)
   const [searchSuggestOpen, setSearchSuggestOpen] = useState(false)
+
+  // Area-based extraction states
+  const [areaCountry, setAreaCountry] = useState('')
+  const [areaState, setAreaState] = useState('')
+  const [areaDistrict, setAreaDistrict] = useState('')
+  const [areaTaluk, setAreaTaluk] = useState('')
+  const [areaVillage, setAreaVillage] = useState('')
+  const [areaLoadingRegion, setAreaLoadingRegion] = useState(false)
+  const [areaDrawTool, setAreaDrawTool] = useState('rectangle')
+  const [areaGridSize, setAreaGridSize] = useState(AREA_GRID_SIZE_DEFAULT)
+  const [areaStatus, setAreaStatus] = useState('Pan/zoom the map, draw a shape, then extract places inside it')
+  const [areaIsExtracting, setAreaIsExtracting] = useState(false)
+  const [areaProgress, setAreaProgress] = useState(0)
+  const [areaExtractedPlaces, setAreaExtractedPlaces] = useState([])
+  const [areaSelectedPlaces, setAreaSelectedPlaces] = useState(new Set())
+  const [areaSelectAll, setAreaSelectAll] = useState(true)
+  const [areaMapZoom, setAreaMapZoom] = useState(null)
+  const [areaShapeReady, setAreaShapeReady] = useState(false)
+  const [areaPolygonVertices, setAreaPolygonVertices] = useState(0)
+
+  const areaMapContainerRef = useRef(null)
+  const areaMapInstanceRef = useRef(null)
+  const areaServiceRef = useRef(null)
+  const areaMarkersRef = useRef([])
+  const areaGridRectsRef = useRef([])
+  const areaShapeOverlayRef = useRef(null)
+  const areaRingRef = useRef(null)
+  const areaPlacesArrayRef = useRef([])
+  const areaBoundsRef = useRef({ region: null })
+  const areaLocationRef = useRef({ country: '', state: '', district: '', taluk: '', village: '' })
+  const areaDrawCleanupRef = useRef(null)
+  const areaDrawCompleteRef = useRef(null)
+  const areaMapIdleCleanupRef = useRef(null)
 
   /** Keeps latest list for Places getDetails callbacks (avoids stale closure on repeat searches). */
   const searchResultsRef = useRef([])
@@ -407,7 +448,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   }, [enqueueApiCall, updateStats, syncQuotaUi])
 
   // --- Throttled nearby search ---
-  const throttledNearbySearch = useCallback((request, retryCount = 0) => {
+  const throttledNearbySearch = useCallback((request, retryCount = 0, serviceOverride = null) => {
+    const service = serviceOverride || serviceRef.current
     const check = assertGoogleApiAvailable('nearbySearch')
     if (!check.ok) {
       syncQuotaUi()
@@ -420,7 +462,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
     return enqueueApiCall((done) => {
       recordGoogleApiUse('nearbySearch')
-      serviceRef.current.nearbySearch(request, (results, nStatus) => {
+      service.nearbySearch(request, (results, nStatus) => {
         updateStats('nearby')
         syncQuotaUi()
         if (nStatus === window.google.maps.places.PlacesServiceStatus.OVER_QUERY_LIMIT) {
@@ -439,7 +481,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             setStatus(`Rate limited (attempt ${retryCount + 1}/${RATE_CONFIG.maxRetries}). Waiting ${delay / 1000}s...`)
             setTimeout(() => {
               done(null) // release lock
-              throttledNearbySearch(request, retryCount + 1)
+              throttledNearbySearch(request, retryCount + 1, service)
             }, delay)
           } else {
             done({ results: [], status: 'MAX_RETRIES_EXCEEDED' })
@@ -452,9 +494,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   }, [enqueueApiCall, updateStats, syncQuotaUi])
 
   const executeOptimizedNearbySearch = useCallback(
-    async (request) => {
+    async (request, { map = mapInstanceRef.current, service = serviceRef.current } = {}) => {
       const toolkit = quotaToolkitRef.current
-      const map = mapInstanceRef.current
       const minZoom = toolkit?.config.minZoomForNearbySearch ?? 14
 
       if (map && !isZoomSufficient(map, minZoom)) {
@@ -484,7 +525,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         }
       }
 
-      const result = await throttledNearbySearch(request)
+      const result = await throttledNearbySearch(request, 0, service)
       if (result?.skipped) return result
 
       if (toolkit && !result?.cached) {
@@ -586,6 +627,392 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
     return cells
   }, [gridSize])
+
+  const clearAreaShapeOverlay = useCallback(() => {
+    areaShapeOverlayRef.current?.setMap(null)
+    areaShapeOverlayRef.current = null
+    areaRingRef.current = null
+    setAreaShapeReady(false)
+    setAreaPolygonVertices(0)
+  }, [])
+
+  const finalizeAreaDrawing = useCallback(() => {
+    areaDrawCleanupRef.current?.()
+    areaDrawCleanupRef.current = null
+    areaDrawCompleteRef.current = null
+  }, [])
+
+  const setAreaShapeFromRing = useCallback((ring, overlay) => {
+    areaShapeOverlayRef.current?.setMap(null)
+    areaShapeOverlayRef.current = overlay
+    areaRingRef.current = ring
+    setAreaShapeReady(true)
+    setAreaPolygonVertices(ring.length > 1 ? ring.length - 1 : ring.length)
+    finalizeAreaDrawing()
+  }, [finalizeAreaDrawing])
+
+  const generateGridFromRing = useCallback((ring, size, map) => {
+    const { minLng, maxLng, minLat, maxLat } = ringBBox(ring)
+    if (!Number.isFinite(minLng)) return []
+    const latDiff = maxLat - minLat
+    const lngDiff = maxLng - minLng
+    const cells = []
+
+    areaGridRectsRef.current.forEach((r) => r.setMap(null))
+    areaGridRectsRef.current = []
+
+    for (let i = 0; i < size; i++) {
+      for (let j = 0; j < size; j++) {
+        const cellSW = { lat: minLat + (latDiff * i) / size, lng: minLng + (lngDiff * j) / size }
+        const cellNE = { lat: minLat + (latDiff * (i + 1)) / size, lng: minLng + (lngDiff * (j + 1)) / size }
+        const cellBounds = new window.google.maps.LatLngBounds(
+          new window.google.maps.LatLng(cellSW.lat, cellSW.lng),
+          new window.google.maps.LatLng(cellNE.lat, cellNE.lng)
+        )
+        cells.push(cellBounds)
+        const rect = new window.google.maps.Rectangle({
+          bounds: cellBounds,
+          map,
+          strokeColor: '#FF0000',
+          strokeOpacity: 0.8,
+          strokeWeight: 1,
+          fillColor: '#FF0000',
+          fillOpacity: 0.1,
+        })
+        areaGridRectsRef.current.push(rect)
+      }
+    }
+    return cells
+  }, [])
+
+  const getAreaLocationString = () => {
+    const loc = areaLocationRef.current
+    return [loc.village, loc.taluk, loc.district, loc.state, loc.country].filter(Boolean).join(', ')
+  }
+
+  const loadAreaRegion = useCallback(async () => {
+    const map = areaMapInstanceRef.current
+    if (!map) return
+    if (!canUseGoogleApi()) {
+      setAreaStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+      return
+    }
+
+    const c = areaCountry.trim()
+    if (!c) {
+      setAreaStatus('Enter at least a country, then tap Load region.')
+      return
+    }
+
+    const address = [areaVillage.trim(), areaTaluk.trim(), areaDistrict.trim(), areaState.trim(), c]
+      .filter(Boolean)
+      .join(', ')
+    areaLocationRef.current = {
+      country: c,
+      state: areaState.trim(),
+      district: areaDistrict.trim(),
+      taluk: areaTaluk.trim(),
+      village: areaVillage.trim(),
+    }
+
+    setAreaLoadingRegion(true)
+    try {
+      const { results, status: gStatus, message: geoMsg } = await throttledGeocode(address)
+      if (gStatus === SKIP_STATUS.QUOTA_EXCEEDED) {
+        areaBoundsRef.current.region = null
+        setAreaStatus(geoMsg || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+        syncQuotaUi()
+        return
+      }
+      if (gStatus === 'OK' && results?.[0]) {
+        const viewport = results[0].geometry.viewport
+        areaBoundsRef.current.region = viewport
+        map.fitBounds(viewport)
+        clearAreaShapeOverlay()
+        setAreaStatus(`Loaded ${address}. Draw a shape on the map, then extract.`)
+      } else {
+        areaBoundsRef.current.region = null
+        setAreaStatus(`Could not find "${address}"`)
+      }
+    } finally {
+      setAreaLoadingRegion(false)
+    }
+  }, [
+    areaCountry,
+    areaState,
+    areaDistrict,
+    areaTaluk,
+    areaVillage,
+    throttledGeocode,
+    syncQuotaUi,
+    clearAreaShapeOverlay,
+  ])
+
+  const completeAreaShape = useCallback(() => {
+    if (areaDrawCompleteRef.current?.completePolylineOrPolygon?.()) {
+      setAreaStatus('Shape ready. Tap Extract places to find POIs inside the area.')
+      return
+    }
+    setAreaStatus('Add more points before completing the shape.')
+  }, [])
+
+  const setupAreaDrawing = useCallback(() => {
+    areaDrawCleanupRef.current?.()
+    areaDrawCleanupRef.current = null
+    areaDrawCompleteRef.current = null
+    clearAreaShapeOverlay()
+
+    const map = areaMapInstanceRef.current
+    if (!map || extractionMethod !== 'area') return
+
+    setAreaStatus(areaShapeHint(areaDrawTool))
+
+    const cleanup = attachAreaShapeDrawing(map, areaDrawTool, {
+      onRingReady: (ring, overlay) => {
+        setAreaShapeFromRing(ring, overlay)
+        setAreaStatus('Shape ready. Tap Extract places to find POIs inside the area.')
+      },
+      onVertexCount: (n) => setAreaPolygonVertices(n),
+      onAwaitingSecondClick: (waiting) => {
+        if (waiting) setAreaStatus('Click again on the map to set the circle radius.')
+      },
+    })
+
+    areaDrawCleanupRef.current = cleanup
+    areaDrawCompleteRef.current = cleanup
+  }, [areaDrawTool, extractionMethod, clearAreaShapeOverlay, setAreaShapeFromRing])
+
+  const extractAreaPlaces = useCallback(async () => {
+    const ring = areaRingRef.current
+    if (!ring || ring.length < 4) {
+      setAreaStatus('Draw a shape on the map first (rectangle or polygon).')
+      return
+    }
+    if (areaIsExtracting) return
+
+    const map = areaMapInstanceRef.current
+    const service = areaServiceRef.current
+    const minZoom = quotaToolkitRef.current?.config.minZoomForNearbySearch ?? 14
+    if (map && !isZoomSufficient(map, minZoom)) {
+      setAreaStatus(`Zoom in to level ${minZoom}+ before extracting (current: ${map.getZoom() ?? '—'}).`)
+      return
+    }
+    if (!canUseGoogleApi()) {
+      setAreaStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+      return
+    }
+
+    const maxPlaces = gridExtractMaxPlaces
+
+    areaPlacesArrayRef.current = []
+    setAreaExtractedPlaces([])
+    setAreaSelectedPlaces(new Set())
+    setAreaSelectAll(true)
+    areaMarkersRef.current.forEach((m) => m.setMap(null))
+    areaMarkersRef.current = []
+    stopRequestedRef.current = false
+    setAreaIsExtracting(true)
+    setAreaProgress(0)
+
+    const grid = generateGridFromRing(ring, areaGridSize, map)
+    const placeTypes = ['establishment', 'locality', 'sublocality', 'neighborhood']
+
+    for (let cellIdx = 0; cellIdx < grid.length; cellIdx++) {
+      if (stopRequestedRef.current) break
+      if (areaPlacesArrayRef.current.length >= maxPlaces) {
+        stopRequestedRef.current = true
+        break
+      }
+
+      const pct = Math.floor((cellIdx / grid.length) * 100)
+      setAreaProgress(pct)
+      setAreaStatus(
+        `Extracting… Cell ${cellIdx + 1}/${grid.length} | Found: ${areaPlacesArrayRef.current.length}/${maxPlaces} places`
+      )
+
+      if (cellIdx > 0 && areaGridRectsRef.current[cellIdx - 1]) {
+        areaGridRectsRef.current[cellIdx - 1].setOptions({ fillColor: '#4285F4', fillOpacity: 0.15 })
+      }
+      if (areaGridRectsRef.current[cellIdx]) {
+        areaGridRectsRef.current[cellIdx].setOptions({ fillColor: '#00FF00', fillOpacity: 0.3 })
+      }
+
+      for (const placeType of placeTypes) {
+        if (stopRequestedRef.current) break
+        if (areaPlacesArrayRef.current.length >= maxPlaces) {
+          stopRequestedRef.current = true
+          break
+        }
+        const result = await executeOptimizedNearbySearch(
+          { bounds: grid[cellIdx], type: placeType },
+          { map, service }
+        )
+        if (result?.status === SKIP_STATUS.QUOTA_EXCEEDED) {
+          setAreaStatus(result.message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+          stopRequestedRef.current = true
+          break
+        }
+        if (result?.status === SKIP_STATUS.ZOOM_TOO_LOW) {
+          setAreaStatus(`Zoom in to level ${minZoom}+ to extract places in this view.`)
+          stopRequestedRef.current = true
+          break
+        }
+        if (result?.results && result.status === window.google.maps.places.PlacesServiceStatus.OK) {
+          const newPlaces = []
+          result.results.forEach((place) => {
+            if (areaPlacesArrayRef.current.length >= maxPlaces) return
+            const lat = place.geometry.location.lat()
+            const lng = place.geometry.location.lng()
+            if (!pointInRing(lng, lat, ring)) return
+            const name = place.name
+            const pid = place.place_id
+            const draft = withMapRenderingConfig(
+              {
+                name,
+                lat,
+                lng,
+                place_id: pid,
+                type: place.types?.[0] || placeType,
+                types: place.types,
+                village: areaLocationRef.current.village,
+                district: areaLocationRef.current.district,
+                taluk: areaLocationRef.current.taluk,
+                state: areaLocationRef.current.state,
+                country: areaLocationRef.current.country,
+                zoomLevel: map?.getZoom?.(),
+              },
+              { map, place }
+            )
+            const exists =
+              isDuplicateInSession(areaPlacesArrayRef.current, draft) ||
+              findDuplicateInList(mapPlaces, draft).duplicate
+            if (!exists) {
+              areaPlacesArrayRef.current.push(draft)
+              newPlaces.push(draft)
+              const marker = new window.google.maps.Marker({
+                position: place.geometry.location,
+                map,
+                title: name,
+              })
+              areaMarkersRef.current.push(marker)
+            }
+          })
+          if (newPlaces.length > 0) {
+            setAreaExtractedPlaces([...areaPlacesArrayRef.current])
+            setAreaSelectedPlaces((prev) => {
+              const next = new Set(prev)
+              newPlaces.forEach((p) => next.add(p.name))
+              return next
+            })
+          }
+        }
+      }
+
+      if (!stopRequestedRef.current) {
+        await new Promise((r) => setTimeout(r, rateConfigRef.current.cellDelay))
+      }
+    }
+
+    setAreaIsExtracting(false)
+    setAreaProgress(100)
+    syncQuotaUi()
+    const finalCount = areaPlacesArrayRef.current.length
+    const locNote = getAreaLocationString()
+    const cappedNote = finalCount >= maxPlaces ? ` (max ${maxPlaces})` : ''
+    setAreaStatus(
+      `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'}${locNote ? ` in ${locNote}` : ' inside the shape'}${cappedNote}.`
+    )
+  }, [
+    areaIsExtracting,
+    areaGridSize,
+    generateGridFromRing,
+    executeOptimizedNearbySearch,
+    mapPlaces,
+    syncQuotaUi,
+    gridExtractMaxPlaces,
+  ])
+
+  const stopAreaExtraction = useCallback(() => {
+    stopRequestedRef.current = true
+    requestQueueRef.current = []
+    setAreaStatus(`Stopping… Found ${areaPlacesArrayRef.current.length} places so far.`)
+  }, [])
+
+  const toggleAreaSelectAll = useCallback(() => {
+    if (areaSelectAll) {
+      setAreaSelectedPlaces(new Set())
+    } else {
+      setAreaSelectedPlaces(new Set(areaExtractedPlaces.map((p) => p.name)))
+    }
+    setAreaSelectAll(!areaSelectAll)
+  }, [areaSelectAll, areaExtractedPlaces])
+
+  const toggleAreaPlace = useCallback((name) => {
+    setAreaSelectedPlaces((prev) => {
+      const next = new Set(prev)
+      if (next.has(name)) next.delete(name)
+      else next.add(name)
+      return next
+    })
+  }, [])
+
+  const handleAreaAddToMap = useCallback(async () => {
+    const selected = areaExtractedPlaces.filter((p) => areaSelectedPlaces.has(p.name))
+    if (selected.length === 0) {
+      setAreaStatus('No places selected. Select places to add.')
+      return
+    }
+    if (!canUseGoogleApi()) {
+      setAreaStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+      return
+    }
+    setAddingToMap(true)
+    try {
+      const svc = areaServiceRef.current
+      setAreaStatus(`Fetching full details for ${selected.length} places…`)
+      const activeMap = areaMapInstanceRef.current
+      const enriched = await enrichPlacesWithDetails(
+        selected,
+        svc,
+        enqueueApiCall,
+        areaLocationRef.current,
+        (i, total, name) => setAreaStatus(`Details ${i}/${total}: ${name}`),
+        { map: activeMap },
+        quotaToolkitRef.current?.detailsCache ?? null
+      )
+      syncQuotaUi()
+      const mapZoomVal = activeMap?.getZoom?.()
+      const withZoom = enriched.map((p) =>
+        withMapRenderingConfig(
+          {
+            ...p,
+            zoomLevel: typeof mapZoomVal === 'number' ? mapZoomVal : p.zoomLevel ?? 15,
+          },
+          { map: activeMap, place: p }
+        )
+      )
+      const bulkResult = await onAddToMap(withZoom)
+      setAreaStatus(formatAddToMapStatus(bulkResult, withZoom.length))
+    } catch (err) {
+      if (err.response?.status === 409) {
+        onShowDuplicate?.(
+          {
+            duplicate: true,
+            message: err.response?.data?.message,
+            reason: err.response?.data?.reason,
+            existingPlaceId: err.response?.data?.existingPlaceId,
+            existingPlaceName: err.response?.data?.existingPlaceName,
+          },
+          selected[0]?.name
+        )
+        setAreaStatus(err.response?.data?.message || 'Place already on the map')
+      } else {
+        setAreaStatus(`Failed to add places: ${err.message}`)
+      }
+    } finally {
+      setAddingToMap(false)
+    }
+  }, [areaExtractedPlaces, areaSelectedPlaces, onAddToMap, enqueueApiCall, onShowDuplicate, syncQuotaUi])
 
   // --- Extraction ---
   const extractPlaces = useCallback(async () => {
@@ -878,8 +1305,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     if (extractionMethod === 'search') {
       return searchResults.filter((p) => selectedSearchPlaces.has(p.name))
     }
+    if (extractionMethod === 'area') {
+      return areaExtractedPlaces.filter((p) => areaSelectedPlaces.has(p.name))
+    }
     return extractedPlaces.filter((p) => selectedPlaces.has(p.name))
-  }, [extractionMethod, extractedPlaces, selectedPlaces, searchResults, selectedSearchPlaces])
+  }, [
+    extractionMethod,
+    extractedPlaces,
+    selectedPlaces,
+    searchResults,
+    selectedSearchPlaces,
+    areaExtractedPlaces,
+    areaSelectedPlaces,
+  ])
 
   const downloadExport = useCallback(async () => {
     const toExport =
@@ -889,15 +1327,27 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             ? getExportPlaces()
             : searchResults
           : []
-        : extractedPlaces.length > 0
-          ? getExportPlaces().length > 0
-            ? getExportPlaces()
-            : extractedPlaces
-          : []
+        : extractionMethod === 'area'
+          ? areaExtractedPlaces.length > 0
+            ? getExportPlaces().length > 0
+              ? getExportPlaces()
+              : areaExtractedPlaces
+            : []
+          : extractedPlaces.length > 0
+            ? getExportPlaces().length > 0
+              ? getExportPlaces()
+              : extractedPlaces
+            : []
     if (toExport.length === 0) return
     const activeMap =
-      extractionMethod === 'search' ? searchMapInstanceRef.current : mapInstanceRef.current
-    const baseName = `${getLocationString().replace(/,\s+/g, '_') || 'places'}_extracted`
+      extractionMethod === 'search'
+        ? searchMapInstanceRef.current
+        : extractionMethod === 'area'
+          ? areaMapInstanceRef.current
+          : mapInstanceRef.current
+    const locStr =
+      extractionMethod === 'area' ? getAreaLocationString() : getLocationString()
+    const baseName = `${locStr.replace(/,\s+/g, '_') || 'places'}_extracted`
     const dl = await downloadPlacesExport(toExport, {
       format: exportFormat,
       filename: baseName,
@@ -909,7 +1359,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } else if (dl.aborted) {
       setStatus('Export cancelled.')
     }
-  }, [extractionMethod, extractedPlaces, searchResults, getExportPlaces, exportFormat])
+  }, [extractionMethod, extractedPlaces, searchResults, areaExtractedPlaces, getExportPlaces, exportFormat])
 
   // --- Upload JSON ---
   const fileInputRef = useRef(null)
@@ -984,6 +1434,51 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     })
     return () => cleanupIdle()
   }, [extractionMethod, mapsLoaded])
+
+  // Initialize area map when switching to area method
+  useEffect(() => {
+    if (extractionMethod !== 'area' || !mapsLoaded || !areaMapContainerRef.current) return
+    if (areaMapInstanceRef.current) return
+
+    const areaMap = new window.google.maps.Map(areaMapContainerRef.current, {
+      center: { lat: 20.5, lng: 78.5 },
+      zoom: 10,
+      mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+    })
+    areaMapInstanceRef.current = areaMap
+    areaServiceRef.current = new window.google.maps.places.PlacesService(areaMap)
+    setAreaMapZoom(areaMap.getZoom())
+
+    areaMapIdleCleanupRef.current?.()
+    areaMapIdleCleanupRef.current = attachMapIdleGuard(areaMap, {
+      debounceMs: quotaToolkitRef.current?.config.mapIdleDebounceMs ?? 400,
+      onZoomChange: (z) => setAreaMapZoom(z),
+      onIdle: ({ zoom }) => setAreaMapZoom(zoom),
+    })
+    return () => areaMapIdleCleanupRef.current?.()
+  }, [extractionMethod, mapsLoaded])
+
+  // Reflow area map on resize
+  useEffect(() => {
+    if (!mapsLoaded || !isOpen || !areaMapInstanceRef.current || !areaMapContainerRef.current) return
+    if (extractionMethod !== 'area') return
+    const map = areaMapInstanceRef.current
+    const el = areaMapContainerRef.current
+    const trigger = () => {
+      if (window.google?.maps?.event) window.google.maps.event.trigger(map, 'resize')
+    }
+    trigger()
+    const ro = new ResizeObserver(() => trigger())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mapsLoaded, isOpen, extractionMethod])
+
+  // Attach area drawing listeners when tool or mode changes
+  useEffect(() => {
+    if (extractionMethod !== 'area' || !mapsLoaded || !areaMapInstanceRef.current) return
+    setupAreaDrawing()
+    return () => areaDrawCleanupRef.current?.()
+  }, [extractionMethod, mapsLoaded, areaDrawTool, setupAreaDrawing])
 
   // Clean up search markers on unmount
   useEffect(() => {
@@ -1342,7 +1837,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               <h2 id="place-extract-title" className="truncate text-base font-bold tracking-tight sm:text-lg">
                 Place Extractor
               </h2>
-              <p className="truncate text-xs text-white/80 sm:text-[13px]">Add many places from a region or search</p>
+              <p className="truncate text-xs text-white/80 sm:text-[13px]">Add many places from a region, shape, or search</p>
             </div>
             {extractionMethod === 'grid' && extractedPlaces.length > 0 && (
               <span className="hidden shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white ring-1 ring-white/25 sm:inline-flex">
@@ -1352,6 +1847,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {extractionMethod === 'search' && searchResults.length > 0 && (
               <span className="hidden shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white ring-1 ring-white/25 sm:inline-flex">
                 {searchResults.length} results
+              </span>
+            )}
+            {extractionMethod === 'area' && areaExtractedPlaces.length > 0 && (
+              <span className="hidden shrink-0 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white ring-1 ring-white/25 sm:inline-flex">
+                {areaExtractedPlaces.length} found
               </span>
             )}
           </div>
@@ -1440,13 +1940,30 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               </svg>
               <span className="truncate">Search</span>
             </button>
+            <button
+              type="button"
+              onClick={() => setExtractionMethod('area')}
+              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-semibold transition-all sm:min-h-0 sm:py-2 ${
+                extractionMethod === 'area'
+                  ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/80'
+                  : 'text-slate-600 hover:text-slate-800'
+              }`}
+            >
+              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16M4 5l4 14h8l4-14M4 5l2-2m14 2l-2-2" />
+              </svg>
+              <span className="truncate">Area</span>
+            </button>
           </div>
           {((extractionMethod === 'grid' && extractedPlaces.length > 0) ||
-            (extractionMethod === 'search' && searchResults.length > 0)) && (
+            (extractionMethod === 'search' && searchResults.length > 0) ||
+            (extractionMethod === 'area' && areaExtractedPlaces.length > 0)) && (
             <p className="mt-2 text-center text-xs font-medium text-primary-600 sm:hidden">
               {extractionMethod === 'grid'
                 ? `${extractedPlaces.length} places found`
-                : `${searchResults.length} in list`}
+                : extractionMethod === 'search'
+                  ? `${searchResults.length} in list`
+                  : `${areaExtractedPlaces.length} places found`}
             </p>
           )}
         </div>
@@ -1883,6 +2400,272 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                   )}
                 </div>
               </div>
+            )}
+
+            {/* ============== AREA-BASED METHOD ============== */}
+            {extractionMethod === 'area' && (
+              <>
+                <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
+                  <div className="max-h-[min(48vh,420px)] shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:max-h-none sm:p-2.5">
+                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
+                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                      <input
+                        type="text"
+                        value={areaCountry}
+                        onChange={(e) => setAreaCountry(e.target.value)}
+                        placeholder="Country (required, e.g. India)"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadAreaRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={areaState}
+                        onChange={(e) => setAreaState(e.target.value)}
+                        placeholder="State / region"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadAreaRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={areaDistrict}
+                        onChange={(e) => setAreaDistrict(e.target.value)}
+                        placeholder="District"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadAreaRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={areaTaluk}
+                        onChange={(e) => setAreaTaluk(e.target.value)}
+                        placeholder="Taluk / taluka"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
+                        onKeyDown={(e) => e.key === 'Enter' && loadAreaRegion()}
+                      />
+                      <input
+                        type="text"
+                        value={areaVillage}
+                        onChange={(e) => setAreaVillage(e.target.value)}
+                        placeholder="Village / town"
+                        className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1 sm:col-span-2"
+                        onKeyDown={(e) => e.key === 'Enter' && loadAreaRegion()}
+                      />
+                    </div>
+                    <p className="mt-1 text-[10px] text-slate-500 sm:text-[11px]">
+                      Choose a shape tool, draw on the map · max {gridExtractMaxPlaces} places per run
+                    </p>
+                    <p className="mb-1.5 mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Shape tools</p>
+                    <div className="grid grid-cols-3 gap-1 sm:grid-cols-4">
+                      {AREA_SHAPE_TOOLS.map((o) => (
+                        <button
+                          key={o.value}
+                          type="button"
+                          onClick={() => setAreaDrawTool(o.value)}
+                          className={`min-h-[36px] rounded-lg border px-1 py-1.5 text-[10px] font-semibold leading-tight transition sm:text-[11px] ${
+                            areaDrawTool === o.value
+                              ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-200'
+                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                          }`}
+                        >
+                          {o.label}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={loadAreaRegion}
+                        disabled={areaLoadingRegion || googleApiBlocked}
+                        className="h-8 shrink-0 rounded-lg bg-primary-600 px-3 text-xs font-semibold text-white shadow-sm transition-colors hover:bg-primary-700 active:bg-primary-800 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {areaLoadingRegion ? 'Loading…' : 'Load region'}
+                      </button>
+                      {needsCompleteButton(areaDrawTool) &&
+                        !areaShapeReady &&
+                        ((areaDrawTool === 'polyline' && areaPolygonVertices >= 2) ||
+                          (areaDrawTool !== 'polyline' && areaPolygonVertices >= 3)) && (
+                        <button
+                          type="button"
+                          onClick={completeAreaShape}
+                          className="h-8 shrink-0 rounded-lg bg-indigo-600 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                        >
+                          Complete shape
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          clearAreaShapeOverlay()
+                          setupAreaDrawing()
+                          setAreaStatus(areaShapeHint(areaDrawTool))
+                        }}
+                        className="h-8 shrink-0 rounded-lg border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50"
+                      >
+                        Clear shape
+                      </button>
+                      <select
+                        value={areaGridSize}
+                        onChange={(e) => setAreaGridSize(parseInt(e.target.value, 10))}
+                        className="h-8 max-w-full appearance-none rounded-lg border border-slate-200 bg-white px-2 py-0 text-xs shadow-sm outline-none ring-primary-400/20 focus:border-primary-400 focus:ring-1"
+                        title="Search grid density"
+                      >
+                        <option value={2}>2×2 grid</option>
+                        <option value={3}>3×3 grid</option>
+                        <option value={4}>4×4 grid</option>
+                      </select>
+                      {!areaIsExtracting ? (
+                        <button
+                          type="button"
+                          onClick={extractAreaPlaces}
+                          disabled={googleApiBlocked || !areaShapeReady}
+                          className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          title={!areaShapeReady ? 'Draw a shape on the map first' : undefined}
+                        >
+                          Extract places
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={stopAreaExtraction}
+                          className="h-8 shrink-0 rounded-lg bg-red-600 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-red-700"
+                        >
+                          Stop
+                        </button>
+                      )}
+                      <select
+                        value={exportFormat}
+                        onChange={(e) => setExportFormat(e.target.value)}
+                        className="h-8 max-w-[5.5rem] rounded-lg border border-slate-200 bg-white px-1.5 text-[11px] shadow-sm"
+                        title="Export format"
+                      >
+                        <option value="json">JSON</option>
+                        <option value="geojson">GeoJSON</option>
+                      </select>
+                      <button
+                        type="button"
+                        onClick={downloadExport}
+                        disabled={areaExtractedPlaces.length === 0}
+                        className="h-8 shrink-0 rounded-lg bg-slate-700 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        Export
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="shrink-0 border-b border-slate-100 bg-white px-2 py-1.5 sm:px-2.5">
+                    <div className="flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 sm:flex-row sm:items-center sm:justify-between">
+                      <span className="min-w-0 sm:truncate">{areaStatus}</span>
+                      <span className="shrink-0 text-[10px] text-slate-400 sm:text-[11px]">
+                        {areaShapeReady
+                          ? 'Shape ready'
+                          : areaPolygonVertices > 0
+                            ? `${areaPolygonVertices} pts`
+                            : 'No shape'}
+                        {nearbyQuotaRemaining != null ? ` · session ${nearbyQuotaRemaining}` : ''}
+                        {areaMapZoom != null ? ` · z${areaMapZoom}` : ''}
+                      </span>
+                    </div>
+                    {areaIsExtracting && (
+                      <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-200">
+                        <div
+                          className="h-full rounded-full bg-gradient-to-r from-primary-500 to-cyan-500 transition-all duration-300"
+                          style={{ width: `${areaProgress}%` }}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="relative min-h-0 flex-1 w-full">
+                    <div ref={areaMapContainerRef} className="absolute inset-0 min-h-[160px] bg-slate-100" />
+                  </div>
+                </div>
+
+                <div className="flex max-h-[min(42vh,360px)] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
+                  <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
+                      <span className="shrink-0 rounded-full bg-slate-200/80 px-1.5 py-0.5 text-[10px] font-medium text-slate-600 sm:text-[11px]">
+                        {areaSelectedPlaces.size}/{areaExtractedPlaces.length}
+                      </span>
+                    </div>
+                    {areaExtractedPlaces.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={toggleAreaSelectAll}
+                        className="shrink-0 text-xs font-semibold text-primary-600 hover:text-primary-700"
+                      >
+                        {areaSelectAll ? 'Deselect all' : 'Select all'}
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+                    {areaExtractedPlaces.length === 0 ? (
+                      <div className="flex h-full min-h-[120px] items-center justify-center p-4">
+                        <p className="max-w-[220px] text-center text-xs leading-relaxed text-slate-500">
+                          Load a region, draw a shape on the map, extract places inside it, then add to your map.
+                        </p>
+                      </div>
+                    ) : (
+                      <ul className="divide-y divide-slate-100">
+                        {areaExtractedPlaces.map((place, idx) => (
+                          <li
+                            key={`${place.name}-${idx}`}
+                            className={`flex cursor-pointer items-start gap-3 px-3 py-3 transition-colors active:bg-slate-100 sm:py-2.5 ${
+                              areaSelectedPlaces.has(place.name) ? 'bg-primary-50/70' : 'hover:bg-slate-50'
+                            }`}
+                            onClick={() => toggleAreaPlace(place.name)}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={areaSelectedPlaces.has(place.name)}
+                              readOnly
+                              className="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300 text-primary-600"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <p className="truncate text-sm font-medium text-slate-900">{place.name}</p>
+                              <p className="mt-0.5 font-mono text-[11px] text-slate-400">
+                                {place.lat.toFixed(5)}, {place.lng.toFixed(5)}
+                                {place.type && <span className="ml-1 text-slate-400">· {place.type}</span>}
+                              </p>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+
+                  {areaExtractedPlaces.length > 0 && (
+                    <div
+                      className="shrink-0 border-t border-slate-100 bg-white p-3 sm:p-4"
+                      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                    >
+                      <button
+                        type="button"
+                        onClick={handleAreaAddToMap}
+                        disabled={areaSelectedPlaces.size === 0 || addingToMap || googleApiBlocked}
+                        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-md transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {addingToMap ? (
+                          <>
+                            <svg className="h-5 w-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Adding…
+                          </>
+                        ) : (
+                          <>
+                            <svg className="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            <span className="truncate">Add {areaSelectedPlaces.size} to map</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
             )}
           </div>
         )}
