@@ -28,6 +28,9 @@ import {
   withMapRenderingConfig,
   downloadPlacesExport,
 } from '../utils/mapRenderingConfig'
+import GridExtractCompleteModal from './GridExtractCompleteModal.jsx'
+
+const GRID_EXTRACT_MAX_PLACES_DEFAULT = 20
 
 function formatAddToMapStatus(bulkResult, fallbackCount) {
   const added = bulkResult?.added ?? fallbackCount
@@ -51,15 +54,25 @@ const RATE_CONFIG = {
 
 let _googleMapsApiKey = null
 let _placesQuotaConfig = null
+let _gridExtractMaxPlaces = GRID_EXTRACT_MAX_PLACES_DEFAULT
 
 async function fetchMapClientConfig() {
   if (_googleMapsApiKey && _placesQuotaConfig) {
-    return { googleMapsApiKey: _googleMapsApiKey, placesQuota: _placesQuotaConfig }
+    return {
+      googleMapsApiKey: _googleMapsApiKey,
+      placesQuota: _placesQuotaConfig,
+      gridExtractMaxPlaces: _gridExtractMaxPlaces,
+    }
   }
   const { data } = await api.get('/map/config')
   _googleMapsApiKey = data.googleMapsApiKey || ''
   _placesQuotaConfig = mergePlacesQuotaConfig(data.placesQuota)
-  return { googleMapsApiKey: _googleMapsApiKey, placesQuota: _placesQuotaConfig }
+  _gridExtractMaxPlaces = data.gridExtract?.maxPlaces ?? GRID_EXTRACT_MAX_PLACES_DEFAULT
+  return {
+    googleMapsApiKey: _googleMapsApiKey,
+    placesQuota: _placesQuotaConfig,
+    gridExtractMaxPlaces: _gridExtractMaxPlaces,
+  }
 }
 
 function loadGoogleMapsScript() {
@@ -141,6 +154,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const [addingToMap, setAddingToMap] = useState(false)
   const [selectAll, setSelectAll] = useState(true)
   const [exportFormat, setExportFormat] = useState('json')
+  const [gridExtractMaxPlaces, setGridExtractMaxPlaces] = useState(GRID_EXTRACT_MAX_PLACES_DEFAULT)
+  const [gridExtractStatus, setGridExtractStatus] = useState({
+    loading: true,
+    canExtract: true,
+    usedToday: false,
+  })
+  const [gridExtractCompleteOpen, setGridExtractCompleteOpen] = useState(false)
+  const [gridExtractCompleteCount, setGridExtractCompleteCount] = useState(0)
 
   // Search-based extraction states
   const [searchQuery, setSearchQuery] = useState('')
@@ -202,13 +223,42 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     })
   }, [])
 
+  const fetchGridExtractStatus = useCallback(async () => {
+    if (!user?.id) {
+      setGridExtractStatus({ loading: false, canExtract: false, usedToday: false, requiresLogin: true })
+      return
+    }
+    try {
+      const { data } = await api.get('/map/grid-extract/status')
+      setGridExtractMaxPlaces(data.maxPlaces ?? GRID_EXTRACT_MAX_PLACES_DEFAULT)
+      setGridExtractStatus({
+        loading: false,
+        canExtract: data.canExtract !== false,
+        usedToday: !!data.usedToday,
+        requiresLogin: false,
+      })
+    } catch {
+      setGridExtractStatus((prev) => ({ ...prev, loading: false }))
+    }
+  }, [user?.id])
+
+  useEffect(() => {
+    if (!isOpen || extractionMethod !== 'grid') return
+    fetchGridExtractStatus()
+  }, [isOpen, extractionMethod, fetchGridExtractStatus])
+
+  const gridExtractBlocked =
+    extractionMethod === 'grid' &&
+    (!user?.id || gridExtractStatus.requiresLogin || gridExtractStatus.usedToday || !gridExtractStatus.canExtract)
+
   // Load Google Maps + quota config
   useEffect(() => {
     if (!isOpen) return
     let cancelled = false
     fetchMapClientConfig()
-      .then(({ placesQuota }) => {
+      .then(({ placesQuota, gridExtractMaxPlaces: maxFromConfig }) => {
         if (cancelled) return
+        if (maxFromConfig) setGridExtractMaxPlaces(maxFromConfig)
         quotaToolkitRef.current = createPlacesQuotaToolkit(placesQuota, user?.id || 'anonymous')
         rateConfigRef.current = {
           ...RATE_CONFIG,
@@ -558,6 +608,33 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       setStatus(msg)
       return
     }
+    if (!user?.id) {
+      setStatus('Please log in to use grid extract.')
+      return
+    }
+    if (gridExtractBlocked) {
+      setStatus('You have already used grid extract today. You can extract again tomorrow.')
+      return
+    }
+
+    let gridSlotConsumed = false
+    try {
+      const { data } = await api.post('/map/grid-extract/consume')
+      gridSlotConsumed = true
+      if (data.maxPlaces) setGridExtractMaxPlaces(data.maxPlaces)
+      setGridExtractStatus({ loading: false, canExtract: false, usedToday: true, requiresLogin: false })
+    } catch (err) {
+      const msg = err.response?.data?.message
+      if (err.response?.status === 429) {
+        setStatus(msg || 'You have already used grid extract today. Try again tomorrow.')
+        setGridExtractStatus({ loading: false, canExtract: false, usedToday: true, requiresLogin: false })
+        return
+      }
+      setStatus('Could not start grid extract. Please try again.')
+      return
+    }
+
+    const maxPlaces = gridExtractMaxPlaces
 
     // Reset
     placesArrayRef.current = []
@@ -591,10 +668,16 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
     for (let cellIdx = 0; cellIdx < grid.length; cellIdx++) {
       if (stopRequestedRef.current) break
+      if (placesArrayRef.current.length >= maxPlaces) {
+        stopRequestedRef.current = true
+        break
+      }
 
       const pct = Math.floor((cellIdx / grid.length) * 100)
       setProgress(pct)
-      setStatus(`Extracting... Cell ${cellIdx + 1}/${grid.length} | Found: ${placesArrayRef.current.length} places`)
+      setStatus(
+        `Extracting... Cell ${cellIdx + 1}/${grid.length} | Found: ${placesArrayRef.current.length}/${maxPlaces} places`
+      )
 
       // Highlight current cell
       if (cellIdx > 0 && gridRectsRef.current[cellIdx - 1]) {
@@ -606,6 +689,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
       for (const placeType of placeTypes) {
         if (stopRequestedRef.current) break
+        if (placesArrayRef.current.length >= maxPlaces) {
+          stopRequestedRef.current = true
+          break
+        }
         const result = await executeOptimizedNearbySearch({ bounds: grid[cellIdx], type: placeType })
         if (result?.status === SKIP_STATUS.QUOTA_EXCEEDED) {
           setStatus(result.message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
@@ -620,10 +707,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         if (result?.results && result.status === window.google.maps.places.PlacesServiceStatus.OK) {
           const newPlaces = []
           result.results.forEach((place) => {
+            if (placesArrayRef.current.length >= maxPlaces) return
             const name = place.name
             const lat = place.geometry.location.lat()
             const lng = place.geometry.location.lng()
-            // Deduplicate by name
             const pid = place.place_id
             const draft = withMapRenderingConfig(
               {
@@ -678,14 +765,29 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     setIsExtracting(false)
     setProgress(100)
     syncQuotaUi()
+    const finalCount = placesArrayRef.current.length
     const cacheNote =
       statsRef.current.boundsCacheHits > 0
         ? ` · ${statsRef.current.boundsCacheHits} cached cell(s)`
         : ''
+    const cappedNote = finalCount >= maxPlaces ? ` (max ${maxPlaces})` : ''
     setStatus(
-      `Extraction complete. Found ${placesArrayRef.current.length} places in ${getLocationString()}${cacheNote}.`
+      `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'} in ${getLocationString()}${cappedNote}${cacheNote}.`
     )
-  }, [generateGrid, executeOptimizedNearbySearch, isExtracting, mapPlaces, syncQuotaUi])
+    if (gridSlotConsumed) {
+      setGridExtractCompleteCount(finalCount)
+      setGridExtractCompleteOpen(true)
+    }
+  }, [
+    generateGrid,
+    executeOptimizedNearbySearch,
+    isExtracting,
+    mapPlaces,
+    syncQuotaUi,
+    user?.id,
+    gridExtractBlocked,
+    gridExtractMaxPlaces,
+  ])
 
   const stopExtraction = useCallback(() => {
     stopRequestedRef.current = true
@@ -1277,6 +1379,24 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           </div>
         )}
 
+        {extractionMethod === 'grid' && !gridExtractStatus.loading && gridExtractStatus.requiresLogin && (
+          <div role="alert" className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4">
+            <p className="text-xs font-semibold text-slate-800">Log in required</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-slate-600">
+              Sign in to use grid extract (max {gridExtractMaxPlaces} places, once per day).
+            </p>
+          </div>
+        )}
+
+        {extractionMethod === 'grid' && !gridExtractStatus.loading && gridExtractStatus.usedToday && (
+          <div role="status" className="shrink-0 border-b border-blue-200 bg-blue-50 px-3 py-2.5 sm:px-4">
+            <p className="text-xs font-semibold text-blue-900">Today&apos;s grid extract used</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-blue-800">
+              You can run grid extract again tomorrow (max {gridExtractMaxPlaces} places per run).
+            </p>
+          </div>
+        )}
+
         {!googleApiBlocked && googleQuotaStatus.initialized && nearbyQuotaRemaining != null && (
           <div className="shrink-0 border-b border-slate-100 bg-slate-50/90 px-3 py-1.5 sm:px-4">
             <p className="text-[10px] text-slate-500 sm:text-[11px]">
@@ -1394,6 +1514,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
                       />
                     </div>
+                    <p className="mt-1 text-[10px] text-slate-500 sm:text-[11px]">
+                      Grid: max {gridExtractMaxPlaces} places per run · once per day per user
+                    </p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
@@ -1418,8 +1541,15 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         <button
                           type="button"
                           onClick={extractPlaces}
-                          disabled={googleApiBlocked}
+                          disabled={googleApiBlocked || gridExtractBlocked || gridExtractStatus.loading}
                           className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          title={
+                            gridExtractBlocked
+                              ? gridExtractStatus.requiresLogin
+                                ? 'Log in to extract'
+                                : 'Already used today — try again tomorrow'
+                              : undefined
+                          }
                         >
                           Extract places
                         </button>
@@ -1757,6 +1887,13 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           </div>
         )}
       </div>
+
+      <GridExtractCompleteModal
+        isOpen={gridExtractCompleteOpen}
+        onClose={() => setGridExtractCompleteOpen(false)}
+        placeCount={gridExtractCompleteCount}
+        maxPlaces={gridExtractMaxPlaces}
+      />
     </div>
   )
 }

@@ -26,6 +26,10 @@ import {
 } from '../utils/placeDuplicate.js'
 import { runAskMapsQuery } from '../services/groqAskMapsService.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
+import {
+  GRID_EXTRACT_MAX_PLACES,
+  usedGridExtractToday,
+} from '../utils/gridExtractLimit.js'
 import { canUserDeletePlace } from '../utils/placeOwnership.js'
 
 const router = express.Router()
@@ -1511,7 +1515,68 @@ router.get('/config', authenticateToken, (req, res) => {
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
     placesQuota: getPlacesQuotaConfig(),
+    gridExtract: {
+      maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      oncePerDay: true,
+    },
   })
+})
+
+/**
+ * @route GET /api/map/grid-extract/status
+ * @desc Whether the user can run grid extract today
+ */
+router.get('/grid-extract/status', authenticateToken, async (req, res) => {
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { lastGridExtractAt: true },
+    })
+    const usedToday = usedGridExtractToday(row?.lastGridExtractAt)
+    res.json({
+      canExtract: !usedToday,
+      usedToday,
+      maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      lastExtractAt: row?.lastGridExtractAt ?? null,
+    })
+  } catch (error) {
+    console.error('grid-extract status error:', error)
+    res.status(500).json({ error: 'Failed to load grid extract status' })
+  }
+})
+
+/**
+ * @route POST /api/map/grid-extract/consume
+ * @desc Reserve the user's once-per-day grid extract slot (call at start of extraction)
+ */
+router.post('/grid-extract/consume', authenticateToken, async (req, res) => {
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { lastGridExtractAt: true },
+    })
+    if (usedGridExtractToday(row?.lastGridExtractAt)) {
+      return res.status(429).json({
+        error: 'GRID_EXTRACT_DAILY_LIMIT',
+        message: 'You have already used grid extract today. You can extract again tomorrow.',
+        usedToday: true,
+        maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      })
+    }
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { lastGridExtractAt: new Date() },
+      select: { lastGridExtractAt: true },
+    })
+    res.json({
+      ok: true,
+      maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      lastExtractAt: updated.lastGridExtractAt,
+    })
+  } catch (error) {
+    console.error('grid-extract consume error:', error)
+    res.status(500).json({ error: 'Failed to start grid extract' })
+  }
 })
 
 export default router

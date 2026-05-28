@@ -12,15 +12,16 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  password      String? // Optional for OTP-only users
-  googleId      String?  @unique
-  picture       String? // Profile image: URL (Google) or base64 data URL (uploaded)
-  emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  password          String? // Optional for OTP-only users
+  googleId          String?   @unique
+  picture           String? // Profile image: URL (Google) or base64 data URL (uploaded)
+  emailVerified     Boolean   @default(false)
+  lastGridExtractAt DateTime? @map("last_grid_extract_at")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
   otpVerifications OTPVerification[]
   sessions         Session[]
@@ -135,46 +136,47 @@ model Route {
 }
 
 model Place {
-  id             String    @id @default(uuid())
-  name           String // Legacy: kept for backward compat; equals place_name_en for new places
-  placeNameEn    String?   @map("place_name_en") // English name (preferred)
-  placeNameLocal String?   @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
-  category       String // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
-  latitude       Float
-  longitude      Float
-  zoomLevel      Float     @default(15)
-  userId         String
-  userName       String?   @map("user_name") // User name when place was added
-  userEmail      String?   @map("user_email") // User email when place was added
-  source         String    @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
-  approvalStatus String    @default("pending") @map("approval_status") // pending | approved | rejected
-  approvedAt     DateTime? @map("approved_at")
-  autoApproveAt  DateTime? @map("auto_approve_at")
-  googlePlaceId  String?   @map("google_place_id")
-  googleType     String?   @map("google_type")
-  googleTypes    Json?     @map("google_types")
-  googleMapsUrl  String?   @map("google_maps_url")
-  vicinity       String?
-  fullAddress    String?   @map("full_address")
-  village        String?
-  taluk          String?
-  district       String?
-  state          String?
-  country        String?
-  pincode        String?
-  phone          String?
-  website        String?
-  rating         Float?
-  reviewCount    Int?      @map("review_count")
-  openingHours   Json?     @map("opening_hours")
-  businessStatus String?   @map("business_status")
-  description    String?   @db.Text
-  googleReviews  Json?     @map("google_reviews")
-  nearbyPlaces   Json?     @map("nearby_places")
-  googlePhotos   Json?     @map("google_photos")
-  extractedAt    DateTime? @map("extracted_at")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  name               String // Legacy: kept for backward compat; equals place_name_en for new places
+  placeNameEn        String?   @map("place_name_en") // English name (preferred)
+  placeNameLocal     String?   @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
+  category           String // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
+  latitude           Float
+  longitude          Float
+  zoomLevel          Float     @default(15)
+  userId             String
+  userName           String?   @map("user_name") // User name when place was added
+  userEmail          String?   @map("user_email") // User email when place was added
+  source             String    @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
+  approvalStatus     String    @default("pending") @map("approval_status") // pending | approved | rejected
+  approvedAt         DateTime? @map("approved_at")
+  autoApproveAt      DateTime? @map("auto_approve_at")
+  googlePlaceId      String?   @map("google_place_id")
+  googleType         String?   @map("google_type")
+  googleTypes        Json?     @map("google_types")
+  googleMapsUrl      String?   @map("google_maps_url")
+  vicinity           String?
+  fullAddress        String?   @map("full_address")
+  village            String?
+  taluk              String?
+  district           String?
+  state              String?
+  country            String?
+  pincode            String?
+  phone              String?
+  website            String?
+  rating             Float?
+  reviewCount        Int?      @map("review_count")
+  openingHours       Json?     @map("opening_hours")
+  businessStatus     String?   @map("business_status")
+  description        String?   @db.Text
+  googleReviews      Json?     @map("google_reviews")
+  nearbyPlaces       Json?     @map("nearby_places")
+  googlePhotos       Json?     @map("google_photos")
+  mapRenderingConfig Json?     @map("map_rendering_config")
+  extractedAt        DateTime? @map("extracted_at")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 

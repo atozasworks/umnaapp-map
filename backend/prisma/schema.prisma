@@ -18,9 +18,10 @@ model User {
   password      String?   // Optional for OTP-only users
   googleId      String?   @unique
   picture       String?   // Profile image: URL (Google) or base64 data URL (uploaded)
-  emailVerified Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  emailVerified      Boolean   @default(false)
+  lastGridExtractAt  DateTime? @map("last_grid_extract_at")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   otpVerifications OTPVerification[]
   sessions         Session[]

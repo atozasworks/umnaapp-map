@@ -1722,6 +1722,7 @@ export namespace Prisma {
     googleId: string | null
     picture: string | null
     emailVerified: boolean | null
+    lastGridExtractAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1734,6 +1735,7 @@ export namespace Prisma {
     googleId: string | null
     picture: string | null
     emailVerified: boolean | null
+    lastGridExtractAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -1746,6 +1748,7 @@ export namespace Prisma {
     googleId: number
     picture: number
     emailVerified: number
+    lastGridExtractAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -1760,6 +1763,7 @@ export namespace Prisma {
     googleId?: true
     picture?: true
     emailVerified?: true
+    lastGridExtractAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1772,6 +1776,7 @@ export namespace Prisma {
     googleId?: true
     picture?: true
     emailVerified?: true
+    lastGridExtractAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -1784,6 +1789,7 @@ export namespace Prisma {
     googleId?: true
     picture?: true
     emailVerified?: true
+    lastGridExtractAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -1869,6 +1875,7 @@ export namespace Prisma {
     googleId: string | null
     picture: string | null
     emailVerified: boolean
+    lastGridExtractAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -1898,6 +1905,7 @@ export namespace Prisma {
     googleId?: boolean
     picture?: boolean
     emailVerified?: boolean
+    lastGridExtractAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     otpVerifications?: boolean | User$otpVerificationsArgs<ExtArgs>
@@ -1919,6 +1927,7 @@ export namespace Prisma {
     googleId?: boolean
     picture?: boolean
     emailVerified?: boolean
+    lastGridExtractAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -1931,6 +1940,7 @@ export namespace Prisma {
     googleId?: boolean
     picture?: boolean
     emailVerified?: boolean
+    lastGridExtractAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -1968,6 +1978,7 @@ export namespace Prisma {
       googleId: string | null
       picture: string | null
       emailVerified: boolean
+      lastGridExtractAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -2378,6 +2389,7 @@ export namespace Prisma {
     readonly googleId: FieldRef<"User", 'String'>
     readonly picture: FieldRef<"User", 'String'>
     readonly emailVerified: FieldRef<"User", 'Boolean'>
+    readonly lastGridExtractAt: FieldRef<"User", 'DateTime'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -11454,6 +11466,7 @@ export namespace Prisma {
     googleId: 'googleId',
     picture: 'picture',
     emailVerified: 'emailVerified',
+    lastGridExtractAt: 'lastGridExtractAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -11742,6 +11755,7 @@ export namespace Prisma {
     googleId?: StringNullableFilter<"User"> | string | null
     picture?: StringNullableFilter<"User"> | string | null
     emailVerified?: BoolFilter<"User"> | boolean
+    lastGridExtractAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     otpVerifications?: OTPVerificationListRelationFilter
@@ -11762,6 +11776,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     picture?: SortOrderInput | SortOrder
     emailVerified?: SortOrder
+    lastGridExtractAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     otpVerifications?: OTPVerificationOrderByRelationAggregateInput
@@ -11785,6 +11800,7 @@ export namespace Prisma {
     password?: StringNullableFilter<"User"> | string | null
     picture?: StringNullableFilter<"User"> | string | null
     emailVerified?: BoolFilter<"User"> | boolean
+    lastGridExtractAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     otpVerifications?: OTPVerificationListRelationFilter
@@ -11805,6 +11821,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     picture?: SortOrderInput | SortOrder
     emailVerified?: SortOrder
+    lastGridExtractAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -11823,6 +11840,7 @@ export namespace Prisma {
     googleId?: StringNullableWithAggregatesFilter<"User"> | string | null
     picture?: StringNullableWithAggregatesFilter<"User"> | string | null
     emailVerified?: BoolWithAggregatesFilter<"User"> | boolean
+    lastGridExtractAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -12624,6 +12642,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -12644,6 +12663,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -12664,6 +12684,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -12684,6 +12705,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -12704,6 +12726,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -12716,6 +12739,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -12728,6 +12752,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -13660,6 +13685,17 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
+  export type DateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type DateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -13764,6 +13800,7 @@ export namespace Prisma {
     googleId?: SortOrder
     picture?: SortOrder
     emailVerified?: SortOrder
+    lastGridExtractAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13776,6 +13813,7 @@ export namespace Prisma {
     googleId?: SortOrder
     picture?: SortOrder
     emailVerified?: SortOrder
+    lastGridExtractAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13788,6 +13826,7 @@ export namespace Prisma {
     googleId?: SortOrder
     picture?: SortOrder
     emailVerified?: SortOrder
+    lastGridExtractAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -13834,6 +13873,20 @@ export namespace Prisma {
     _count?: NestedIntFilter<$PrismaModel>
     _min?: NestedBoolFilter<$PrismaModel>
     _max?: NestedBoolFilter<$PrismaModel>
+  }
+
+  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type DateTimeWithAggregatesFilter<$PrismaModel = never> = {
@@ -14094,17 +14147,6 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
-  export type DateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
-
   export type RouteCountOrderByAggregateInput = {
     id?: SortOrder
     vehicleId?: SortOrder
@@ -14220,20 +14262,6 @@ export namespace Prisma {
     _sum?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedIntNullableFilter<$PrismaModel>
     _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
-  export type DateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type PlaceUserIdGooglePlaceIdCompoundUniqueInput = {
@@ -14607,6 +14635,10 @@ export namespace Prisma {
 
   export type BoolFieldUpdateOperationsInput = {
     set?: boolean
+  }
+
+  export type NullableDateTimeFieldUpdateOperationsInput = {
+    set?: Date | string | null
   }
 
   export type DateTimeFieldUpdateOperationsInput = {
@@ -15033,10 +15065,6 @@ export namespace Prisma {
     divide?: number
   }
 
-  export type NullableDateTimeFieldUpdateOperationsInput = {
-    set?: Date | string | null
-  }
-
   export type VehicleUpdateOneWithoutRoutesNestedInput = {
     create?: XOR<VehicleCreateWithoutRoutesInput, VehicleUncheckedCreateWithoutRoutesInput>
     connectOrCreate?: VehicleCreateOrConnectWithoutRoutesInput
@@ -15250,6 +15278,17 @@ export namespace Prisma {
     not?: NestedBoolFilter<$PrismaModel> | boolean
   }
 
+  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
+  }
+
   export type NestedDateTimeFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -15325,6 +15364,20 @@ export namespace Prisma {
     _max?: NestedBoolFilter<$PrismaModel>
   }
 
+  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
+    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
+    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
+    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedDateTimeNullableFilter<$PrismaModel>
+    _max?: NestedDateTimeNullableFilter<$PrismaModel>
+  }
+
   export type NestedDateTimeWithAggregatesFilter<$PrismaModel = never> = {
     equals?: Date | string | DateTimeFieldRefInput<$PrismaModel>
     in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel>
@@ -15392,17 +15445,6 @@ export namespace Prisma {
     _min?: NestedFloatNullableFilter<$PrismaModel>
     _max?: NestedFloatNullableFilter<$PrismaModel>
   }
-
-  export type NestedDateTimeNullableFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableFilter<$PrismaModel> | Date | string | null
-  }
   export type NestedJsonNullableFilter<$PrismaModel = never> = 
     | PatchUndefined<
         Either<Required<NestedJsonNullableFilterBase<$PrismaModel>>, Exclude<keyof Required<NestedJsonNullableFilterBase<$PrismaModel>>, 'path'>>,
@@ -15440,20 +15482,6 @@ export namespace Prisma {
     _sum?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedIntNullableFilter<$PrismaModel>
     _max?: NestedIntNullableFilter<$PrismaModel>
-  }
-
-  export type NestedDateTimeNullableWithAggregatesFilter<$PrismaModel = never> = {
-    equals?: Date | string | DateTimeFieldRefInput<$PrismaModel> | null
-    in?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    notIn?: Date[] | string[] | ListDateTimeFieldRefInput<$PrismaModel> | null
-    lt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    lte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gt?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    gte?: Date | string | DateTimeFieldRefInput<$PrismaModel>
-    not?: NestedDateTimeNullableWithAggregatesFilter<$PrismaModel> | Date | string | null
-    _count?: NestedIntNullableFilter<$PrismaModel>
-    _min?: NestedDateTimeNullableFilter<$PrismaModel>
-    _max?: NestedDateTimeNullableFilter<$PrismaModel>
   }
 
   export type NestedIntWithAggregatesFilter<$PrismaModel = never> = {
@@ -16085,6 +16113,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
@@ -16104,6 +16133,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -16139,6 +16169,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
@@ -16158,6 +16189,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -16177,6 +16209,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -16196,6 +16229,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -16231,6 +16265,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -16250,6 +16285,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -16269,6 +16305,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -16288,6 +16325,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -16403,6 +16441,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -16422,6 +16461,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -16502,6 +16542,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -16521,6 +16562,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -16591,6 +16633,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -16610,6 +16653,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -16658,6 +16702,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -16677,6 +16722,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -16747,6 +16793,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -16766,6 +16813,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -16785,6 +16833,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -16804,6 +16853,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -16897,6 +16947,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -16916,6 +16967,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -17062,6 +17114,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -17081,6 +17134,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -17217,6 +17271,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -17236,6 +17291,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -17350,6 +17406,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -17369,6 +17426,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -17505,6 +17563,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -17524,6 +17583,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput

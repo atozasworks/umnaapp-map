@@ -130,6 +130,7 @@ exports.Prisma.UserScalarFieldEnum = {
   googleId: 'googleId',
   picture: 'picture',
   emailVerified: 'emailVerified',
+  lastGridExtractAt: 'lastGridExtractAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
