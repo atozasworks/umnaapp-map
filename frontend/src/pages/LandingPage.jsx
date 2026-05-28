@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLogo from '../components/AppLogo'
+import LandingInstallPopup from '../components/LandingInstallPopup'
 import { useAuth } from '../contexts/AuthContext'
 
 const features = [
@@ -420,6 +421,8 @@ const LandingPage = () => {
           </div>
         </div>
       </footer>
+
+      <LandingInstallPopup />
 
       <style>{`
         @keyframes dash {

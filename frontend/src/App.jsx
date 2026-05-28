@@ -9,6 +9,7 @@ import RegisterPage from './pages/RegisterPage'
 import OTPVerificationPage from './pages/OTPVerificationPage'
 import HomePage from './pages/HomePage'
 import ProtectedRoute from './components/ProtectedRoute'
+import PwaShell from './components/PwaShell'
 import { getAuthKitApiUrl } from './utils/apiBase'
 
 function App() {
@@ -23,12 +24,13 @@ function App() {
   }
 
   return (
-    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <LanguageProvider>
-        {/* AuthProvider & SocketProvider wrap all routes */}
-        <AuthProvider>
-          <SocketProvider>
-            <Routes>
+    <PwaShell>
+      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <LanguageProvider>
+          {/* AuthProvider & SocketProvider wrap all routes */}
+          <AuthProvider>
+            <SocketProvider>
+              <Routes>
               <Route path="/" element={<LandingPage />} />
               {/* Atozas only wraps login/register - avoids blocking /home render */}
               <Route
@@ -57,11 +59,12 @@ function App() {
                 }
               />
               <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </SocketProvider>
-        </AuthProvider>
-      </LanguageProvider>
-    </Router>
+              </Routes>
+            </SocketProvider>
+          </AuthProvider>
+        </LanguageProvider>
+      </Router>
+    </PwaShell>
   )
 }
 
