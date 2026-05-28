@@ -1,4 +1,5 @@
 import prisma from '../config/database.js'
+import { onPlacesAutoApproved } from './notificationService.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -40,7 +41,7 @@ export async function autoApproveExpiredPendingPlaces() {
   const now = new Date()
   const cutoff = autoApproveCutoffDate()
   try {
-    const result = await prisma.place.updateMany({
+    const toApprove = await prisma.place.findMany({
       where: {
         approvalStatus: 'pending',
         OR: [
@@ -48,11 +49,22 @@ export async function autoApproveExpiredPendingPlaces() {
           { autoApproveAt: null, createdAt: { lte: cutoff } },
         ],
       },
+      select: { id: true },
+    })
+    if (!toApprove.length) return { count: 0 }
+
+    const ids = toApprove.map((p) => p.id)
+    const result = await prisma.place.updateMany({
+      where: { id: { in: ids } },
       data: {
         approvalStatus: 'approved',
         approvedAt: now,
+        autoApproveAt: null,
       },
     })
+    if (result.count > 0) {
+      onPlacesAutoApproved(ids).catch(() => {})
+    }
     return { count: result.count }
   } catch (e) {
     console.warn('autoApproveExpiredPendingPlaces:', e.message)

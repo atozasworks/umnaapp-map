@@ -9,6 +9,7 @@ import {
   pendingAutoApproveAt,
 } from '../services/placeApproval.js'
 import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
+import { onPlaceApproved } from '../services/notificationService.js'
 
 const router = express.Router()
 router.use(adminAuth)
@@ -324,6 +325,11 @@ router.patch(
       }
 
       const place = await prisma.place.update({ where: { id }, data })
+      if (req.body.approvalStatus === 'approved' && existing.approvalStatus !== 'approved') {
+        onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
+          console.error('[notify] onPlaceApproved bg error:', err)
+        })
+      }
       res.json({ place: serializePlace(place) })
     } catch (e) {
       console.error('admin place patch', e)
@@ -388,10 +394,19 @@ router.post(
       }
 
       if (action === 'approve') {
+        const pending = await prisma.place.findMany({
+          where: { id: { in: uniqueIds }, approvalStatus: { not: 'approved' } },
+          select: PLACE_DETAIL_SELECT,
+        })
         const result = await prisma.place.updateMany({
           where: { id: { in: uniqueIds } },
           data: { approvalStatus: 'approved', approvedAt: new Date(), autoApproveAt: null },
         })
+        for (const p of pending) {
+          onPlaceApproved({ ...p, approvalStatus: 'approved' }, { approvedBy: 'admin' }).catch((err) => {
+            console.error('[notify] bulk onPlaceApproved bg error:', err)
+          })
+        }
         return res.json({ success: true, affected: result.count })
       }
 
@@ -422,6 +437,11 @@ router.patch('/places/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Pending place not found or already approved' })
     }
     const place = await prisma.place.findUnique({ where: { id }, select: PLACE_DETAIL_SELECT })
+    if (place) {
+      onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
+        console.error('[notify] onPlaceApproved bg error:', err)
+      })
+    }
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
     console.error('admin places approve', e)

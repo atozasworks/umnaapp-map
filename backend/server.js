@@ -16,9 +16,11 @@ import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
+import { setIo } from './lib/socketIo.js'
 
 const defaultOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -60,6 +62,7 @@ app.use('/api/test', testRoutes)
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
+app.use('/api/notifications', notificationRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -129,6 +132,8 @@ app.get('*', (req, res, next) => {
   }
   serveIndex(req, res, next)
 })
+
+setIo(io)
 
 // Socket.io connection handling
 io.use(authenticateSocket)

@@ -16,6 +16,7 @@ import PlaceAddedSuccessModal, { buildPlaceAddedPayload } from '../components/Pl
 import PolygonExplorePanel from '../components/PolygonExplorePanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
+import NotificationBell from '../components/NotificationBell'
 import api from '../services/api'
 import {
   extractMapRenderingConfig,
@@ -445,6 +446,33 @@ const HomePage = () => {
   const focusPlaceFromResults = (place) => {
     openPlaceDetail(place, { fly: true })
   }
+
+  const handleNotificationPlaceFocus = useCallback(
+    (data) => {
+      if (!data) return
+      if (data.placeId) {
+        const existing = allPlaces.find((p) => String(p.id) === String(data.placeId))
+        if (existing) {
+          openPlaceDetail(existing, { fly: true })
+          return
+        }
+      }
+      if (data.latitude != null && data.longitude != null) {
+        openPlaceDetail(
+          {
+            id: data.placeId,
+            placeNameEn: data.placeName,
+            name: data.placeName,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            category: data.category,
+          },
+          { fly: true }
+        )
+      }
+    },
+    [allPlaces, openPlaceDetail]
+  )
 
   const handleProfileImageChange = async (e) => {
     const file = e.target.files?.[0]
@@ -1151,8 +1179,9 @@ const HomePage = () => {
             </h1>
           </div>
 
-          {/* Right side: Add Place only (My Places & Logout in menu) */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 justify-end">
+          {/* Right side: Notifications + Add Place */}
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
+            <NotificationBell onPlaceFocus={handleNotificationPlaceFocus} />
             {/* Add Place button */}
             <button
               onClick={() => {

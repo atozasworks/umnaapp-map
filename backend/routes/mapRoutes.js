@@ -15,6 +15,7 @@ import {
   enrichPlaceApprovalMeta,
   initialApprovalFields,
 } from '../services/placeApproval.js'
+import { onPlaceCreated } from '../services/notificationService.js'
 import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
 import {
   PlaceDuplicateIndex,
@@ -803,6 +804,12 @@ router.post(
         },
       })
 
+      if (!isSaved) {
+        onPlaceCreated(place, { id: userId, name: userName }).catch((err) => {
+          console.error('[notify] onPlaceCreated bg error:', err)
+        })
+      }
+
       res.status(201).json(attachApprovalMeta(serializePlace(place)))
     } catch (error) {
       console.error('Save place error:', error)
@@ -1122,6 +1129,9 @@ router.post(
             dupIndex.nameAddress.set(`${candidate.nameKey}|${candidate.addressKey}`, place)
           }
           rememberInBatch(batchSeen, candidate)
+          if (place.source !== 'saved') {
+            onPlaceCreated(place, { id: userId, name: userName }).catch(() => {})
+          }
           created.push(attachApprovalMeta(serializePlace(place)))
         } catch (err) {
           if (err.code === 'P2002') {
