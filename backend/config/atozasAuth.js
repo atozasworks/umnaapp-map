@@ -42,7 +42,7 @@ if (!isSMTPConfigured) {
 }
 
 // Get SMTP configuration with defaults
-const smtpConfig = {
+export const smtpConfig = {
   name: process.env.SMTP_NAME || 'atozas.com',
   server: process.env.SMTP_SERVER || 'mail.atozas.com',
   port: parseInt(process.env.SMTP_PORT || '465'),
@@ -62,7 +62,7 @@ if (isSMTPConfigured) {
   console.log('   Password:', smtpConfig.password ? '✅ Set' : '❌ Missing')
 }
 
-const emailTransporter = isSMTPConfigured
+export const emailTransporter = isSMTPConfigured
   ? nodemailer.createTransport({
       host: smtpConfig.server,
       port: smtpConfig.port,

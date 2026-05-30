@@ -65,6 +65,92 @@ const steps = [
   { num: '03', title: 'Sync & share', text: 'Collaborate with live updates across your team.' },
 ]
 
+const highlights = [
+  {
+    eyebrow: 'Smart search',
+    title: 'Find any place in seconds',
+    text: 'Search across saved pins, public places, and global geocoding with instant suggestions.',
+    accent: 'from-sky-400 to-cyan-300',
+    visual: (
+      <div className="absolute inset-x-6 bottom-6 space-y-2">
+        <div className="rounded-xl bg-slate-900/85 backdrop-blur-xl border border-white/10 px-3 py-2.5 flex items-center gap-2.5 shadow-lg">
+          <svg className="w-4 h-4 text-cyan-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+          </svg>
+          <span className="text-[11px] text-slate-200 font-medium">Marina Bay Gardens</span>
+          <span className="ml-auto text-[10px] text-slate-500">2.1 km</span>
+        </div>
+        <div className="rounded-xl bg-slate-900/60 backdrop-blur-xl border border-white/10 px-3 py-2.5 flex items-center gap-2.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-400" />
+          <span className="text-[11px] text-slate-300">Cafe Aurora</span>
+          <span className="ml-auto text-[10px] text-slate-500">0.6 km</span>
+        </div>
+        <div className="rounded-xl bg-slate-900/40 backdrop-blur-xl border border-white/10 px-3 py-2.5 flex items-center gap-2.5">
+          <span className="w-2 h-2 rounded-full bg-amber-400" />
+          <span className="text-[11px] text-slate-400">Sunset Trail</span>
+          <span className="ml-auto text-[10px] text-slate-500">3.4 km</span>
+        </div>
+      </div>
+    ),
+  },
+  {
+    eyebrow: 'Live collaboration',
+    title: 'Everyone, on the same map',
+    text: 'Real-time WebSocket sync keeps pins, places, and edits in lockstep across every device.',
+    accent: 'from-emerald-400 to-teal-300',
+    visual: (
+      <div className="absolute inset-0 flex items-center justify-center">
+        <div className="relative w-44 h-44">
+          <span className="absolute inset-0 rounded-full bg-emerald-500/15 animate-pulse-glow" />
+          <span className="absolute inset-5 rounded-full bg-emerald-500/20 animate-pulse-glow" style={{ animationDelay: '0.6s' }} />
+          <span className="absolute inset-10 rounded-full bg-emerald-500/30 animate-pulse-glow" style={{ animationDelay: '1.2s' }} />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-300 shadow-xl shadow-emerald-500/40 flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-3a4 4 0 100-8 4 4 0 000 8z" />
+              </svg>
+            </div>
+          </div>
+          <span className="absolute top-2 right-6 w-8 h-8 rounded-full bg-sky-400 ring-4 ring-slate-900 animate-float" />
+          <span className="absolute bottom-4 left-2 w-7 h-7 rounded-full bg-violet-400 ring-4 ring-slate-900 animate-float-delayed" />
+          <span className="absolute bottom-2 right-8 w-6 h-6 rounded-full bg-amber-400 ring-4 ring-slate-900 animate-float" style={{ animationDelay: '2s' }} />
+        </div>
+      </div>
+    ),
+  },
+  {
+    eyebrow: 'Install anywhere',
+    title: 'A real app, on every device',
+    text: 'Installable PWA with offline support, push notifications, and a native-feeling shell.',
+    accent: 'from-violet-400 to-fuchsia-300',
+    visual: (
+      <div className="absolute inset-0 flex items-end justify-center pb-6">
+        <div className="relative">
+          <div className="w-32 h-44 rounded-[1.5rem] border-2 border-white/20 bg-gradient-to-b from-slate-800 to-slate-900 shadow-2xl shadow-violet-500/25 overflow-hidden">
+            <div className="h-2 bg-slate-700/60 mx-8 mt-1.5 rounded-full" />
+            <div className="px-2.5 pt-2 space-y-1.5">
+              <div className="h-2.5 rounded bg-gradient-to-r from-violet-400/70 to-fuchsia-400/70 w-2/3" />
+              <div className="h-1.5 rounded bg-slate-600 w-full" />
+              <div className="h-1.5 rounded bg-slate-700 w-3/4" />
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <div className="aspect-square rounded-md bg-gradient-to-br from-sky-400/60 to-cyan-300/60" />
+                <div className="aspect-square rounded-md bg-gradient-to-br from-emerald-400/60 to-teal-300/60" />
+                <div className="aspect-square rounded-md bg-gradient-to-br from-amber-400/60 to-orange-300/60" />
+                <div className="aspect-square rounded-md bg-gradient-to-br from-violet-400/60 to-fuchsia-300/60" />
+              </div>
+            </div>
+          </div>
+          <div className="absolute -top-2 -right-3 w-9 h-9 rounded-2xl bg-gradient-to-br from-violet-500 to-fuchsia-400 shadow-lg shadow-fuchsia-500/40 flex items-center justify-center animate-float">
+            <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth={2.4} viewBox="0 0 24 24" aria-hidden>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+            </svg>
+          </div>
+        </div>
+      </div>
+    ),
+  },
+]
+
 const LandingPage = () => {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
@@ -140,24 +226,24 @@ const LandingPage = () => {
                   <span className="text-white">Your world,</span>
                   <br />
                   <span
-                    className="bg-gradient-to-r from-sky-300 via-cyan-300 to-emerald-300 bg-clip-text text-transparent"
+                    className="bg-gradient-to-r from-sky-300 via-cyan-200 to-emerald-300 bg-clip-text text-transparent animate-shimmer"
                     style={{ backgroundSize: '200% auto' }}
                   >
                     beautifully mapped
                   </span>
                 </h1>
 
-                <p className="text-lg sm:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto lg:mx-0 mb-10">
+                <p className="text-lg sm:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8">
                   Discover, save, and collaborate on locations with a stunning map experience — built for speed and clarity.
                 </p>
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12">
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 mt-2">
                   <Link
                     to="/register"
                     className="group relative inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 via-sky-400 to-cyan-400 px-8 py-4 text-base font-bold text-white shadow-xl shadow-sky-500/25 hover:shadow-sky-400/40 hover:scale-[1.02] transition-all overflow-hidden"
                   >
                     <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer bg-[length:200%_100%]" aria-hidden />
-                    <span className="relative">Get Started</span>
+                    <span className="relative">Get Started — Free</span>
                     <svg className="relative w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -172,7 +258,7 @@ const LandingPage = () => {
 
                 <div className="grid grid-cols-3 gap-4 max-w-md mx-auto lg:mx-0">
                   {stats.map((s) => (
-                    <div key={s.label} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-4 text-center">
+                    <div key={s.label} className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm px-3 py-4 text-center hover:border-cyan-400/30 hover:bg-white/10 transition-colors">
                       <p className="text-sm sm:text-base font-bold text-cyan-300">{s.value}</p>
                       <p className="text-[10px] sm:text-xs text-slate-500 mt-1">{s.label}</p>
                     </div>
@@ -198,7 +284,7 @@ const LandingPage = () => {
                   </div>
                 </div>
 
-                <div className="relative rounded-3xl border border-white/15 bg-gradient-to-b from-slate-800/90 to-slate-900/95 shadow-2xl shadow-black/50 overflow-hidden ring-1 ring-white/10">
+                <div className="relative rounded-3xl border border-white/15 bg-gradient-to-b from-slate-800/90 to-slate-900/95 shadow-2xl shadow-black/50 overflow-hidden ring-1 ring-white/10 hero-tilt">
                   <div className="flex items-center gap-2 px-5 py-3.5 border-b border-white/10 bg-slate-900/80">
                     <span className="w-3 h-3 rounded-full bg-red-500/90 shadow-sm shadow-red-500/50" />
                     <span className="w-3 h-3 rounded-full bg-amber-400/90" />
@@ -247,6 +333,17 @@ const LandingPage = () => {
                       </svg>
                     </div>
 
+                    {/* Secondary pins */}
+                    <div className="absolute left-[22%] top-[68%] z-10" aria-hidden>
+                      <span className="block w-3 h-3 rounded-full bg-emerald-400 ring-4 ring-slate-900/80 shadow-md shadow-emerald-500/40" />
+                    </div>
+                    <div className="absolute left-[78%] top-[28%] z-10" aria-hidden>
+                      <span className="block w-3 h-3 rounded-full bg-violet-400 ring-4 ring-slate-900/80 shadow-md shadow-violet-500/40" />
+                    </div>
+                    <div className="absolute left-[34%] top-[22%] z-10" aria-hidden>
+                      <span className="block w-3 h-3 rounded-full bg-amber-400 ring-4 ring-slate-900/80 shadow-md shadow-amber-500/40" />
+                    </div>
+
                     {/* Center pin */}
                     <div className="absolute left-[52%] top-[42%] -translate-x-1/2 -translate-y-1/2 z-10">
                       <span className="relative flex h-5 w-5">
@@ -257,7 +354,13 @@ const LandingPage = () => {
 
                     {/* Cards */}
                     <div className="absolute inset-0 p-5 flex flex-col justify-between pointer-events-none">
-                      <div className="flex justify-end">
+                      <div className="flex justify-between items-start gap-2">
+                        <div className="rounded-xl border border-white/15 bg-slate-900/80 backdrop-blur-xl px-3 py-2 flex items-center gap-2 shadow-xl max-w-[60%]">
+                          <svg className="w-3.5 h-3.5 text-cyan-300 flex-shrink-0" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24" aria-hidden>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11a6 6 0 11-12 0 6 6 0 0112 0z" />
+                          </svg>
+                          <span className="text-[11px] font-medium text-slate-200 truncate">Search "marina"</span>
+                        </div>
                         <div className="rounded-xl border border-white/15 bg-slate-900/80 backdrop-blur-xl px-3 py-2 flex items-center gap-2 shadow-xl">
                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                           <span className="text-xs font-medium text-slate-200">Syncing…</span>
@@ -327,6 +430,42 @@ const LandingPage = () => {
           </div>
         </section>
 
+        {/* Highlights — dark bento showcase */}
+        <section className="relative px-4 sm:px-6 lg:px-8 py-20 sm:py-28 bg-[#0b1220] text-white overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[120%] h-[60%] bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.18),transparent_60%)]" aria-hidden />
+          <div className="relative max-w-6xl mx-auto">
+            <div className="text-center max-w-2xl mx-auto mb-14">
+              <span className="inline-block text-xs font-bold uppercase tracking-widest text-cyan-300 mb-3">What you'll love</span>
+              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+                Designed for delightful exploration
+              </h2>
+              <p className="text-slate-400 text-lg">Tiny details that add up to a map experience you'll actually enjoy.</p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-5">
+              {highlights.map((h) => (
+                <article
+                  key={h.title}
+                  className="group relative rounded-3xl border border-white/10 bg-gradient-to-b from-white/5 to-white/[0.02] backdrop-blur-sm overflow-hidden hover:border-white/25 hover:-translate-y-1 transition-all duration-300"
+                >
+                  <div className={`absolute -top-px left-6 right-6 h-px bg-gradient-to-r ${h.accent} opacity-70`} aria-hidden />
+                  <div className="relative h-56 overflow-hidden bg-gradient-to-b from-slate-800/40 to-slate-900/60 border-b border-white/5">
+                    <div className={`absolute inset-0 bg-gradient-to-br ${h.accent} opacity-[0.06]`} aria-hidden />
+                    {h.visual}
+                  </div>
+                  <div className="p-6">
+                    <p className={`text-[11px] font-bold uppercase tracking-widest bg-gradient-to-r ${h.accent} bg-clip-text text-transparent mb-2`}>
+                      {h.eyebrow}
+                    </p>
+                    <h3 className="text-lg font-bold text-white mb-2">{h.title}</h3>
+                    <p className="text-sm text-slate-400 leading-relaxed">{h.text}</p>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Steps */}
         <section className="px-4 sm:px-6 lg:px-8 py-20 sm:py-28 bg-white text-slate-900">
           <div className="max-w-6xl mx-auto">
@@ -379,7 +518,7 @@ const LandingPage = () => {
                     to="/register"
                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white text-primary-700 font-bold px-10 py-4 shadow-2xl hover:scale-[1.02] hover:shadow-white/20 transition-all"
                   >
-                    Create  account
+                    Create account
                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>
@@ -427,6 +566,18 @@ const LandingPage = () => {
       <style>{`
         @keyframes dash {
           to { stroke-dashoffset: -1000; }
+        }
+        .hero-tilt {
+          transform: perspective(1200px) rotateX(4deg) rotateY(-6deg);
+          transition: transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+        }
+        .hero-tilt:hover {
+          transform: perspective(1200px) rotateX(0deg) rotateY(0deg);
+        }
+        @media (max-width: 1023px) {
+          .hero-tilt {
+            transform: none;
+          }
         }
       `}</style>
     </div>

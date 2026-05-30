@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import api from '../services/api'
 import { useNotifications } from '../hooks/useNotifications'
-import { usePushNotifications } from '../hooks/usePushNotifications'
 
 function formatTimeAgo(iso) {
   const then = new Date(iso).getTime()
@@ -49,19 +47,6 @@ export default function NotificationBell({ onPlaceFocus }) {
   const buttonRef = useRef(null)
 
   const { notifications, unreadCount, loading, error, markRead, markAllRead } = useNotifications()
-  const push = usePushNotifications()
-  const [testStatus, setTestStatus] = useState(null)
-
-  const sendTestPush = useCallback(async () => {
-    setTestStatus('sending')
-    try {
-      await api.post('/notifications/push/test')
-      setTestStatus('sent')
-    } catch (err) {
-      setTestStatus(err.response?.data?.error || err.message || 'Failed')
-    }
-    setTimeout(() => setTestStatus(null), 4000)
-  }, [])
 
   useEffect(() => {
     if (!open) return
@@ -223,55 +208,6 @@ export default function NotificationBell({ onPlaceFocus }) {
                 </ul>
               )}
             </div>
-
-            {push.canPrompt && (
-              <div className="px-4 py-3 border-t border-white/40 bg-white/30">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold text-slate-700">Push notifications</p>
-                    <p className="text-[10px] text-slate-500 truncate">
-                      {push.subscribed ? 'Enabled on this device' : 'Get alerts when the app is closed'}
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={push.busy}
-                    onClick={() => (push.subscribed ? push.unsubscribe() : push.subscribe())}
-                    className={`flex-shrink-0 relative w-11 h-6 rounded-full transition-colors ${
-                      push.subscribed ? 'bg-primary-500' : 'bg-slate-300'
-                    } ${push.busy ? 'opacity-60' : ''}`}
-                    aria-pressed={push.subscribed}
-                    aria-label={push.subscribed ? 'Disable push notifications' : 'Enable push notifications'}
-                  >
-                    <span
-                      className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
-                        push.subscribed ? 'translate-x-5' : ''
-                      }`}
-                    />
-                  </button>
-                </div>
-                {push.error && <p className="text-[10px] text-red-600 mt-1">{push.error}</p>}
-                {push.permission === 'denied' && (
-                  <p className="text-[10px] text-amber-700 mt-1">Notifications blocked in browser settings.</p>
-                )}
-                {push.subscribed && (
-                  <button
-                    type="button"
-                    onClick={sendTestPush}
-                    disabled={testStatus === 'sending'}
-                    className="mt-2 text-[11px] font-medium text-primary-600 hover:text-primary-700 disabled:opacity-60"
-                  >
-                    {testStatus === 'sending'
-                      ? 'Sending test…'
-                      : testStatus === 'sent'
-                        ? 'Test sent — check for browser notification'
-                        : testStatus
-                          ? `Error: ${testStatus}`
-                          : 'Send a test push'}
-                  </button>
-                )}
-              </div>
-            )}
           </div>
         </>
       )}

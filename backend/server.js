@@ -17,6 +17,7 @@ import mapRoutes from './routes/mapRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
+import feedbackRoutes from './routes/feedbackRoutes.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
@@ -63,6 +64,7 @@ app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocodi
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
 app.use('/api/notifications', notificationRoutes)
+app.use('/api/feedback', feedbackRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {

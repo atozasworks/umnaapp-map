@@ -17,6 +17,8 @@ import PolygonExplorePanel from '../components/PolygonExplorePanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
 import NotificationBell from '../components/NotificationBell'
+import FeedbackModal from '../components/FeedbackModal'
+import OnboardingTour, { hasSeenOnboarding, markOnboardingSeen } from '../components/OnboardingTour'
 import api from '../services/api'
 import {
   extractMapRenderingConfig,
@@ -150,6 +152,8 @@ const HomePage = () => {
   const [shareModal, setShareModal] = useState(null)
   const [showExtractPanel, setShowExtractPanel] = useState(false)
   const [showLanguageModal, setShowLanguageModal] = useState(false)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [pendingLanguage, setPendingLanguage] = useState('en')
   const [categoryExplorePlaces, setCategoryExplorePlaces] = useState([])
   const [mapReadyTick, setMapReadyTick] = useState(0)
@@ -168,6 +172,7 @@ const HomePage = () => {
   const menuAddMissingPlace = useTranslate('Add a missing place')
   const menuExtractPlaces = useTranslate('Extract Places')
   const menuLanguage = useTranslate('Language')
+  const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
   const menuTapPhotoHint = useTranslate('Tap photo to change')
   const languageModalTitle = useTranslate('App language')
@@ -200,6 +205,22 @@ const HomePage = () => {
       setPendingLanguage(language)
     }
   }, [showLanguageModal, language])
+
+  // First-time onboarding: show the 3-step tour once per user (after register or Google sign-in).
+  useEffect(() => {
+    if (!isAuthenticated || !user) return
+    const userKey = user.id || user.email
+    if (!userKey) return
+    if (hasSeenOnboarding(userKey)) return
+    const timer = setTimeout(() => setShowOnboarding(true), 350)
+    return () => clearTimeout(timer)
+  }, [isAuthenticated, user])
+
+  const handleOnboardingClose = useCallback(() => {
+    const userKey = user?.id || user?.email
+    if (userKey) markOnboardingSeen(userKey)
+    setShowOnboarding(false)
+  }, [user])
 
   useEffect(() => {
     if (!measureDistanceActive) return undefined
@@ -1035,6 +1056,25 @@ const HomePage = () => {
     window.location.href = '/'
   }
 
+  const confirmLogout = () => {
+    setShowMenu(false)
+    setConfirmModal({
+      title: 'Are you sure logout?',
+      message: 'You will be signed out of your account on this device. Saved places stay safe and will be there when you sign back in.',
+      confirmText: 'Logout',
+      cancelText: 'No',
+      confirmClass: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-md shadow-red-500/30',
+      iconBg: 'bg-red-100',
+      icon: (
+        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+      ),
+      onConfirm: () => { setConfirmModal(null); handleLogout() },
+      onCancel: () => setConfirmModal(null),
+    })
+  }
+
   const handleDeletePlace = async (placeId) => {
     const place =
       allPlaces.find((p) => p.id === placeId) ||
@@ -1127,12 +1167,16 @@ const HomePage = () => {
       {confirmModal && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" onClick={confirmModal.onCancel}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
+                confirmModal.iconBg || 'bg-red-100'
+              }`}>
+                {confirmModal.icon || (
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-800">{confirmModal.title}</h3>
@@ -1141,10 +1185,15 @@ const HomePage = () => {
             <p className="text-sm text-slate-600 mb-5 leading-relaxed">{confirmModal.message}</p>
             <div className="flex gap-3">
               <button onClick={confirmModal.onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
-                Cancel
+                {confirmModal.cancelText || 'Cancel'}
               </button>
-              <button onClick={confirmModal.onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors">
-                Yes, Delete
+              <button
+                onClick={confirmModal.onConfirm}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors ${
+                  confirmModal.confirmClass || 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {confirmModal.confirmText || 'Yes, Delete'}
               </button>
             </div>
           </div>
@@ -1748,12 +1797,22 @@ const HomePage = () => {
                   </svg>
                   <span className="text-sm font-medium text-slate-800">{menuLanguage}</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); setShowFeedbackModal(true) }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuFeedback}</span>
+                </button>
               </div>
 
               {/* Logout */}
               <div className="py-2">
                 <button
-                  onClick={() => { setShowMenu(false); handleLogout(); }}
+                  onClick={confirmLogout}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
                 >
                   <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1766,6 +1825,18 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        user={user}
+      />
+
+      <OnboardingTour
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingClose}
+        onSkip={handleOnboardingClose}
+      />
 
       {showLanguageModal && (
         <div

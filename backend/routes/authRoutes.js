@@ -64,7 +64,10 @@ router.get(
     if (!googleConfigured) {
       return res.redirect(`${frontendUrl}/login?error=google_not_configured`)
     }
-    passport.authenticate('google', { scope: ['profile', 'email'] })(req, res, next)
+    passport.authenticate('google', {
+      scope: ['profile', 'email'],
+      prompt: 'select_account',
+    })(req, res, next)
   }
 )
 
