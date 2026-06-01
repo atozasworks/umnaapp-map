@@ -19,7 +19,7 @@ export default function GridExtractCompleteModal({ isOpen, onClose, placeCount =
 
   return (
     <div
-      className="fixed inset-0 z-[520] flex items-center justify-center p-4 sm:p-6"
+      className="fixed inset-0 z-[520] flex items-center justify-center p-4 sm:p-6 pointer-events-auto"
       role="dialog"
       aria-modal="true"
       aria-labelledby="grid-extract-complete-title"
