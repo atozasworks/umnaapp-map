@@ -1817,7 +1817,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         role="dialog"
         aria-modal="true"
         aria-labelledby="place-extract-title"
-        className="relative pointer-events-auto flex w-full max-w-4xl flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl max-h-[min(100dvh,100svh)] sm:h-[min(90dvh,880px)] sm:max-h-[min(90dvh,880px)] min-h-0 animate-sheet-up sm:animate-fade-in"
+        className="relative pointer-events-auto flex w-full max-w-6xl flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl max-h-[min(100dvh,100svh)] sm:h-[min(94dvh,960px)] sm:max-h-[min(94dvh,960px)] min-h-0 animate-sheet-up sm:animate-fade-in"
       >
         {/* Mobile drag affordance */}
         <div className="flex shrink-0 justify-center pt-2 pb-1 sm:hidden" aria-hidden>
@@ -1987,7 +1987,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                 {/* Main column: controls + map */}
                 <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
                   {/* Controls — compact so the map keeps most of the column height */}
-                  <div className="max-h-[min(34vh,260px)] shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:max-h-none sm:p-2.5">
+                  <div className="shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
@@ -2131,8 +2131,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                   </div>
 
                   {/* Google Map — fills remaining column height inside the dialog */}
-                  <div className="relative min-h-0 flex-1 w-full">
-                    <div ref={mapContainerRef} className="absolute inset-0 min-h-[160px] bg-slate-100" />
+                  <div className="relative min-h-[300px] flex-1 w-full">
+                    <div ref={mapContainerRef} className="absolute inset-0 bg-slate-100" />
                   </div>
                 </div>
 
@@ -2406,7 +2406,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {extractionMethod === 'area' && (
               <>
                 <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
-                  <div className="max-h-[min(48vh,420px)] shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:max-h-none sm:p-2.5">
+                  <div className="shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
@@ -2453,22 +2453,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     <p className="mt-1 text-[10px] text-slate-500 sm:text-[11px]">
                       Choose a shape tool, draw on the map · max {gridExtractMaxPlaces} places per run
                     </p>
-                    <p className="mb-1.5 mt-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Shape tools</p>
-                    <div className="grid grid-cols-3 gap-1 sm:grid-cols-4">
-                      {AREA_SHAPE_TOOLS.map((o) => (
-                        <button
-                          key={o.value}
-                          type="button"
-                          onClick={() => setAreaDrawTool(o.value)}
-                          className={`min-h-[36px] rounded-lg border px-1 py-1.5 text-[10px] font-semibold leading-tight transition sm:text-[11px] ${
-                            areaDrawTool === o.value
-                              ? 'border-primary-500 bg-primary-50 text-primary-700 ring-1 ring-primary-200'
-                              : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-                          }`}
-                        >
-                          {o.label}
-                        </button>
-                      ))}
+                    <div className="mt-2 flex items-center gap-2">
+                      <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Shape tool</label>
+                      <select
+                        value={areaDrawTool}
+                        onChange={(e) => setAreaDrawTool(e.target.value)}
+                        className="h-8 max-w-[10rem] rounded-lg border border-slate-200 bg-white px-2 py-0 text-xs shadow-sm outline-none ring-primary-400/20 focus:border-primary-400 focus:ring-1"
+                      >
+                        {AREA_SHAPE_TOOLS.map((o) => (
+                          <option key={o.value} value={o.value}>
+                            {o.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <button
@@ -2574,8 +2571,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     )}
                   </div>
 
-                  <div className="relative min-h-0 flex-1 w-full">
-                    <div ref={areaMapContainerRef} className="absolute inset-0 min-h-[160px] bg-slate-100" />
+                  <div className="relative min-h-[300px] flex-1 w-full">
+                    <div ref={areaMapContainerRef} className="absolute inset-0 bg-slate-100" />
                   </div>
                 </div>
 
