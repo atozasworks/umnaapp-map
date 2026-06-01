@@ -243,7 +243,7 @@ const LandingPage = () => {
                     className="group relative inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 via-sky-400 to-cyan-400 px-8 py-4 text-base font-bold text-white shadow-xl shadow-sky-500/25 hover:shadow-sky-400/40 hover:scale-[1.02] transition-all overflow-hidden"
                   >
                     <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer bg-[length:200%_100%]" aria-hidden />
-                    <span className="relative">Get Started — Free</span>
+                    <span className="relative">Get Started</span>
                     <svg className="relative w-5 h-5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                     </svg>

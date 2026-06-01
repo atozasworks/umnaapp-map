@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { LanguageProvider } from 'atozas-traslate'
 import { AuthProvider as AtozasAuthProvider } from './lib/atozas-auth-kit'
@@ -10,6 +11,7 @@ import OTPVerificationPage from './pages/OTPVerificationPage'
 import HomePage from './pages/HomePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import PwaShell from './components/PwaShell'
+import SplashScreen from './components/SplashScreen'
 import { getAuthKitApiUrl } from './utils/apiBase'
 import { useLanguageDocAttrs } from './lib/i18n'
 import './lib/i18n/fonts.css'
@@ -22,6 +24,14 @@ function LanguageDocSync({ children }) {
 function App() {
   const authKitApiUrl = getAuthKitApiUrl()
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
+  const [showSplash, setShowSplash] = useState(() => {
+    return !sessionStorage.getItem('umna_splash_seen')
+  })
+
+  const handleSplashComplete = () => {
+    sessionStorage.setItem('umna_splash_seen', '1')
+    setShowSplash(false)
+  }
 
   const atozasAuthProps = {
     apiUrl: authKitApiUrl,
@@ -32,6 +42,7 @@ function App() {
 
   return (
     <PwaShell>
+      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <LanguageProvider>
           <LanguageDocSync>
