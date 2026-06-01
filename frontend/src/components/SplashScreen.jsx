@@ -87,33 +87,38 @@ function TypewriterSearch() {
 
 function CommunityPlaces() {
   const places = [
-    { name: 'Secret Beach', img: 'from-cyan-400 to-blue-500', top: '20%', left: '15%', delay: 0 },
-    { name: 'Mountain Temple', img: 'from-orange-400 to-red-500', top: '35%', left: '60%', delay: 400 },
-    { name: 'Hidden Garden', img: 'from-green-400 to-emerald-500', top: '55%', left: '30%', delay: 800 },
-    { name: 'Sunset Point', img: 'from-pink-400 to-purple-500', top: '45%', left: '75%', delay: 1200 },
+    { name: 'Secret Beach', img: 'from-cyan-400 to-blue-500', delay: 0 },
+    { name: 'Mountain Temple', img: 'from-orange-400 to-red-500', delay: 400 },
+    { name: 'Hidden Garden', img: 'from-green-400 to-emerald-500', delay: 800 },
+    { name: 'Sunset Point', img: 'from-pink-400 to-purple-500', delay: 1200 },
   ]
 
   return (
-    <div className="absolute inset-0 overflow-hidden">
-      {places.map((p, i) => (
-        <div
-          key={i}
-          className="absolute animate-place-appear"
-          style={{ top: p.top, left: p.left, animationDelay: `${p.delay}ms` }}
-        >
-          <div className="relative group">
-            <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${p.img} shadow-lg flex items-center justify-center`}>
-              <svg className="w-6 h-6 text-white" fill="currentColor" viewBox="0 0 20 20">
-                <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-              </svg>
+    <div className="relative w-full max-w-xs sm:max-w-sm md:max-w-lg mx-auto">
+      <div className="grid grid-cols-2 gap-4 sm:gap-6">
+        {places.map((p, i) => (
+          <div
+            key={i}
+            className="flex flex-col items-center animate-place-appear"
+            style={{ animationDelay: `${p.delay}ms` }}
+          >
+            <div className="relative">
+              <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br ${p.img} shadow-lg flex items-center justify-center`}>
+                <svg className="w-7 h-7 sm:w-8 sm:h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/30 rounded-full animate-ping" />
             </div>
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-4 h-4 bg-white/40 rounded-full animate-ping" />
-            <div className="absolute -top-6 left-1/2 -translate-x-1/2 whitespace-nowrap bg-gray-900/80 text-white text-[10px] px-2 py-0.5 rounded-full opacity-0 animate-fade-in-delayed" style={{ animationDelay: `${p.delay + 600}ms` }}>
+            <span
+              className="mt-2 text-xs sm:text-sm text-white/80 font-medium bg-gray-900/50 px-2.5 py-0.5 rounded-full opacity-0 animate-fade-in-delayed"
+              style={{ animationDelay: `${p.delay + 600}ms` }}
+            >
               {p.name}
-            </div>
+            </span>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }
@@ -210,18 +215,18 @@ export default function SplashScreen({ onComplete }) {
       </div>
 
       {/* Screen 3: Community places */}
-      <div className={`absolute inset-0 flex flex-col items-center justify-center transition-all duration-700 ${
+      <div className={`absolute inset-0 flex flex-col items-center justify-center px-4 transition-all duration-700 ${
         currentScreen === 2 ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'
       }`}>
-        <CommunityPlaces />
-        <div className="relative z-10 text-center px-6">
-          <h2 className="text-2xl md:text-4xl font-bold text-white mb-3 animate-fade-in-up">
+        <div className="relative z-10 text-center mb-6 sm:mb-8">
+          <h2 className="text-2xl md:text-4xl font-bold text-white mb-2 animate-fade-in-up">
             Built by the <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-300">Community</span>
           </h2>
-          <p className="text-lg text-blue-200/80 animate-fade-in-up-delayed">
+          <p className="text-base sm:text-lg text-blue-200/80 animate-fade-in-up-delayed">
             Discover places shared by real people
           </p>
         </div>
+        <CommunityPlaces />
       </div>
 
       {/* Final Screen: Logo + CTA */}
