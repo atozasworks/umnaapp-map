@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useTranslate } from 'atozas-traslate'
+import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
 
 const FEEDBACK_CATEGORIES = [

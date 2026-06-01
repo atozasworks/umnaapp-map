@@ -263,6 +263,19 @@ exports.Prisma.PlaceScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.FavoriteScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  placeId: 'placeId',
+  name: 'name',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  category: 'category',
+  address: 'address',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.PlaceReviewScalarFieldEnum = {
   id: 'id',
   placeId: 'placeId',
@@ -321,6 +334,7 @@ exports.Prisma.ModelName = {
   Location: 'Location',
   Route: 'Route',
   Place: 'Place',
+  Favorite: 'Favorite',
   PlaceReview: 'PlaceReview',
   PlacePhoto: 'PlacePhoto'
 };

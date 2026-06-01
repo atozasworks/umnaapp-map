@@ -11,6 +11,13 @@ import HomePage from './pages/HomePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import PwaShell from './components/PwaShell'
 import { getAuthKitApiUrl } from './utils/apiBase'
+import { useLanguageDocAttrs } from './lib/i18n'
+import './lib/i18n/fonts.css'
+
+function LanguageDocSync({ children }) {
+  useLanguageDocAttrs()
+  return children
+}
 
 function App() {
   const authKitApiUrl = getAuthKitApiUrl()
@@ -27,6 +34,7 @@ function App() {
     <PwaShell>
       <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <LanguageProvider>
+          <LanguageDocSync>
           {/* AuthProvider & SocketProvider wrap all routes */}
           <AuthProvider>
             <SocketProvider>
@@ -62,6 +70,7 @@ function App() {
               </Routes>
             </SocketProvider>
           </AuthProvider>
+          </LanguageDocSync>
         </LanguageProvider>
       </Router>
     </PwaShell>

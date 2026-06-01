@@ -9,6 +9,52 @@ function str(v, max = 2000) {
   return s.length > max ? s.slice(0, max) : s
 }
 
+/**
+ * Strip the trailing comma-separated address tail from a place name so we never
+ * persist things like:
+ *   "Navyasuresh house, Aithoor, Kadaba, Dakshina Kannada, Karnataka, 574221, India"
+ * as the place name. The trailing parts are already stored in dedicated fields
+ * (village/taluk/district/state/pincode/country).
+ */
+export function sanitizePlaceName(name, addressContext = {}) {
+  if (name == null) return null
+  const raw = String(name).trim()
+  if (!raw) return null
+  if (!raw.includes(',')) return raw
+
+  const head = raw.split(',')[0].trim()
+  if (!head) return null
+
+  const generic = new Set(
+    [
+      addressContext.village,
+      addressContext.town,
+      addressContext.city,
+      addressContext.hamlet,
+      addressContext.suburb,
+      addressContext.neighbourhood,
+      addressContext.locality,
+      addressContext.county,
+      addressContext.state_district,
+      addressContext.district,
+      addressContext.taluk,
+      addressContext.tehsil,
+      addressContext.subdistrict,
+      addressContext.municipality,
+      addressContext.state,
+      addressContext.region,
+      addressContext.country,
+      addressContext.postcode,
+      addressContext.pincode,
+    ]
+      .filter(Boolean)
+      .map((s) => String(s).toLowerCase().trim())
+  )
+
+  if (generic.has(head.toLowerCase())) return null
+  return head
+}
+
 function num(v) {
   if (v == null || v === '') return null
   const n = Number(v)

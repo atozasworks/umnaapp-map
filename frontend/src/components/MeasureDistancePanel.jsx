@@ -1,4 +1,4 @@
-import { useTranslate } from 'atozas-traslate'
+import { useTranslate } from '../lib/i18n'
 import { formatMeasureKm, formatMeasureMiles } from '../utils/measureDistance'
 
 const MeasureDistancePanel = ({ totalMeters, pointCount, onClear, onClose }) => {

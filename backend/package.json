@@ -6,7 +6,8 @@
     "dev": "node --watch server.js",
     "start": "node server.js",
     "postinstall": "prisma generate",
-    "vapid:generate": "node scripts/generate-vapid-keys.js"
+    "vapid:generate": "node scripts/generate-vapid-keys.js",
+    "migrate:favorites": "node scripts/migrate-favorites.js"
   },
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",

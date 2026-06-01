@@ -31,6 +31,7 @@ model User {
   places           Place[]
   placeReviews     PlaceReview[]
   placePhotos      PlacePhoto[]
+  favorites        Favorite[]
   notifications    Notification[]
   pushSubscriptions PushSubscription[]
 
@@ -213,8 +214,9 @@ model Place {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  reviews  PlaceReview[]
-  photos   PlacePhoto[]
+  reviews   PlaceReview[]
+  photos    PlacePhoto[]
+  favorites Favorite[]
 
   @@unique([userId, googlePlaceId])
   @@index([userId])
@@ -226,6 +228,32 @@ model Place {
   @@index([latitude, longitude])
   @@index([googlePlaceId])
   @@index([extractedAt])
+}
+
+// User-specific personal bookmark / favorite of a location.
+// Unlike Place (which represents a place on the public map), Favorite
+// is a lightweight bookmark relation between a user and either an
+// existing Place (placeId set) or an arbitrary lat/lng (e.g. external
+// search result). Saving never creates a Place row, and unsaving only
+// removes the Favorite — the underlying Place is preserved.
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  placeId   String?  @map("place_id")
+  name      String
+  latitude  Float
+  longitude Float
+  category  String?
+  address   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place? @relation(fields: [placeId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([placeId])
+  @@index([userId, latitude, longitude])
 }
 
 model PlaceReview {

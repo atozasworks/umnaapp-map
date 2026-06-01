@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
-import { useTranslate } from 'atozas-traslate'
+import { useTranslate } from '../lib/i18n'
 
 const MENU_ITEMS = [
   { id: 'share', icon: 'share' },

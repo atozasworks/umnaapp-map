@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react'
-import { useTranslate } from 'atozas-traslate'
+import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
 import TranslatedLabel from './TranslatedLabel'
 import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
@@ -76,7 +76,7 @@ const compressImage = (file, maxSizeKB = 400) =>
   })
 
 export default function PlaceDetailPanel({
-  place, onClose, onDirections, onSave, onEdit, onDelete, currentUser, isSaved, deletingId,
+  place, onClose, onDirections, onSave, onUnsave, onEdit, onDelete, currentUser, isSaved, deletingId,
 }) {
   const tDirections = useTranslate('Directions')
   const tSaved = useTranslate('Saved')
@@ -380,7 +380,14 @@ export default function PlaceDetailPanel({
             {[
               { key: 'dir', label: tDirections, color: '#4285F4', onClick: () => onDirections && onDirections(place),
                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" /></svg> },
-              { key: 'save', label: isSaved ? tSaved : tSave, color: isSaved ? '#34A853' : '#0F9D58', onClick: () => !isSaved && onSave && onSave(place),
+              { key: 'save', label: isSaved ? tSaved : tSave, color: isSaved ? '#34A853' : '#0F9D58',
+                onClick: () => {
+                  if (isSaved) {
+                    if (onUnsave) onUnsave(place)
+                  } else if (onSave) {
+                    onSave(place)
+                  }
+                },
                 icon: <svg className="w-5 h-5" fill={isSaved ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z" /></svg> },
               { key: 'photos', label: tPhotos, color: '#FBBC04', onClick: () => setActiveTab('photos'),
                 icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" /></svg> },

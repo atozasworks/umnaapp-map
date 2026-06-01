@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { useTranslate } from 'atozas-traslate'
+import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
 import { formatDistanceMeters } from '../utils/formatDistance'
 import TranslatedLabel from './TranslatedLabel'

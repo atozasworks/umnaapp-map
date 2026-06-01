@@ -8,7 +8,12 @@ import {
   getAutoApproveDays,
   pendingAutoApproveAt,
 } from '../services/placeApproval.js'
-import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
+import {
+  buildPlaceDetailFields,
+  serializePlace,
+  PLACE_DETAIL_SELECT,
+  sanitizePlaceName,
+} from '../utils/placePayload.js'
 import { onPlaceApproved } from '../services/notificationService.js'
 
 const router = express.Router()
@@ -292,13 +297,24 @@ router.patch(
       const existing = await prisma.place.findUnique({ where: { id } })
       if (!existing) return res.status(404).json({ error: 'Place not found' })
 
+      // Address context for stripping any full-address tail from name fields
+      // before persisting (only the specific name should be stored).
+      const addressCtx = {
+        village: req.body.village ?? existing.village,
+        taluk: req.body.taluk ?? existing.taluk,
+        district: req.body.district ?? existing.district,
+        state: req.body.state ?? existing.state,
+        country: req.body.country ?? existing.country,
+        pincode: req.body.pincode ?? existing.pincode,
+      }
       const data = {}
       if (req.body.place_name_en) {
-        data.placeNameEn = req.body.place_name_en.trim()
+        const rawName = req.body.place_name_en.trim()
+        data.placeNameEn = sanitizePlaceName(rawName, addressCtx) || rawName
         data.name = data.placeNameEn
       }
       if (req.body.place_name_local !== undefined) {
-        data.placeNameLocal = req.body.place_name_local?.trim() || null
+        data.placeNameLocal = sanitizePlaceName(req.body.place_name_local, addressCtx)
       }
       if (req.body.category) data.category = req.body.category.trim()
       if (req.body.latitude != null) data.latitude = parseFloat(req.body.latitude)
