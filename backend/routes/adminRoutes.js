@@ -8,7 +8,13 @@ import {
   getAutoApproveDays,
   pendingAutoApproveAt,
 } from '../services/placeApproval.js'
-import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
+import {
+  buildPlaceDetailFields,
+  serializePlace,
+  PLACE_DETAIL_SELECT,
+  sanitizePlaceName,
+} from '../utils/placePayload.js'
+import { onPlaceApproved } from '../services/notificationService.js'
 
 const router = express.Router()
 router.use(adminAuth)
@@ -291,13 +297,24 @@ router.patch(
       const existing = await prisma.place.findUnique({ where: { id } })
       if (!existing) return res.status(404).json({ error: 'Place not found' })
 
+      // Address context for stripping any full-address tail from name fields
+      // before persisting (only the specific name should be stored).
+      const addressCtx = {
+        village: req.body.village ?? existing.village,
+        taluk: req.body.taluk ?? existing.taluk,
+        district: req.body.district ?? existing.district,
+        state: req.body.state ?? existing.state,
+        country: req.body.country ?? existing.country,
+        pincode: req.body.pincode ?? existing.pincode,
+      }
       const data = {}
       if (req.body.place_name_en) {
-        data.placeNameEn = req.body.place_name_en.trim()
+        const rawName = req.body.place_name_en.trim()
+        data.placeNameEn = sanitizePlaceName(rawName, addressCtx) || rawName
         data.name = data.placeNameEn
       }
       if (req.body.place_name_local !== undefined) {
-        data.placeNameLocal = req.body.place_name_local?.trim() || null
+        data.placeNameLocal = sanitizePlaceName(req.body.place_name_local, addressCtx)
       }
       if (req.body.category) data.category = req.body.category.trim()
       if (req.body.latitude != null) data.latitude = parseFloat(req.body.latitude)
@@ -324,6 +341,11 @@ router.patch(
       }
 
       const place = await prisma.place.update({ where: { id }, data })
+      if (req.body.approvalStatus === 'approved' && existing.approvalStatus !== 'approved') {
+        onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
+          console.error('[notify] onPlaceApproved bg error:', err)
+        })
+      }
       res.json({ place: serializePlace(place) })
     } catch (e) {
       console.error('admin place patch', e)
@@ -388,10 +410,19 @@ router.post(
       }
 
       if (action === 'approve') {
+        const pending = await prisma.place.findMany({
+          where: { id: { in: uniqueIds }, approvalStatus: { not: 'approved' } },
+          select: PLACE_DETAIL_SELECT,
+        })
         const result = await prisma.place.updateMany({
           where: { id: { in: uniqueIds } },
           data: { approvalStatus: 'approved', approvedAt: new Date(), autoApproveAt: null },
         })
+        for (const p of pending) {
+          onPlaceApproved({ ...p, approvalStatus: 'approved' }, { approvedBy: 'admin' }).catch((err) => {
+            console.error('[notify] bulk onPlaceApproved bg error:', err)
+          })
+        }
         return res.json({ success: true, affected: result.count })
       }
 
@@ -422,6 +453,11 @@ router.patch('/places/:id/approve', async (req, res) => {
       return res.status(404).json({ error: 'Pending place not found or already approved' })
     }
     const place = await prisma.place.findUnique({ where: { id }, select: PLACE_DETAIL_SELECT })
+    if (place) {
+      onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
+        console.error('[notify] onPlaceApproved bg error:', err)
+      })
+    }
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
     console.error('admin places approve', e)

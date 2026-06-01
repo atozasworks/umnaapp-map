@@ -1,12 +1,9 @@
 // Atozas React Auth Kit Hook Wrapper
 import { useAtozasAuthKit } from 'atozas-react-auth-kit'
+import { getAuthKitApiUrl } from '../utils/apiBase'
 
 export const useAtozasAuth = () => {
-  const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000'
-  const normalizedApiUrl = apiUrl.replace(/\/+$/, '')
-  const authKitApiUrl = normalizedApiUrl.endsWith('/api')
-    ? normalizedApiUrl
-    : `${normalizedApiUrl}/api`
+  const authKitApiUrl = getAuthKitApiUrl()
 
   const authKit = useAtozasAuthKit({
     apiUrl: authKitApiUrl,

@@ -175,8 +175,42 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
   body {
     @apply bg-gradient-to-br from-slate-50 to-slate-100 text-slate-900;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  #root {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
+
+  button,
+  a,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  @media (min-width: 640px) {
+    input,
+    select,
+    textarea {
+      font-size: inherit;
+    }
   }
 }
 
@@ -279,4 +313,74 @@
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
+}
+
+/* Splash Screen Animations */
+@keyframes marker-drop {
+  0% { transform: translateY(-40px) scale(0); opacity: 0; }
+  60% { transform: translateY(4px) scale(1.1); opacity: 1; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes pulse-marker {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.15); }
+}
+
+@keyframes place-appear {
+  0% { transform: scale(0) rotate(-10deg); opacity: 0; }
+  70% { transform: scale(1.1) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes fade-in-up {
+  0% { transform: translateY(20px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes fade-in-delayed {
+  0%, 50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.animate-marker-drop {
+  animation: marker-drop 0.6s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-pulse-marker {
+  animation: pulse-marker 2s ease-in-out infinite;
+}
+
+.animate-place-appear {
+  animation: place-appear 0.7s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.7s ease-out forwards;
+}
+
+.animate-fade-in-up-delayed {
+  animation: fade-in-up 0.7s ease-out 0.3s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-up-delayed-2 {
+  animation: fade-in-up 0.7s ease-out 0.6s forwards;
+  opacity: 0;
+}
+
+.animate-fade-in-delayed {
+  animation: fade-in-delayed 1s ease-out forwards;
+  opacity: 0;
+}
+
+.animate-blink {
+  animation: blink 0.8s step-end infinite;
 }

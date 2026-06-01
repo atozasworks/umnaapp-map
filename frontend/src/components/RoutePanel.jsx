@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { useTranslate } from 'atozas-traslate'
+import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { parseQueryFromInput } from '../utils/parseSearchQuery'

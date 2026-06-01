@@ -12,27 +12,62 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(uuid())
-  name          String
-  email         String   @unique
-  password      String? // Optional for OTP-only users
-  googleId      String?  @unique
-  picture       String? // Profile image: URL (Google) or base64 data URL (uploaded)
-  emailVerified Boolean  @default(false)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  password          String? // Optional for OTP-only users
+  googleId          String?   @unique
+  picture           String? // Profile image: URL (Google) or base64 data URL (uploaded)
+  emailVerified     Boolean   @default(false)
+  lastGridExtractAt DateTime? @map("last_grid_extract_at")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  otpVerifications OTPVerification[]
-  sessions         Session[]
-  vehicles         Vehicle[]
-  locations        Location[]
-  routes           Route[]
-  places           Place[]
-  placeReviews     PlaceReview[]
-  placePhotos      PlacePhoto[]
+  otpVerifications  OTPVerification[]
+  sessions          Session[]
+  vehicles          Vehicle[]
+  locations         Location[]
+  routes            Route[]
+  places            Place[]
+  placeReviews      PlaceReview[]
+  placePhotos       PlacePhoto[]
+  favorites         Favorite[]
+  notifications     Notification[]
+  pushSubscriptions PushSubscription[]
 
   @@index([email])
   @@index([googleId])
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  type      String // place_submitted | place_added | place_approved
+  title     String
+  body      String   @db.Text
+  data      Json?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model OTPVerification {
@@ -135,51 +170,53 @@ model Route {
 }
 
 model Place {
-  id             String    @id @default(uuid())
-  name           String // Legacy: kept for backward compat; equals place_name_en for new places
-  placeNameEn    String?   @map("place_name_en") // English name (preferred)
-  placeNameLocal String?   @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
-  category       String // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
-  latitude       Float
-  longitude      Float
-  zoomLevel      Float     @default(15)
-  userId         String
-  userName       String?   @map("user_name") // User name when place was added
-  userEmail      String?   @map("user_email") // User email when place was added
-  source         String    @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
-  approvalStatus String    @default("pending") @map("approval_status") // pending | approved | rejected
-  approvedAt     DateTime? @map("approved_at")
-  autoApproveAt  DateTime? @map("auto_approve_at")
-  googlePlaceId  String?   @map("google_place_id")
-  googleType     String?   @map("google_type")
-  googleTypes    Json?     @map("google_types")
-  googleMapsUrl  String?   @map("google_maps_url")
-  vicinity       String?
-  fullAddress    String?   @map("full_address")
-  village        String?
-  taluk          String?
-  district       String?
-  state          String?
-  country        String?
-  pincode        String?
-  phone          String?
-  website        String?
-  rating         Float?
-  reviewCount    Int?      @map("review_count")
-  openingHours   Json?     @map("opening_hours")
-  businessStatus String?   @map("business_status")
-  description    String?   @db.Text
-  googleReviews  Json?     @map("google_reviews")
-  nearbyPlaces   Json?     @map("nearby_places")
-  googlePhotos   Json?     @map("google_photos")
-  extractedAt    DateTime? @map("extracted_at")
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id                 String    @id @default(uuid())
+  name               String // Legacy: kept for backward compat; equals place_name_en for new places
+  placeNameEn        String?   @map("place_name_en") // English name (preferred)
+  placeNameLocal     String?   @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
+  category           String // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
+  latitude           Float
+  longitude          Float
+  zoomLevel          Float     @default(15)
+  userId             String
+  userName           String?   @map("user_name") // User name when place was added
+  userEmail          String?   @map("user_email") // User email when place was added
+  source             String    @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
+  approvalStatus     String    @default("pending") @map("approval_status") // pending | approved | rejected
+  approvedAt         DateTime? @map("approved_at")
+  autoApproveAt      DateTime? @map("auto_approve_at")
+  googlePlaceId      String?   @map("google_place_id")
+  googleType         String?   @map("google_type")
+  googleTypes        Json?     @map("google_types")
+  googleMapsUrl      String?   @map("google_maps_url")
+  vicinity           String?
+  fullAddress        String?   @map("full_address")
+  village            String?
+  taluk              String?
+  district           String?
+  state              String?
+  country            String?
+  pincode            String?
+  phone              String?
+  website            String?
+  rating             Float?
+  reviewCount        Int?      @map("review_count")
+  openingHours       Json?     @map("opening_hours")
+  businessStatus     String?   @map("business_status")
+  description        String?   @db.Text
+  googleReviews      Json?     @map("google_reviews")
+  nearbyPlaces       Json?     @map("nearby_places")
+  googlePhotos       Json?     @map("google_photos")
+  mapRenderingConfig Json?     @map("map_rendering_config")
+  extractedAt        DateTime? @map("extracted_at")
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  reviews PlaceReview[]
-  photos  PlacePhoto[]
+  reviews   PlaceReview[]
+  photos    PlacePhoto[]
+  favorites Favorite[]
 
   @@unique([userId, googlePlaceId])
   @@index([userId])
@@ -191,6 +228,32 @@ model Place {
   @@index([latitude, longitude])
   @@index([googlePlaceId])
   @@index([extractedAt])
+}
+
+// User-specific personal bookmark / favorite of a location.
+// Unlike Place (which represents a place on the public map), Favorite
+// is a lightweight bookmark relation between a user and either an
+// existing Place (placeId set) or an arbitrary lat/lng (e.g. external
+// search result). Saving never creates a Place row, and unsaving only
+// removes the Favorite — the underlying Place is preserved.
+model Favorite {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  placeId   String?  @map("place_id")
+  name      String
+  latitude  Float
+  longitude Float
+  category  String?
+  address   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place? @relation(fields: [placeId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([placeId])
+  @@index([userId, latitude, longitude])
 }
 
 model PlaceReview {

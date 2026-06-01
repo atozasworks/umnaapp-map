@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../services/api'
 import { addressFromParts, findDuplicateInList } from '../utils/placeDuplicate'
 import { extractMapRenderingConfig } from '../utils/mapRenderingConfig'
+import { sanitizePlaceName } from '../utils/formatAddress'
 
 export const PLACE_CATEGORIES = [
   'Restaurant',
@@ -448,8 +449,19 @@ const AddPlaceModal = ({
     setError(null)
     setSaving(true)
 
-    const placeNameEn = formData.placeNameEn.trim()
-    const placeNameLocal = formData.placeNameLocal.trim() || null
+    // Strip any accidentally-included full-address tail (e.g. when the field
+    // was pre-filled from a Nominatim display_name). Only the specific name
+    // portion is persisted; admin/area parts live in their own fields below.
+    const addressForSanitize = {
+      village: formData.village,
+      taluk: formData.taluk,
+      district: formData.district,
+      state: formData.state,
+      pincode: formData.pincode,
+      country: formData.country,
+    }
+    const placeNameEn = sanitizePlaceName(formData.placeNameEn, addressForSanitize)
+    const placeNameLocal = sanitizePlaceName(formData.placeNameLocal, addressForSanitize) || null
 
     let lat, lng
     if (locationMethod === 'manual-coords') {

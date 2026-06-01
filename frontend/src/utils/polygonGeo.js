@@ -148,3 +148,75 @@ export function decimateRingMeters(ring, minDistM = 4) {
   if (out.length < 3) return ring
   return closeRing(out)
 }
+
+/** Regular n-sided polygon from center + radius (meters). rotationDeg: first vertex angle. */
+export function regularPolygon(centerLng, centerLat, radiusM, sides, rotationDeg = -90) {
+  const coordinates = []
+  const latRad = (centerLat * Math.PI) / 180
+  const metersPerDegLat = 111320
+  const metersPerDegLng = 111320 * Math.cos(latRad || 0.0001)
+  const rot = (rotationDeg * Math.PI) / 180
+
+  for (let i = 0; i <= sides; i += 1) {
+    const angle = rot + (i / sides) * Math.PI * 2
+    const dx = Math.cos(angle) * radiusM
+    const dy = Math.sin(angle) * radiusM
+    coordinates.push([centerLng + dx / metersPerDegLng, centerLat + dy / metersPerDegLat])
+  }
+  return {
+    type: 'Feature',
+    properties: {},
+    geometry: { type: 'Polygon', coordinates: [coordinates] },
+  }
+}
+
+export function hexagonPolygon(centerLng, centerLat, radiusM) {
+  return regularPolygon(centerLng, centerLat, radiusM, 6, -90)
+}
+
+export function trianglePolygon(centerLng, centerLat, radiusM) {
+  return regularPolygon(centerLng, centerLat, radiusM, 3, -90)
+}
+
+/** Corridor buffer around an open line / polyline (half-width in meters). */
+export function bufferLineCorridor(coords, halfWidthM = 30) {
+  if (!Array.isArray(coords) || coords.length < 2) return null
+  const left = []
+  const right = []
+
+  for (let i = 0; i < coords.length; i += 1) {
+    const [lng, lat] = coords[i]
+    let dx
+    let dy
+    if (i === 0) {
+      const [lng2, lat2] = coords[i + 1]
+      dx = lng2 - lng
+      dy = lat2 - lat
+    } else if (i === coords.length - 1) {
+      const [lng0, lat0] = coords[i - 1]
+      dx = lng - lng0
+      dy = lat - lat0
+    } else {
+      const [lng0, lat0] = coords[i - 1]
+      const [lng2, lat2] = coords[i + 1]
+      dx = lng2 - lng0
+      dy = lat2 - lat0
+    }
+    const len = Math.hypot(dx, dy) || 1e-12
+    const latRad = (lat * Math.PI) / 180
+    const metersPerDegLat = 111320
+    const metersPerDegLng = 111320 * Math.cos(latRad || 0.0001)
+    const nx = -dy / len
+    const ny = dx / len
+    const offsetLng = (nx * halfWidthM) / metersPerDegLng
+    const offsetLat = (ny * halfWidthM) / metersPerDegLat
+    left.push([lng + offsetLng, lat + offsetLat])
+    right.unshift([lng - offsetLng, lat - offsetLat])
+  }
+  return closeRing([...left, ...right])
+}
+
+export function ringFromFeature(feature) {
+  const ring = feature?.geometry?.coordinates?.[0]
+  return Array.isArray(ring) ? ring : null
+}

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo } from 'react'
-import { useTranslate } from 'atozas-traslate'
+import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { parseQueryFromInput } from '../utils/parseSearchQuery'
@@ -20,6 +20,7 @@ const SearchBar = ({
   onAskMaps,
   onResultsChange,
   onSavePlace,
+  onUnsavePlace,
   onCategoryExploreChange,
   userPlaces = [],
   savingPlaceId = null,
@@ -32,12 +33,13 @@ const SearchBar = ({
   const tTransit = useTranslate('Transit')
   const tPharmacies = useTranslate('Pharmacies')
   const tAtms = useTranslate('ATMs')
-  const tSaved = useTranslate('Saved')
   const tSaving = useTranslate('Saving...')
   const tSavePlace = useTranslate('Save place')
   const tSaveToSaved = useTranslate('Save to Saved')
+  const tRemoveFromSaved = useTranslate('Click to remove from Saved')
   const tSearchFailed = useTranslate('Search failed. Try again.')
   const tNoPlacesFound = useTranslate('No places found')
+  const tSearchUnavailable = useTranslate('Geocoding service unavailable. Showing only saved places.')
   const tAskMaps = useTranslate('Ask Maps')
 
   const categories = useMemo(
@@ -71,6 +73,7 @@ const SearchBar = ({
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
   const [searchError, setSearchError] = useState(false)
+  const [upstreamUnavailable, setUpstreamUnavailable] = useState(false)
   const [activeCategory, setActiveCategory] = useState(null)
   const [isFocused, setIsFocused] = useState(false)
   const searchTimeoutRef = useRef(null)
@@ -110,6 +113,7 @@ const SearchBar = ({
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true)
       setSearchError(false)
+      setUpstreamUnavailable(false)
       try {
         const response = await api.get('/map/search-simple', {
           params: { q: searchQ },
@@ -117,12 +121,14 @@ const SearchBar = ({
         const resultsData = response.data.results || []
         setResults(resultsData)
         setSearchError(false)
+        setUpstreamUnavailable(Boolean(response.data.upstreamUnavailable))
         setShowResults(true)
         if (onResultsChange) onResultsChange(resultsData)
       } catch (error) {
         console.error('Search error:', error)
         setResults([])
         setSearchError(true)
+        setUpstreamUnavailable(false)
         setShowResults(true)
         if (onResultsChange) onResultsChange([])
       } finally {
@@ -201,8 +207,13 @@ const SearchBar = ({
 
   const handleSaveClick = (e, result) => {
     e.stopPropagation()
-    if (isPlaceSaved(result)) return
-    if (onSavePlace) onSavePlace(result)
+    const placeKey = `${result.lat}-${result.lng}`
+    if (savingPlaceId === placeKey) return
+    if (isPlaceSaved(result)) {
+      if (onUnsavePlace) onUnsavePlace(result)
+    } else if (onSavePlace) {
+      onSavePlace(result)
+    }
   }
 
   return (
@@ -328,6 +339,11 @@ const SearchBar = ({
       {/* Search Results - mobile: max height, touch-friendly */}
       {showResults && results.length > 0 && (
         <div className="absolute z-50 left-0 right-0 mt-2 glass rounded-xl shadow-2xl border border-white/30 max-h-[min(60vh,320px)] sm:max-h-80 overflow-y-auto overscroll-contain">
+          {upstreamUnavailable && (
+            <div className="px-4 py-2 text-xs text-amber-700 bg-amber-50/80 border-b border-amber-200/60">
+              {tSearchUnavailable}
+            </div>
+          )}
           {results.map((result) => {
             const saved = isPlaceSaved(result)
             const placeKey = `${result.lat}-${result.lng}`
@@ -349,16 +365,16 @@ const SearchBar = ({
                 </button>
                 <button
                   onClick={(e) => handleSaveClick(e, result)}
-                  disabled={saved || isSaving}
+                  disabled={isSaving}
                   className={`flex-shrink-0 p-2 rounded-full transition-colors touch-manipulation min-w-[44px] min-h-[44px] flex items-center justify-center ${
-                    saved
-                      ? 'text-primary-600 cursor-default'
-                      : isSaving
+                    isSaving
                       ? 'text-primary-500 cursor-wait'
+                      : saved
+                      ? 'text-primary-600 hover:text-rose-600 hover:bg-rose-50 active:bg-rose-100'
                       : 'text-slate-400 hover:text-primary-600 hover:bg-white/50 active:bg-white/70'
                   }`}
-                  aria-label={saved ? tSaved : isSaving ? tSaving : tSavePlace}
-                  title={saved ? tSaved : isSaving ? tSaving : tSaveToSaved}
+                  aria-label={saved ? tRemoveFromSaved : isSaving ? tSaving : tSavePlace}
+                  title={saved ? tRemoveFromSaved : isSaving ? tSaving : tSaveToSaved}
                 >
                   {isSaving ? (
                     <div className="w-5 h-5 animate-spin rounded-full border-2 border-primary-500 border-t-transparent" />
@@ -388,6 +404,8 @@ const SearchBar = ({
         <div className="absolute z-50 w-full mt-2 glass rounded-xl shadow-2xl border border-white/30 p-4 text-center text-sm">
           {searchError ? (
             <span className="text-amber-600">{tSearchFailed}</span>
+          ) : upstreamUnavailable ? (
+            <span className="text-amber-600">{tSearchUnavailable}</span>
           ) : (
             <span className="text-slate-500">{tNoPlacesFound}</span>
           )}

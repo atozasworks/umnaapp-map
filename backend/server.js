@@ -16,9 +16,12 @@ import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
+import notificationRoutes from './routes/notificationRoutes.js'
+import feedbackRoutes from './routes/feedbackRoutes.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
+import { setIo } from './lib/socketIo.js'
 
 const defaultOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -60,10 +63,22 @@ app.use('/api/test', testRoutes)
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
+app.use('/api/notifications', notificationRoutes)
+app.use('/api/feedback', feedbackRoutes)
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', message: 'UMNAAPP API is running' })
+})
+
+app.get('/api/health/db', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`
+    res.json({ status: 'ok', database: 'connected' })
+  } catch (err) {
+    console.error('Database health check failed:', err)
+    res.status(503).json({ status: 'error', database: 'disconnected', error: err.message })
+  }
 })
 
 // Admin panel at /admin: env, or ../admin/dist (repo), or ./admin/dist (common on server under backend/)
@@ -119,6 +134,8 @@ app.get('*', (req, res, next) => {
   }
   serveIndex(req, res, next)
 })
+
+setIo(io)
 
 // Socket.io connection handling
 io.use(authenticateSocket)

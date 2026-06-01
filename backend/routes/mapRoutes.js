@@ -15,7 +15,13 @@ import {
   enrichPlaceApprovalMeta,
   initialApprovalFields,
 } from '../services/placeApproval.js'
-import { buildPlaceDetailFields, serializePlace, PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
+import { onPlaceCreated } from '../services/notificationService.js'
+import {
+  buildPlaceDetailFields,
+  serializePlace,
+  PLACE_DETAIL_SELECT,
+  sanitizePlaceName,
+} from '../utils/placePayload.js'
 import {
   PlaceDuplicateIndex,
   findPlaceDuplicate,
@@ -26,6 +32,10 @@ import {
 } from '../utils/placeDuplicate.js'
 import { runAskMapsQuery } from '../services/groqAskMapsService.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
+import {
+  GRID_EXTRACT_MAX_PLACES,
+  usedGridExtractToday,
+} from '../utils/gridExtractLimit.js'
 import { canUserDeletePlace } from '../utils/placeOwnership.js'
 
 const router = express.Router()
@@ -45,11 +55,13 @@ const NOMINATIM_URL = process.env.NOMINATIM_URL || ''
 const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
 
 const NOMINATIM_PUBLIC = 'https://nominatim.openstreetmap.org/reverse'
+const NOMINATIM_PUBLIC_SEARCH = 'https://nominatim.openstreetmap.org/search'
+const UMNAAPP_NOMINATIM_SEARCH = 'https://umnaapp.in/map/nominatim/search'
 
 const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 20000
 const SEARCH_SIMPLE_RETRIES = parseInt(process.env.SEARCH_SIMPLE_RETRIES, 10) || 3
 
-/** Retry axios request on timeout or network errors */
+/** Retry axios request on timeout, network, or server (5xx) errors */
 async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
   let lastError
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
@@ -57,13 +69,184 @@ async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
       return await fn()
     } catch (err) {
       lastError = err
-      const isRetryable = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'ENETUNREACH'
-      if (!isRetryable || attempt >= maxRetries) throw err
+      const networkErr = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'ENETUNREACH'
+      const serverErr = err.response && err.response.status >= 500 && err.response.status < 600
+      if ((!networkErr && !serverErr) || attempt >= maxRetries) throw err
       const delay = attempt * 500
       await new Promise((r) => setTimeout(r, delay))
     }
   }
   throw lastError
+}
+
+/**
+ * Query ALL configured search providers in parallel and merge their results.
+ * Each provider returns the raw upstream array (Nominatim
+ * `display_name`/`lat`/`lon` shape or umnaapp `name`/`lat`/`lon` shape).
+ *
+ * Providers (all queried concurrently):
+ *   1. umnaapp.in/search             (primary, lightweight)
+ *   2. umnaapp.in/map/nominatim/search (fuller Nominatim on same host)
+ *   3. NOMINATIM_URL (self-hosted, if configured)
+ *   4. nominatim.openstreetmap.org   (public OSM)
+ *
+ * Results from every provider that returns rows are concatenated. The caller
+ * (route handler) is responsible for the final coord-based dedupe so that
+ * DB rows can also participate in the same merge.
+ */
+async function searchExternalProviders(q, { limit = 10 } = {}) {
+  const providers = [
+    {
+      name: 'umnaapp/search',
+      url: SEARCH_SIMPLE_URL,
+      params: { q },
+      validateStatus: (s) => s === 200 || s === 404,
+      retries: 1,
+    },
+    {
+      name: 'umnaapp/nominatim',
+      url: UMNAAPP_NOMINATIM_SEARCH,
+      params: { q, format: 'json', limit, addressdetails: 1 },
+      validateStatus: (s) => s === 200,
+      retries: 2,
+    },
+  ]
+
+  const selfHosted = (NOMINATIM_URL || '').trim().replace(/\/+$/, '')
+  if (selfHosted) {
+    providers.push({
+      name: 'nominatim-self',
+      url: `${selfHosted}/search`,
+      params: { q, format: 'json', limit, addressdetails: 1 },
+      validateStatus: (s) => s === 200,
+      retries: 2,
+    })
+  }
+
+  providers.push({
+    name: 'nominatim-public',
+    url: NOMINATIM_PUBLIC_SEARCH,
+    params: { q, format: 'json', limit, addressdetails: 1 },
+    validateStatus: (s) => s === 200,
+    headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
+    retries: 3,
+  })
+
+  const settled = await Promise.allSettled(
+    providers.map((p) =>
+      axiosWithRetry(
+        () =>
+          axios.get(p.url, {
+            params: p.params,
+            headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0', ...(p.headers || {}) },
+            timeout: SEARCH_SIMPLE_TIMEOUT,
+            validateStatus: p.validateStatus,
+          }),
+        { maxRetries: p.retries || 2 }
+      ).then((res) => ({ provider: p.name, data: res.data }))
+    )
+  )
+
+  const merged = []
+  const providersUsed = []
+  const errors = []
+  const seen = new Set()
+
+  const EARTH_R = 6378137
+  const MAX_MERCATOR = Math.PI * EARTH_R // ~20037508.34
+
+  const isValidWgs84 = (lat, lng) =>
+    Number.isFinite(lat) && Number.isFinite(lng) &&
+    lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+
+  const isWebMercator = (lat, lng) =>
+    Number.isFinite(lat) && Number.isFinite(lng) &&
+    (Math.abs(lat) > 90 || Math.abs(lng) > 180) &&
+    Math.abs(lat) <= MAX_MERCATOR && Math.abs(lng) <= MAX_MERCATOR
+
+  const mercatorToWgs84 = (y, x) => ({
+    lat: (Math.atan(Math.exp(y / EARTH_R)) * 2 - Math.PI / 2) * 180 / Math.PI,
+    lng: x / EARTH_R * 180 / Math.PI,
+  })
+
+  for (let i = 0; i < settled.length; i++) {
+    const outcome = settled[i]
+    const pName = providers[i].name
+    if (outcome.status === 'fulfilled') {
+      const raw = outcome.value.data
+      const rows = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : []
+      if (rows.length === 0) {
+        errors.push({ provider: pName, reason: 'empty' })
+        continue
+      }
+      let added = 0
+      for (const r of rows) {
+        let lat = parseFloat(r.lat)
+        let lng = parseFloat(r.lon ?? r.lng)
+        if (isWebMercator(lat, lng)) {
+          const wgs = mercatorToWgs84(lat, lng)
+          lat = wgs.lat
+          lng = wgs.lng
+        }
+        if (!isValidWgs84(lat, lng)) continue
+        const key = `${lat.toFixed(5)}-${lng.toFixed(5)}`
+        if (seen.has(key)) continue
+        seen.add(key)
+        merged.push({ ...r, lat, lon: lng, _provider: pName })
+        added += 1
+      }
+      if (added > 0) providersUsed.push(pName)
+      else errors.push({ provider: pName, reason: 'no valid coords' })
+    } else {
+      const err = outcome.reason
+      const status = err?.response?.status
+      const reason = status ? `upstream ${status}` : err?.message || 'unknown'
+      errors.push({ provider: pName, reason })
+      console.warn(`Search provider ${pName} failed:`, reason)
+    }
+  }
+
+  if (merged.length > 0) {
+    return { provider: providersUsed.join('+'), providers: providersUsed, rows: merged }
+  }
+
+  // Sequential fallback: if every parallel provider failed, give nominatim-public
+  // one last dedicated attempt with a fresh timeout.
+  try {
+    const fallback = await axiosWithRetry(
+      () =>
+        axios.get(NOMINATIM_PUBLIC_SEARCH, {
+          params: { q, format: 'json', limit, addressdetails: 1 },
+          headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
+          timeout: SEARCH_SIMPLE_TIMEOUT,
+          validateStatus: (s) => s === 200,
+        }),
+      { maxRetries: 2 }
+    )
+    const rows = Array.isArray(fallback.data) ? fallback.data : []
+    for (const r of rows) {
+      const lat = parseFloat(r.lat)
+      const lng = parseFloat(r.lon ?? r.lng)
+      if (!isValidWgs84(lat, lng)) continue
+      const key = `${lat.toFixed(5)}-${lng.toFixed(5)}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push({ ...r, _provider: 'nominatim-fallback' })
+    }
+    if (merged.length > 0) {
+      return { provider: 'nominatim-fallback', providers: ['nominatim-fallback'], rows: merged }
+    }
+  } catch (fallbackErr) {
+    console.warn('Nominatim fallback also failed:', fallbackErr.message)
+  }
+
+  console.warn('All search providers failed; last error:', errors[errors.length - 1]?.reason)
+  return {
+    provider: null,
+    providers: [],
+    rows: [],
+    error: errors[errors.length - 1] || null,
+  }
 }
 
 /** Reverse geocode lat/lon to get address (taluk, district, state) - returns address object or null */
@@ -407,95 +590,105 @@ router.get(
   rateLimitMiddleware('search', 60, 60),
   [query('q').isString().notEmpty().withMessage('Search query required')],
   async (req, res) => {
-    try {
-      const errors = validationResult(req)
-      if (!errors.isEmpty()) {
-        return res.status(400).json({ errors: errors.array() })
-      }
-      const parsed = new URL(req.originalUrl, `http://${req.get('host') || 'localhost'}`)
-      const params = Object.fromEntries(parsed.searchParams)
-      const q = (params.q || '').trim()
-      const searchResponse = await axiosWithRetry(
-        () =>
-          axios.get(SEARCH_SIMPLE_URL, {
-            params: { q },
-            headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
-            timeout: SEARCH_SIMPLE_TIMEOUT,
-            validateStatus: (status) => status === 200 || status === 404, // umnaapp.in/search returns 404 with valid JSON body
-          }),
-        { maxRetries: SEARCH_SIMPLE_RETRIES }
-      )
-      const raw = searchResponse.data
-      const rawResults = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : []
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() })
+    }
 
-      // API results
-      const apiResults = rawResults.map((r, i) => ({
+    const parsed = new URL(req.originalUrl, `http://${req.get('host') || 'localhost'}`)
+    const params = Object.fromEntries(parsed.searchParams)
+    const q = (params.q || '').trim()
+
+    // 1) Database search (user-added places) — runs independently so the
+    //    user always sees their own saved places even when the upstream
+    //    geocoder is down.
+    let dbResults = []
+    if (prisma.place && q.length >= 2) {
+      try {
+        await autoApproveExpiredPendingPlaces()
+        const viewerId = req.user.id
+        const dbPlaces = await prisma.place.findMany({
+          where: {
+            AND: [
+              placePublicVisibilityOr(viewerId),
+              {
+                OR: [
+                  { name: { contains: q, mode: 'insensitive' } },
+                  { placeNameEn: { contains: q, mode: 'insensitive' } },
+                  { placeNameLocal: { contains: q, mode: 'insensitive' } },
+                  { category: { contains: q, mode: 'insensitive' } },
+                ],
+              },
+            ],
+          },
+          take: 15,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, name: true, placeNameEn: true, placeNameLocal: true, category: true, latitude: true, longitude: true, userId: true, userName: true, source: true },
+        })
+        dbResults = dbPlaces.map((p) => ({
+          placeId: p.id,
+          displayName: p.placeNameEn ?? p.name,
+          lat: p.latitude,
+          lng: p.longitude,
+          address: p.category ? { county: p.category } : null,
+          isDbPlace: true,
+        }))
+      } catch (dbErr) {
+        console.warn('DB places search failed:', dbErr.message)
+      }
+    }
+
+    // 2) Upstream geocoders — try primary then fall back to alternatives.
+    //    Isolated from DB results so a dead upstream never blanks out
+    //    user-saved places.
+    let apiResults = []
+    let usedProvider = null
+    let upstreamError = null
+    const { provider, rows, error } = await searchExternalProviders(q, { limit: 10 })
+    if (provider) {
+      usedProvider = provider
+      apiResults = rows.map((r, i) => ({
         placeId: r.place_id ?? r.id ?? r.osm_id ?? `api-${r.lat}-${r.lon ?? r.lng}-${i}`,
         displayName: r.display_name ?? r.name ?? r.formatted ?? '',
         lat: parseFloat(r.lat) || 0,
         lng: parseFloat(r.lon ?? r.lng) || 0,
         address: r.address ?? null,
+        source: r._provider || null,
       }))
+    } else if (error) {
+      upstreamError = `${error.provider}: ${error.reason}`
+    }
 
-      // User-added places: approved for everyone; pending only for the contributor
-      let dbResults = []
-      if (prisma.place && q.length >= 2) {
-        const searchTerm = q.trim()
-        try {
-          await autoApproveExpiredPendingPlaces()
-          const viewerId = req.user.id
-          const dbPlaces = await prisma.place.findMany({
-            where: {
-              AND: [
-                placePublicVisibilityOr(viewerId),
-                {
-                  OR: [
-                    { name: { contains: searchTerm, mode: 'insensitive' } },
-                    { placeNameEn: { contains: searchTerm, mode: 'insensitive' } },
-                    { category: { contains: searchTerm, mode: 'insensitive' } },
-                  ],
-                },
-              ],
-            },
-            take: 15,
-            orderBy: { createdAt: 'desc' },
-            select: { id: true, name: true, placeNameEn: true, placeNameLocal: true, category: true, latitude: true, longitude: true, userId: true, userName: true, source: true },
-          })
-          dbResults = dbPlaces.map((p) => ({
-            placeId: p.id,
-            displayName: p.placeNameEn ?? p.name,
-            lat: p.latitude,
-            lng: p.longitude,
-            address: p.category ? { county: p.category } : null,
-            isDbPlace: true,
-          }))
-        } catch (dbErr) {
-          console.warn('DB places search failed:', dbErr.message)
-        }
+    // Merge: DB places first (user's own), then API results, dedupe by coords
+    const seen = new Set()
+    const merged = []
+    for (const r of [...dbResults, ...apiResults]) {
+      const key = `${r.lat.toFixed(5)}-${r.lng.toFixed(5)}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        merged.push(r)
       }
+    }
 
-      // Merge: DB places first (user's own), then API results, dedupe by coords
-      const seen = new Set()
-      const merged = []
-      for (const r of [...dbResults, ...apiResults]) {
-        const key = `${r.lat.toFixed(5)}-${r.lng.toFixed(5)}`
-        if (!seen.has(key)) {
-          seen.add(key)
-          merged.push(r)
-        }
-      }
-
-      res.json({ query: q, results: merged, count: merged.length })
-    } catch (error) {
-      console.error('Search simple error:', error.message)
-      res.status(503).json({
-        error: true,
-        message: 'Search service temporarily unavailable',
-        query: req.query.q,
+    // Only surface an error when we have absolutely nothing to show AND
+    // the upstream failed. Otherwise return 200 with whatever we have.
+    if (merged.length === 0 && upstreamError) {
+      return res.status(200).json({
+        query: q,
         results: [],
         count: 0,
+        upstreamUnavailable: true,
+        message: 'Geocoding service temporarily unavailable',
       })
     }
+
+    res.json({
+      query: q,
+      results: merged,
+      count: merged.length,
+      ...(usedProvider ? { provider: usedProvider } : {}),
+      ...(upstreamError ? { upstreamUnavailable: true } : {}),
+    })
   }
 )
 
@@ -676,7 +869,17 @@ function mapGoogleTypeToCategory(rawType) {
 function buildPlaceCreateRow(item, userId, userName, userEmail, options = {}) {
   const lat = parseFloat(item.lat ?? item.latitude)
   const lng = parseFloat(item.lng ?? item.longitude)
-  const name = String(item.name || item.place_name_en || '').trim()
+  const addressCtx = {
+    village: item.village,
+    taluk: item.taluk,
+    district: item.district,
+    state: item.state,
+    country: item.country,
+    pincode: item.pincode,
+  }
+  const rawName = String(item.name || item.place_name_en || '').trim()
+  const name = sanitizePlaceName(rawName, addressCtx) || rawName
+  const localName = sanitizePlaceName(item.place_name_local, addressCtx)
   const details = buildPlaceDetailFields(item, {
     village: item.village,
     taluk: item.taluk,
@@ -690,7 +893,7 @@ function buildPlaceCreateRow(item, userId, userName, userEmail, options = {}) {
   return {
     name,
     placeNameEn: name,
-    placeNameLocal: (item.place_name_local || '').trim() || null,
+    placeNameLocal: localName,
     category: mapGoogleTypeToCategory(item.category || item.type || details.googleType),
     latitude: lat,
     longitude: lng,
@@ -765,8 +968,20 @@ router.post(
       const userId = req.user.id
       const userName = req.user.name || null
       const userEmail = req.user.email || null
-      const nameEn = (place_name_en || '').trim()
-      const nameLocal = (place_name_local || '').trim() || null
+      // Strip any accidentally-included full-address tail before persisting.
+      // Only the specific name (e.g. "Navyasuresh house") is saved as the place
+      // name; admin/area parts live in their own columns.
+      const addressCtx = {
+        village: req.body.village,
+        taluk: req.body.taluk,
+        district: req.body.district,
+        state: req.body.state,
+        country: req.body.country,
+        pincode: req.body.pincode,
+      }
+      const rawNameEn = (place_name_en || '').trim()
+      const nameEn = sanitizePlaceName(rawNameEn, addressCtx) || rawNameEn
+      const nameLocal = sanitizePlaceName(place_name_local, addressCtx)
 
       const dup = await findPlaceDuplicate(prisma, req.body)
       if (dup.duplicate) {
@@ -798,6 +1013,12 @@ router.post(
           ...detailFields,
         },
       })
+
+      if (!isSaved) {
+        onPlaceCreated(place, { id: userId, name: userName }).catch((err) => {
+          console.error('[notify] onPlaceCreated bg error:', err)
+        })
+      }
 
       res.status(201).json(attachApprovalMeta(serializePlace(place)))
     } catch (error) {
@@ -1118,6 +1339,9 @@ router.post(
             dupIndex.nameAddress.set(`${candidate.nameKey}|${candidate.addressKey}`, place)
           }
           rememberInBatch(batchSeen, candidate)
+          if (place.source !== 'saved') {
+            onPlaceCreated(place, { id: userId, name: userName }).catch(() => {})
+          }
           created.push(attachApprovalMeta(serializePlace(place)))
         } catch (err) {
           if (err.code === 'P2002') {
@@ -1463,6 +1687,235 @@ router.delete(
 )
 
 /**
+ * Favorites — personal user bookmarks of locations.
+ *
+ * A favorite never creates or deletes a Place row. It is a lightweight
+ * many-to-many style relation between a user and either an existing
+ * Place (placeId set) or an arbitrary lat/lng (e.g. an OSM search
+ * result that isn't in our DB). Use these endpoints from the bookmark
+ * icon in the UI — they are independent of the Place duplicate-check
+ * flow used by Add Place / Place Detail save.
+ */
+
+/**
+ * @route GET /api/map/favorites
+ * @desc List the current user's favorites (most recent first)
+ * @access Private
+ */
+router.get(
+  '/favorites',
+  authenticateToken,
+  rateLimitMiddleware('favorites:list', 120, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.favorite) {
+        return res.status(503).json({
+          error: 'Favorites not available',
+          message: 'Run migration: backend/prisma/add-favorites.sql, then `npx prisma generate` and restart.',
+        })
+      }
+      const favorites = await prisma.favorite.findMany({
+        where: { userId: req.user.id },
+        orderBy: { createdAt: 'desc' },
+        take: 500,
+      })
+      res.json({ favorites, count: favorites.length })
+    } catch (error) {
+      console.error('List favorites error:', error)
+      res.status(500).json({ error: 'Failed to fetch favorites', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/favorites
+ * @desc Add a place to the current user's favorites
+ * @access Private
+ */
+router.post(
+  '/favorites',
+  authenticateToken,
+  rateLimitMiddleware('favorites:create', 60, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.favorite) {
+        return res.status(503).json({
+          error: 'Favorites not available',
+          message: 'Run migration: backend/prisma/add-favorites.sql, then `npx prisma generate` and restart.',
+        })
+      }
+
+      const lat = parseFloat(req.body.latitude)
+      const lng = parseFloat(req.body.longitude)
+      if (!Number.isFinite(lat) || lat < -90 || lat > 90) {
+        return res.status(400).json({ error: 'Valid latitude is required (-90 to 90).' })
+      }
+      if (!Number.isFinite(lng) || lng < -180 || lng > 180) {
+        return res.status(400).json({ error: 'Valid longitude is required (-180 to 180).' })
+      }
+
+      const name = String(req.body.name ?? '').trim().slice(0, 300) || 'Unnamed place'
+      const placeIdRaw = req.body.placeId
+      const userId = req.user.id
+
+      let category = req.body.category
+      if (category != null && typeof category === 'object') {
+        category = category.county ?? category.amenity ?? category.type ?? null
+      }
+      if (category != null) {
+        category = String(category).trim().slice(0, 100)
+        if (!category) category = null
+      }
+
+      let address = req.body.address
+      if (address != null && (typeof address !== 'object' || Array.isArray(address))) {
+        address = null
+      }
+
+      // If a placeId is provided, verify it actually exists. (Stale IDs are
+      // silently dropped so we still save the bookmark by coords.)
+      let resolvedPlaceId = null
+      if (placeIdRaw && /^[0-9a-f-]{36}$/.test(String(placeIdRaw))) {
+        const exists = await prisma.place.findUnique({
+          where: { id: String(placeIdRaw) },
+          select: { id: true },
+        })
+        if (exists) resolvedPlaceId = exists.id
+      }
+
+      // Dedupe: same user + same placeId, OR same user + close coords (~11m).
+      const tol = 0.0001
+      const existing = await prisma.favorite.findFirst({
+        where: {
+          userId,
+          OR: [
+            ...(resolvedPlaceId ? [{ placeId: resolvedPlaceId }] : []),
+            {
+              latitude: { gte: lat - tol, lte: lat + tol },
+              longitude: { gte: lng - tol, lte: lng + tol },
+            },
+          ],
+        },
+      })
+      if (existing) {
+        return res.status(200).json({ favorite: existing, alreadyExists: true })
+      }
+
+      const favorite = await prisma.favorite.create({
+        data: {
+          userId,
+          placeId: resolvedPlaceId,
+          name,
+          latitude: lat,
+          longitude: lng,
+          category,
+          address,
+        },
+      })
+
+      res.status(201).json({ favorite })
+    } catch (error) {
+      if (error.code === 'P2002') {
+        // Unique constraint on (userId, placeId)
+        return res.status(409).json({ error: 'Already in favorites' })
+      }
+      console.error('Create favorite error:', error)
+      res.status(500).json({ error: 'Failed to save favorite', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route DELETE /api/map/favorites/:id
+ * @desc Remove a favorite by its id
+ * @access Private
+ */
+router.delete(
+  '/favorites/:id',
+  authenticateToken,
+  rateLimitMiddleware('favorites:delete', 60, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.favorite) {
+        return res.status(503).json({ error: 'Favorites not available' })
+      }
+      const favorite = await prisma.favorite.findFirst({
+        where: { id: req.params.id, userId: req.user.id },
+        select: { id: true },
+      })
+      if (!favorite) return res.status(404).json({ error: 'Favorite not found' })
+      await prisma.favorite.delete({ where: { id: favorite.id } })
+      res.json({ success: true, id: favorite.id })
+    } catch (error) {
+      console.error('Delete favorite error:', error)
+      res.status(500).json({ error: 'Failed to remove favorite', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route DELETE /api/map/favorites
+ * @desc Remove a favorite by coordinates or placeId (used by bookmark toggle
+ *       when the client only knows the location, not the favorite id)
+ * @access Private
+ */
+router.delete(
+  '/favorites',
+  authenticateToken,
+  rateLimitMiddleware('favorites:delete', 60, 60),
+  [
+    query('placeId').optional().isString().isLength({ max: 200 }),
+    query('lat').optional().isFloat({ min: -90, max: 90 }),
+    query('lng').optional().isFloat({ min: -180, max: 180 }),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.favorite) {
+        return res.status(503).json({ error: 'Favorites not available' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const { placeId } = req.query
+      const lat = req.query.lat != null ? parseFloat(req.query.lat) : null
+      const lng = req.query.lng != null ? parseFloat(req.query.lng) : null
+
+      if (!placeId && (lat == null || lng == null || !Number.isFinite(lat) || !Number.isFinite(lng))) {
+        return res.status(400).json({ error: 'placeId or lat & lng required' })
+      }
+
+      const tol = 0.0001
+      const candidate = await prisma.favorite.findFirst({
+        where: {
+          userId: req.user.id,
+          OR: [
+            ...(placeId ? [{ placeId: String(placeId) }] : []),
+            ...(Number.isFinite(lat) && Number.isFinite(lng)
+              ? [
+                  {
+                    latitude: { gte: lat - tol, lte: lat + tol },
+                    longitude: { gte: lng - tol, lte: lng + tol },
+                  },
+                ]
+              : []),
+          ],
+        },
+        select: { id: true },
+      })
+
+      if (!candidate) return res.status(404).json({ error: 'Favorite not found' })
+      await prisma.favorite.delete({ where: { id: candidate.id } })
+      res.json({ success: true, id: candidate.id })
+    } catch (error) {
+      console.error('Delete favorite by-coords error:', error)
+      res.status(500).json({ error: 'Failed to remove favorite', message: error.message })
+    }
+  }
+)
+
+/**
  * @route POST /api/map/ask
  * @desc Natural-language place search (Groq intent + DB results)
  * @access Private
@@ -1511,7 +1964,68 @@ router.get('/config', authenticateToken, (req, res) => {
   res.json({
     googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
     placesQuota: getPlacesQuotaConfig(),
+    gridExtract: {
+      maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      oncePerDay: true,
+    },
   })
+})
+
+/**
+ * @route GET /api/map/grid-extract/status
+ * @desc Whether the user can run grid extract today
+ */
+router.get('/grid-extract/status', authenticateToken, async (req, res) => {
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { lastGridExtractAt: true },
+    })
+    const usedToday = usedGridExtractToday(row?.lastGridExtractAt)
+    res.json({
+      canExtract: !usedToday,
+      usedToday,
+      maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      lastExtractAt: row?.lastGridExtractAt ?? null,
+    })
+  } catch (error) {
+    console.error('grid-extract status error:', error)
+    res.status(500).json({ error: 'Failed to load grid extract status' })
+  }
+})
+
+/**
+ * @route POST /api/map/grid-extract/consume
+ * @desc Reserve the user's once-per-day grid extract slot (call at start of extraction)
+ */
+router.post('/grid-extract/consume', authenticateToken, async (req, res) => {
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { lastGridExtractAt: true },
+    })
+    if (usedGridExtractToday(row?.lastGridExtractAt)) {
+      return res.status(429).json({
+        error: 'GRID_EXTRACT_DAILY_LIMIT',
+        message: 'You have already used grid extract today. You can extract again tomorrow.',
+        usedToday: true,
+        maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      })
+    }
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { lastGridExtractAt: new Date() },
+      select: { lastGridExtractAt: true },
+    })
+    res.json({
+      ok: true,
+      maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      lastExtractAt: updated.lastGridExtractAt,
+    })
+  } catch (error) {
+    console.error('grid-extract consume error:', error)
+    res.status(500).json({ error: 'Failed to start grid extract' })
+  }
 })
 
 export default router

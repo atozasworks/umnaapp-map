@@ -1,5 +1,6 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
-import { useTranslate, useLanguage, getAllLanguages } from 'atozas-traslate'
+import { useState, useRef, useEffect, useCallback } from 'react'
+import { useTranslate } from '../lib/i18n'
+import LanguagePickerModal from '../lib/i18n/LanguagePickerModal'
 import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
 import MapContextMenu from '../components/MapContextMenu'
@@ -16,12 +17,17 @@ import PlaceAddedSuccessModal, { buildPlaceAddedPayload } from '../components/Pl
 import PolygonExplorePanel from '../components/PolygonExplorePanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
+import NotificationBell from '../components/NotificationBell'
+import FeedbackModal from '../components/FeedbackModal'
+import OnboardingTour, { hasSeenOnboarding, markOnboardingSeen } from '../components/OnboardingTour'
 import api from '../services/api'
 import {
   extractMapRenderingConfig,
   withMapRenderingConfig,
 } from '../utils/mapRenderingConfig'
 import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
+import { getAppOrigin } from '../utils/apiBase'
+import { extractPlaceNameFromDisplay } from '../utils/formatAddress'
 
 const MAX_AVATAR_SIZE = 200
 
@@ -106,7 +112,6 @@ const SEARCH_CHIP_MARKER_COLORS = {
 const MAX_CATEGORY_EXPLORE_RESULTS = 50
 
 const HomePage = () => {
-  const { language, setLanguage } = useLanguage()
   const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
@@ -120,6 +125,7 @@ const HomePage = () => {
   const [mapLocation, setMapLocation] = useState(null)
   const [allPlaces, setAllPlaces] = useState([])
   const [visiblePlaces, setVisiblePlaces] = useState([])
+  const [favorites, setFavorites] = useState([])
   const [availableCategories, setAvailableCategories] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
   const [loadingCategoryPlaces, setLoadingCategoryPlaces] = useState(false)
@@ -148,7 +154,8 @@ const HomePage = () => {
   const [shareModal, setShareModal] = useState(null)
   const [showExtractPanel, setShowExtractPanel] = useState(false)
   const [showLanguageModal, setShowLanguageModal] = useState(false)
-  const [pendingLanguage, setPendingLanguage] = useState('en')
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [categoryExplorePlaces, setCategoryExplorePlaces] = useState([])
   const [mapReadyTick, setMapReadyTick] = useState(0)
   const exploreCategoryRef = useRef(null)
@@ -166,13 +173,9 @@ const HomePage = () => {
   const menuAddMissingPlace = useTranslate('Add a missing place')
   const menuExtractPlaces = useTranslate('Extract Places')
   const menuLanguage = useTranslate('Language')
+  const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
   const menuTapPhotoHint = useTranslate('Tap photo to change')
-  const languageModalTitle = useTranslate('App language')
-  const languageModalHint = useTranslate(
-    'Pick a language, then tap Apply. Menu and labels update after a short load.'
-  )
-  const applyButtonLabel = useTranslate('Apply')
   const navAppTitle = useTranslate('UMNAAPP')
   const navAddPlace = useTranslate('Add Place')
   const navAddPlaceTitle = useTranslate('Add a new place')
@@ -187,17 +190,25 @@ const HomePage = () => {
   const menuAreaExplore = useTranslate('Area explore (draw)')
   const menuAskMaps = useTranslate('Ask Maps')
 
-  const allLanguages = useMemo(() => getAllLanguages(), [])
-
   const closeMapContextMenu = useCallback(() => {
     setMapContextMenu(null)
   }, [])
 
+  // First-time onboarding: show the 3-step tour once per user (after register or Google sign-in).
   useEffect(() => {
-    if (showLanguageModal) {
-      setPendingLanguage(language)
-    }
-  }, [showLanguageModal, language])
+    if (!isAuthenticated || !user) return
+    const userKey = user.id || user.email
+    if (!userKey) return
+    if (hasSeenOnboarding(userKey)) return
+    const timer = setTimeout(() => setShowOnboarding(true), 350)
+    return () => clearTimeout(timer)
+  }, [isAuthenticated, user])
+
+  const handleOnboardingClose = useCallback(() => {
+    const userKey = user?.id || user?.email
+    if (userKey) markOnboardingSeen(userKey)
+    setShowOnboarding(false)
+  }, [user])
 
   useEffect(() => {
     if (!measureDistanceActive) return undefined
@@ -368,19 +379,39 @@ const HomePage = () => {
     }
   }, [])
 
-  // Load saved places from DB when session is valid; clear when logged out
+  const refreshFavoritesFromDb = useCallback(async () => {
+    try {
+      const { data } = await api.get('/map/favorites')
+      setFavorites(Array.isArray(data.favorites) ? data.favorites : [])
+    } catch (err) {
+      // 503 means migration not run yet — keep favorites empty, log once.
+      if (err.response?.status !== 503) {
+        console.error('Failed to fetch favorites:', err)
+      } else {
+        console.warn('Favorites endpoint unavailable (run add-favorites.sql + prisma generate)')
+      }
+      setFavorites([])
+    }
+  }, [])
+
+  // Load saved places + favorites from DB when session is valid; clear when logged out
   useEffect(() => {
     if (!isAuthenticated) {
       setAllPlaces([])
+      setFavorites([])
       return
     }
     refreshPlacesFromDb()
-  }, [isAuthenticated, refreshPlacesFromDb])
+    refreshFavoritesFromDb()
+  }, [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb])
 
   const handleMapReady = useCallback(() => {
     setMapReadyTick((t) => t + 1)
-    if (isAuthenticated) refreshPlacesFromDb()
-  }, [isAuthenticated, refreshPlacesFromDb])
+    if (isAuthenticated) {
+      refreshPlacesFromDb()
+      refreshFavoritesFromDb()
+    }
+  }, [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb])
 
   // Derive map markers from allPlaces only so newly added places always appear once categories align
   // (avoids overwriting visiblePlaces after bulk add / extract).
@@ -445,6 +476,33 @@ const HomePage = () => {
     openPlaceDetail(place, { fly: true })
   }
 
+  const handleNotificationPlaceFocus = useCallback(
+    (data) => {
+      if (!data) return
+      if (data.placeId) {
+        const existing = allPlaces.find((p) => String(p.id) === String(data.placeId))
+        if (existing) {
+          openPlaceDetail(existing, { fly: true })
+          return
+        }
+      }
+      if (data.latitude != null && data.longitude != null) {
+        openPlaceDetail(
+          {
+            id: data.placeId,
+            placeNameEn: data.placeName,
+            name: data.placeName,
+            latitude: data.latitude,
+            longitude: data.longitude,
+            category: data.category,
+          },
+          { fly: true }
+        )
+      }
+    },
+    [allPlaces, openPlaceDetail]
+  )
+
   const handleProfileImageChange = async (e) => {
     const file = e.target.files?.[0]
     if (!file || !file.type.startsWith('image/')) return
@@ -508,7 +566,7 @@ const HomePage = () => {
     const zoom = zoomOverride ?? (map ? Math.round(map.getZoom()) : 15)
     const latStr = Number(lat).toFixed(6)
     const lngStr = Number(lng).toFixed(6)
-    const appUrl = `https://umnaapptst.testatozas.in/?lat=${latStr}&lng=${lngStr}&z=${zoom}`
+    const appUrl = `${getAppOrigin()}/?lat=${latStr}&lng=${lngStr}&z=${zoom}`
     const text = `Check out this location on UMNAAPP`
     const shareText = `${text}\n${appUrl}`
 
@@ -714,43 +772,160 @@ const HomePage = () => {
     setShowAddPlaceMethodModal(true)
   }
 
+  // Build a Favorite payload from anything that has a name + coords.
+  // Accepts both search-result shape (displayName/lat/lng) and Place shape
+  // (place_name_en/latitude/longitude).
+  const formatApiError = (err, fallback = 'Something went wrong') => {
+    const data = err.response?.data
+    if (Array.isArray(data?.errors) && data.errors.length > 0) {
+      return data.errors.map((e) => e.msg || e.message).filter(Boolean).join('. ')
+    }
+    return data?.message ?? data?.error ?? fallback
+  }
+
+  const buildFavoritePayload = (input) => {
+    const lat = parseFloat(input.lat ?? input.latitude)
+    const lng = parseFloat(input.lng ?? input.longitude)
+    const name =
+      String(input.displayName ?? input.place_name_en ?? input.name ?? '').trim() || 'Unnamed place'
+    const placeIdRaw = input.placeId ?? input.id ?? null
+    const placeId =
+      placeIdRaw && /^[0-9a-f-]{36}$/.test(String(placeIdRaw)) ? String(placeIdRaw) : null
+    let category = input.category ?? input.address?.amenity ?? input.address?.type ?? input.address?.county ?? null
+    if (category != null && typeof category === 'object') {
+      category = category.county ?? category.amenity ?? category.type ?? null
+    }
+    if (category != null) {
+      category = String(category).trim().slice(0, 100)
+      if (!category) category = null
+    }
+    const address =
+      input.address && typeof input.address === 'object' && !Array.isArray(input.address)
+        ? input.address
+        : null
+    return { name, latitude: lat, longitude: lng, placeId, category, address }
+  }
+
+  const applyFavoriteResponse = (data, { quietIfExists = false } = {}) => {
+    const fav = data?.favorite
+    if (fav) {
+      setFavorites((prev) => [fav, ...prev.filter((f) => f.id !== fav.id)])
+    }
+    if (!data?.alreadyExists && !quietIfExists) {
+      showToast('Added to your saved places.', 'success')
+    }
+  }
+
   const handleSavePlaceFromSearch = async (result) => {
-    const placeKey = `${result.lat}-${result.lng}`
+    const lat = parseFloat(result.lat ?? result.latitude)
+    const lng = parseFloat(result.lng ?? result.longitude)
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+      showToast('This place has no valid location to save.', 'error')
+      return
+    }
+    const placeKey = `${lat}-${lng}`
     if (savingPlaceId === placeKey) return
     setSavingPlaceId(placeKey)
-    const category = result.address?.amenity || result.address?.type || result.address?.county || 'Other'
     try {
-      const { data } = await api.post('/map/places', {
-        place_name_en: result.displayName,
-        place_name_local: '',
-        category: typeof category === 'string' ? category : 'Other',
-        latitude: result.lat,
-        longitude: result.lng,
-        zoomLevel: 15,
-        source: 'saved',
-      })
-      setAllPlaces((prev) => [data, ...prev.filter((place) => place.id !== data.id)])
-      if (placeMatchesCategories(data, selectedCategories)) {
-        setVisiblePlaces((prev) => [data, ...prev.filter((place) => place.id !== data.id)])
-      }
-      showPlaceAddedPopup([data], { variant: 'saved' })
-      setShowMenu(false)
-      setShowContributionsOnly(false)
-      setShowMyPlaces(true)
+      const payload = buildFavoritePayload({ ...result, lat, lng })
+      const { data } = await api.post('/map/favorites', payload)
+      applyFavoriteResponse(data)
     } catch (err) {
       if (err.response?.status === 409) {
-        showDuplicatePopup(
-          {
-            duplicate: true,
-            message: err.response?.data?.message,
-            reason: err.response?.data?.reason,
-            existingPlaceId: err.response?.data?.existingPlaceId,
-            existingPlaceName: err.response?.data?.existingPlaceName,
-          },
-          result.displayName
-        )
+        await refreshFavoritesFromDb()
+        showToast('Already in your saved places.', 'info')
+        return
+      }
+      const msg =
+        err.response?.status === 503
+          ? 'Favorites are not available. Run: npm run migrate:favorites in backend.'
+          : formatApiError(err, 'Failed to save')
+      showToast(msg, 'error')
+    } finally {
+      setSavingPlaceId(null)
+    }
+  }
+
+  const handleUnsavePlaceFromSearch = async (result) => {
+    const placeKey = `${result.lat}-${result.lng}`
+    if (savingPlaceId === placeKey) return
+
+    setSavingPlaceId(placeKey)
+    try {
+      const placeId =
+        result.placeId && /^[0-9a-f-]{36}$/.test(String(result.placeId))
+          ? String(result.placeId)
+          : null
+      const params = { lat: result.lat, lng: result.lng }
+      if (placeId) params.placeId = placeId
+
+      const { data } = await api.delete('/map/favorites', { params })
+      const removedId = data?.id
+      if (removedId) {
+        setFavorites((prev) => prev.filter((f) => f.id !== removedId))
       } else {
-        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
+        // Fallback: drop any matching favorite locally by coord/placeId
+        const tol = 0.0001
+        setFavorites((prev) =>
+          prev.filter(
+            (f) =>
+              !(
+                (placeId && f.placeId === placeId) ||
+                (Math.abs(f.latitude - result.lat) < tol &&
+                  Math.abs(f.longitude - result.lng) < tol)
+              )
+          )
+        )
+      }
+      showToast('Removed from saved.', 'success')
+    } catch (err) {
+      if (err.response?.status === 404) {
+        // Already removed somewhere else — sync local state and surface a gentle note.
+        const tol = 0.0001
+        setFavorites((prev) =>
+          prev.filter(
+            (f) =>
+              !(
+                Math.abs(f.latitude - result.lat) < tol &&
+                Math.abs(f.longitude - result.lng) < tol
+              )
+          )
+        )
+        showToast('This place is not in your saved list.', 'info')
+      } else {
+        console.error('Unsave error:', err)
+        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to remove from saved.'
+        showToast(msg, 'error')
+      }
+    } finally {
+      setSavingPlaceId(null)
+    }
+  }
+
+  const handleUnsavePlaceFromPanel = async (place) => {
+    if (place?.latitude == null || place?.longitude == null) {
+      showToast('Cannot remove this place from saved.', 'info')
+      return
+    }
+    const placeKey = `${place.latitude}-${place.longitude}`
+    setSavingPlaceId(placeKey)
+    try {
+      const placeId =
+        place.id && /^[0-9a-f-]{36}$/.test(String(place.id)) ? String(place.id) : null
+      const params = { lat: place.latitude, lng: place.longitude }
+      if (placeId) params.placeId = placeId
+      const { data } = await api.delete('/map/favorites', { params })
+      const removedId = data?.id
+      if (removedId) {
+        setFavorites((prev) => prev.filter((f) => f.id !== removedId))
+      }
+      showToast('Removed from saved.', 'success')
+    } catch (err) {
+      if (err.response?.status === 404) {
+        showToast('This place is not in your saved list.', 'info')
+      } else {
+        console.error('Unsave error:', err)
+        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to remove from saved.'
         showToast(msg, 'error')
       }
     } finally {
@@ -769,11 +944,15 @@ const HomePage = () => {
         params: { lat: loc.latitude, lng: loc.longitude },
       })
       const map = mapRef.current?.getMap?.()
+      // Use only the specific place name (e.g. "Navyasuresh house") as the
+      // pre-filled name, never the full comma-separated address. The remaining
+      // address parts are populated separately into village/taluk/district/etc.
+      const placeOnlyName = extractPlaceNameFromDisplay(data.displayName, data.address)
       const base = {
         latitude: loc.latitude,
         longitude: loc.longitude,
         zoomLevel: loc.zoomLevel,
-        name: data.displayName || '',
+        name: placeOnlyName,
         address: data.address || {},
         targetLang: data.targetLang || 'hi',
       }
@@ -793,14 +972,23 @@ const HomePage = () => {
     }
   }
 
-  const handleMapClickForPlace = async (loc) => {
-    if (addPlacePickMode) {
+  const handleMapClickForPlace = useCallback(async (loc) => {
+    if (!addPlacePickMode) return
+    setAddPlaceLocationMethod('map-or-current')
+    setMapLocation({
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+      zoomLevel: loc.zoomLevel,
+    })
+    setShowAddPlaceModal(true)
+    setAddPlacePickMode(false)
+    try {
       const details = await fetchPlaceDetails(loc)
       setMapLocation(details)
-      setShowAddPlaceModal(true)
-      setAddPlacePickMode(false)
+    } catch (err) {
+      console.warn('handleMapClickForPlace: failed to load place details', err)
     }
-  }
+  }, [addPlacePickMode])
 
   const handlePlaceSaved = (place) => {
     setAllPlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
@@ -905,42 +1093,20 @@ const HomePage = () => {
     if (savingPlaceId === placeKey) return
     setSavingPlaceId(placeKey)
     try {
-      const map = mapRef.current?.getMap?.()
-      const mapRenderingConfig =
-        place.mapRenderingConfig ||
-        place.map_rendering_config ||
-        extractMapRenderingConfig({ map, place })
-      const { data } = await api.post('/map/places', {
-        place_name_en: place.place_name_en || place.name,
-        place_name_local: place.place_name_local || '',
-        category: place.category || 'Other',
-        latitude: place.latitude,
-        longitude: place.longitude,
-        zoomLevel: place.zoomLevel || 15,
-        mapRenderingConfig,
-        source: 'saved',
-      })
-      setAllPlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
-      if (placeMatchesCategories(data, selectedCategories)) {
-        setVisiblePlaces((prev) => [data, ...prev.filter((item) => item.id !== data.id)])
-      }
-      showPlaceAddedPopup([data], { variant: 'saved' })
+      const payload = buildFavoritePayload(place)
+      const { data } = await api.post('/map/favorites', payload)
+      applyFavoriteResponse(data)
     } catch (err) {
       if (err.response?.status === 409) {
-        showDuplicatePopup(
-          {
-            duplicate: true,
-            message: err.response?.data?.message,
-            reason: err.response?.data?.reason,
-            existingPlaceId: err.response?.data?.existingPlaceId,
-            existingPlaceName: err.response?.data?.existingPlaceName,
-          },
-          place.place_name_en || place.name
-        )
-      } else {
-        const msg = err.response?.data?.message ?? err.response?.data?.error ?? 'Failed to save'
-        showToast(msg, 'error')
+        await refreshFavoritesFromDb()
+        showToast('Already in your saved places.', 'info')
+        return
       }
+      const msg =
+        err.response?.status === 503
+          ? 'Favorites are not available. Run: npm run migrate:favorites in backend.'
+          : formatApiError(err, 'Failed to save')
+      showToast(msg, 'error')
     } finally {
       setSavingPlaceId(null)
     }
@@ -995,6 +1161,25 @@ const HomePage = () => {
   const handleLogout = async () => {
     logout()
     window.location.href = '/'
+  }
+
+  const confirmLogout = () => {
+    setShowMenu(false)
+    setConfirmModal({
+      title: 'Are you sure logout?',
+      message: 'You will be signed out of your account on this device. Saved places stay safe and will be there when you sign back in.',
+      confirmText: 'Logout',
+      cancelText: 'No',
+      confirmClass: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-md shadow-red-500/30',
+      iconBg: 'bg-red-100',
+      icon: (
+        <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+        </svg>
+      ),
+      onConfirm: () => { setConfirmModal(null); handleLogout() },
+      onCancel: () => setConfirmModal(null),
+    })
   }
 
   const handleDeletePlace = async (placeId) => {
@@ -1089,12 +1274,16 @@ const HomePage = () => {
       {confirmModal && (
         <div className="fixed inset-0 z-[400] flex items-center justify-center p-4" onClick={confirmModal.onCancel}>
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6" onClick={(e) => e.stopPropagation()}>
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-slide-up" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center gap-3 mb-3">
-              <div className="w-11 h-11 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
+              <div className={`w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0 ${
+                confirmModal.iconBg || 'bg-red-100'
+              }`}>
+                {confirmModal.icon || (
+                  <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                )}
               </div>
               <div>
                 <h3 className="text-base font-bold text-slate-800">{confirmModal.title}</h3>
@@ -1103,10 +1292,15 @@ const HomePage = () => {
             <p className="text-sm text-slate-600 mb-5 leading-relaxed">{confirmModal.message}</p>
             <div className="flex gap-3">
               <button onClick={confirmModal.onCancel} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors">
-                Cancel
+                {confirmModal.cancelText || 'Cancel'}
               </button>
-              <button onClick={confirmModal.onConfirm} className="flex-1 py-2.5 rounded-xl text-sm font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors">
-                Yes, Delete
+              <button
+                onClick={confirmModal.onConfirm}
+                className={`flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-colors ${
+                  confirmModal.confirmClass || 'bg-red-600 hover:bg-red-700'
+                }`}
+              >
+                {confirmModal.confirmText || 'Yes, Delete'}
               </button>
             </div>
           </div>
@@ -1141,8 +1335,9 @@ const HomePage = () => {
             </h1>
           </div>
 
-          {/* Right side: Add Place only (My Places & Logout in menu) */}
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 justify-end">
+          {/* Right side: Notifications + Add Place */}
+          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
+            <NotificationBell onPlaceFocus={handleNotificationPlaceFocus} />
             {/* Add Place button */}
             <button
               onClick={() => {
@@ -1177,13 +1372,20 @@ const HomePage = () => {
         style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}
       >
         <SearchBar
-          userPlaces={allPlaces}
+          userPlaces={favorites.map((f) => ({
+            id: f.placeId || f.id,
+            name: f.name,
+            latitude: f.latitude,
+            longitude: f.longitude,
+            category: f.category || null,
+          }))}
           onSelect={handleSearchSelect}
           onRoute={() => setShowRoutePanel(!showRoutePanel)}
           onAskMaps={handleAskMapsOpen}
           onResultsChange={() => {}}
           onCategoryExploreChange={handleCategoryExploreChange}
           onSavePlace={handleSavePlaceFromSearch}
+          onUnsavePlace={handleUnsavePlaceFromSearch}
           savingPlaceId={savingPlaceId}
         />
         <div className="mt-2 glass rounded-2xl border border-white/40 shadow-lg px-2 py-2">
@@ -1431,7 +1633,7 @@ const HomePage = () => {
           onMapReady={handleMapReady}
           onPlaceClick={openPlaceDetail}
           selectedPlaceId={selectedPlace?.id ?? null}
-          addPlaceMode={addPlacePickMode || showAddPlaceModal}
+          addPlaceMode={addPlacePickMode}
           blockAddPlaceMapClick={polygonMapInteraction}
           blockContextMenu={polygonMapInteraction || addPlacePickMode}
           measureDistanceActive={measureDistanceActive}
@@ -1471,6 +1673,7 @@ const HomePage = () => {
             onClose={() => setSelectedPlace(null)}
             onDirections={handlePlaceDirections}
             onSave={handlePlaceSaveFromPanel}
+            onUnsave={handleUnsavePlaceFromPanel}
             onEdit={handlePlaceEdit}
             onDelete={
               canDeletePlace(selectedPlace, user)
@@ -1483,12 +1686,11 @@ const HomePage = () => {
             }
             currentUser={user}
             deletingId={deletingPlaceId}
-            isSaved={allPlaces.some(
-              (p) =>
-                p.userId === user?.id &&
-                (p.id === selectedPlace.id ||
-                  (Math.abs(p.latitude - selectedPlace.latitude) < 0.0001 &&
-                    Math.abs(p.longitude - selectedPlace.longitude) < 0.0001))
+            isSaved={favorites.some(
+              (f) =>
+                (selectedPlace.id && f.placeId && String(f.placeId) === String(selectedPlace.id)) ||
+                (Math.abs(f.latitude - selectedPlace.latitude) < 0.0001 &&
+                  Math.abs(f.longitude - selectedPlace.longitude) < 0.0001)
             )}
           />
         </div>
@@ -1632,8 +1834,8 @@ const HomePage = () => {
                   </svg>
                   <span className="text-sm font-medium text-slate-800">{menuSaved}</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
-                  {allPlaces.filter((p) => (p.source || 'contribution') === 'saved').length}
-                </span>
+                    {favorites.length}
+                  </span>
                 </button>
                 <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation opacity-60">
                   <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1709,12 +1911,22 @@ const HomePage = () => {
                   </svg>
                   <span className="text-sm font-medium text-slate-800">{menuLanguage}</span>
                 </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); setShowFeedbackModal(true) }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuFeedback}</span>
+                </button>
               </div>
 
               {/* Logout */}
               <div className="py-2">
                 <button
-                  onClick={() => { setShowMenu(false); handleLogout(); }}
+                  onClick={confirmLogout}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
                 >
                   <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1728,63 +1940,23 @@ const HomePage = () => {
         </div>
       )}
 
-      {showLanguageModal && (
-        <div
-          className="fixed inset-0 z-[450] flex items-center justify-center p-4"
-          onClick={() => setShowLanguageModal(false)}
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="language-modal-title"
-        >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
-          <div
-            className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm p-5"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-3">
-              <h3 id="language-modal-title" className="text-base font-bold text-slate-800">
-                {languageModalTitle}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowLanguageModal(false)}
-                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
-                aria-label="Close"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-            <p className="text-xs text-slate-500 mb-3">{languageModalHint}</p>
-            <label className="sr-only" htmlFor="atozas-language-selector">
-              {menuLanguage}
-            </label>
-            <select
-              id="atozas-language-selector"
-              value={pendingLanguage}
-              onChange={(e) => setPendingLanguage(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-2 focus:ring-primary-500/20"
-            >
-              {allLanguages.map((lang) => (
-                <option key={lang.code} value={lang.code}>
-                  {lang.name}
-                </option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => {
-                setLanguage(pendingLanguage)
-                setShowLanguageModal(false)
-              }}
-              className="w-full mt-4 rounded-xl bg-primary-600 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-primary-700 active:bg-primary-800"
-            >
-              {applyButtonLabel}
-            </button>
-          </div>
-        </div>
-      )}
+      <FeedbackModal
+        isOpen={showFeedbackModal}
+        onClose={() => setShowFeedbackModal(false)}
+        user={user}
+      />
+
+      <OnboardingTour
+        isOpen={showOnboarding}
+        onComplete={handleOnboardingClose}
+        onSkip={handleOnboardingClose}
+      />
+
+      <LanguagePickerModal
+        isOpen={showLanguageModal}
+        onClose={() => setShowLanguageModal(false)}
+      />
+
 
       {/* Share Location fallback modal (desktop / unsupported browsers) */}
       {shareModal && (
@@ -1893,10 +2065,7 @@ const HomePage = () => {
                         allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
                         user
                       ).length
-                    : filterPlacesByUser(
-                        allPlaces.filter((p) => (p.source || 'contribution') === 'saved'),
-                        user
-                      ).length}
+                    : favorites.length}
                 </span>
               </div>
               <button
@@ -1913,94 +2082,186 @@ const HomePage = () => {
             {/* Places list */}
             <div className="flex-1 overflow-y-auto py-2">
               {(() => {
-                const displayPlaces = showContributionsOnly
-                  ? filterPlacesByUser(
-                      allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
-                      user
-                    )
-                  : filterPlacesByUser(
-                      allPlaces.filter((p) => (p.source || 'contribution') === 'saved'),
-                      user
-                    )
-                return displayPlaces.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 px-6 text-center">
-                  <svg className="w-12 h-12 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                  </svg>
-                  <p className="text-sm font-medium">
-                    {showContributionsOnly ? 'No contributions yet' : 'No saved places yet'}
-                  </p>
-                  <p className="text-xs text-slate-400">
-                    {showContributionsOnly
-                      ? 'Use "Add a missing place" in the menu to contribute.'
-                      : 'Save places from search results using the bookmark icon.'}
-                  </p>
-                </div>
-              ) : (
-                <ul className="divide-y divide-slate-100">
-                  {displayPlaces.map((place) => (
-                    <li key={place.id} className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group">
-                      {/* Category icon dot */}
-                      <div className="mt-1 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
-                        <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                      </div>
-                      {/* Details */}
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-slate-800 truncate">{place.place_name_en || place.name}</p>
-                        {place.place_name_local && place.place_name_local !== place.place_name_en && (
-                          <p className="text-xs text-slate-500 truncate">{place.place_name_local}</p>
-                        )}
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">
-                            <TranslatedLabel text={place.category} />
-                          </span>
-                          {place.approvalStatus === 'pending' && (
-                            <span className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 font-medium">
-                              Pending
-                              {place.pendingDaysRemaining != null
-                                ? ` · ${place.pendingDaysRemaining}d`
-                                : ''}
-                            </span>
+                // Contributions tab: show the user's own Place rows (real map adds).
+                // Saved tab: show Favorites (lightweight bookmarks; never deletes
+                // the underlying Place when removed).
+                if (showContributionsOnly) {
+                  const displayPlaces = filterPlacesByUser(
+                    allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
+                    user
+                  )
+                  return displayPlaces.length === 0 ? (
+                    <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 px-6 text-center">
+                      <svg className="w-12 h-12 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      <p className="text-sm font-medium">No contributions yet</p>
+                      <p className="text-xs text-slate-400">
+                        Use &quot;Add a missing place&quot; in the menu to contribute.
+                      </p>
+                    </div>
+                  ) : (
+                    <ul className="divide-y divide-slate-100">
+                      {displayPlaces.map((place) => (
+                        <li key={place.id} className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group">
+                          <div className="mt-1 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{place.place_name_en || place.name}</p>
+                            {place.place_name_local && place.place_name_local !== place.place_name_en && (
+                              <p className="text-xs text-slate-500 truncate">{place.place_name_local}</p>
+                            )}
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">
+                                <TranslatedLabel text={place.category} />
+                              </span>
+                              {place.approvalStatus === 'pending' && (
+                                <span className="text-xs text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 font-medium">
+                                  Pending
+                                  {place.pendingDaysRemaining != null
+                                    ? ` · ${place.pendingDaysRemaining}d`
+                                    : ''}
+                                </span>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setShowMyPlaces(false)
+                                  openPlaceDetail(place)
+                                }}
+                                className="text-xs text-slate-400 hover:text-primary-600 transition-colors"
+                              >
+                                {myPlacesViewOnMap}
+                              </button>
+                            </div>
+                          </div>
+                          {canDeletePlace(place, user) && (
+                            <button
+                              onClick={() => confirmDeletePlace(place.id, place.place_name_en || place.name || 'this place')}
+                              disabled={deletingPlaceId === place.id}
+                              className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0 disabled:opacity-40"
+                              title="Delete place"
+                              aria-label="Delete place"
+                            >
+                              {deletingPlaceId === place.id ? (
+                                <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                </svg>
+                              ) : (
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              )}
+                            </button>
                           )}
+                        </li>
+                      ))}
+                    </ul>
+                  )
+                }
+
+                // Saved tab — favorites
+                return favorites.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center h-full gap-3 text-slate-400 px-6 text-center">
+                    <svg className="w-12 h-12 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3-7 3V5z" />
+                    </svg>
+                    <p className="text-sm font-medium">No saved places yet</p>
+                    <p className="text-xs text-slate-400">
+                      Save places from search results using the bookmark icon.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="divide-y divide-slate-100">
+                    {favorites.map((fav) => {
+                      const removing = savingPlaceId === `${fav.latitude}-${fav.longitude}`
+                      return (
+                        <li key={fav.id} className="flex items-start gap-3 px-5 py-3 hover:bg-slate-50 transition-colors group">
+                          <div className="mt-1 w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center flex-shrink-0">
+                            <svg className="w-4 h-4 text-primary-600" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800 truncate">{fav.name}</p>
+                            <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                              {fav.category && (
+                                <span className="text-xs text-primary-600 bg-primary-50 rounded px-1.5 py-0.5 font-medium">
+                                  <TranslatedLabel text={fav.category} />
+                                </span>
+                              )}
+                              <button
+                                onClick={() => {
+                                  setShowMyPlaces(false)
+                                  const cached = allPlaces.find((p) => String(p.id) === String(fav.placeId))
+                                  if (cached) {
+                                    openPlaceDetail(cached)
+                                  } else {
+                                    // Favorite of an external location not in our DB —
+                                    // just fly the map to it.
+                                    if (mapRef.current?.flyTo) {
+                                      mapRef.current.flyTo({
+                                        center: [fav.longitude, fav.latitude],
+                                        zoom: 15,
+                                        duration: 800,
+                                      })
+                                    }
+                                    if (mapRef.current?.showSearchedLocation) {
+                                      mapRef.current.showSearchedLocation({
+                                        lat: fav.latitude,
+                                        lng: fav.longitude,
+                                        name: fav.name,
+                                        displayName: fav.name,
+                                      })
+                                    }
+                                  }
+                                }}
+                                className="text-xs text-slate-400 hover:text-primary-600 transition-colors"
+                              >
+                                {myPlacesViewOnMap}
+                              </button>
+                            </div>
+                          </div>
                           <button
-                            onClick={() => {
-                              setShowMyPlaces(false)
-                              openPlaceDetail(place)
+                            onClick={async () => {
+                              const placeKey = `${fav.latitude}-${fav.longitude}`
+                              if (savingPlaceId === placeKey) return
+                              setSavingPlaceId(placeKey)
+                              try {
+                                await api.delete(`/map/favorites/${fav.id}`)
+                                setFavorites((prev) => prev.filter((f) => f.id !== fav.id))
+                                showToast('Removed from saved.', 'success')
+                              } catch (err) {
+                                console.error('Remove favorite error:', err)
+                                showToast('Failed to remove from saved.', 'error')
+                              } finally {
+                                setSavingPlaceId(null)
+                              }
                             }}
-                            className="text-xs text-slate-400 hover:text-primary-600 transition-colors"
+                            disabled={removing}
+                            className="p-2 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors flex-shrink-0 disabled:opacity-40"
+                            title="Remove from saved"
+                            aria-label="Remove from saved"
                           >
-                            {myPlacesViewOnMap}
+                            {removing ? (
+                              <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            )}
                           </button>
-                        </div>
-                      </div>
-                      {/* Delete — only for places this user created (or admin) */}
-                      {canDeletePlace(place, user) && (
-                        <button
-                          onClick={() => confirmDeletePlace(place.id, place.place_name_en || place.name || 'this place')}
-                          disabled={deletingPlaceId === place.id}
-                          className="p-2 rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors flex-shrink-0 disabled:opacity-40"
-                          title="Delete place"
-                          aria-label="Delete place"
-                        >
-                          {deletingPlaceId === place.id ? (
-                            <svg className="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                          )}
-                        </button>
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )
               })()}
             </div>
           </div>

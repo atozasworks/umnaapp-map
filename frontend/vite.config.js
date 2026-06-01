@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
@@ -16,7 +17,58 @@ const atozasAuthKitPath = (() => {
 })()
 
 export default defineConfig({
-  plugins: [react()],
+  plugins: [
+    react(),
+    VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
+      injectRegister: false,
+      registerType: 'autoUpdate',
+      includeAssets: ['favicon.png', 'apple-touch-icon.png', 'splash-screen.png'],
+      manifest: {
+        name: 'UMNAAPP - Map Platform',
+        short_name: 'UMNAAPP',
+        description: 'Map-based platform for exploring, saving places, and real-time sync.',
+        theme_color: '#0284c7',
+        background_color: '#f8fafc',
+        display: 'standalone',
+        orientation: 'any',
+        scope: '/',
+        start_url: '/',
+        categories: ['navigation', 'maps', 'productivity'],
+        icons: [
+          {
+            src: '/pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any',
+          },
+          {
+            src: '/pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable',
+          },
+        ],
+      },
+      manifestFilename: 'manifest.json',
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,webmanifest,json}'],
+      },
+      devOptions: {
+        enabled: true,
+        type: 'module',
+        navigateFallback: 'index.html',
+      },
+    }),
+  ],
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
@@ -29,7 +81,6 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    // HMR - use localhost; set hmr: false if WebSocket errors persist
     hmr: {
       protocol: 'ws',
       host: 'localhost',
@@ -38,19 +89,19 @@ export default defineConfig({
     proxy: {
       '/api': {
         target: 'http://localhost:5000',
-        changeOrigin: true
+        changeOrigin: true,
       },
       '/socket.io': {
         target: 'http://localhost:5000',
-        ws: true
+        ws: true,
       },
       '/map-tiles': {
         target: 'https://umnaapp.in',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/map-tiles/, '/tiles'),
-        secure: true
-      }
-    }
+        secure: true,
+      },
+    },
   },
   optimizeDeps: {
     include: ['@react-oauth/google', 'atozas-traslate'],
@@ -58,15 +109,13 @@ export default defineConfig({
       loader: {
         '.ts': 'ts',
         '.tsx': 'tsx',
-        '.js': 'jsx', // atozas-traslate has JSX in .js files
+        '.js': 'jsx',
       },
     },
   },
-  // Ensure TypeScript files are processed correctly
   esbuild: {
     loader: 'tsx',
     include: /src\/.*\.[jt]sx?$/,
     exclude: [],
   },
 })
-

@@ -130,6 +130,29 @@ exports.Prisma.UserScalarFieldEnum = {
   googleId: 'googleId',
   picture: 'picture',
   emailVerified: 'emailVerified',
+  lastGridExtractAt: 'lastGridExtractAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.NotificationScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  title: 'title',
+  body: 'body',
+  data: 'data',
+  read: 'read',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.PushSubscriptionScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  endpoint: 'endpoint',
+  p256dh: 'p256dh',
+  auth: 'auth',
+  userAgent: 'userAgent',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -240,6 +263,19 @@ exports.Prisma.PlaceScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.FavoriteScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  placeId: 'placeId',
+  name: 'name',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  category: 'category',
+  address: 'address',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.PlaceReviewScalarFieldEnum = {
   id: 'id',
   placeId: 'placeId',
@@ -290,12 +326,15 @@ exports.Prisma.JsonNullValueFilter = {
 
 exports.Prisma.ModelName = {
   User: 'User',
+  Notification: 'Notification',
+  PushSubscription: 'PushSubscription',
   OTPVerification: 'OTPVerification',
   Session: 'Session',
   Vehicle: 'Vehicle',
   Location: 'Location',
   Route: 'Route',
   Place: 'Place',
+  Favorite: 'Favorite',
   PlaceReview: 'PlaceReview',
   PlacePhoto: 'PlacePhoto'
 };

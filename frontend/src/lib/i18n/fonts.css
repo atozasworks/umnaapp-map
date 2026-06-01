@@ -1,0 +1,44 @@
+/* Script-aware Noto fonts for the curated regional languages.
+ * Imported once from src/main.jsx (or index.css) — Google Fonts CDN, no API key. */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
+
+:root {
+  --app-font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Body adopts the script-specific font stack via the CSS variable.
+ * useLanguageDocAttrs() sets --app-font-stack whenever the language changes. */
+body.script-kannada,
+body.script-tamil,
+body.script-devanagari {
+  font-family: var(--app-font-stack);
+}
+
+/* Apply the same to common UI surfaces so popovers, modals, and map labels
+ * pick up the script font automatically when the locale changes. */
+body.script-kannada button,
+body.script-kannada input,
+body.script-kannada select,
+body.script-kannada textarea,
+body.script-tamil button,
+body.script-tamil input,
+body.script-tamil select,
+body.script-tamil textarea,
+body.script-devanagari button,
+body.script-devanagari input,
+body.script-devanagari select,
+body.script-devanagari textarea {
+  font-family: inherit;
+}
+
+/* RTL groundwork — kept narrow so we don't accidentally flip the map itself.
+ * MapLibre canvas is excluded via the `.maplibregl-map` opt-out. */
+html[dir='rtl'] body {
+  direction: rtl;
+}
+
+html[dir='rtl'] .maplibregl-map,
+html[dir='rtl'] [data-i18n-ltr] {
+  direction: ltr;
+}
