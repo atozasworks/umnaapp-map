@@ -100,17 +100,6 @@ const buildCategoryOptions = (placesList) => {
   return [...prioritized, ...extras]
 }
 
-/** Pin colors for SearchBar category chips (hotels, ATM, …) — Google-style hues */
-const SEARCH_CHIP_MARKER_COLORS = {
-  restaurants: '#EA4335',
-  hotels: '#F59E0B',
-  museums: '#14B8A6',
-  transit: '#2563EB',
-  pharmacies: '#10B981',
-  atm: '#15803D',
-}
-
-const MAX_CATEGORY_EXPLORE_RESULTS = 50
 
 const HomePage = () => {
   const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
@@ -133,6 +122,7 @@ const HomePage = () => {
   const [loadingCategoryPlaces, setLoadingCategoryPlaces] = useState(false)
   const [routeStartPlace, setRouteStartPlace] = useState(null)
   const [routeEndPlace, setRouteEndPlace] = useState(null)
+  const [routeStops, setRouteStops] = useState([])
   const [addPlacePickMode, setAddPlacePickMode] = useState(false)
   const [fetchingPlaceDetails, setFetchingPlaceDetails] = useState(false)
   const [showMyPlaces, setShowMyPlaces] = useState(false)
@@ -158,10 +148,7 @@ const HomePage = () => {
   const [showLanguageModal, setShowLanguageModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const [categoryExplorePlaces, setCategoryExplorePlaces] = useState([])
   const [mapReadyTick, setMapReadyTick] = useState(0)
-  const exploreCategoryRef = useRef(null)
-  const exploreMoveDebounceRef = useRef(null)
   const hasInitialAutoCenterRef = useRef(false)
   const [polygonOverlayPlaces, setPolygonOverlayPlaces] = useState([])
   const [polygonMapInteraction, setPolygonMapInteraction] = useState(false)
@@ -248,66 +235,6 @@ const HomePage = () => {
       map.off('zoomstart', close)
     }
   }, [mapContextMenu, closeMapContextMenu, mapReadyTick])
-
-  const fetchCategoryExplorePlaces = useCallback(async (cat) => {
-    if (!cat?.query) {
-      setCategoryExplorePlaces([])
-      return
-    }
-    const map = mapRef.current?.getMap?.()
-    if (!map) return
-    const center = map.getCenter()
-    const bounds = map.getBounds()
-    const q = `${cat.query} near ${center.lat.toFixed(4)},${center.lng.toFixed(4)}`
-    try {
-      const { data } = await api.get('/map/search-simple', { params: { q } })
-      const raw = Array.isArray(data.results) ? data.results : []
-      const valid = raw.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
-      const inView = valid.filter((r) => bounds.contains([r.lng, r.lat]))
-      const pool = inView.length > 0 ? inView : valid
-      const color = SEARCH_CHIP_MARKER_COLORS[cat.id] || '#EA4335'
-      setCategoryExplorePlaces(
-        pool.slice(0, MAX_CATEGORY_EXPLORE_RESULTS).map((r) => ({ ...r, markerColor: color }))
-      )
-    } catch (err) {
-      console.warn('Category explore search failed:', err)
-      setCategoryExplorePlaces([])
-    }
-  }, [])
-
-  const handleCategoryExploreChange = useCallback(
-    (cat) => {
-      exploreCategoryRef.current = cat && !cat.isAction ? cat : null
-      if (!cat?.query) {
-        setCategoryExplorePlaces([])
-        return
-      }
-      setAskMapsPlaces([])
-      fetchCategoryExplorePlaces(cat)
-    },
-    [fetchCategoryExplorePlaces]
-  )
-
-  useEffect(() => {
-    if (mapReadyTick === 0) return
-    const map = mapRef.current?.getMap?.()
-    if (!map) return
-
-    const onMoveEnd = () => {
-      const cat = exploreCategoryRef.current
-      if (!cat?.query) return
-      if (exploreMoveDebounceRef.current) clearTimeout(exploreMoveDebounceRef.current)
-      exploreMoveDebounceRef.current = setTimeout(() => {
-        fetchCategoryExplorePlaces(cat)
-      }, 500)
-    }
-
-    map.on('moveend', onMoveEnd)
-    return () => {
-      map.off('moveend', onMoveEnd)
-      if (exploreMoveDebounceRef.current) clearTimeout(exploreMoveDebounceRef.current)
-    }
-  }, [mapReadyTick, fetchCategoryExplorePlaces])
 
   // First GPS fix: center on user once — but not if they already have saved places (map fits to those pins).
   useEffect(() => {
@@ -669,8 +596,8 @@ const HomePage = () => {
       const valid = raw.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
       const inView = valid.filter((r) => bounds.contains([r.lng, r.lat]))
       const pool = inView.length > 0 ? inView : valid
-      setCategoryExplorePlaces(
-        pool.slice(0, MAX_CATEGORY_EXPLORE_RESULTS).map((r) => ({
+      setAskMapsPlaces(
+        pool.slice(0, 50).map((r) => ({
           ...r,
           markerColor: '#4285F4',
         }))
@@ -1046,7 +973,7 @@ const HomePage = () => {
   }
 
   const handleAskMapsOpen = () => {
-    setCategoryExplorePlaces([])
+    setAskMapsPlaces([])
     setShowAskMapsPanel(true)
   }
 
@@ -1075,7 +1002,7 @@ const HomePage = () => {
     handlePlaceDirections(place)
   }
 
-  const mapSearchResultPlaces = askMapsPlaces.length > 0 ? askMapsPlaces : categoryExplorePlaces
+  const mapSearchResultPlaces = askMapsPlaces
 
   const handlePlaceEdit = (place) => {
     setSelectedPlace(null)
@@ -1117,12 +1044,9 @@ const HomePage = () => {
 
   const handleCalculateRoute = async (start, end, waypoints = [], profile = 'driving') => {
     if (mapRef.current?.calculateRoute) {
-      try {
-        await mapRef.current.calculateRoute(start, end, waypoints, profile)
-      } catch (error) {
-        console.error('Route calculation failed:', error)
-      }
+      return mapRef.current.calculateRoute(start, end, waypoints, profile)
     }
+    throw new Error('Map not ready')
   }
 
   const handleAddExtractedPlaces = async (selected) => {
@@ -1338,9 +1262,20 @@ const HomePage = () => {
             </h1>
           </div>
 
-          {/* Right side: Notifications + Add Place */}
+          {/* Right side: Notifications + Extract Places + Add Place */}
           <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
             <NotificationBell onPlaceFocus={handleNotificationPlaceFocus} />
+            {/* Extract Places button */}
+            <button
+              onClick={() => setShowExtractPanel(true)}
+              className="flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3.5 py-2.5 font-medium text-sm transition-all duration-200 shrink-0 min-h-[44px] sm:min-h-0 bg-white/80 hover:bg-white border border-slate-200 hover:border-primary-300 text-slate-700 hover:text-primary-700 shadow-sm hover:shadow-md"
+              title={menuExtractPlaces}
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+              </svg>
+              <span className="hidden sm:inline">{menuExtractPlaces}</span>
+            </button>
             {/* Add Place button */}
             <button
               onClick={() => {
@@ -1371,7 +1306,9 @@ const HomePage = () => {
       {/* Search Bar + Categories - positioned below navbar (safe-area + ~4.5rem) */}
       <div
         data-map-ui-chrome
-        className="absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl"
+        className={`absolute left-2 right-14 sm:right-auto sm:left-4 sm:right-4 z-20 sm:max-w-xl ${
+          showRoutePanel || showAskMapsPanel ? 'hidden sm:block' : ''
+        }`}
         style={{ top: 'calc(env(safe-area-inset-top) + 4.5rem)' }}
       >
         <SearchBar
@@ -1386,87 +1323,84 @@ const HomePage = () => {
           onRoute={() => setShowRoutePanel(!showRoutePanel)}
           onAskMaps={handleAskMapsOpen}
           onResultsChange={() => {}}
-          onCategoryExploreChange={handleCategoryExploreChange}
           onSavePlace={handleSavePlaceFromSearch}
           onUnsavePlace={handleUnsavePlaceFromSearch}
           savingPlaceId={savingPlaceId}
         />
-        <div className="mt-2 glass rounded-2xl border border-white/40 shadow-lg px-2 py-2">
-          <div className="flex gap-2 overflow-x-auto px-1 pb-1 scrollbar-hide">
-            <button
-              onClick={clearCategoryFilters}
-              className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
-                selectedCategories.length === 0
-                  ? 'border-primary-500 bg-primary-600 text-white shadow-md'
-                  : 'border-slate-200 bg-white/80 text-slate-600 hover:border-slate-300 hover:bg-white'
-              }`}
-            >
-              {filterAll}
-            </button>
+        <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
+          <button
+            onClick={clearCategoryFilters}
+            className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
+              selectedCategories.length === 0
+                ? 'border-primary-500 bg-primary-600 text-white shadow-md'
+                : 'border-slate-200 bg-white/80 text-slate-600 hover:border-slate-300 hover:bg-white'
+            }`}
+          >
+            {filterAll}
+          </button>
 
-            {availableCategories.map(({ category, count }) => {
-              const selected = selectedCategories.includes(category)
-              return (
-                <button
-                  key={category}
-                  onClick={() => toggleCategoryFilter(category)}
-                  className={`shrink-0 rounded-full border px-3 py-2 text-xs font-semibold transition-all ${
-                    selected
-                      ? 'border-primary-500 bg-primary-600 text-white shadow-md'
-                      : 'border-slate-200 bg-white/80 text-slate-700 hover:border-primary-200 hover:bg-primary-50'
-                  }`}
-                >
-                  <TranslatedLabel text={category} />
-                  <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
-                    selected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-                  }`}>
-                    {count}
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-
-          {(loadingCategoryPlaces || (selectedCategories.length > 0 && visiblePlaces.length === 0)) && (
-            <div className="px-2 pt-2 text-xs text-slate-500">
-              {loadingCategoryPlaces ? filterLoading : filterEmpty}
-            </div>
-          )}
-
-          {selectedCategories.length > 0 && visiblePlaces.length > 0 && (
-            <div className="px-2 pt-2">
-              <div className="flex items-center justify-between mb-1.5">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  {filterResults}
-                </p>
-                <p className="text-[11px] text-slate-500">
-                  {visiblePlaces.length} {filterPlacesCount}
-                </p>
-              </div>
-              <div className="max-h-44 overflow-y-auto pr-1 space-y-1.5 scrollbar-hide">
-                {visiblePlaces.slice(0, 8).map((place) => (
-                  <button
-                    key={place.id}
-                    onClick={() => focusPlaceFromResults(place)}
-                    className="w-full text-left bg-white/85 hover:bg-white rounded-xl border border-slate-200 px-3 py-2 transition-colors"
-                  >
-                    <p className="text-sm font-semibold text-slate-800 truncate">
-                      {place.place_name_en || place.name}
-                    </p>
-                    <div className="mt-1 flex items-center justify-between gap-2">
-                      <span className="text-[11px] font-medium text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full truncate">
-                        <TranslatedLabel text={place.category || 'Other'} />
-                      </span>
-                      <span className="text-[11px] text-slate-500 font-mono">
-                        {place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {availableCategories.map(({ category, count }) => {
+            const selected = selectedCategories.includes(category)
+            return (
+              <button
+                key={category}
+                onClick={() => toggleCategoryFilter(category)}
+                className={`shrink-0 rounded-full border px-3 py-1.5 text-xs font-semibold transition-all ${
+                  selected
+                    ? 'border-primary-500 bg-primary-600 text-white shadow-md'
+                    : 'border-slate-200 bg-white/80 text-slate-700 hover:border-primary-200 hover:bg-primary-50'
+                }`}
+              >
+                <TranslatedLabel text={category} />
+                <span className={`ml-1.5 rounded-full px-1.5 py-0.5 text-[10px] ${
+                  selected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
+                }`}>
+                  {count}
+                </span>
+              </button>
+            )
+          })}
         </div>
+
+        {(loadingCategoryPlaces || (selectedCategories.length > 0 && visiblePlaces.length === 0)) && (
+          <div className="mt-1.5 px-2 py-1.5 text-xs text-slate-500 glass rounded-xl border border-white/30">
+            {loadingCategoryPlaces ? filterLoading : filterEmpty}
+          </div>
+        )}
+
+        {selectedCategories.length > 0 && visiblePlaces.length > 0 && (
+          <div className="mt-1.5 glass rounded-xl border border-white/30 shadow-lg px-2 py-2">
+            <div className="flex items-center justify-between mb-1.5">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                {filterResults}
+              </p>
+              <p className="text-[11px] text-slate-500">
+                {visiblePlaces.length} {filterPlacesCount}
+              </p>
+            </div>
+            <div className="max-h-44 overflow-y-auto pr-1 space-y-1.5 scrollbar-hide">
+              {visiblePlaces.slice(0, 8).map((place) => (
+                <button
+                  key={place.id}
+                  onClick={() => focusPlaceFromResults(place)}
+                  className="w-full text-left bg-white/85 hover:bg-white rounded-xl border border-slate-200 px-3 py-2 transition-colors"
+                >
+                  <p className="text-sm font-semibold text-slate-800 truncate">
+                    {place.place_name_en || place.name}
+                  </p>
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-medium text-primary-700 bg-primary-50 px-2 py-0.5 rounded-full truncate">
+                      <TranslatedLabel text={place.category || 'Other'} />
+                    </span>
+                    <span className="text-[11px] text-slate-500 font-mono">
+                      {place.latitude.toFixed(3)}, {place.longitude.toFixed(3)}
+                    </span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add Place Method Selection Modal */}
@@ -1524,7 +1458,7 @@ const HomePage = () => {
 
       {/* Ask Maps — AI natural-language search */}
       {showAskMapsPanel && (
-        <div className="absolute inset-0 z-40 flex pointer-events-none" style={{ top: 0 }}>
+        <div className="absolute inset-0 z-[45] flex pointer-events-none" style={{ top: 0 }}>
           <div
             className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
             onClick={handleAskMapsClose}
@@ -1545,40 +1479,49 @@ const HomePage = () => {
         </div>
       )}
 
-      {/* Route Panel - LEFT side popup like Google Maps */}
+      {/* Route Panel — mobile: bottom sheet; desktop: left panel */}
       {showRoutePanel && (
-        <div className="absolute inset-0 z-40 flex pointer-events-none" style={{ top: 0 }}>
-          {/* Backdrop - only on mobile */}
+        <div className="absolute inset-0 z-[45] flex pointer-events-none items-end sm:items-start justify-center sm:justify-start">
           <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
+            className="absolute inset-0 pointer-events-auto bg-black/25 sm:hidden"
+            aria-hidden
             onClick={() => {
               setShowRoutePanel(false)
               setRouteStartPlace(null)
               setRouteEndPlace(null)
+              setRouteStops([])
               setRoutePanelEndPlace(null)
+              setRoutePanelStartPlace(null)
+              mapRef.current?.clearRoute?.()
             }}
           />
-          {/* Panel - left side */}
-          <div className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]" style={{ marginTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}>
-            <RoutePanel
-              mapRef={mapRef}
-              currentLocation={currentLocation}
-              onCalculateRoute={handleCalculateRoute}
-              initialEndPlace={routePanelEndPlace}
-              initialStartPlace={routePanelStartPlace}
-              onClose={() => {
-                setShowRoutePanel(false)
-                setRouteStartPlace(null)
-                setRouteEndPlace(null)
-                setRoutePanelEndPlace(null)
-                setRoutePanelStartPlace(null)
-              }}
-              onSearchResultsChange={() => {}}
-              onRoutePlacesChange={(start, end) => {
-                setRouteStartPlace(start)
-                setRouteEndPlace(end)
-              }}
-            />
+          <div
+            className="relative z-10 pointer-events-auto w-full sm:max-w-[400px] sm:h-full flex flex-col animate-sheet-up sm:animate-fade-in sm:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+          >
+            <div className="sm:h-full sm:mt-[calc(env(safe-area-inset-top)+3.5rem)] sm:flex sm:flex-col">
+              <RoutePanel
+                mapRef={mapRef}
+                currentLocation={currentLocation}
+                onCalculateRoute={handleCalculateRoute}
+                initialEndPlace={routePanelEndPlace}
+                initialStartPlace={routePanelStartPlace}
+                onClose={() => {
+                  setShowRoutePanel(false)
+                  setRouteStartPlace(null)
+                  setRouteEndPlace(null)
+                  setRouteStops([])
+                  setRoutePanelEndPlace(null)
+                  setRoutePanelStartPlace(null)
+                  mapRef.current?.clearRoute?.()
+                }}
+                onSearchResultsChange={() => {}}
+                onRoutePlacesChange={(start, end, stops) => {
+                  setRouteStartPlace(start)
+                  setRouteEndPlace(end)
+                  setRouteStops(stops || [])
+                }}
+              />
+            </div>
           </div>
         </div>
       )}
@@ -1647,6 +1590,7 @@ const HomePage = () => {
           autoFitSearchResults={askMapsPlaces.length > 1}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
+          routeStops={routeStops}
         />
       </div>
 

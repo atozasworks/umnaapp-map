@@ -1980,14 +1980,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             </div>
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden lg:flex-row">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain lg:overflow-hidden lg:flex-row">
             {/* ============== GRID SELECTION METHOD ============== */}
             {extractionMethod === 'grid' && (
               <>
                 {/* Main column: controls + map */}
-                <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
+                <div className="flex min-h-0 min-w-0 shrink-0 flex-col lg:flex-1 lg:basis-0 lg:overflow-hidden">
                   {/* Controls — compact so the map keeps most of the column height */}
-                  <div className="shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
+                  <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
@@ -2130,14 +2130,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     )}
                   </div>
 
-                  {/* Google Map — fills remaining column height inside the dialog */}
-                  <div className="relative min-h-[300px] flex-1 w-full">
+                  {/* Google Map — fixed height on mobile, fills remaining on lg */}
+                  <div className="relative h-[280px] sm:h-[320px] w-full shrink-0 lg:h-auto lg:min-h-[300px] lg:flex-1 lg:shrink">
                     <div ref={mapContainerRef} className="absolute inset-0 bg-slate-100" />
                   </div>
                 </div>
 
                 {/* Places list */}
-                <div className="flex max-h-[min(42vh,360px)] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
+                <div className="flex max-h-[50vh] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
                   <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
@@ -2158,7 +2158,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
                   <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                     {extractedPlaces.length === 0 ? (
-                      <div className="flex h-full min-h-[120px] items-center justify-center p-4">
+                      <div className="flex h-full min-h-[80px] items-center justify-center p-4">
                         <p className="max-w-[220px] text-center text-xs leading-relaxed text-slate-500">
                           Tap Load region, run extract, then pick places to add to your map.
                         </p>
@@ -2228,14 +2228,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
             {/* ============== SEARCH-BASED METHOD ============== */}
             {extractionMethod === 'search' && (
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden lg:flex-row">
+              <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden lg:flex-row">
                 {/* Map */}
-                <div className="order-2 flex min-h-0 min-w-0 flex-1 flex-col lg:order-1">
-                  <div ref={searchMapContainerRef} className="min-h-[240px] flex-1 bg-slate-100 sm:min-h-[300px] lg:min-h-0" />
+                <div className="order-2 flex min-h-0 min-w-0 shrink-0 flex-col lg:flex-1 lg:order-1">
+                  <div ref={searchMapContainerRef} className="h-[240px] sm:h-[300px] bg-slate-100 lg:h-auto lg:min-h-0 lg:flex-1" />
                 </div>
 
                 {/* Search panel */}
-                <div className="order-1 flex max-h-[min(48vh,420px)] min-h-0 w-full shrink-0 flex-col border-b border-slate-200 bg-white lg:order-2 lg:max-h-none lg:w-96 lg:flex-shrink-0 lg:border-b-0 lg:border-l">
+                <div className="order-1 flex max-h-[55vh] min-h-0 w-full shrink-0 flex-col border-b border-slate-200 bg-white lg:order-2 lg:max-h-none lg:w-96 lg:flex-shrink-0 lg:border-b-0 lg:border-l">
                   <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-3 sm:p-4">
                     <h3 className="mb-2 text-sm font-semibold text-slate-800">Search places</h3>
                     <div ref={searchBarContainerRef} className="relative z-30">
@@ -2405,8 +2405,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {/* ============== AREA-BASED METHOD ============== */}
             {extractionMethod === 'area' && (
               <>
-                <div className="flex min-h-0 min-w-0 flex-1 basis-0 flex-col overflow-hidden">
-                  <div className="shrink-0 overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
+                <div className="flex min-h-0 min-w-0 shrink-0 flex-col lg:flex-1 lg:basis-0 lg:overflow-hidden">
+                  <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
                     <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
@@ -2571,12 +2571,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     )}
                   </div>
 
-                  <div className="relative min-h-[300px] flex-1 w-full">
+                  <div className="relative h-[280px] sm:h-[320px] w-full shrink-0 lg:h-auto lg:min-h-[300px] lg:flex-1 lg:shrink">
                     <div ref={areaMapContainerRef} className="absolute inset-0 bg-slate-100" />
                   </div>
                 </div>
 
-                <div className="flex max-h-[min(42vh,360px)] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
+                <div className="flex max-h-[50vh] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
                   <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
@@ -2597,7 +2597,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
                   <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
                     {areaExtractedPlaces.length === 0 ? (
-                      <div className="flex h-full min-h-[120px] items-center justify-center p-4">
+                      <div className="flex h-full min-h-[80px] items-center justify-center p-4">
                         <p className="max-w-[220px] text-center text-xs leading-relaxed text-slate-500">
                           Load a region, draw a shape on the map, extract places inside it, then add to your map.
                         </p>

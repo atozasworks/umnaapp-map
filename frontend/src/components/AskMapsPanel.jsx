@@ -86,7 +86,15 @@ const AskMapsPanel = ({
       setPlaces([])
       setInterpretation('')
       if (onResults) onResults([], null)
-      setError(err.response?.data?.message || err.response?.data?.error || tFailed)
+      const data = err.response?.data
+      const validationMsg = Array.isArray(data?.errors)?.[0]?.msg
+      setError(
+        data?.message ||
+          validationMsg ||
+          data?.error ||
+          (err.response?.status === 401 ? 'Please sign in again.' : null) ||
+          tFailed
+      )
     } finally {
       setLoading(false)
     }
@@ -132,7 +140,7 @@ const AskMapsPanel = ({
             onChange={(e) => setQuery(e.target.value)}
             placeholder={tPlaceholder}
             disabled={loading}
-            className="input-field flex-1 min-w-0 text-sm rounded-xl border-slate-200"
+            className="input-field flex-1 min-w-0 text-base sm:text-sm rounded-xl border-slate-200"
             autoComplete="off"
           />
           <button

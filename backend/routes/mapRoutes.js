@@ -31,12 +31,19 @@ import {
   DUPLICATE_MESSAGES,
 } from '../utils/placeDuplicate.js'
 import { runAskMapsQuery } from '../services/groqAskMapsService.js'
+import { axiosWithRetry, searchExternalProviders } from '../services/externalPlaceSearch.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
 import {
   GRID_EXTRACT_MAX_PLACES,
   usedGridExtractToday,
 } from '../utils/gridExtractLimit.js'
 import { canUserDeletePlace } from '../utils/placeOwnership.js'
+import {
+  processAlternativeRoutes,
+  toRouteArray,
+  hasMultipleRoutes,
+  buildDirectRoute,
+} from '../utils/routeHelpers.js'
 
 const router = express.Router()
 
@@ -60,194 +67,6 @@ const UMNAAPP_NOMINATIM_SEARCH = 'https://umnaapp.in/map/nominatim/search'
 
 const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 20000
 const SEARCH_SIMPLE_RETRIES = parseInt(process.env.SEARCH_SIMPLE_RETRIES, 10) || 3
-
-/** Retry axios request on timeout, network, or server (5xx) errors */
-async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
-  let lastError
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      return await fn()
-    } catch (err) {
-      lastError = err
-      const networkErr = err.code === 'ECONNABORTED' || err.code === 'ETIMEDOUT' || err.code === 'ECONNRESET' || err.code === 'ENETUNREACH'
-      const serverErr = err.response && err.response.status >= 500 && err.response.status < 600
-      if ((!networkErr && !serverErr) || attempt >= maxRetries) throw err
-      const delay = attempt * 500
-      await new Promise((r) => setTimeout(r, delay))
-    }
-  }
-  throw lastError
-}
-
-/**
- * Query ALL configured search providers in parallel and merge their results.
- * Each provider returns the raw upstream array (Nominatim
- * `display_name`/`lat`/`lon` shape or umnaapp `name`/`lat`/`lon` shape).
- *
- * Providers (all queried concurrently):
- *   1. umnaapp.in/search             (primary, lightweight)
- *   2. umnaapp.in/map/nominatim/search (fuller Nominatim on same host)
- *   3. NOMINATIM_URL (self-hosted, if configured)
- *   4. nominatim.openstreetmap.org   (public OSM)
- *
- * Results from every provider that returns rows are concatenated. The caller
- * (route handler) is responsible for the final coord-based dedupe so that
- * DB rows can also participate in the same merge.
- */
-async function searchExternalProviders(q, { limit = 10 } = {}) {
-  const providers = [
-    {
-      name: 'umnaapp/search',
-      url: SEARCH_SIMPLE_URL,
-      params: { q },
-      validateStatus: (s) => s === 200 || s === 404,
-      retries: 1,
-    },
-    {
-      name: 'umnaapp/nominatim',
-      url: UMNAAPP_NOMINATIM_SEARCH,
-      params: { q, format: 'json', limit, addressdetails: 1 },
-      validateStatus: (s) => s === 200,
-      retries: 2,
-    },
-  ]
-
-  const selfHosted = (NOMINATIM_URL || '').trim().replace(/\/+$/, '')
-  if (selfHosted) {
-    providers.push({
-      name: 'nominatim-self',
-      url: `${selfHosted}/search`,
-      params: { q, format: 'json', limit, addressdetails: 1 },
-      validateStatus: (s) => s === 200,
-      retries: 2,
-    })
-  }
-
-  providers.push({
-    name: 'nominatim-public',
-    url: NOMINATIM_PUBLIC_SEARCH,
-    params: { q, format: 'json', limit, addressdetails: 1 },
-    validateStatus: (s) => s === 200,
-    headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
-    retries: 3,
-  })
-
-  const settled = await Promise.allSettled(
-    providers.map((p) =>
-      axiosWithRetry(
-        () =>
-          axios.get(p.url, {
-            params: p.params,
-            headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0', ...(p.headers || {}) },
-            timeout: SEARCH_SIMPLE_TIMEOUT,
-            validateStatus: p.validateStatus,
-          }),
-        { maxRetries: p.retries || 2 }
-      ).then((res) => ({ provider: p.name, data: res.data }))
-    )
-  )
-
-  const merged = []
-  const providersUsed = []
-  const errors = []
-  const seen = new Set()
-
-  const EARTH_R = 6378137
-  const MAX_MERCATOR = Math.PI * EARTH_R // ~20037508.34
-
-  const isValidWgs84 = (lat, lng) =>
-    Number.isFinite(lat) && Number.isFinite(lng) &&
-    lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
-
-  const isWebMercator = (lat, lng) =>
-    Number.isFinite(lat) && Number.isFinite(lng) &&
-    (Math.abs(lat) > 90 || Math.abs(lng) > 180) &&
-    Math.abs(lat) <= MAX_MERCATOR && Math.abs(lng) <= MAX_MERCATOR
-
-  const mercatorToWgs84 = (y, x) => ({
-    lat: (Math.atan(Math.exp(y / EARTH_R)) * 2 - Math.PI / 2) * 180 / Math.PI,
-    lng: x / EARTH_R * 180 / Math.PI,
-  })
-
-  for (let i = 0; i < settled.length; i++) {
-    const outcome = settled[i]
-    const pName = providers[i].name
-    if (outcome.status === 'fulfilled') {
-      const raw = outcome.value.data
-      const rows = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : []
-      if (rows.length === 0) {
-        errors.push({ provider: pName, reason: 'empty' })
-        continue
-      }
-      let added = 0
-      for (const r of rows) {
-        let lat = parseFloat(r.lat)
-        let lng = parseFloat(r.lon ?? r.lng)
-        if (isWebMercator(lat, lng)) {
-          const wgs = mercatorToWgs84(lat, lng)
-          lat = wgs.lat
-          lng = wgs.lng
-        }
-        if (!isValidWgs84(lat, lng)) continue
-        const key = `${lat.toFixed(5)}-${lng.toFixed(5)}`
-        if (seen.has(key)) continue
-        seen.add(key)
-        merged.push({ ...r, lat, lon: lng, _provider: pName })
-        added += 1
-      }
-      if (added > 0) providersUsed.push(pName)
-      else errors.push({ provider: pName, reason: 'no valid coords' })
-    } else {
-      const err = outcome.reason
-      const status = err?.response?.status
-      const reason = status ? `upstream ${status}` : err?.message || 'unknown'
-      errors.push({ provider: pName, reason })
-      console.warn(`Search provider ${pName} failed:`, reason)
-    }
-  }
-
-  if (merged.length > 0) {
-    return { provider: providersUsed.join('+'), providers: providersUsed, rows: merged }
-  }
-
-  // Sequential fallback: if every parallel provider failed, give nominatim-public
-  // one last dedicated attempt with a fresh timeout.
-  try {
-    const fallback = await axiosWithRetry(
-      () =>
-        axios.get(NOMINATIM_PUBLIC_SEARCH, {
-          params: { q, format: 'json', limit, addressdetails: 1 },
-          headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
-          timeout: SEARCH_SIMPLE_TIMEOUT,
-          validateStatus: (s) => s === 200,
-        }),
-      { maxRetries: 2 }
-    )
-    const rows = Array.isArray(fallback.data) ? fallback.data : []
-    for (const r of rows) {
-      const lat = parseFloat(r.lat)
-      const lng = parseFloat(r.lon ?? r.lng)
-      if (!isValidWgs84(lat, lng)) continue
-      const key = `${lat.toFixed(5)}-${lng.toFixed(5)}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      merged.push({ ...r, _provider: 'nominatim-fallback' })
-    }
-    if (merged.length > 0) {
-      return { provider: 'nominatim-fallback', providers: ['nominatim-fallback'], rows: merged }
-    }
-  } catch (fallbackErr) {
-    console.warn('Nominatim fallback also failed:', fallbackErr.message)
-  }
-
-  console.warn('All search providers failed; last error:', errors[errors.length - 1]?.reason)
-  return {
-    provider: null,
-    providers: [],
-    rows: [],
-    error: errors[errors.length - 1] || null,
-  }
-}
 
 /** Reverse geocode lat/lon to get address (taluk, district, state) - returns address object or null */
 async function reverseGeocodeResult(lat, lon) {
@@ -359,7 +178,8 @@ router.get(
         return res.status(400).json({ errors: errors.array() })
       }
 
-      const { start, end, profile = 'driving', waypoints } = req.query
+      const { start, end, profile = 'driving', waypoints, alternatives } = req.query
+      const wantAlternatives = alternatives === 'true'
 
       // Map bus to driving for routing engines (bus uses driving roads with duration adjustment)
       const routingProfile = profile === 'bus' ? 'driving' : profile
@@ -385,22 +205,57 @@ router.get(
 
       let routeData = null
 
+      const parseOsrmRoute = (r) => {
+        if (!r?.geometry?.coordinates?.length) return null
+        return {
+          distance: r.distance ?? 0,
+          duration: r.duration ?? 0,
+          geometry: r.geometry,
+          legs: (r.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })),
+          steps: r.legs?.flatMap((leg) => leg.steps) ?? [],
+        }
+      }
+
       /** Fetch from OSRM-style API: /route/v1/{profile}/{coords} */
-      const tryOsrm = async (baseUrl) => {
+      const tryOsrm = async (baseUrl, requestAlternatives = wantAlternatives) => {
         const url = `${baseUrl.replace(/\/+$/, '')}/route/v1/${routingProfile}/${coordinatesStr}`
-        const res = await axios.get(url, {
-          params: { overview: 'full', geometries: 'geojson', steps: 'true' },
-          timeout: 10000,
-        })
-        const r = res.data?.routes?.[0]
-        if (r?.geometry?.coordinates?.length > 0) {
-          return {
-            distance: r.distance ?? 0,
-            duration: r.duration ?? 0,
-            geometry: r.geometry,
-            legs: (r.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })),
-            steps: r.legs?.flatMap((leg) => leg.steps) ?? [],
+        const params = { overview: 'full', geometries: 'geojson', steps: 'true' }
+        if (requestAlternatives) params.alternatives = 'true'
+
+        const fetchRoutes = async (p) => {
+          const res = await axios.get(url, { params: p, timeout: 10000 })
+          if (res.data?.code && res.data.code !== 'Ok') {
+            throw new Error(res.data.message || res.data.code)
           }
+          return res.data?.routes || []
+        }
+
+        let routes = []
+        try {
+          routes = await fetchRoutes(params)
+        } catch (altErr) {
+          if (requestAlternatives) {
+            routes = await fetchRoutes({ overview: 'full', geometries: 'geojson', steps: 'true' })
+          } else {
+            throw altErr
+          }
+        }
+
+        if (wantAlternatives && routes.length > 0) {
+          return routes.map(parseOsrmRoute).filter(Boolean).slice(0, 3)
+        }
+        const parsed = parseOsrmRoute(routes[0])
+        return parsed ? (wantAlternatives ? [parsed] : parsed) : null
+      }
+
+      const parseUmnaappRoute = (route, geom) => {
+        if (geom === 'geojson' && route?.geometry?.coordinates?.length > 0) {
+          return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: route.geometry, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
+        }
+        if (geom === 'polyline' && typeof route?.geometry === 'string') {
+          const dec = polyline.decode(route.geometry, 5)
+          const coordinates = dec.map(([lat, lng]) => [lng, lat])
+          return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: { type: 'LineString', coordinates }, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
         }
         return null
       }
@@ -410,20 +265,22 @@ router.get(
         const url = `${ROUTE_BASE_URL}/${routingProfile}/${coordinatesStr}`
         for (const geom of ['geojson', 'polyline']) {
           try {
-            const res = await axios.get(url, {
-              params: { overview: 'full', geometries: geom, steps: 'true' },
-              timeout: 10000,
-            })
+            const params = { overview: 'full', geometries: geom, steps: 'true' }
+            if (wantAlternatives) params.alternatives = 'true'
+            const res = await axios.get(url, { params, timeout: 10000 })
+            const contentType = String(res.headers?.['content-type'] || '')
+            if (contentType.includes('text/html') || typeof res.data === 'string') {
+              continue
+            }
             const data = res.data
-            const route = data.routes?.[0] ?? (data.geometry ? { geometry: data.geometry, distance: data.distance, duration: data.duration, legs: data.legs } : null)
-            if (geom === 'geojson' && route?.geometry?.coordinates?.length > 0) {
-              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: route.geometry, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
+            const allRoutes = data.routes || []
+            if (wantAlternatives && allRoutes.length > 0) {
+              const altParsed = allRoutes.map((r) => parseUmnaappRoute(r, geom)).filter(Boolean).slice(0, 3)
+              if (altParsed.length > 0) return altParsed
             }
-            if (geom === 'polyline' && typeof route?.geometry === 'string') {
-              const dec = polyline.decode(route.geometry, 5)
-              const coordinates = dec.map(([lat, lng]) => [lng, lat])
-              return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: { type: 'LineString', coordinates }, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
-            }
+            const route = allRoutes[0] ?? (data.geometry ? { geometry: data.geometry, distance: data.distance, duration: data.duration, legs: data.legs } : null)
+            const singleParsed = parseUmnaappRoute(route, geom)
+            if (singleParsed) return wantAlternatives ? [singleParsed] : singleParsed
           } catch (e) {
             if (geom === 'geojson') console.warn('Route umnaapp GeoJSON failed:', e.message)
           }
@@ -434,38 +291,79 @@ router.get(
       // 1) umnaapp.in
       routeData = await tryUmnaapp()
 
-      // 2) OSRM_URL (Docker/local)
-      if (!routeData && OSRM_URL) {
+      const needsMoreAlternatives = wantAlternatives && !hasMultipleRoutes(routeData)
+
+      // 2) OSRM_URL (Docker/local) — primary fallback or extra alternatives
+      if ((!routeData || needsMoreAlternatives) && OSRM_URL) {
         try {
-          routeData = await tryOsrm(OSRM_URL)
-          if (routeData) console.log('🗺️  Route from OSRM_URL')
+          const osrmRoutes = await tryOsrm(OSRM_URL)
+          if (osrmRoutes) {
+            if (needsMoreAlternatives && hasMultipleRoutes(osrmRoutes)) {
+              routeData = osrmRoutes
+              console.log('🗺️  Alternative routes from OSRM_URL')
+            } else if (!routeData) {
+              routeData = osrmRoutes
+              console.log('🗺️  Route from OSRM_URL')
+            }
+          }
         } catch (e) {
           console.warn('Route OSRM_URL failed:', e.message)
         }
       }
 
       // 3) Public OSRM demo
-      if (!routeData) {
+      if (!routeData || (wantAlternatives && !hasMultipleRoutes(routeData))) {
         try {
-          routeData = await tryOsrm(OSRM_PUBLIC)
-          if (routeData) console.log('🗺️  Route from OSRM public')
+          const osrmRoutes = await tryOsrm(OSRM_PUBLIC)
+          if (osrmRoutes) {
+            if (wantAlternatives && hasMultipleRoutes(osrmRoutes)) {
+              routeData = osrmRoutes
+              console.log('🗺️  Alternative routes from OSRM public')
+            } else if (!routeData) {
+              routeData = osrmRoutes
+              console.log('🗺️  Route from OSRM public')
+            }
+          }
         } catch (e) {
           console.warn('Route OSRM public failed:', e.message)
         }
       }
 
-      if (!routeData || !routeData.geometry?.coordinates?.length) {
-        return res.status(400).json({ error: 'Route calculation failed', details: 'All route services unavailable (umnaapp, OSRM)' })
+      if (wantAlternatives && routeData) {
+        const processed = processAlternativeRoutes(toRouteArray(routeData))
+        if (processed.length > 0) routeData = processed
       }
 
-      // Profile-based duration adjustments
-      if (profile === 'bus' && routeData.duration) {
-        // Bus is slower due to stops — ~1.4x driving duration
-        routeData.duration = Math.round(routeData.duration * 1.4)
-        if (routeData.legs) {
-          routeData.legs = routeData.legs.map((leg) => ({ ...leg, duration: Math.round(leg.duration * 1.4) }))
-        }
+      let primaryRoute = Array.isArray(routeData) ? routeData[0] : routeData
+      if (!primaryRoute?.geometry?.coordinates?.length) {
+        const fallback = buildDirectRoute(
+          startCoords[0],
+          startCoords[1],
+          endCoords[0],
+          endCoords[1],
+          routingProfile
+        )
+        routeData = wantAlternatives ? [fallback] : fallback
+        primaryRoute = fallback
+        console.warn('Route services unavailable — using direct fallback path')
       }
+
+      const finalRoutes = toRouteArray(routeData)
+
+      // Profile-based duration adjustments
+      const adjustBusDuration = (rd) => {
+        if (profile === 'bus' && rd.duration) {
+          rd.duration = Math.round(rd.duration * 1.4)
+          if (rd.legs) {
+            rd.legs = rd.legs.map((leg) => ({ ...leg, duration: Math.round(leg.duration * 1.4) }))
+          }
+        }
+        return rd
+      }
+
+      finalRoutes.forEach(adjustBusDuration)
+      routeData = wantAlternatives ? finalRoutes : finalRoutes[0]
+      primaryRoute = finalRoutes[0]
 
       // Optionally save route to database
       if (req.query.save === 'true') {
@@ -482,15 +380,19 @@ router.get(
                   return { lat, lng }
                 })
               : null,
-            distance: routeData.distance,
-            duration: Math.round(routeData.duration),
-            polyline: JSON.stringify(routeData.geometry),
+            distance: primaryRoute.distance,
+            duration: Math.round(primaryRoute.duration),
+            polyline: JSON.stringify(primaryRoute.geometry),
             status: 'planned',
           },
         })
       }
 
-      res.json(routeData)
+      if (wantAlternatives) {
+        res.json({ routes: finalRoutes })
+      } else {
+        res.json(finalRoutes[0])
+      }
     } catch (error) {
       console.error('Route error:', error?.response?.data ?? error.message)
       if (error.response) {

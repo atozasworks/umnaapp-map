@@ -7,6 +7,7 @@ import { formatAddressSubtitle } from '../utils/formatAddress'
 import { whenStyleReady } from '../utils/mapWhenStyleReady'
 import { formatMeasureLabel } from '../utils/measureDistance'
 import { resolvePlaceRendering } from '../utils/mapRenderingConfig'
+import { sortAndTagRoutes, getRouteCoordinates } from '../utils/routeHelpers'
 import {
   applyMarkerLabelState,
   collectMapLabelReservedRects,
@@ -16,6 +17,42 @@ import {
   setMarkerLabelMeasureMode,
   throttle,
 } from '../utils/userPlaceLabelLayout'
+
+const ROUTE_SOURCE_ID = 'route'
+const ROUTE_CASING_LAYER_ID = 'route-casing'
+const ROUTE_LAYER_ID = 'route'
+const ROUTE_HIT_LAYER_ID = 'route-hit'
+const ROUTE_GOOGLE_BLUE = '#4285F4'
+const ROUTE_LAYER_STACK = [ROUTE_CASING_LAYER_ID, ROUTE_HIT_LAYER_ID, ROUTE_LAYER_ID]
+
+/** Expand tiny route bounds so fitBounds does not over-zoom past the polyline. */
+function expandRouteBounds(bounds, minSpanDeg = 0.004) {
+  const ne = bounds.getNorthEast()
+  const sw = bounds.getSouthWest()
+  const lngSpan = Math.abs(ne.lng - sw.lng)
+  const latSpan = Math.abs(ne.lat - sw.lat)
+  if (lngSpan >= minSpanDeg && latSpan >= minSpanDeg) return bounds
+  const center = bounds.getCenter()
+  const halfLng = Math.max(minSpanDeg / 2, lngSpan / 2 || minSpanDeg / 2)
+  const halfLat = Math.max(minSpanDeg / 2, latSpan / 2 || minSpanDeg / 2)
+  return new maplibregl.LngLatBounds(
+    [center.lng - halfLng, center.lat - halfLat],
+    [center.lng + halfLng, center.lat + halfLat]
+  )
+}
+
+/** Normalize a coordinate pair to GeoJSON [lng, lat]; fix common [lat, lng] swaps in India. */
+function normalizeRouteCoord(pair) {
+  if (!Array.isArray(pair) || pair.length < 2) return null
+  let a = Number(pair[0])
+  let b = Number(pair[1])
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return null
+  // India-ish bounds: lat 6–37, lng 68–97 — detect [lat,lng] stored as [lng,lat] wrongly
+  if (a >= 6 && a <= 37 && b >= 68 && b <= 97 && !(b >= 6 && b <= 37 && a >= 68 && a <= 97)) {
+    ;[a, b] = [b, a]
+  }
+  return [a, b]
+}
 
 /** Below search/nav overlays (z-20 / z-30) — place names stay on the map layer only. */
 const USER_PLACE_MARKER_Z_INDEX = 8
@@ -239,43 +276,70 @@ const createSearchResultMarkerElement = (place) => {
   return wrapper
 }
 
-const createRouteEndpointMarker = (place, isStart) => {
-  const color = isStart ? '#2563EB' : '#EF4444' // blue for start, red for end
-  const label = isStart ? 'Start' : 'End'
+const createRouteEndpointMarker = (place, { index = 0, total = 2 } = {}) => {
+  const isStart = index === 0
+  const isEnd = index === total - 1
+  const isMid = !isStart && !isEnd
+  const letter = String.fromCharCode(65 + Math.min(index, 25))
+  const pinColor = isStart ? '#4285F4' : isEnd ? '#EA4335' : '#FBBC04'
+  const title = place?.name || place?.displayName || (isStart ? 'Start' : isEnd ? 'End' : `Stop ${letter}`)
+
   const wrapper = document.createElement('div')
   wrapper.className = 'route-endpoint-marker'
   wrapper.style.display = 'flex'
   wrapper.style.flexDirection = 'column'
   wrapper.style.alignItems = 'center'
-  wrapper.style.cursor = 'pointer'
+  wrapper.style.cursor = 'grab'
+  wrapper.style.pointerEvents = 'auto'
+  wrapper.style.touchAction = 'none'
 
-  const dot = document.createElement('div')
-  dot.style.width = '28px'
-  dot.style.height = '28px'
-  dot.style.borderRadius = '50%'
-  dot.style.backgroundColor = color
-  dot.style.border = '3px solid white'
-  dot.style.boxShadow = '0 2px 8px rgba(0,0,0,0.4)'
+  const pinWrap = document.createElement('div')
+  pinWrap.style.position = 'relative'
+  pinWrap.style.width = '32px'
+  pinWrap.style.height = '42px'
+
+  const pin = document.createElement('div')
+  pin.style.width = '32px'
+  pin.style.height = '32px'
+  pin.style.borderRadius = isEnd && !isMid ? '50% 50% 50% 0' : '50%'
+  pin.style.transform = isEnd && !isMid ? 'rotate(-45deg)' : 'none'
+  pin.style.backgroundColor = pinColor
+  pin.style.border = '3px solid #fff'
+  pin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)'
+  pin.style.display = 'flex'
+  pin.style.alignItems = 'center'
+  pin.style.justifyContent = 'center'
+
+  const letterEl = document.createElement('span')
+  letterEl.textContent = letter
+  letterEl.style.color = '#fff'
+  letterEl.style.fontSize = '14px'
+  letterEl.style.fontWeight = '700'
+  letterEl.style.fontFamily = 'system-ui, sans-serif'
+  letterEl.style.lineHeight = '1'
+  if (isEnd && !isMid) letterEl.style.transform = 'rotate(45deg)'
+  pin.appendChild(letterEl)
+  pinWrap.appendChild(pin)
 
   const labelEl = document.createElement('div')
-  labelEl.textContent = place?.name || place?.displayName || label
-  labelEl.style.maxWidth = '140px'
+  labelEl.textContent = title
+  labelEl.style.maxWidth = '160px'
   labelEl.style.fontSize = '11px'
-  labelEl.style.fontWeight = '700'
+  labelEl.style.fontWeight = '600'
   labelEl.style.color = '#1e293b'
-  labelEl.style.background = 'rgba(255,255,255,0.95)'
-  labelEl.style.padding = '3px 8px'
-  labelEl.style.borderRadius = '4px'
-  labelEl.style.marginTop = '4px'
+  labelEl.style.background = 'rgba(255,255,255,0.96)'
+  labelEl.style.padding = '4px 8px'
+  labelEl.style.borderRadius = '6px'
+  labelEl.style.marginTop = '2px'
   labelEl.style.textAlign = 'center'
   labelEl.style.whiteSpace = 'nowrap'
   labelEl.style.overflow = 'hidden'
   labelEl.style.textOverflow = 'ellipsis'
-  labelEl.style.boxShadow = '0 1px 3px rgba(0,0,0,0.2)'
+  labelEl.style.boxShadow = '0 1px 4px rgba(0,0,0,0.18)'
 
-  wrapper.appendChild(dot)
+  wrapper.appendChild(pinWrap)
   wrapper.appendChild(labelEl)
-  wrapper.title = place?.name || place?.displayName || label
+  wrapper.title = title
   return wrapper
 }
 
@@ -314,6 +378,8 @@ const MapComponent = forwardRef(({
   autoFitSearchResults = true,
   routeStartPlace = null,
   routeEndPlace = null,
+  routeStops = [],
+  draggableRouteStops = true,
 }, ref) => {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
@@ -326,11 +392,19 @@ const MapComponent = forwardRef(({
   const vehicleMarkersRef = useRef({})
   const routeLayerRef = useRef(null)
   const routeGeoJsonRef = useRef(null)
+  const lastRouteDrawOptionsRef = useRef(null)
   const routeEditStateRef = useRef(null)
   const routeEditListenersBoundRef = useRef(false)
   const routeEditHandlerRef = useRef(null)
+  const routeStopDragHandlerRef = useRef(null)
+  const routeStopDraggingRef = useRef(false)
   const routeDragRafRef = useRef(null)
   const routeEditEmitRafRef = useRef(null)
+  const altRouteLayerIdsRef = useRef([])
+  const altRouteClickHandlersRef = useRef({})
+  const altRouteHoverHandlersRef = useRef({})
+  const alternativeRoutesRef = useRef(null)
+  const ensureRouteOnTopRef = useRef(() => {})
   const watchIdRef = useRef(null)
   const lastValidLocationRef = useRef(null)
   const hasFlownToUserRef = useRef(false)
@@ -373,23 +447,47 @@ const MapComponent = forwardRef(({
   })
   const [layersMenuOpen, setLayersMenuOpen] = useState(false)
 
-  const toFeatureGeometry = useCallback((routeInput) => {
-    if (!routeInput) return null
+  const toFeatureGeometry = useCallback((routeInput, fallbackEndpoints) => {
+    if (!routeInput && !fallbackEndpoints) return null
 
-    const geometry = routeInput.type === 'Feature'
-      ? routeInput.geometry
-      : routeInput.geometry || routeInput
-
-    if (!geometry || geometry.type !== 'LineString' || !Array.isArray(geometry.coordinates)) {
-      return null
+    let geometry = null
+    if (routeInput?.type === 'Feature') {
+      geometry = routeInput.geometry
+    } else if (routeInput?.geometry) {
+      geometry = routeInput.geometry
+    } else if (routeInput?.type === 'LineString') {
+      geometry = routeInput
+    } else if (routeInput?.type === 'MultiLineString' && Array.isArray(routeInput.coordinates)) {
+      const longest = routeInput.coordinates.reduce(
+        (best, ring) => (Array.isArray(ring) && ring.length > (best?.length || 0) ? ring : best),
+        null
+      )
+      if (longest?.length) {
+        geometry = { type: 'LineString', coordinates: longest }
+      }
     }
+
+    let coords = []
+    if (geometry?.type === 'LineString' && Array.isArray(geometry.coordinates)) {
+      coords = geometry.coordinates
+        .map(normalizeRouteCoord)
+        .filter(Boolean)
+    }
+
+    if (coords.length < 2 && fallbackEndpoints?.start && fallbackEndpoints?.end) {
+      const start = normalizeRouteCoord([fallbackEndpoints.start.lng, fallbackEndpoints.start.lat])
+      const end = normalizeRouteCoord([fallbackEndpoints.end.lng, fallbackEndpoints.end.lat])
+      if (start && end) coords = [start, end]
+    }
+
+    if (coords.length < 2) return null
 
     return {
       type: 'Feature',
       properties: {},
       geometry: {
         type: 'LineString',
-        coordinates: geometry.coordinates.map(([lng, lat]) => [lng, lat]),
+        coordinates: coords,
       },
     }
   }, [])
@@ -653,7 +751,7 @@ const MapComponent = forwardRef(({
     routeDragRafRef.current = window.requestAnimationFrame(() => {
       routeDragRafRef.current = null
       const map = mapRef.current
-      const source = map?.getSource('route')
+      const source = map?.getSource(ROUTE_SOURCE_ID)
       if (source && map?.isStyleLoaded?.()) {
         source.setData(routeGeoJsonRef.current)
       }
@@ -742,13 +840,13 @@ const MapComponent = forwardRef(({
     const map = mapRef.current
     if (!map || routeEditListenersBoundRef.current) return
 
-    map.on('mouseenter', 'route-hit', () => {
+    map.on('mouseenter', ROUTE_HIT_LAYER_ID, () => {
       if (!routeEditStateRef.current?.dragging) {
         map.getCanvas().style.cursor = 'grab'
       }
     })
 
-    map.on('mouseleave', 'route-hit', () => {
+    map.on('mouseleave', ROUTE_HIT_LAYER_ID, () => {
       if (!routeEditStateRef.current?.dragging) {
         map.getCanvas().style.cursor = ''
       }
@@ -776,8 +874,8 @@ const MapComponent = forwardRef(({
       map.getCanvas().style.cursor = 'grabbing'
     }
 
-    map.on('mousedown', 'route-hit', startDrag)
-    map.on('touchstart', 'route-hit', startDrag)
+    map.on('mousedown', ROUTE_HIT_LAYER_ID, startDrag)
+    map.on('touchstart', ROUTE_HIT_LAYER_ID, startDrag)
     map.on('mousemove', onRouteDragMove)
     map.on('touchmove', onRouteDragMove)
     map.on('mouseup', onRouteDragEnd)
@@ -1115,8 +1213,12 @@ const MapComponent = forwardRef(({
               maxzoom: 19,
               paint: { 'raster-opacity': 1 },
             })
+            if (routeLayerRef.current) {
+              ensureRouteOnTopRef.current(m)
+            }
           } else {
             m.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'visible')
+            if (routeLayerRef.current) ensureRouteOnTopRef.current(m)
           }
         } else if (m.getLayer(BASEMAP_LABEL_LAYER_ID)) {
           m.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'none')
@@ -1139,10 +1241,14 @@ const MapComponent = forwardRef(({
 
       if (mode === 'street') {
         raster.setTiles([streetUrl])
+        map.setMaxZoom(19)
       } else if (mode === 'satellite') {
         raster.setTiles(SATELLITE_TILES)
+        map.setMaxZoom(17)
+        if (map.getZoom() > 17) map.setZoom(17)
       } else {
         raster.setTiles(TERRAIN_TILES)
+        map.setMaxZoom(19)
       }
 
       map.once('idle', onIdleAfterTiles)
@@ -1470,42 +1576,65 @@ const MapComponent = forwardRef(({
     }
   }, [mapLoaded, polygonOverlayPlaces, onPlaceClick, onMapClick, selectedPlaceId, emitAddPlaceMapPick])
 
-  // Route start (blue) and end (red) markers
+  // Route stop markers (A, B, C…)
   useEffect(() => {
     if (!mapRef.current || !mapLoaded) return
 
     Object.values(routeEndpointMarkersRef.current).forEach((m) => m?.remove())
     routeEndpointMarkersRef.current = {}
 
-    if (routeStartPlace?.lat != null && routeStartPlace?.lng != null) {
-      const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-        `<div class="p-2 min-w-[120px]"><strong class="text-blue-700">Start</strong><div class="text-xs text-slate-600">${routeStartPlace.name || 'Start Place'}</div></div>`
-      )
-      const el = createRouteEndpointMarker(routeStartPlace, true)
-      const marker = new maplibregl.Marker({ element: el, anchor: 'top', offset: [0, -14] })
-        .setLngLat([routeStartPlace.lng, routeStartPlace.lat])
-        .setPopup(popup)
-        .addTo(mapRef.current)
-      routeEndpointMarkersRef.current.start = marker
-    }
+    const stops =
+      routeStops?.length >= 2
+        ? routeStops
+        : [
+            ...(routeStartPlace?.lat != null ? [routeStartPlace] : []),
+            ...(routeEndPlace?.lat != null ? [routeEndPlace] : []),
+          ]
 
-    if (routeEndPlace?.lat != null && routeEndPlace?.lng != null) {
+    stops.forEach((place, index) => {
+      if (place?.lat == null || place?.lng == null) return
+      const isStart = index === 0
+      const isEnd = index === stops.length - 1
+      const label = isStart ? 'Start' : isEnd ? 'End' : `Stop ${String.fromCharCode(65 + index)}`
+      const colorClass = isStart ? 'text-blue-700' : isEnd ? 'text-red-700' : 'text-amber-700'
       const popup = new maplibregl.Popup({ offset: 20 }).setHTML(
-        `<div class="p-2 min-w-[120px]"><strong class="text-red-700">End</strong><div class="text-xs text-slate-600">${routeEndPlace.name || 'End Place'}</div></div>`
+        `<div class="p-2 min-w-[120px]"><strong class="${colorClass}">${label}</strong><div class="text-xs text-slate-600">${place.name || place.displayName || label}</div></div>`
       )
-      const el = createRouteEndpointMarker(routeEndPlace, false)
-      const marker = new maplibregl.Marker({ element: el, anchor: 'top', offset: [0, -14] })
-        .setLngLat([routeEndPlace.lng, routeEndPlace.lat])
+      const el = createRouteEndpointMarker(place, { index, total: stops.length })
+      const canDrag = draggableRouteStops && stops.length >= 2
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom', draggable: canDrag })
+        .setLngLat([place.lng, place.lat])
         .setPopup(popup)
         .addTo(mapRef.current)
-      routeEndpointMarkersRef.current.end = marker
-    }
+
+      if (canDrag) {
+        marker.on('dragstart', () => {
+          routeStopDraggingRef.current = true
+          el.style.cursor = 'grabbing'
+          if (mapRef.current?.dragPan) mapRef.current.dragPan.disable()
+        })
+        marker.on('dragend', () => {
+          routeStopDraggingRef.current = false
+          el.style.cursor = 'grab'
+          if (mapRef.current?.dragPan) mapRef.current.dragPan.enable()
+          const ll = marker.getLngLat()
+          routeStopDragHandlerRef.current?.({
+            index,
+            lat: ll.lat,
+            lng: ll.lng,
+            total: stops.length,
+          })
+        })
+      }
+
+      routeEndpointMarkersRef.current[`stop-${index}`] = marker
+    })
 
     return () => {
       Object.values(routeEndpointMarkersRef.current).forEach((m) => m?.remove())
       routeEndpointMarkersRef.current = {}
     }
-  }, [mapLoaded, routeStartPlace, routeEndPlace])
+  }, [mapLoaded, routeStops, routeStartPlace, routeEndPlace, draggableRouteStops])
 
   // GPS: bootstrap with a fast coarse fix, then high-accuracy watch. Code 3 = TIMEOUT is common
   // on Wi‑Fi/desktop — we avoid treating it as fatal if we already have a position.
@@ -1661,7 +1790,7 @@ const MapComponent = forwardRef(({
       map.removeSource(ACCURACY_CIRCLE_SOURCE_ID)
     }
 
-    // Create marker
+    // Create blue dot marker (static, no animation)
     const el = document.createElement('div')
     el.className = 'user-marker'
     el.style.width = '20px'
@@ -1669,7 +1798,7 @@ const MapComponent = forwardRef(({
     el.style.borderRadius = '50%'
     el.style.backgroundColor = '#136AEC'
     el.style.border = '3px solid white'
-    el.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)'
+    el.style.boxShadow = '0 2px 6px rgba(0,0,0,0.35)'
     el.style.cursor = 'pointer'
 
     userMarkerRef.current = new maplibregl.Marker({ element: el })
@@ -1808,70 +1937,215 @@ const MapComponent = forwardRef(({
     })
   }, [currentLocation, updateUserLocation])
 
-  // Draw route on map
-  const drawRoute = useCallback((routeData, options = {}) => {
+  const clearAlternativeRoutes = useCallback(() => {
+    const map = mapRef.current
+    if (!map?.isStyleLoaded?.()) return
+    for (const id of altRouteLayerIdsRef.current) {
+      const clickHandler = altRouteClickHandlersRef.current[id]
+      if (clickHandler) {
+        map.off('click', id, clickHandler)
+        delete altRouteClickHandlersRef.current[id]
+      }
+      const hoverHandlers = altRouteHoverHandlersRef.current[id]
+      if (hoverHandlers) {
+        map.off('mouseenter', id, hoverHandlers.enter)
+        map.off('mouseleave', id, hoverHandlers.leave)
+        delete altRouteHoverHandlersRef.current[id]
+      }
+      if (map.getLayer(id)) map.removeLayer(id)
+      const srcId = id.replace('-line', '-src')
+      if (map.getSource(srcId)) map.removeSource(srcId)
+    }
+    altRouteLayerIdsRef.current = []
+    alternativeRoutesRef.current = null
+    map.getCanvas().style.cursor = ''
+  }, [])
+
+  const removeRouteLayers = useCallback((map) => {
+    if (!map) return
+    for (const id of [ROUTE_LAYER_ID, ROUTE_HIT_LAYER_ID, ROUTE_CASING_LAYER_ID]) {
+      if (map.getLayer(id)) map.removeLayer(id)
+    }
+    if (map.getSource(ROUTE_SOURCE_ID)) map.removeSource(ROUTE_SOURCE_ID)
+  }, [])
+
+  const ensureRouteLayersOnTop = useCallback((map) => {
+    if (!map?.getStyle?.()) return
+    for (const altId of altRouteLayerIdsRef.current) {
+      if (map.getLayer(altId)) {
+        try {
+          map.moveLayer(altId, ROUTE_CASING_LAYER_ID)
+        } catch {
+          /* route casing not added yet */
+        }
+      }
+    }
+    for (const id of ROUTE_LAYER_STACK) {
+      if (map.getLayer(id)) {
+        try {
+          map.moveLayer(id)
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }, [])
+
+  ensureRouteOnTopRef.current = ensureRouteLayersOnTop
+
+  const bringRouteLayersToFront = useCallback((map) => {
+    ensureRouteOnTopRef.current(map)
+  }, [])
+
+  const drawAlternativeRoutes = useCallback((altRoutes, selectedIndex, onSelectRoute, options = {}) => {
     const map = mapRef.current
     if (!map) return
-    if (!map.isStyleLoaded()) {
-      map.once('style.load', () => {
-        drawRoute(routeData, options)
+
+    const run = () => {
+      if (!map.isStyleLoaded()) return
+      clearAlternativeRoutes()
+      alternativeRoutesRef.current = altRoutes
+
+      const lineColor = options.color || ROUTE_GOOGLE_BLUE
+      const lineDash = options.dashArray || null
+      const ids = []
+
+      altRoutes.forEach((routeData, i) => {
+        if (i === selectedIndex) return
+        const feature = toFeatureGeometry(routeData)
+        if (!feature) return
+
+        const srcId = `alt-route-${i}-src`
+        const layerId = `alt-route-${i}-line`
+        ids.push(layerId)
+
+        map.addSource(srcId, { type: 'geojson', data: feature })
+
+        const paint = {
+          'line-color': '#6B7280',
+          'line-width': 5,
+          'line-opacity': 0.45,
+        }
+        if (lineDash) paint['line-dasharray'] = lineDash
+
+        map.addLayer({
+          id: layerId,
+          type: 'line',
+          source: srcId,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint,
+        })
+
+        if (map.getLayer(ROUTE_LAYER_ID)) {
+          map.moveLayer(layerId, ROUTE_HIT_LAYER_ID)
+        }
+
+        const clickHandler = () => { if (onSelectRoute) onSelectRoute(i) }
+        map.on('click', layerId, clickHandler)
+        altRouteClickHandlersRef.current[layerId] = clickHandler
+
+        const onEnter = () => {
+          map.getCanvas().style.cursor = 'pointer'
+          if (map.getLayer(layerId)) {
+            map.setPaintProperty(layerId, 'line-opacity', 0.85)
+            map.setPaintProperty(layerId, 'line-width', 6)
+            map.setPaintProperty(layerId, 'line-color', lineColor)
+          }
+        }
+        const onLeave = () => {
+          map.getCanvas().style.cursor = ''
+          if (map.getLayer(layerId)) {
+            map.setPaintProperty(layerId, 'line-opacity', 0.45)
+            map.setPaintProperty(layerId, 'line-width', 5)
+            map.setPaintProperty(layerId, 'line-color', '#6B7280')
+          }
+        }
+        map.on('mouseenter', layerId, onEnter)
+        map.on('mouseleave', layerId, onLeave)
+        altRouteHoverHandlersRef.current[layerId] = { enter: onEnter, leave: onLeave }
       })
-      return
+
+      altRouteLayerIdsRef.current = ids
+
+      if (altRoutes[selectedIndex]?.geometry) {
+        const selFeature = toFeatureGeometry(altRoutes[selectedIndex])
+        if (selFeature && map.getSource(ROUTE_SOURCE_ID)) {
+          map.getSource(ROUTE_SOURCE_ID).setData(selFeature)
+        }
+        if (map.getLayer(ROUTE_LAYER_ID)) {
+          map.setPaintProperty(ROUTE_LAYER_ID, 'line-color', lineColor)
+          map.setPaintProperty(ROUTE_LAYER_ID, 'line-opacity', 1)
+          if (lineDash) {
+            map.setPaintProperty(ROUTE_LAYER_ID, 'line-dasharray', lineDash)
+          } else {
+            map.setPaintProperty(ROUTE_LAYER_ID, 'line-dasharray', undefined)
+          }
+        }
+      }
+      ensureRouteOnTopRef.current(map)
     }
-    const feature = toFeatureGeometry(routeData)
-    if (!feature) return
+
+    whenStyleReady(map, run)
+  }, [clearAlternativeRoutes, toFeatureGeometry])
+
+  const applyRouteToMap = useCallback((feature, options = {}) => {
+    const map = mapRef.current
+    if (!map || !feature) return
 
     const shouldFitBounds = options.fitBounds !== false
-    const lineColor = options.color || '#136AEC'
+    const lineColor = options.color || ROUTE_GOOGLE_BLUE
     const lineDash = options.dashArray || null
 
-    // Remove existing route
-    if (map.getLayer('route')) {
-      map.removeLayer('route')
-    }
-    if (map.getLayer('route-hit')) {
-      map.removeLayer('route-hit')
-    }
-    if (map.getSource('route')) {
-      map.removeSource('route')
-    }
+    removeRouteLayers(map)
 
-    // Add route source
-    map.addSource('route', {
+    map.addSource(ROUTE_SOURCE_ID, {
       type: 'geojson',
       data: feature,
     })
 
-    // Invisible but wider hit target for drag interactions.
     map.addLayer({
-      id: 'route-hit',
+      id: ROUTE_CASING_LAYER_ID,
       type: 'line',
-      source: 'route',
+      source: ROUTE_SOURCE_ID,
+      layout: {
+        'line-join': 'round',
+        'line-cap': 'round',
+      },
+      paint: {
+        'line-color': '#ffffff',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 12, 8, 16, 11, 18, 14],
+        'line-opacity': 1,
+      },
+    })
+
+    map.addLayer({
+      id: ROUTE_HIT_LAYER_ID,
+      type: 'line',
+      source: ROUTE_SOURCE_ID,
       layout: {
         'line-join': 'round',
         'line-cap': 'round',
       },
       paint: {
         'line-color': '#000000',
-        'line-width': 20,
+        'line-width': 24,
         'line-opacity': 0,
       },
     })
 
-    // Add route layer
     const routePaint = {
       'line-color': lineColor,
-      'line-width': 4,
-      'line-opacity': 0.8,
+      'line-width': ['interpolate', ['linear'], ['zoom'], 12, 5, 16, 7, 18, 9],
+      'line-opacity': 1,
     }
     if (lineDash) {
       routePaint['line-dasharray'] = lineDash
     }
 
     map.addLayer({
-      id: 'route',
+      id: ROUTE_LAYER_ID,
       type: 'line',
-      source: 'route',
+      source: ROUTE_SOURCE_ID,
       layout: {
         'line-join': 'round',
         'line-cap': 'round',
@@ -1879,29 +2153,100 @@ const MapComponent = forwardRef(({
       paint: routePaint,
     })
 
+    ensureRouteOnTopRef.current(map)
+    map.once('idle', () => {
+      if (routeLayerRef.current) ensureRouteOnTopRef.current(map)
+    })
+
     routeLayerRef.current = true
     routeGeoJsonRef.current = feature
+    lastRouteDrawOptionsRef.current = options
     bindRouteEditListeners()
 
-    // Fit map to route bounds
     const coordinates = feature.geometry.coordinates
     if (shouldFitBounds && coordinates.length > 0) {
-      const bounds = coordinates.reduce(
-        (bounds, coord) => bounds.extend(coord),
+      let bounds = coordinates.reduce(
+        (b, coord) => b.extend(coord),
         new maplibregl.LngLatBounds(coordinates[0], coordinates[0])
       )
+      bounds = expandRouteBounds(bounds)
+      const padding = options.padding ?? 50
       map.fitBounds(bounds, {
-        padding: 50,
+        padding,
         duration: 1000,
+        maxZoom: 17,
       })
     }
-  }, [bindRouteEditListeners, toFeatureGeometry])
+  }, [bindRouteEditListeners, removeRouteLayers])
+
+  // Draw route on map
+  const drawRoute = useCallback((routeData, options = {}) => {
+    const map = mapRef.current
+    if (!map) return
+
+    const run = () => {
+      const feature = toFeatureGeometry(routeData, options.fallbackEndpoints)
+      if (!feature) {
+        console.warn('[map] Route geometry missing or invalid', routeData)
+        return
+      }
+      applyRouteToMap(feature, options)
+    }
+
+    whenStyleReady(map, run)
+  }, [applyRouteToMap, toFeatureGeometry])
+
+  // Re-apply route after style/tile updates that may drop custom layers
+  useEffect(() => {
+    if (!mapLoaded) return undefined
+    const map = mapRef.current
+    if (!map) return undefined
+
+    const restoreRouteLayers = () => {
+      const feature = routeGeoJsonRef.current
+      const opts = lastRouteDrawOptionsRef.current
+      if (!feature || !routeLayerRef.current) return
+      if (!map.getSource(ROUTE_SOURCE_ID)) {
+        applyRouteToMap(feature, { ...opts, fitBounds: false })
+      } else {
+        ensureRouteOnTopRef.current(map)
+      }
+    }
+
+    map.on('style.load', restoreRouteLayers)
+    return () => map.off('style.load', restoreRouteLayers)
+  }, [mapLoaded, applyRouteToMap])
+
+  const refitRouteBounds = useCallback((padding = 50) => {
+    const map = mapRef.current
+    if (!map) return
+
+    const allCoords = []
+    const primary = routeGeoJsonRef.current?.geometry?.coordinates
+    if (primary?.length) allCoords.push(...primary)
+
+    const alts = alternativeRoutesRef.current
+    if (Array.isArray(alts)) {
+      for (const route of alts) {
+        const coords = getRouteCoordinates(route)
+        if (coords.length) allCoords.push(...coords)
+      }
+    }
+
+    if (!allCoords.length) return
+    const bounds = allCoords.reduce(
+      (b, coord) => b.extend(coord),
+      new maplibregl.LngLatBounds(allCoords[0], allCoords[0])
+    )
+    map.fitBounds(bounds, { padding, duration: 600 })
+  }, [])
 
   // Expose methods via ref (for parent component)
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
     calculateRoute: async (start, end, waypoints = [], profile = 'driving', routeOptions = {}) => {
       const backendProfile = profile === 'two_wheeler' ? 'driving' : profile
+      const requestAlternatives = routeOptions.alternatives === true && waypoints.length === 0
       const params = {
         start: `${start.lat},${start.lng}`,
         end: `${end.lat},${end.lng}`,
@@ -1910,48 +2255,102 @@ const MapComponent = forwardRef(({
       if (waypoints.length > 0) {
         params.waypoints = waypoints.map((wp) => `${wp.lat},${wp.lng}`).join(';')
       }
+      if (requestAlternatives) {
+        params.alternatives = 'true'
+      }
 
       const response = await api.get('/map/route', { params })
-      const routeData = response.data
-
-      if (!routeData?.geometry) {
-        throw new Error('No route geometry returned from route service')
+      let allRoutes
+      if (requestAlternatives && response.data?.routes) {
+        allRoutes = response.data.routes
+      } else if (Array.isArray(response.data)) {
+        allRoutes = response.data
+      } else {
+        allRoutes = [response.data]
       }
 
-      // For two-wheeler, adjust duration (faster than car in traffic)
-      if (profile === 'two_wheeler' && routeData.duration) {
-        routeData.duration = Math.round(routeData.duration * 0.75)
+      allRoutes = allRoutes.filter((r) => {
+        const coords = r?.geometry?.coordinates
+        return Array.isArray(coords) ? coords.length >= 2 : typeof coords === 'string' && coords.length > 0
+      })
+
+      if (allRoutes.length === 0) {
+        drawRoute(null, { ...routeOptions, fallbackEndpoints: { start, end } })
+        const fallbackFeature = toFeatureGeometry(null, { start, end })
+        if (!fallbackFeature) {
+          throw new Error('No route geometry returned from route service')
+        }
+        const fallbackRoute = {
+          distance: getLineDistanceMeters(fallbackFeature.geometry.coordinates),
+          duration: 60,
+          geometry: fallbackFeature.geometry,
+          legs: [],
+          steps: [],
+        }
+        setRoute(fallbackRoute)
+        return { route: fallbackRoute, alternatives: null }
       }
 
-      drawRoute({ geometry: routeData.geometry }, routeOptions)
-      setRoute(routeData)
+      if (profile === 'two_wheeler') {
+        allRoutes = allRoutes.map((r) => ({
+          ...r,
+          duration: r.duration ? Math.round(r.duration * 0.75) : r.duration,
+          legs: r.legs?.map((l) => ({ ...l, duration: Math.round(l.duration * 0.75) })),
+        }))
+      }
 
-      return routeData
+      if (requestAlternatives && allRoutes.length > 1) {
+        allRoutes = sortAndTagRoutes(allRoutes)
+      }
+
+      const primaryRoute = allRoutes[0]
+      const drawOpts = { ...routeOptions, fallbackEndpoints: { start, end } }
+      drawRoute({ geometry: primaryRoute.geometry }, drawOpts)
+      setRoute(primaryRoute)
+
+      const map = mapRef.current
+      if (map) {
+        map.once('idle', () => {
+          if (routeLayerRef.current) ensureRouteOnTopRef.current(map)
+        })
+      }
+
+      return { route: primaryRoute, alternatives: allRoutes.length > 1 ? allRoutes : null }
+    },
+    ensureRouteOnTop: () => {
+      const map = mapRef.current
+      if (map?.isStyleLoaded?.()) ensureRouteOnTopRef.current(map)
     },
     clearRoute: () => {
       const map = mapRef.current
       if (!map?.isStyleLoaded?.()) return
-      if (map.getLayer('route')) {
-        map.removeLayer('route')
-      }
-      if (map.getLayer('route-hit')) {
-        map.removeLayer('route-hit')
-      }
-      if (map.getSource('route')) {
-        map.removeSource('route')
-      }
+      clearAlternativeRoutes()
+      removeRouteLayers(map)
       if (routeLayerRef.current) {
         routeLayerRef.current = null
       }
       routeGeoJsonRef.current = null
       routeEditStateRef.current = null
+      lastRouteDrawOptionsRef.current = null
       setRoute(null)
     },
     setRouteGeometry: (geometry, options = {}) => {
       drawRoute(geometry, options)
     },
+    refitRouteBounds: (padding) => {
+      refitRouteBounds(padding)
+    },
+    drawAlternativeRoutes: (altRoutes, selectedIndex, onSelectRoute, options = {}) => {
+      drawAlternativeRoutes(altRoutes, selectedIndex, onSelectRoute, options)
+    },
+    clearAlternativeRoutes: () => {
+      clearAlternativeRoutes()
+    },
     setRouteEditHandler: (handler) => {
       routeEditHandlerRef.current = typeof handler === 'function' ? handler : null
+    },
+    setRouteStopDragHandler: (handler) => {
+      routeStopDragHandlerRef.current = typeof handler === 'function' ? handler : null
     },
     flyTo: (options) => {
       if (mapRef.current) {
