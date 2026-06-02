@@ -91,6 +91,81 @@ const SATELLITE_TILES = ['https://services.arcgisonline.com/ArcGIS/rest/services
 const TERRAIN_TILES = ['https://tile.opentopomap.org/{z}/{x}/{y}.png']
 const LABEL_OVERLAY_TILES = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
 const BASEMAP_STORAGE_KEY = 'umnaapp_basemap'
+
+const readStoredBasemapMode = () => {
+  try {
+    const v = localStorage.getItem(BASEMAP_STORAGE_KEY)
+    if (v === 'satellite' || v === 'terrain' || v === 'street') return v
+  } catch {
+    /* ignore */
+  }
+  return 'street'
+}
+
+const getBasemapTileUrls = (mode, streetUrl) => {
+  const street =
+    streetUrl || 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+  if (mode === 'satellite') return SATELLITE_TILES
+  if (mode === 'terrain') return TERRAIN_TILES
+  return [street]
+}
+
+/** Switch raster basemap tiles and refresh the tile cache (instant visual update). */
+const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
+  if (!map?.isStyleLoaded?.()) return false
+
+  const raster = map.getSource('raster-tiles')
+  if (!raster || typeof raster.setTiles !== 'function') return false
+
+  raster.setTiles(getBasemapTileUrls(mode, streetUrl))
+
+  const cache = map.style?.sourceCaches?.['raster-tiles']
+  if (cache) {
+    cache.clearTiles()
+    if (typeof cache.reload === 'function') cache.reload()
+    else cache.update(map.transform)
+  }
+  map.triggerRepaint()
+
+  if (mode === 'street') {
+    map.setMaxZoom(19)
+  } else if (mode === 'satellite') {
+    map.setMaxZoom(17)
+    if (map.getZoom() > 17) map.setZoom(17)
+  } else {
+    map.setMaxZoom(19)
+  }
+
+  const needsLabels = mode === 'satellite'
+  if (needsLabels) {
+    if (!map.getSource(BASEMAP_LABEL_SOURCE_ID)) {
+      map.addSource(BASEMAP_LABEL_SOURCE_ID, {
+        type: 'raster',
+        tiles: LABEL_OVERLAY_TILES,
+        tileSize: 256,
+        minzoom: 0,
+        maxzoom: 19,
+        attribution: '© CARTO © OpenStreetMap',
+      })
+      map.addLayer({
+        id: BASEMAP_LABEL_LAYER_ID,
+        type: 'raster',
+        source: BASEMAP_LABEL_SOURCE_ID,
+        minzoom: 0,
+        maxzoom: 19,
+        paint: { 'raster-opacity': 1 },
+      })
+    } else if (map.getLayer(BASEMAP_LABEL_LAYER_ID)) {
+      map.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'visible')
+    }
+  } else if (map.getLayer(BASEMAP_LABEL_LAYER_ID)) {
+    map.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'none')
+  }
+
+  if (onRouteLayers) onRouteLayers(map)
+  return true
+}
+
 const MEASURE_SOURCE_ID = 'measure-distance-source'
 const MEASURE_LINE_OUTLINE_LAYER_ID = 'measure-distance-line-outline'
 const MEASURE_LINE_LAYER_ID = 'measure-distance-line'
@@ -436,15 +511,38 @@ const MapComponent = forwardRef(({
   const [currentLocation, setCurrentLocation] = useState(null)
   const [vehicles, setVehicles] = useState([])
   const [route, setRoute] = useState(null)
-  const [basemapMode, setBasemapMode] = useState(() => {
+  const [basemapMode, setBasemapMode] = useState(readStoredBasemapMode)
+  const basemapModeRef = useRef(basemapMode)
+  useEffect(() => {
+    basemapModeRef.current = basemapMode
+  }, [basemapMode])
+
+  const selectBasemapMode = useCallback((mode) => {
+    if (mode !== 'street' && mode !== 'satellite' && mode !== 'terrain') return
+    basemapModeRef.current = mode
+    setBasemapMode(mode)
     try {
-      const v = localStorage.getItem(BASEMAP_STORAGE_KEY)
-      if (v === 'satellite' || v === 'terrain' || v === 'street') return v
+      localStorage.setItem(BASEMAP_STORAGE_KEY, mode)
     } catch {
       /* ignore */
     }
-    return 'street'
-  })
+    const map = mapRef.current
+    if (!map) return
+    const streetUrl =
+      streetTilesUrlRef.current ||
+      'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+    const apply = () =>
+      applyBasemapToMap(map, mode, streetUrl, {
+        onRouteLayers: routeLayerRef.current
+          ? (m) => ensureRouteOnTopRef.current(m)
+          : undefined,
+      })
+    if (map.isStyleLoaded()) {
+      apply()
+    } else {
+      map.once('load', apply)
+    }
+  }, [])
   const [layersMenuOpen, setLayersMenuOpen] = useState(false)
 
   const toFeatureGeometry = useCallback((routeInput, fallbackEndpoints) => {
@@ -910,6 +1008,8 @@ const MapComponent = forwardRef(({
         ? `${String(env).replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
         : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
     streetTilesUrlRef.current = tileUrl
+    const initialBasemap = readStoredBasemapMode()
+    const initialTileUrls = getBasemapTileUrls(initialBasemap, tileUrl)
     const attribution =
       '© OpenStreetMap © CARTO © Esri © OpenTopoMap' +
       (tileUrl.includes('cartocdn') ? '' : ' © UMNAAPP')
@@ -928,7 +1028,7 @@ const MapComponent = forwardRef(({
         sources: {
           'raster-tiles': {
             type: 'raster',
-            tiles: [tileUrl],
+            tiles: initialTileUrls,
             tileSize: 256,
             minzoom: 0,
             maxzoom: 19,
@@ -965,6 +1065,7 @@ const MapComponent = forwardRef(({
         padding: 20,
         duration: 0,
       })
+      applyBasemapToMap(map, basemapModeRef.current, tileUrl)
       setMapLoaded(true)
       setMapZoom(map.getZoom())
       if (typeof onMapReady === 'function') {
@@ -1181,93 +1282,11 @@ const MapComponent = forwardRef(({
     }
   }, [measureDistanceActive, clearMeasureDistance])
 
-  // Google Maps–style basemap: Street (default / env tiles), Satellite + labels, Terrain
+  // Sync basemap when map becomes ready (e.g. remount) — clicks use selectBasemapMode for instant apply
   useEffect(() => {
-    const map = mapRef.current
-    if (!map || !mapLoaded) return
-
-    let cancelled = false
-    const mode = basemapMode
-
-    const applyLabelOverlay = () => {
-      if (cancelled || !mapRef.current) return
-      const m = mapRef.current
-      whenStyleReady(m, () => {
-        if (cancelled) return
-        const needsLabelOverlay = mode === 'satellite'
-        if (needsLabelOverlay) {
-          if (!m.getSource(BASEMAP_LABEL_SOURCE_ID)) {
-            m.addSource(BASEMAP_LABEL_SOURCE_ID, {
-              type: 'raster',
-              tiles: LABEL_OVERLAY_TILES,
-              tileSize: 256,
-              minzoom: 0,
-              maxzoom: 19,
-              attribution: '© CARTO © OpenStreetMap',
-            })
-            m.addLayer({
-              id: BASEMAP_LABEL_LAYER_ID,
-              type: 'raster',
-              source: BASEMAP_LABEL_SOURCE_ID,
-              minzoom: 0,
-              maxzoom: 19,
-              paint: { 'raster-opacity': 1 },
-            })
-            if (routeLayerRef.current) {
-              ensureRouteOnTopRef.current(m)
-            }
-          } else {
-            m.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'visible')
-            if (routeLayerRef.current) ensureRouteOnTopRef.current(m)
-          }
-        } else if (m.getLayer(BASEMAP_LABEL_LAYER_ID)) {
-          m.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'none')
-        }
-      })
-    }
-
-    const onIdleAfterTiles = () => {
-      if (cancelled) return
-      applyLabelOverlay()
-    }
-
-    const disposeStyleWait = whenStyleReady(map, () => {
-      if (cancelled) return
-      const raster = map.getSource('raster-tiles')
-      if (!raster || typeof raster.setTiles !== 'function') return
-
-      const streetUrl =
-        streetTilesUrlRef.current || 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
-
-      if (mode === 'street') {
-        raster.setTiles([streetUrl])
-        map.setMaxZoom(19)
-      } else if (mode === 'satellite') {
-        raster.setTiles(SATELLITE_TILES)
-        map.setMaxZoom(17)
-        if (map.getZoom() > 17) map.setZoom(17)
-      } else {
-        raster.setTiles(TERRAIN_TILES)
-        map.setMaxZoom(19)
-      }
-
-      map.once('idle', onIdleAfterTiles)
-    })
-
-    return () => {
-      cancelled = true
-      map.off('idle', onIdleAfterTiles)
-      disposeStyleWait()
-    }
-  }, [mapLoaded, basemapMode])
-
-  useEffect(() => {
-    try {
-      localStorage.setItem(BASEMAP_STORAGE_KEY, basemapMode)
-    } catch {
-      /* ignore */
-    }
-  }, [basemapMode])
+    if (!mapLoaded || !mapRef.current) return
+    selectBasemapMode(basemapModeRef.current)
+  }, [mapLoaded, selectBasemapMode])
 
   // User places: HTML markers with screen-space collision (names stay readable; zoom + priority + caps).
   useEffect(() => {
@@ -2522,7 +2541,7 @@ const MapComponent = forwardRef(({
                     key={opt.id}
                     type="button"
                     onClick={() => {
-                      setBasemapMode(opt.id)
+                      selectBasemapMode(opt.id)
                       setLayersMenuOpen(false)
                     }}
                     className={`rounded-lg px-2.5 py-2 text-left transition-colors ${
