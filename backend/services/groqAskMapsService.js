@@ -3,10 +3,10 @@ import prisma from '../config/database.js'
 import { placePublicVisibilityOr, enrichPlaceApprovalMeta } from './placeApproval.js'
 import { haversineMeters, radiusKmToDelta } from '../utils/geo.js'
 import { PLACE_CATEGORIES, CATEGORY_ALIASES } from './askMapsConstants.js'
+import { searchExternalProviders } from './externalPlaceSearch.js'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
-const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant'
-const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
+const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
 
 const SYSTEM_PROMPT = `You parse natural-language map search queries for an Indian places app.
 Return ONLY valid JSON with this exact shape (no markdown):
@@ -190,21 +190,100 @@ function isPlaceOpenNow(openingHours, businessStatus) {
 async function geocodeLocationName(name) {
   if (!name) return null
   try {
-    const { data } = await axios.get(SEARCH_SIMPLE_URL, {
-      params: { q: name },
-      timeout: 12000,
-    })
-    const results = Array.isArray(data?.results) ? data.results : Array.isArray(data) ? data : []
-    const first = results.find((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
+    const { rows } = await searchExternalProviders(name, { limit: 5 })
+    const first = rows.find((r) => Number.isFinite(parseFloat(r.lat)))
     if (!first) return null
+    const lat = parseFloat(first.lat)
+    const lng = parseFloat(first.lon ?? first.lng)
     return {
-      lat: first.lat,
-      lng: first.lng,
-      name: first.displayName || first.name || name,
+      lat,
+      lng,
+      name: first.display_name || first.displayName || first.name || name,
     }
   } catch {
     return null
   }
+}
+
+function buildExternalSearchQuery(intent, originalQuery) {
+  const parts = []
+  if (intent.category) parts.push(intent.category)
+  if (intent.locationName) parts.push(intent.locationName)
+  if (intent.filters?.nearby) parts.push('near me')
+  const built = parts.join(' ').trim()
+  return built.length >= 2 ? built : String(originalQuery || '').trim()
+}
+
+function mapExternalRowToAskPlace(row, intent, origin) {
+  const lat = parseFloat(row.lat)
+  const lng = parseFloat(row.lon ?? row.lng)
+  const displayName = row.display_name ?? row.displayName ?? row.name ?? 'Place'
+  const distanceMeters =
+    origin != null ? haversineMeters(origin.lat, origin.lng, lat, lng) : null
+  const addr = row.address || {}
+  return {
+    id: String(row.place_id ?? row.osm_id ?? `ext-${lat.toFixed(5)}-${lng.toFixed(5)}`),
+    name: displayName,
+    place_name_en: displayName,
+    place_name_local: null,
+    category: intent.category || 'Other',
+    latitude: lat,
+    longitude: lng,
+    rating: null,
+    reviewCount: null,
+    distanceMeters: distanceMeters != null ? Math.round(distanceMeters) : null,
+    village: addr.village || addr.suburb || addr.town || null,
+    district: addr.state_district || addr.county || addr.city || null,
+    state: addr.state || null,
+    source: 'external',
+  }
+}
+
+function coordKey(lat, lng) {
+  return `${Number(lat).toFixed(5)}-${Number(lng).toFixed(5)}`
+}
+
+async function supplementWithExternalPlaces(limited, { intent, query, origin, radiusKm }) {
+  const minWanted = Math.min(5, intent.limit)
+  if (limited.length >= minWanted) {
+    return { places: limited, externalCount: 0 }
+  }
+
+  const searchQ = buildExternalSearchQuery(intent, query)
+  if (searchQ.length < 2) return { places: limited, externalCount: 0 }
+
+  const { rows } = await searchExternalProviders(searchQ, { limit: intent.limit })
+  if (!rows.length) return { places: limited, externalCount: 0 }
+
+  const seen = new Set(limited.map((p) => coordKey(p.latitude, p.longitude)))
+  const extras = []
+
+  for (const row of rows) {
+    const mapped = mapExternalRowToAskPlace(row, intent, origin)
+    const key = coordKey(mapped.latitude, mapped.longitude)
+    if (seen.has(key)) continue
+    seen.add(key)
+
+    if (origin && radiusKm != null) {
+      const maxM = radiusKm * 1000
+      if (mapped.distanceMeters != null && mapped.distanceMeters > maxM) continue
+    }
+
+    if (intent.category && (intent.locationType === 'near_me' || intent.filters?.nearby)) {
+      const cat = intent.category.toLowerCase()
+      const hay = `${mapped.name} ${mapped.category}`.toLowerCase()
+      const aliasHit = Object.entries(CATEGORY_ALIASES).some(
+        ([alias, canon]) => canon === intent.category && hay.includes(alias)
+      )
+      if (!hay.includes(cat) && !aliasHit) continue
+    }
+
+    extras.push(mapped)
+    if (limited.length + extras.length >= intent.limit) break
+  }
+
+  const merged = [...limited, ...extras].slice(0, intent.limit)
+  return { places: merged, externalCount: extras.length }
 }
 
 function buildLocationTextFilter(locationName) {
@@ -297,11 +376,54 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     }
   }
 
-  const rows = await prisma.place.findMany({
+  let rows = await prisma.place.findMany({
     where: { AND: whereParts },
     take: 500,
     select: PLACE_SELECT,
   })
+
+  // Named area + category often over-filters (0 rows); retry location-only in DB
+  if (rows.length === 0 && intent.category && intent.locationType === 'named' && intent.locationName) {
+    const relaxedParts = [placePublicVisibilityOr(viewerId)]
+    const locFilter = buildLocationTextFilter(intent.locationName)
+    if (locFilter) relaxedParts.push(locFilter)
+    if (origin && radiusKm != null) {
+      const delta = radiusKmToDelta(radiusKm)
+      relaxedParts.push({
+        latitude: { gte: origin.lat - delta, lte: origin.lat + delta },
+        longitude: { gte: origin.lng - delta, lte: origin.lng + delta },
+      })
+    }
+    rows = await prisma.place.findMany({
+      where: { AND: relaxedParts },
+      take: 500,
+      select: PLACE_SELECT,
+    })
+  }
+
+  // Last DB fallback: match words from the user's question
+  if (rows.length === 0 && String(query || '').trim().length >= 2) {
+    const q = String(query).trim().slice(0, 120)
+    rows = await prisma.place.findMany({
+      where: {
+        AND: [
+          placePublicVisibilityOr(viewerId),
+          {
+            OR: [
+              { name: { contains: q, mode: 'insensitive' } },
+              { placeNameEn: { contains: q, mode: 'insensitive' } },
+              { placeNameLocal: { contains: q, mode: 'insensitive' } },
+              { category: { contains: q, mode: 'insensitive' } },
+              { village: { contains: q, mode: 'insensitive' } },
+              { district: { contains: q, mode: 'insensitive' } },
+            ],
+          },
+        ],
+      },
+      take: 100,
+      select: PLACE_SELECT,
+    })
+  }
 
   let places = rows.map((p) => {
     const distanceMeters =
@@ -335,14 +457,33 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     places.sort((a, b) => (a.distanceMeters ?? 1e12) - (b.distanceMeters ?? 1e12))
   }
 
-  const limited = places.slice(0, intent.limit).map(({ row, distanceMeters }) =>
+  let limited = places.slice(0, intent.limit).map(({ row, distanceMeters }) =>
     serializeAskPlace(row, {
       distanceMeters: distanceMeters != null ? Math.round(distanceMeters) : null,
     })
   )
 
+  let externalCount = 0
+  try {
+    const supplemented = await supplementWithExternalPlaces(limited, {
+      intent,
+      query,
+      origin,
+      radiusKm,
+    })
+    limited = supplemented.places
+    externalCount = supplemented.externalCount
+  } catch (extErr) {
+    console.warn('Ask Maps external supplement failed:', extErr.message)
+  }
+
+  let interpretation = intent.summary
+  if (externalCount > 0 && limited.length > 0) {
+    interpretation = `${intent.summary} (includes ${externalCount} web result${externalCount === 1 ? '' : 's'})`
+  }
+
   return {
-    interpretation: intent.summary,
+    interpretation,
     intent: {
       category: intent.category,
       locationType: intent.locationType,
@@ -354,5 +495,7 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     places: limited,
     center,
     count: limited.length,
+    externalCount,
+    aiEnabled: Boolean((process.env.GROQ_API_KEY || '').trim()),
   }
 }

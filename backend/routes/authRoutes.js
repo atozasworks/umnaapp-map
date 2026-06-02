@@ -5,6 +5,7 @@ import {
   verifyOTP,
   loginWithOTP,
   getCurrentUser,
+  updateProfile,
   updateProfilePicture,
   logout,
 } from '../controllers/authController.js'
@@ -47,6 +48,9 @@ router.post(
 
 // Get current user
 router.get('/me', authenticateToken, getCurrentUser)
+
+// Update profile (name etc.)
+router.put('/profile', authenticateToken, updateProfile)
 
 // Update profile picture
 router.put('/profile-picture', authenticateToken, updateProfilePicture)

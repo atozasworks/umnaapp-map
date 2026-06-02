@@ -1,25 +1,119 @@
-import { useState, useRef, useEffect, useMemo } from 'react'
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { parseQueryFromInput } from '../utils/parseSearchQuery'
+import {
+  getRouteTagLabel,
+  getResolvedRouteStops,
+  buildRouteRequestFromStops,
+} from '../utils/routeHelpers'
+import { highlightQuerySegments, splitPlaceSuggestion } from '../utils/gmapsSearchHighlight'
 
-const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResultsChange, icon, iconColor }) => {
+const GmapsPinIcon = () => (
+  <svg className="gmaps-suggestion-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 010-5 2.5 2.5 0 010 5z" />
+  </svg>
+)
+
+const SuggestionHighlightedLine = ({ text, query, suffix }) => {
+  const segments = highlightQuerySegments(text, query)
+  return (
+    <span className="gmaps-suggestion-text truncate block">
+      {segments.map((seg, i) => (
+        <span key={i} className={seg.bold ? 'match-bold' : seg.muted ? 'match-rest' : ''}>
+          {seg.text}
+        </span>
+      ))}
+      {suffix ? <span className="match-rest"> {suffix}</span> : null}
+    </span>
+  )
+}
+
+const GmapsSuggestionsPanel = ({ query, results, isSearching, noPlacesFound, onSelect }) => {
+  if (isSearching && results.length === 0) {
+    return (
+      <div className="gmaps-suggestions-panel">
+        <div className="gmaps-suggestions-empty">Searching…</div>
+      </div>
+    )
+  }
+
+  if (results.length === 0) {
+    return (
+      <div className="gmaps-suggestions-panel">
+        <div className="gmaps-suggestions-empty">{noPlacesFound}</div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="gmaps-suggestions-panel">
+      {results.map((result) => {
+        const { primary, secondary } = splitPlaceSuggestion(result)
+        const lineText = primary || result.displayName
+        const region =
+          secondary ||
+          formatAddressSubtitle(result.address) ||
+          result.address?.state ||
+          ''
+        return (
+          <button
+            key={result.placeId || `${result.lat}-${result.lng}-${lineText}`}
+            type="button"
+            className="gmaps-suggestion-item"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => onSelect(result)}
+          >
+            <GmapsPinIcon />
+            <div className="min-w-0 flex-1 text-left">
+              <SuggestionHighlightedLine text={lineText} query={query} suffix={region} />
+            </div>
+          </button>
+        )
+      })}
+    </div>
+  )
+}
+
+const PlaceSearchInput = ({
+  label,
+  placeholder,
+  value,
+  onSelect,
+  onClear,
+  onResultsChange,
+  onSearchStateChange,
+  fieldKey = '',
+  icon,
+  iconColor,
+  variant = 'default',
+}) => {
   const noPlacesFound = useTranslate('No places found')
   const [query, setQuery] = useState(value?.name || '')
   const [results, setResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
   const [showResults, setShowResults] = useState(false)
+  const [isFocused, setIsFocused] = useState(false)
   const searchTimeoutRef = useRef(null)
+  const blurTimerRef = useRef(null)
   const containerRef = useRef(null)
+  const skipValueSyncRef = useRef(false)
+  const isDirections = variant === 'directions'
 
-  // Sync display when value is cleared externally
+  // Sync displayed text from selected place; do not wipe query while user is editing
   useEffect(() => {
-    if (!value) setQuery('')
-    else if (value.name && value.name !== query) setQuery(value.name)
+    if (skipValueSyncRef.current) {
+      skipValueSyncRef.current = false
+      return
+    }
+    if (value?.name) {
+      setQuery((prev) => (prev === value.name ? prev : value.name))
+    } else if (!value) {
+      setQuery((prev) => (prev === '' ? prev : ''))
+    }
   }, [value])
 
-  // Debounced search
   useEffect(() => {
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
 
@@ -32,6 +126,7 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
 
     searchTimeoutRef.current = setTimeout(async () => {
       setIsSearching(true)
+      setShowResults(true)
       try {
         const response = await api.get('/map/search-simple', {
           params: { q: query },
@@ -47,15 +142,36 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
       } finally {
         setIsSearching(false)
       }
-    }, 250)
+    }, 200)
 
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     }
   }, [query])
 
-  // Close dropdown on outside click
+  const openPanel =
+    isDirections &&
+    isFocused &&
+    query.length >= 2 &&
+    (isSearching || results.length > 0 || (!isSearching && showResults))
+
+  const onSearchStateChangeRef = useRef(onSearchStateChange)
+  onSearchStateChangeRef.current = onSearchStateChange
+
   useEffect(() => {
+    if (!isDirections || !onSearchStateChangeRef.current) return
+    onSearchStateChangeRef.current({
+      fieldKey,
+      query,
+      results,
+      isSearching,
+      isFocused,
+      openPanel,
+    })
+  }, [fieldKey, query, results, isSearching, isFocused, openPanel, isDirections])
+
+  useEffect(() => {
+    if (isDirections) return undefined
     const handler = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         setShowResults(false)
@@ -63,19 +179,24 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
-  }, [])
+  }, [isDirections])
 
   const handleSelect = (result) => {
     setQuery(result.displayName)
     setShowResults(false)
     setResults([])
+    setIsFocused(false)
     onSelect({ lat: result.lat, lng: result.lng, name: result.displayName })
   }
 
   const handleInputChange = (e) => {
-    setQuery(parseQueryFromInput(e.target.value))
-    // If user edits the text after selecting, clear the selection
-    if (value) onClear()
+    const next = parseQueryFromInput(e.target.value)
+    setQuery(next)
+    if (value) {
+      skipValueSyncRef.current = true
+      onClear()
+    }
+    if (next.length >= 2) setShowResults(true)
   }
 
   const handleClearClick = () => {
@@ -85,62 +206,94 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
     onClear()
   }
 
-  return (
-    <div className="relative" ref={containerRef}>
-      {label && <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>}
-      <div className="relative flex items-center">
-        {icon && (
-          <div className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full flex-shrink-0 ${iconColor || 'bg-slate-400'}`} />
-        )}
-        <input
-          type="text"
-          value={query}
-          onChange={handleInputChange}
-          placeholder={placeholder}
-          className={`w-full py-2.5 sm:py-2 pr-8 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700 text-base sm:text-sm min-h-[44px] sm:min-h-0 ${icon ? 'pl-8' : 'px-3'}`}
-        />
-        {isSearching && (
-          <div className="absolute right-8 top-1/2 -translate-y-1/2">
-            <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-600" />
-          </div>
-        )}
-        {query && (
-          <button
-            onClick={handleClearClick}
-            className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm"
-          >
-            ✕
-          </button>
-        )}
-      </div>
+  const handleFocus = () => {
+    if (blurTimerRef.current) clearTimeout(blurTimerRef.current)
+    setIsFocused(true)
+    if (query.length >= 2 && results.length > 0) setShowResults(true)
+  }
 
-      {showResults && results.length > 0 && (
-        <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 max-h-[min(50vh,220px)] sm:max-h-52 overflow-y-auto overscroll-contain">
-          {results.map((result) => (
-            <button
-              key={result.placeId}
-              onClick={() => handleSelect(result)}
-              className="w-full px-3 py-2.5 sm:py-2 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors border-b border-slate-100 last:border-b-0 min-h-[48px] sm:min-h-0 flex items-center gap-2.5"
-            >
-              <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-sm font-medium text-slate-700 truncate">{result.displayName}</div>
-                {result.address && (() => {
-                  const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state
-                  return line2 ? <div className="text-xs text-slate-500 truncate">{line2}</div> : null
-                })()}
-              </div>
-            </button>
-          ))}
+  const handleBlur = () => {
+    blurTimerRef.current = setTimeout(() => setIsFocused(false), 180)
+  }
+
+  const inputClass = isDirections
+    ? 'gmaps-directions-input'
+    : `w-full py-2.5 sm:py-2 pr-8 glass rounded-lg border border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700 text-base sm:text-sm min-h-[44px] sm:min-h-0 ${icon ? 'pl-8' : 'px-3'}`
+
+  const defaultSuggestions = showResults && results.length > 0 && (
+    <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 max-h-[min(50vh,220px)] sm:max-h-52 overflow-y-auto overscroll-contain">
+      {results.map((result) => (
+        <button
+          key={result.placeId}
+          type="button"
+          onClick={() => handleSelect(result)}
+          className="w-full px-3 py-2.5 sm:py-2 text-left hover:bg-slate-50 active:bg-slate-100 transition-colors border-b border-slate-100 last:border-b-0 min-h-[48px] sm:min-h-0 flex items-center gap-2.5"
+        >
+          <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
+            <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+          </div>
+          <div className="min-w-0 flex-1 text-left">
+            <div className="text-sm font-medium text-slate-700 truncate">{result.displayName}</div>
+            {result.address && (() => {
+              const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state
+              return line2 ? <div className="text-xs text-slate-500 truncate">{line2}</div> : null
+            })()}
+          </div>
+        </button>
+      ))}
+    </div>
+  )
+
+  return (
+    <div className="gmaps-field-input-wrap" ref={containerRef}>
+      {isDirections && (isFocused || query.length > 0) && (
+        <svg className="gmaps-field-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} aria-hidden>
+          <circle cx="11" cy="11" r="7" />
+          <path strokeLinecap="round" d="M16 16l5 5" />
+        </svg>
+      )}
+      {label && !isDirections && (
+        <label className="block text-sm font-medium text-slate-700 mb-1">{label}</label>
+      )}
+      {icon && !isDirections && (
+        <div className={`absolute left-2.5 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full flex-shrink-0 ${iconColor || 'bg-slate-400'}`} />
+      )}
+      <input
+        type="search"
+        inputMode="search"
+        enterKeyHint="search"
+        value={query}
+        onChange={handleInputChange}
+        onFocus={handleFocus}
+        onBlur={handleBlur}
+        placeholder={placeholder}
+        className={inputClass}
+        autoComplete="off"
+        autoCorrect="off"
+        autoCapitalize="off"
+        spellCheck={false}
+      />
+      {isSearching && (
+        <div className={isDirections ? 'gmaps-field-spinner' : 'absolute right-8 top-1/2 -translate-y-1/2'}>
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#1a73e8] border-t-transparent" />
         </div>
       )}
-
-      {showResults && results.length === 0 && query.length >= 2 && !isSearching && (
+      {query && (
+        <button
+          type="button"
+          onClick={handleClearClick}
+          onMouseDown={(e) => e.preventDefault()}
+          className={isDirections ? 'gmaps-field-clear' : 'absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-sm'}
+          aria-label="Clear"
+        >
+          ×
+        </button>
+      )}
+      {!isDirections && defaultSuggestions}
+      {!isDirections && showResults && results.length === 0 && query.length >= 2 && !isSearching && (
         <div className="absolute z-50 w-full mt-1 bg-white rounded-lg shadow-xl border border-slate-200 p-3 text-center text-slate-500 text-sm">
           {noPlacesFound}
         </div>
@@ -149,38 +302,21 @@ const PlaceSearchInput = ({ label, placeholder, value, onSelect, onClear, onResu
   )
 }
 
-/* ─── Thumbnail for a place (loads first photo from API if placeId is a UUID) ─── */
-const PlaceThumbnail = ({ place }) => {
-  const [thumb, setThumb] = useState(null)
+const GmapsStopIcon = ({ kind }) => {
+  if (kind === 'end') return <div className="gmaps-stop-icon gmaps-stop-icon--end" aria-hidden />
+  return <div className="gmaps-stop-icon" aria-hidden />
+}
 
-  useEffect(() => {
-    if (!place) return
-    const placeId = place.placeId || place.id
-    if (!placeId || !/^[0-9a-f-]{36}$/.test(String(placeId))) return
-    let cancelled = false
-    api.get(`/map/places/${placeId}/photos`)
-      .then(({ data }) => {
-        if (!cancelled && data.photos?.length > 0) setThumb(data.photos[0].dataUrl)
-      })
-      .catch(() => {})
-    return () => { cancelled = true }
-  }, [place])
-
-  if (thumb) {
-    return <img src={thumb} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-  }
-  return (
-    <div className="w-10 h-10 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0">
-      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-      </svg>
-    </div>
-  )
+const formatModeEta = (seconds) => {
+  if (!seconds || seconds < 60) return '< 1 min'
+  const hours = Math.floor(seconds / 3600)
+  const minutes = Math.floor((seconds % 3600) / 60)
+  if (hours > 0) return `${hours} hr ${minutes} min`
+  return `${minutes} min`
 }
 
 const TRAVEL_MODES = [
-  { id: 'driving', label: 'Car', color: '#136AEC', icon: (
+  { id: 'driving', label: 'Car', color: '#4285F4', icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 17h.01M16 17h.01M3 11l1.5-5A2 2 0 016.4 4h11.2a2 2 0 011.9 1.4L21 11M3 11h18M3 11v6a1 1 0 001 1h1a1 1 0 001-1v-1h12v1a1 1 0 001 1h1a1 1 0 001-1v-6" /></svg>
   )},
   { id: 'two_wheeler', label: 'Bike', color: '#059669', icon: (
@@ -227,6 +363,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const tChooseStart = useTranslate('Choose starting point')
   const tChooseDestination = useTranslate('Choose destination')
   const tAddStopPrefix = useTranslate('Add stop')
+  const tAddDestination = useTranslate('Add destination')
   const tYourLocation = useTranslate('Your location')
   const tPleaseSelectBoth = useTranslate('Please select both start and end places')
   const tClose = useTranslate('Close')
@@ -244,6 +381,14 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const tMoveDown = useTranslate('Move down')
   const tRemoveStop = useTranslate('Remove stop')
   const tFailedRoute = useTranslate('Failed to calculate route')
+  const tAlternativeRoutes = useTranslate('Alternative routes')
+  const tRoutesAvailable = useTranslate('routes available')
+  const tFastest = useTranslate('Fastest')
+  const tShortest = useTranslate('Shortest')
+  const tRouteLabel = useTranslate('Route')
+  const tAlternativesDirectOnly = useTranslate(
+    'Alternative routes are only available for direct trips without extra stops.'
+  )
 
   const travelModeLabels = useMemo(
     () => ({
@@ -271,17 +416,80 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const [isCalculating, setIsCalculating] = useState(false)
   const [routeData, setRouteData] = useState(null)
   const [isRouteEdited, setIsRouteEdited] = useState(false)
-  const [allModesData, setAllModesData] = useState(null) // { driving: {...}, two_wheeler: {...}, ... }
+  const [allModesData, setAllModesData] = useState(null)
+  const [alternativeRoutes, setAlternativeRoutes] = useState(null)
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0)
   const [error, setError] = useState(null)
   const [showSteps, setShowSteps] = useState(false)
+  const [mobileSheetCollapsed, setMobileSheetCollapsed] = useState(false)
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  )
   const nextWpId = useRef(1)
+  const autoCalcTimerRef = useRef(null)
+  const skipNextAutoCalcRef = useRef(false)
+  const [activeSearch, setActiveSearch] = useState(null)
+  const tNoPlacesFound = useTranslate('No places found')
 
-  // Notify parent when start/end places change so map can show blue/red markers
+  const triggerRouteRecalcRef = useRef(null)
+
+  useEffect(() => {
+    if (!activeSearch) return undefined
+    const onDocMouseDown = (e) => {
+      if (
+        e.target.closest('.gmaps-suggestions-panel') ||
+        e.target.closest('.gmaps-input-card')
+      ) {
+        return
+      }
+      setActiveSearch(null)
+    }
+    document.addEventListener('mousedown', onDocMouseDown)
+    return () => document.removeEventListener('mousedown', onDocMouseDown)
+  }, [activeSearch])
+
+  const resolvedRouteStops = useMemo(
+    () => getResolvedRouteStops(startPlace, waypoints, endPlace),
+    [startPlace, waypoints, endPlace]
+  )
+
+  const resolvedStopsSignature = useMemo(
+    () => resolvedRouteStops.map((p) => `${p.lat},${p.lng}`).join('|'),
+    [resolvedRouteStops]
+  )
+
+  useEffect(() => {
+    const mq = window.matchMedia('(max-width: 639px)')
+    const onChange = (e) => setIsMobileViewport(e.matches)
+    setIsMobileViewport(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  const getRouteMapPadding = useCallback(
+    (collapsed) => {
+      if (!isMobileViewport) {
+        return { top: 80, bottom: 50, left: 360, right: 50 }
+      }
+      const bottom = collapsed ? 140 : Math.min(window.innerHeight * 0.52, 400) + 32
+      return { top: 110, bottom, left: 36, right: 36 }
+    },
+    [isMobileViewport]
+  )
+
+  const refitRouteOnMap = useCallback(
+    (collapsed = mobileSheetCollapsed) => {
+      mapRef?.current?.refitRouteBounds?.(getRouteMapPadding(collapsed))
+    },
+    [mapRef, getRouteMapPadding, mobileSheetCollapsed]
+  )
+
+  // Notify parent when stops change so map can show route markers
   useEffect(() => {
     if (onRoutePlacesChange) {
-      onRoutePlacesChange(startPlace, endPlace)
+      onRoutePlacesChange(startPlace, endPlace, resolvedRouteStops)
     }
-  }, [startPlace, endPlace, onRoutePlacesChange])
+  }, [startPlace, endPlace, resolvedRouteStops, onRoutePlacesChange])
 
   useEffect(() => {
     if (!mapRef?.current?.setRouteEditHandler) return
@@ -304,9 +512,71 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     }
   }, [mapRef])
 
-  const handleCalculate = async (modeOverride) => {
-    if (!startPlace || !endPlace) {
-      setError(tPleaseSelectBoth)
+  useEffect(() => {
+    if (!routeData) return
+    const timer = window.setTimeout(() => refitRouteOnMap(mobileSheetCollapsed), 180)
+    return () => window.clearTimeout(timer)
+  }, [routeData, mobileSheetCollapsed, refitRouteOnMap])
+
+  const handleSelectRoute = useCallback(
+    (index) => {
+      if (!alternativeRoutes || index === selectedRouteIndex) return
+      setSelectedRouteIndex(index)
+      const selected = alternativeRoutes[index]
+      if (selected) {
+        setRouteData(selected)
+        setIsRouteEdited(false)
+        setShowSteps(false)
+        const routeOpts = MODE_ROUTE_OPTIONS[travelMode] || {}
+        if (mapRef?.current?.setRouteGeometry && selected.geometry) {
+          mapRef.current.setRouteGeometry({ geometry: selected.geometry }, { fitBounds: false, ...routeOpts })
+        }
+        if (mapRef?.current?.drawAlternativeRoutes) {
+          mapRef.current.drawAlternativeRoutes(alternativeRoutes, index, handleSelectRoute, routeOpts)
+        }
+        refitRouteOnMap(mobileSheetCollapsed)
+      }
+    },
+    [alternativeRoutes, selectedRouteIndex, travelMode, mapRef, mobileSheetCollapsed, refitRouteOnMap]
+  )
+
+  const fetchAlternativesForCurrentTrip = useCallback(
+    async (mode) => {
+      const request = buildRouteRequestFromStops(resolvedRouteStops)
+      if (!request || !mapRef?.current?.calculateRoute) return
+      if (request.wp.length > 0) return
+
+      try {
+        const { start, end } = request
+        const routeOpts = MODE_ROUTE_OPTIONS[mode] || {}
+        const result = await mapRef.current.calculateRoute(start, end, [], mode, {
+          ...routeOpts,
+          alternatives: true,
+          fitBounds: false,
+        })
+        const altRoutes = result.alternatives
+        if (altRoutes && altRoutes.length > 1) {
+          setAlternativeRoutes(altRoutes)
+          setSelectedRouteIndex(0)
+          setRouteData(altRoutes[0])
+          mapRef.current.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRoute, routeOpts)
+        } else {
+          setAlternativeRoutes(null)
+          mapRef.current.clearAlternativeRoutes?.()
+        }
+      } catch {
+        setAlternativeRoutes(null)
+        mapRef.current?.clearAlternativeRoutes?.()
+      }
+    },
+    [resolvedRouteStops, mapRef, handleSelectRoute]
+  )
+
+  const handleCalculate = useCallback(async (modeOverride, stopsOverride) => {
+    const stops = stopsOverride ?? resolvedRouteStops
+    const request = buildRouteRequestFromStops(stops)
+    if (!request) {
+      setError(null)
       return
     }
 
@@ -315,18 +585,52 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     setIsCalculating(true)
     setError(null)
     setShowSteps(false)
+    setAlternativeRoutes(null)
+    setSelectedRouteIndex(0)
 
     try {
-      const start = { lat: startPlace.lat, lng: startPlace.lng }
-      const end = { lat: endPlace.lat, lng: endPlace.lng }
-      const wp = waypoints.filter((w) => w.place).map((w) => ({ lat: w.place.lat, lng: w.place.lng }))
+      const { start, end, wp } = request
 
       if (mapRef?.current?.calculateRoute) {
-        const route = await mapRef.current.calculateRoute(start, end, wp, mode, routeOpts)
-        setRouteData(route)
+        const padding = getRouteMapPadding(isMobileViewport)
+        const requestAlts = wp.length === 0
+        const result = await mapRef.current.calculateRoute(start, end, wp, mode, {
+          ...routeOpts,
+          alternatives: requestAlts,
+          padding,
+        })
+        const primary = result.route
+        const altRoutes = result.alternatives
+
+        setRouteData(primary)
         setIsRouteEdited(false)
-        // Now fetch all travel modes in background for comparison
-        fetchAllModes(start, end, wp, mode, route)
+
+        if (primary?.geometry && mapRef.current.setRouteGeometry) {
+          mapRef.current.setRouteGeometry(
+            { geometry: primary.geometry },
+            { fitBounds: false, padding, ...routeOpts }
+          )
+        }
+
+        window.requestAnimationFrame(() => {
+          if (altRoutes && altRoutes.length > 1) {
+            setAlternativeRoutes(altRoutes)
+            setSelectedRouteIndex(0)
+            mapRef.current?.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRoute, routeOpts)
+          } else {
+            setAlternativeRoutes(null)
+            mapRef.current?.clearAlternativeRoutes?.()
+          }
+          mapRef.current?.ensureRouteOnTop?.()
+        })
+
+        fetchAllModes(start, end, wp, mode, primary)
+
+        if (isMobileViewport) {
+          setMobileSheetCollapsed(true)
+        } else {
+          refitRouteOnMap(false)
+        }
       } else if (onCalculateRoute) {
         const route = await onCalculateRoute(start, end, wp, mode)
         setRouteData(route)
@@ -337,7 +641,183 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     } finally {
       setIsCalculating(false)
     }
-  }
+  }, [
+    resolvedRouteStops,
+    travelMode,
+    mapRef,
+    isMobileViewport,
+    getRouteMapPadding,
+    handleSelectRoute,
+    refitRouteOnMap,
+    onCalculateRoute,
+    tFailedRoute,
+  ])
+
+  const recalcWithStops = useCallback(
+    (stops) => {
+      if (!stops || stops.length < 2) return
+      skipNextAutoCalcRef.current = true
+      handleCalculate(undefined, stops)
+    },
+    [handleCalculate]
+  )
+
+  useEffect(() => {
+    triggerRouteRecalcRef.current = recalcWithStops
+  }, [recalcWithStops])
+
+  const routeDragStateRef = useRef({ startPlace, endPlace, waypoints })
+
+  useEffect(() => {
+    routeDragStateRef.current = { startPlace, endPlace, waypoints }
+  }, [startPlace, endPlace, waypoints])
+
+  const resolveDraggedPlaceName = useCallback(async (lat, lng) => {
+    try {
+      const { data } = await api.get('/map/reverse', { params: { lat, lng } })
+      return data.displayName || `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+    } catch {
+      return `${lat.toFixed(5)}, ${lng.toFixed(5)}`
+    }
+  }, [])
+
+  const applyDraggedStop = useCallback((index, lat, lng) => {
+    const { startPlace: start, endPlace: end, waypoints: wps } = routeDragStateRef.current
+    const place = { lat, lng, name: '…' }
+    const slots = [{ kind: 'start' }]
+    wps.forEach((w) => {
+      if (w.place) slots.push({ kind: 'wp', id: w.id })
+    })
+    slots.push({ kind: 'end' })
+
+    const slot = slots[index]
+    if (!slot) return null
+
+    if (slot.kind === 'start') {
+      setStartPlace(place)
+      return getResolvedRouteStops(place, wps, end)
+    }
+    if (slot.kind === 'end') {
+      setEndPlace(place)
+      return getResolvedRouteStops(start, wps, place)
+    }
+    const nextWps = wps.map((w) => (w.id === slot.id ? { ...w, place } : w))
+    setWaypoints(nextWps)
+    return getResolvedRouteStops(start, nextWps, end)
+  }, [])
+
+  const handleRouteStopDragEnd = useCallback(
+    async ({ index, lat, lng, total }) => {
+      if (!routeData || total < 2) return
+
+      skipNextAutoCalcRef.current = true
+      const stopsForRoute = applyDraggedStop(index, lat, lng)
+      if (!stopsForRoute || stopsForRoute.length < 2) return
+
+      setAlternativeRoutes(null)
+      setSelectedRouteIndex(0)
+      setIsRouteEdited(false)
+      mapRef.current?.clearAlternativeRoutes?.()
+      recalcWithStops(stopsForRoute)
+
+      const name = await resolveDraggedPlaceName(lat, lng)
+      const named = { lat, lng, name }
+      skipNextAutoCalcRef.current = true
+
+      if (index === 0) {
+        setStartPlace(named)
+      } else if (index === total - 1) {
+        setEndPlace(named)
+      } else {
+        const { startPlace: start, endPlace: end } = routeDragStateRef.current
+        setWaypoints((prev) => {
+          const slots = [{ kind: 'start' }]
+          prev.forEach((w) => {
+            if (w.place) slots.push({ kind: 'wp', id: w.id })
+          })
+          slots.push({ kind: 'end' })
+          const slot = slots[index]
+          if (slot?.kind !== 'wp') return prev
+          return prev.map((w) => (w.id === slot.id ? { ...w, place: named } : w))
+        })
+      }
+    },
+    [routeData, mapRef, recalcWithStops, resolveDraggedPlaceName, applyDraggedStop]
+  )
+
+  useEffect(() => {
+    if (!mapRef?.current?.setRouteStopDragHandler) return undefined
+    mapRef.current.setRouteStopDragHandler(handleRouteStopDragEnd)
+    return () => {
+      mapRef.current?.setRouteStopDragHandler?.(null)
+    }
+  }, [mapRef, handleRouteStopDragEnd])
+
+  const searchFieldHandlersRef = useRef({})
+
+  const handleSearchStateChange = useCallback(
+    (fieldKey, onSelectPlace, getStopsAfterSelect) => {
+      searchFieldHandlersRef.current[fieldKey] = { onSelectPlace, getStopsAfterSelect }
+
+      return (state) => {
+        if (!state?.isFocused) {
+          setActiveSearch((prev) => (prev?.fieldKey === fieldKey ? null : prev))
+          return
+        }
+        const openPanel = Boolean(state.openPanel)
+        setActiveSearch((prev) => {
+          if (
+            prev?.fieldKey === fieldKey &&
+            prev?.query === state.query &&
+            prev?.results === state.results &&
+            prev?.isSearching === state.isSearching &&
+            prev?.openPanel === openPanel
+          ) {
+            return prev
+          }
+          const handlers = searchFieldHandlersRef.current[fieldKey]
+          return {
+            fieldKey,
+            query: state.query,
+            results: state.results,
+            isSearching: state.isSearching,
+            openPanel,
+            onSelect: (result) => {
+              const place = { lat: result.lat, lng: result.lng, name: result.displayName }
+              handlers?.onSelectPlace?.(place)
+              setActiveSearch(null)
+              recalcWithStops(handlers?.getStopsAfterSelect?.(place))
+            },
+          }
+        })
+      }
+    },
+    [recalcWithStops]
+  )
+
+  const selectPlaceAndRecalc = useCallback(
+    (setter, getStopsAfterSelect) => (place) => {
+      setter(place)
+      recalcWithStops(getStopsAfterSelect(place))
+    },
+    [recalcWithStops]
+  )
+
+  // Google Maps: auto-update route when any two+ resolved stops change
+  useEffect(() => {
+    if (resolvedRouteStops.length < 2) return undefined
+    if (skipNextAutoCalcRef.current) {
+      skipNextAutoCalcRef.current = false
+      return undefined
+    }
+    if (autoCalcTimerRef.current) clearTimeout(autoCalcTimerRef.current)
+    autoCalcTimerRef.current = setTimeout(() => {
+      handleCalculate()
+    }, 650)
+    return () => {
+      if (autoCalcTimerRef.current) clearTimeout(autoCalcTimerRef.current)
+    }
+  }, [resolvedStopsSignature, handleCalculate, resolvedRouteStops.length])
 
   const fetchAllModes = async (start, end, wp, currentMode, currentRoute) => {
     const modesResult = { [currentMode]: currentRoute }
@@ -366,28 +846,36 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const handleModeChange = (mode) => {
     setTravelMode(mode)
     setShowSteps(false)
+    setAlternativeRoutes(null)
+    setSelectedRouteIndex(0)
+    if (mapRef?.current?.clearAlternativeRoutes) {
+      mapRef.current.clearAlternativeRoutes()
+    }
     const routeOpts = MODE_ROUTE_OPTIONS[mode] || {}
     if (allModesData?.[mode]) {
-      // Already have data for this mode — draw it on map
       setRouteData(allModesData[mode])
       setIsRouteEdited(false)
       if (allModesData[mode]?.geometry && mapRef?.current?.setRouteGeometry) {
         mapRef.current.setRouteGeometry(allModesData[mode].geometry, { fitBounds: false, ...routeOpts })
       }
-    } else if (startPlace && endPlace) {
-      // Need to calculate fresh
+      fetchAlternativesForCurrentTrip(mode)
+    } else if (resolvedRouteStops.length >= 2) {
       handleCalculate(mode)
     }
   }
 
   const handleClear = () => {
+    skipNextAutoCalcRef.current = true
     if (mapRef?.current?.clearRoute) {
       mapRef.current.clearRoute()
     }
     setRouteData(null)
     setIsRouteEdited(false)
     setAllModesData(null)
+    setAlternativeRoutes(null)
+    setSelectedRouteIndex(0)
     setShowSteps(false)
+    setMobileSheetCollapsed(false)
     setError(null)
   }
 
@@ -428,11 +916,14 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   }
 
   const formatDuration = (seconds) => {
+    if (!seconds || seconds < 60) return '< 1 min'
     const hours = Math.floor(seconds / 3600)
     const minutes = Math.floor((seconds % 3600) / 60)
     if (hours > 0) return `${hours}h ${minutes}m`
     return `${minutes} min`
   }
+
+  const showMobileCollapsed = isMobileViewport && mobileSheetCollapsed && routeData
 
   // Build ordered list of all stops for display
   const allStops = [
@@ -441,198 +932,281 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     { key: 'end', type: 'end', place: endPlace },
   ]
 
+  const modeEta = (modeId) => {
+    if (isCalculating && travelMode === modeId) return '…'
+    const d = allModesData?.[modeId]
+    if (d?.duration) return formatModeEta(d.duration)
+    return '—'
+  }
+
+  const stopRows = [
+    {
+      key: 'start',
+      kind: 'start',
+      place: startPlace,
+      rawSetPlace: setStartPlace,
+      setPlace: selectPlaceAndRecalc(setStartPlace, (place) =>
+        getResolvedRouteStops(place, waypoints, endPlace)
+      ),
+      clear: () => setStartPlace(null),
+      placeholder: tYourLocation,
+      getStopsAfterSelect: (place) => getResolvedRouteStops(place, waypoints, endPlace),
+    },
+    ...waypoints.map((w, idx) => ({
+      key: `wp-${w.id}`,
+      kind: 'waypoint',
+      wpId: w.id,
+      wpIndex: idx,
+      place: w.place,
+      rawSetPlace: (p) => updateWaypoint(w.id, p),
+      setPlace: selectPlaceAndRecalc(
+        (p) => updateWaypoint(w.id, p),
+        (place) =>
+          getResolvedRouteStops(
+            startPlace,
+            waypoints.map((wp) => (wp.id === w.id ? { ...wp, place } : wp)),
+            endPlace
+          )
+      ),
+      clear: () => updateWaypoint(w.id, null),
+      placeholder: `${tAddStopPrefix} ${idx + 1}`,
+      getStopsAfterSelect: (place) =>
+        getResolvedRouteStops(
+          startPlace,
+          waypoints.map((wp) => (wp.id === w.id ? { ...wp, place } : wp)),
+          endPlace
+        ),
+    })),
+    {
+      key: 'end',
+      kind: 'end',
+      place: endPlace,
+      rawSetPlace: setEndPlace,
+      setPlace: selectPlaceAndRecalc(setEndPlace, (place) =>
+        getResolvedRouteStops(startPlace, waypoints, place)
+      ),
+      clear: () => setEndPlace(null),
+      placeholder: tChooseDestination,
+      getStopsAfterSelect: (place) => getResolvedRouteStops(startPlace, waypoints, place),
+    },
+  ]
+
   return (
-    <div className="bg-white rounded-2xl sm:rounded-xl shadow-2xl border border-slate-200/60 w-full overflow-hidden flex flex-col" style={{ maxHeight: 'calc(100vh - 6rem)' }}>
-      {/* Header */}
-      <div className="flex justify-between items-center px-4 py-2.5 border-b border-slate-100 bg-white flex-shrink-0">
-        <h3 className="text-sm font-bold text-slate-800 flex items-center gap-2">
-          <svg className="w-4 h-4 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+    <div
+      className={`gmaps-directions shadow-2xl w-full overflow-hidden flex flex-col ${
+        isMobileViewport
+          ? 'rounded-t-2xl sm:rounded-none max-h-[min(62dvh,560px)]'
+          : 'rounded-none h-full'
+      } ${showMobileCollapsed ? 'max-h-none' : ''}`}
+      style={isMobileViewport && !showMobileCollapsed ? { maxHeight: 'min(62dvh, 560px)' } : undefined}
+    >
+      {/* Mobile drag affordance */}
+      {isMobileViewport && (
+        <div className="flex shrink-0 justify-center pt-2 pb-0.5 sm:hidden" aria-hidden>
+          <div className="h-1 w-10 rounded-full bg-slate-300/90" />
+        </div>
+      )}
+
+      {showMobileCollapsed ? (
+        <>
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 px-4 py-2.5">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-slate-500">{tDirections}</p>
+              <div className="mt-0.5 flex items-center gap-2">
+                <span style={{ color: TRAVEL_MODES.find((m) => m.id === travelMode)?.color }}>
+                  {TRAVEL_MODES.find((m) => m.id === travelMode)?.icon}
+                </span>
+                <span className="text-base font-bold text-[#1967d2]">
+                  {formatModeEta(routeData.duration)}
+                </span>
+                <span className="text-sm text-slate-500">· {formatDistance(routeData.distance)}</span>
+              </div>
+              <p className="mt-0.5 truncate text-xs text-slate-500">
+                {startPlace?.name || tYourLocation} → {endPlace?.name}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              aria-label={tClose}
+            >
+              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          <div
+            className="flex shrink-0 gap-2 border-t border-slate-100 px-4 py-3"
+            style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+          >
+            <button
+              type="button"
+              onClick={() => setMobileSheetCollapsed(false)}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+              </svg>
+              Route details
+            </button>
+            <button
+              type="button"
+              onClick={handleClear}
+              className="rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-200"
+            >
+              {tClear}
+            </button>
+          </div>
+        </>
+      ) : (
+        <>
+      {/* Toolbar: modes + close (Google Maps) */}
+      <div className="gmaps-directions-toolbar flex-shrink-0">
+        <button type="button" className="gmaps-directions-toolbar-menu" aria-label="Menu">
+          <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
           </svg>
-          {tDirections}
-        </h3>
-        <button
-          onClick={onClose}
-          className="p-2 -m-1 text-slate-400 hover:text-slate-600 transition-colors rounded-lg min-w-[44px] min-h-[44px] flex items-center justify-center"
-          aria-label={tClose}
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        </button>
+        <div className="gmaps-mode-scroll">
+          {TRAVEL_MODES.map((mode) => {
+            const isActive = travelMode === mode.id
+            const eta = modeEta(mode.id)
+            return (
+              <button
+                key={mode.id}
+                type="button"
+                onClick={() => handleModeChange(mode.id)}
+                className={`gmaps-mode-btn${isActive ? ' is-active' : ''}`}
+                title={travelModeLabels[mode.id] || mode.label}
+                disabled={isCalculating && !isActive}
+              >
+                <span style={isActive ? { color: '#1967d2' } : { color: '#5f6368' }}>{mode.icon}</span>
+                <span className="gmaps-mode-eta">{eta}</span>
+              </button>
+            )
+          })}
+        </div>
+        <button type="button" onClick={onClose} className="gmaps-directions-toolbar-close" aria-label={tClose}>
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
       </div>
 
-      {/* Travel mode selector — Google Maps style tabs */}
-      <div className="flex border-b border-slate-100 bg-slate-50/50 flex-shrink-0">
-        {TRAVEL_MODES.map((mode) => {
-          const isActive = travelMode === mode.id
-          const modeData = allModesData?.[mode.id]
-          return (
-            <button
-              key={mode.id}
-              onClick={() => handleModeChange(mode.id)}
-              className={`flex-1 flex flex-col items-center gap-0.5 py-2 px-1 transition-all relative ${
-                isActive
-                  ? 'text-slate-800'
-                  : modeData ? 'text-slate-400 hover:text-slate-600' : 'text-slate-300 hover:text-slate-400'
-              }`}
-              title={travelModeLabels[mode.id] || mode.label}
-            >
-              <div style={isActive ? { color: mode.color } : {}}>{mode.icon}</div>
-              <span className="text-[10px] font-medium leading-none">{travelModeLabels[mode.id] || mode.label}</span>
-              {modeData && (
-                <span className={`text-[9px] font-semibold leading-none ${isActive ? '' : 'text-slate-400'}`} style={isActive ? { color: mode.color } : {}}>
-                  {formatDuration(modeData.duration)}
-                </span>
-              )}
-              {isActive && <div className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full" style={{ backgroundColor: mode.color }} />}
-            </button>
-          )
-        })}
-      </div>
-
-      {/* Scrollable stops area */}
-      <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-        <div className="relative">
-          {/* Vertical line connecting dots */}
-          <div className="absolute left-[11px] top-5 bottom-5 w-0.5 bg-slate-300" style={{ zIndex: 0 }} />
-
-          <div className="space-y-2 relative" style={{ zIndex: 1 }}>
-            {/* START */}
-            <div className="flex items-start gap-2.5">
-              <div className="flex flex-col items-center flex-shrink-0 pt-1">
-                <div className="w-[22px] h-[22px] rounded-full bg-blue-500 border-[3px] border-white shadow-md flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
-                <PlaceSearchInput
-                  placeholder={tChooseStart}
-                  value={startPlace}
-                  onSelect={setStartPlace}
-                  onClear={() => setStartPlace(null)}
-                  onResultsChange={onSearchResultsChange}
-                />
-                {currentLocation && !startPlace && (
-                  <button
-                    onClick={() => setStartPlace(currentLocation)}
-                    className="mt-1 text-xs text-primary-600 hover:text-primary-700 font-medium flex items-center gap-1"
-                  >
-                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" />
-                    </svg>
-                    {tYourLocation}
-                  </button>
-                )}
-                {startPlace && (
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <PlaceThumbnail place={startPlace} />
-                    <span className="text-xs text-slate-600 truncate">{startPlace.name}</span>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* WAYPOINTS */}
-            {waypoints.map((wp, idx) => (
-              <div key={wp.id} className="flex items-start gap-2.5">
-                <div className="flex flex-col items-center flex-shrink-0 pt-1">
-                  <div className="w-[22px] h-[22px] rounded-full bg-slate-500 border-[3px] border-white shadow-md flex items-center justify-center">
-                    <span className="text-[9px] font-bold text-white">{idx + 1}</span>
-                  </div>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <div className="flex-1 min-w-0">
-                      <PlaceSearchInput
-                        placeholder={`${tAddStopPrefix} ${idx + 1}`}
-                        value={wp.place}
-                        onSelect={(p) => updateWaypoint(wp.id, p)}
-                        onClear={() => updateWaypoint(wp.id, null)}
-                        onResultsChange={onSearchResultsChange}
-                      />
-                    </div>
-                    <div className="flex flex-col gap-0.5 flex-shrink-0">
-                      {idx > 0 && (
-                        <button onClick={() => moveWaypoint(idx, -1)} className="p-0.5 text-slate-400 hover:text-slate-600" title={tMoveUp}>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
-                        </button>
-                      )}
-                      {idx < waypoints.length - 1 && (
-                        <button onClick={() => moveWaypoint(idx, 1)} className="p-0.5 text-slate-400 hover:text-slate-600" title={tMoveDown}>
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                        </button>
-                      )}
-                    </div>
-                    <button
-                      onClick={() => removeWaypoint(wp.id)}
-                      className="p-1 text-slate-400 hover:text-red-500 transition-colors flex-shrink-0"
-                      title={tRemoveStop}
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                  {wp.place && (
-                    <div className="flex items-center gap-2 mt-1.5">
-                      <PlaceThumbnail place={wp.place} />
-                      <span className="text-xs text-slate-600 truncate">{wp.place.name}</span>
-                    </div>
-                  )}
-                </div>
+      <div className="flex-1 overflow-y-auto overscroll-contain gmaps-directions-body pb-2">
+        <div className={`gmaps-input-card${activeSearch?.openPanel ? ' has-suggestions' : ''}`}>
+          <div className="gmaps-input-rail">
+            {stopRows.map((row, i) => (
+              <div key={`rail-${row.key}`} className="flex flex-col items-center w-full">
+                <GmapsStopIcon kind={row.kind === 'end' ? 'end' : 'mid'} />
+                {i < stopRows.length - 1 && <div className="gmaps-rail-line" />}
               </div>
             ))}
-
-            {/* END */}
-            <div className="flex items-start gap-2.5">
-              <div className="flex flex-col items-center flex-shrink-0 pt-1">
-                <div className="w-[22px] h-[22px] rounded-full bg-red-500 border-[3px] border-white shadow-md flex items-center justify-center">
-                  <div className="w-2 h-2 rounded-full bg-white" />
-                </div>
-              </div>
-              <div className="flex-1 min-w-0">
+          </div>
+          <div className="gmaps-input-fields">
+            {stopRows.map((row) => (
+              <div
+                key={row.key}
+                className={`gmaps-field-row relative${row.kind === 'waypoint' ? ' pr-14' : ''}${
+                  activeSearch?.fieldKey === row.key ? ' is-focused' : ''
+                }`}
+              >
                 <PlaceSearchInput
-                  placeholder={tChooseDestination}
-                  value={endPlace}
-                  onSelect={setEndPlace}
-                  onClear={() => setEndPlace(null)}
+                  variant="directions"
+                  fieldKey={row.key}
+                  placeholder={row.placeholder}
+                  value={row.place}
+                  onSelect={row.setPlace}
+                  onClear={row.clear}
                   onResultsChange={onSearchResultsChange}
+                  onSearchStateChange={handleSearchStateChange(
+                    row.key,
+                    row.rawSetPlace,
+                    row.getStopsAfterSelect
+                  )}
                 />
-                {endPlace && (
-                  <div className="flex items-center gap-2 mt-1.5">
-                    <PlaceThumbnail place={endPlace} />
-                    <span className="text-xs text-slate-600 truncate">{endPlace.name}</span>
+                {row.kind === 'waypoint' && (
+                  <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
+                    {row.wpIndex > 0 && (
+                      <button type="button" onClick={() => moveWaypoint(row.wpIndex, -1)} className="p-1 text-[#5f6368]" title={tMoveUp}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
+                      </button>
+                    )}
+                    {row.wpIndex < waypoints.length - 1 && (
+                      <button type="button" onClick={() => moveWaypoint(row.wpIndex, 1)} className="p-1 text-[#5f6368]" title={tMoveDown}>
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
+                      </button>
+                    )}
+                    <button type="button" onClick={() => removeWaypoint(row.wpId)} className="p-1 text-[#5f6368] hover:text-[#d93025]" title={tRemoveStop}>
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
                   </div>
                 )}
               </div>
-            </div>
+            ))}
+          </div>
+          <div className="gmaps-swap-col">
+            <button type="button" onClick={handleSwap} className="gmaps-swap-btn" title={tReverseRoute} aria-label={tSwap}>
+              <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+              </svg>
+            </button>
           </div>
         </div>
 
-        {/* Add stop + Swap */}
-        <div className="flex items-center justify-between mt-3 pt-2 border-t border-slate-100">
+        {activeSearch?.openPanel && (
+          <GmapsSuggestionsPanel
+            query={activeSearch.query}
+            results={activeSearch.results}
+            isSearching={activeSearch.isSearching}
+            noPlacesFound={tNoPlacesFound}
+            onSelect={activeSearch.onSelect}
+          />
+        )}
+
+        {currentLocation && !startPlace && !activeSearch?.openPanel && (
           <button
-            onClick={addWaypoint}
-            disabled={waypoints.length >= 8}
-            className="flex items-center gap-1.5 text-xs font-medium text-primary-600 hover:text-primary-700 disabled:text-slate-400 disabled:cursor-not-allowed transition-colors"
+            type="button"
+            onClick={() => setStartPlace(currentLocation)}
+            className="mx-4 mt-2 text-sm text-[#1a73e8] font-medium flex items-center gap-1.5"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M12 8c-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4-1.79-4-4-4zm8.94 3A8.994 8.994 0 0013 3.06V1h-2v2.06A8.994 8.994 0 003.06 11H1v2h2.06A8.994 8.994 0 0011 20.94V23h2v-2.06A8.994 8.994 0 0020.94 13H23v-2h-2.06zM12 19c-3.87 0-7-3.13-7-7s3.13-7 7-7 7 3.13 7 7-3.13 7-7 7z" />
             </svg>
-            {tAddStopPrefix}
+            {tYourLocation}
           </button>
-          <button
-            onClick={handleSwap}
-            className="flex items-center gap-1.5 p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500 hover:text-slate-700"
-            title={tReverseRoute}
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
-            </svg>
-            <span className="text-xs font-medium">{tSwap}</span>
-          </button>
-        </div>
+        )}
+
+        <button
+          type="button"
+          onClick={addWaypoint}
+          disabled={waypoints.length >= 8 || activeSearch?.openPanel}
+          className="gmaps-add-dest"
+          style={activeSearch?.openPanel ? { visibility: 'hidden', height: 0, margin: 0, padding: 0 } : undefined}
+        >
+          <span className="gmaps-add-dest-icon">+</span>
+          {tAddDestination}
+        </button>
+
+        {isCalculating && (
+          <div className="mx-4 mt-2 flex items-center gap-2 text-sm text-[#5f6368]">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-[#1a73e8] border-t-transparent" />
+            {tCalculating}
+          </div>
+        )}
+
+        {routeData && !isCalculating && (
+          <div className="gmaps-route-chip">
+            <div className="gmaps-route-chip-duration">{formatModeEta(routeData.duration)}</div>
+            <div className="gmaps-route-chip-meta">
+              {formatDistance(routeData.distance)}
+              {waypoints.filter((w) => w.place).length > 0 && (
+                <span> · {waypoints.filter((w) => w.place).length} stops</span>
+              )}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-red-700 text-xs">
@@ -640,179 +1214,167 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           </div>
         )}
 
-        {/* Route result */}
-        {routeData && (
-          <div className="mt-3 p-3 bg-gradient-to-r from-blue-50 to-primary-50 border border-blue-100 rounded-xl">
-            <div className="flex items-center gap-2 mb-2">
-              <span style={{ color: TRAVEL_MODES.find((m) => m.id === travelMode)?.color }}>
-                {TRAVEL_MODES.find((m) => m.id === travelMode)?.icon}
-              </span>
-              <span className="text-xs font-semibold" style={{ color: TRAVEL_MODES.find((m) => m.id === travelMode)?.color }}>
-                {TRAVEL_MODES.find((m) => m.id === travelMode)?.label} Route
-              </span>
-              {isRouteEdited && (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                  Edited
-                </span>
-              )}
+        {routeData && waypoints.filter((w) => w.place).length > 0 && (
+          <p className="mt-3 text-[10px] text-slate-500 leading-snug px-0.5">{tAlternativesDirectOnly}</p>
+        )}
+
+        {/* Alternative route options */}
+        {alternativeRoutes && alternativeRoutes.length > 1 && routeData && (
+          <div className="mt-3 space-y-2">
+            <div className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider px-0.5">
+              {tAlternativeRoutes} · {alternativeRoutes.length} {tRoutesAvailable}
             </div>
-            <div className="flex justify-between items-center">
-              <div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wide">Distance</div>
-                <div className="text-lg font-bold text-slate-800">{formatDistance(routeData.distance)}</div>
-              </div>
-              <div className="w-px h-8 bg-blue-200" />
-              <div>
-                <div className="text-[10px] text-slate-500 uppercase tracking-wide">Duration</div>
-                <div className="text-lg font-bold text-slate-800">{formatDuration(routeData.duration)}</div>
-              </div>
-              {waypoints.filter((w) => w.place).length > 0 && (
-                <>
-                  <div className="w-px h-8 bg-blue-200" />
-                  <div>
-                    <div className="text-[10px] text-slate-500 uppercase tracking-wide">Stops</div>
-                    <div className="text-lg font-bold text-slate-800">{waypoints.filter((w) => w.place).length}</div>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Quick compare all modes */}
-            {allModesData && Object.keys(allModesData).length > 1 && (
-              <div className="mt-2 pt-2 border-t border-blue-200">
-                <div className="text-[10px] text-slate-500 mb-1.5 font-medium uppercase tracking-wide">Compare</div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                  {TRAVEL_MODES.map((mode) => {
-                    const d = allModesData[mode.id]
-                    if (!d) return null
-                    const isActive = travelMode === mode.id
-                    return (
-                      <button
-                        key={mode.id}
-                        onClick={() => handleModeChange(mode.id)}
-                        className={`flex items-center gap-1.5 p-1.5 rounded-lg text-left transition-all ${
-                          isActive ? 'ring-1 ring-offset-1' : 'bg-white/70 hover:bg-white'
-                        }`}
-                        style={isActive ? { backgroundColor: `${mode.color}15`, ringColor: mode.color } : {}}
-                      >
-                        <span style={{ color: isActive ? mode.color : undefined }} className={isActive ? '' : 'text-slate-400'}>{mode.icon}</span>
-                        <div className="min-w-0">
-                          <div className={`text-[10px] font-semibold truncate ${isActive ? '' : 'text-slate-600'}`} style={isActive ? { color: mode.color } : {}}>
-                            {formatDuration(d.duration)}
-                          </div>
-                          <div className="text-[9px] text-slate-400">{formatDistance(d.distance)}</div>
-                        </div>
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Leg-by-leg breakdown for multi-stop */}
-            {routeData.legs && routeData.legs.length > 1 && (
-              <div className="mt-2 pt-2 border-t border-blue-200 space-y-1">
-                {routeData.legs.map((leg, i) => (
-                  <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-slate-600 truncate mr-2">
-                      {allStops[i]?.place?.name ? allStops[i].place.name.slice(0, 18) : `Stop ${i}`}
-                      {' → '}
-                      {allStops[i + 1]?.place?.name ? allStops[i + 1].place.name.slice(0, 18) : `Stop ${i + 1}`}
-                    </span>
-                    <span className="text-slate-700 font-medium whitespace-nowrap">
-                      {formatDistance(leg.distance)} · {formatDuration(leg.duration)}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Step-by-step navigation toggle */}
-            {routeData.steps && routeData.steps.length > 0 && (
-              <div className="mt-2 pt-2 border-t border-blue-200">
+            {alternativeRoutes.map((altRoute, i) => {
+              const isSelected = i === selectedRouteIndex
+              const modeColor = TRAVEL_MODES.find((m) => m.id === travelMode)?.color || '#136AEC'
+              const tags = altRoute.routeTags || []
+              const showFastest = tags.includes('fastest') || (
+                !tags.length && altRoute.duration <= Math.min(...alternativeRoutes.map((r) => r.duration))
+              )
+              const showShortest = tags.includes('shortest') || (
+                !tags.length && altRoute.distance <= Math.min(...alternativeRoutes.map((r) => r.distance))
+              )
+              return (
                 <button
-                  onClick={() => setShowSteps(!showSteps)}
-                  className="w-full flex items-center justify-between text-xs font-medium text-blue-700 hover:text-blue-800 transition-colors"
+                  key={`alt-${i}-${altRoute.routeIndex ?? i}`}
+                  onClick={() => handleSelectRoute(i)}
+                  className={`w-full text-left p-3 rounded-xl border-2 transition-all ${
+                    isSelected
+                      ? 'shadow-md'
+                      : 'bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm'
+                  }`}
+                  style={isSelected ? { borderColor: modeColor, backgroundColor: `${modeColor}08` } : {}}
                 >
-                  <span className="flex items-center gap-1.5">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                    Step-by-step directions
-                  </span>
-                  <svg className={`w-4 h-4 transition-transform ${showSteps ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
-                </button>
-                {showSteps && (
-                  <div className="mt-2 space-y-0.5 max-h-60 overflow-y-auto overscroll-contain">
-                    {routeData.steps.map((step, i) => {
-                      const maneuver = step.maneuver || {}
-                      const instruction = step.name || maneuver.instruction || `Step ${i + 1}`
-                      const modifier = maneuver.modifier || maneuver.type || ''
-                      return (
-                        <div key={i} className="flex items-start gap-2 py-1.5 px-1 rounded hover:bg-blue-50/50">
-                          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center mt-0.5">
-                            <StepIcon modifier={modifier} />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="text-[11px] text-slate-700 leading-snug">
-                              {modifier && <span className="font-semibold capitalize">{modifier.replace(/-/g, ' ')} </span>}
-                              {instruction ? <span>on {instruction}</span> : null}
-                            </div>
-                            {(step.distance > 0 || step.duration > 0) && (
-                              <div className="text-[10px] text-slate-400 mt-0.5">
-                                {step.distance > 0 && formatDistance(step.distance)}
-                                {step.distance > 0 && step.duration > 0 && ' · '}
-                                {step.duration > 0 && formatDuration(step.duration)}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )
-                    })}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div
+                        className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isSelected ? '' : 'opacity-40'}`}
+                        style={{ backgroundColor: isSelected ? modeColor : '#9CA3AF' }}
+                      />
+                      <span className="text-[10px] font-semibold text-slate-400 uppercase flex-shrink-0">
+                        {tRouteLabel} {i + 1}
+                      </span>
+                      <span
+                        className={`text-sm font-bold ${isSelected ? '' : 'text-slate-700'}`}
+                        style={isSelected ? { color: modeColor } : {}}
+                      >
+                        {formatDuration(altRoute.duration)}
+                      </span>
+                      <span className="text-xs text-slate-400">·</span>
+                      <span className="text-xs text-slate-500 font-medium truncate">{formatDistance(altRoute.distance)}</span>
+                    </div>
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {showFastest && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
+                          {getRouteTagLabel('fastest', () => tFastest) || tFastest}
+                        </span>
+                      )}
+                      {showShortest && !showFastest && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                          {getRouteTagLabel('shortest', () => tShortest) || tShortest}
+                        </span>
+                      )}
+                      {isSelected && (
+                        <svg className="w-4 h-4" style={{ color: modeColor }} fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
                   </div>
-                )}
-              </div>
-            )}
+                  {isSelected && altRoute.steps?.length > 0 && (
+                    <div className="mt-1.5 text-[10px] text-slate-400 truncate">
+                      via {altRoute.steps.filter((s) => s.name).map((s) => s.name).filter((n, idx, arr) => arr.indexOf(n) === idx).slice(0, 3).join(' → ')}
+                    </div>
+                  )}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
-            {/* Bus mode hint */}
-            {travelMode === 'bus' && (
-              <div className="mt-2 pt-2 border-t border-blue-200 flex items-start gap-2 text-[10px] text-slate-500">
-                <svg className="w-3.5 h-3.5 flex-shrink-0 mt-0.5 text-sky-500" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
-                <span>{tBusHint}</span>
+        {routeData && isRouteEdited && (
+          <p className="mx-4 mt-2 text-xs text-amber-700">Route adjusted on map</p>
+        )}
+
+        {routeData?.legs && routeData.legs.length > 1 && (
+          <div className="mx-4 mt-3 border-t border-[#e8eaed] pt-2 space-y-1.5">
+            {routeData.legs.map((leg, i) => (
+              <div key={i} className="flex items-center justify-between text-xs text-[#5f6368]">
+                <span className="truncate mr-2">
+                  {allStops[i]?.place?.name?.slice(0, 20) || `Leg ${i + 1}`}
+                  {' → '}
+                  {allStops[i + 1]?.place?.name?.slice(0, 20) || `Leg ${i + 2}`}
+                </span>
+                <span className="text-[#202124] font-medium whitespace-nowrap">
+                  {formatDistance(leg.distance)} · {formatDuration(leg.duration)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {routeData?.steps && routeData.steps.length > 0 && (
+          <div className="mx-4 mt-3 border-t border-[#e8eaed] pt-2">
+            <button
+              type="button"
+              onClick={() => setShowSteps(!showSteps)}
+              className="w-full flex items-center justify-between text-sm font-medium text-[#1a73e8] py-1"
+            >
+              <span>Step-by-step directions</span>
+              <svg className={`w-5 h-5 transition-transform ${showSteps ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            {showSteps && (
+              <div className="mt-1 max-h-52 overflow-y-auto overscroll-contain">
+                {routeData.steps.map((step, i) => {
+                  const maneuver = step.maneuver || {}
+                  const instruction = step.name || maneuver.instruction || `Step ${i + 1}`
+                  const modifier = maneuver.modifier || maneuver.type || ''
+                  return (
+                    <div key={i} className="flex items-start gap-2.5 py-2 border-b border-[#f1f3f4] last:border-0">
+                      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-[#e8f0fe] flex items-center justify-center mt-0.5">
+                        <StepIcon modifier={modifier} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm text-[#202124] leading-snug">
+                          {modifier && <span className="font-medium capitalize">{modifier.replace(/-/g, ' ')} </span>}
+                          {instruction ? <span>on {instruction}</span> : null}
+                        </div>
+                        {(step.distance > 0 || step.duration > 0) && (
+                          <div className="text-xs text-[#5f6368] mt-0.5">
+                            {step.distance > 0 && formatDistance(step.distance)}
+                            {step.distance > 0 && step.duration > 0 && ' · '}
+                            {step.duration > 0 && formatDuration(step.duration)}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>
         )}
+
+        {travelMode === 'bus' && routeData && (
+          <p className="mx-4 mt-2 text-xs text-[#5f6368] leading-snug">{tBusHint}</p>
+        )}
       </div>
 
-      {/* Action buttons */}
-      <div className="px-4 py-3 border-t border-slate-100 bg-white flex gap-2 flex-shrink-0">
-        <button
-          onClick={() => handleCalculate()}
-          disabled={isCalculating || !startPlace || !endPlace}
-          className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-primary-600 text-white rounded-xl hover:bg-primary-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed text-sm shadow-lg"
-        >
-          {isCalculating ? (
-            <>
-              <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-white" />
-              {tCalculating}
-            </>
-          ) : (
-            <>
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              {tGetDirections}
-            </>
-          )}
-        </button>
-        {routeData && (
+      {routeData && (
+        <div className="px-4 py-2 border-t border-[#e8eaed] flex-shrink-0">
           <button
+            type="button"
             onClick={handleClear}
-            className="px-4 py-2.5 bg-slate-100 text-slate-600 rounded-xl hover:bg-slate-200 transition-colors font-semibold text-sm"
+            className="w-full py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] rounded-lg transition-colors"
           >
             {tClear}
           </button>
-        )}
-      </div>
+        </div>
+      )}
+        </>
+      )}
     </div>
   )
 }

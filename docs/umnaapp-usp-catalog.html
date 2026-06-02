@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UMNAAPP USP Catalog</title>
+  <style>
+    :root {
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-2: #f1f5f9;
+      --border: #e2e8f0;
+      --border-strong: #cbd5e1;
+      --text: #0f172a;
+      --text-2: #475569;
+      --text-3: #94a3b8;
+      --accent: #0284c7;
+      --accent-bg: #e0f2fe;
+      --accent-strong: #0369a1;
+      --success: #047857;
+      --success-bg: #ecfdf5;
+      --info: #1d4ed8;
+      --info-bg: #eff6ff;
+      --warn: #b45309;
+      --warn-bg: #fef3c7;
+      --shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+    body { font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Noto Sans Kannada", "Noto Sans Devanagari", sans-serif; line-height: 1.55; font-size: 14px; }
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 24px 64px; }
+    h1 { font-size: 28px; line-height: 1.2; margin: 0 0 4px; font-weight: 700; letter-spacing: -0.01em; }
+    h2 { font-size: 18px; margin: 0 0 4px; font-weight: 600; }
+    h3 { font-size: 14px; margin: 0 0 4px; font-weight: 600; }
+    .sub { color: var(--text-2); }
+    .small { font-size: 12px; }
+    .muted { color: var(--text-3); }
+    .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .gap-lg { gap: 16px; }
+    .divider { border-top: 1px solid var(--border); margin: 28px 0; }
+    .pill {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 10px; border-radius: 999px; font-size: 12px; font-weight: 500;
+      border: 1px solid var(--border-strong); background: var(--surface); color: var(--text-2);
+      cursor: pointer; transition: all 0.12s ease;
+      user-select: none;
+    }
+    .pill:hover { border-color: var(--text-3); }
+    .pill.active { background: var(--accent); border-color: var(--accent); color: white; }
+    .pill.tone-success { color: var(--success); border-color: #a7f3d0; background: var(--success-bg); }
+    .pill.tone-success.active { background: var(--success); color: white; border-color: var(--success); }
+    .pill.tone-info { color: var(--info); border-color: #bfdbfe; background: var(--info-bg); }
+    .pill.tone-info.active { background: var(--info); color: white; border-color: var(--info); }
+    .pill.tone-warn { color: var(--warn); border-color: #fde68a; background: var(--warn-bg); }
+    .pill.tone-warn.active { background: var(--warn); color: white; border-color: var(--warn); }
+    .pill.tone-neutral { color: var(--text-2); }
+    .pill.size-sm { padding: 2px 8px; font-size: 11px; }
+    .pill.label { cursor: default; }
+    .callout {
+      border: 1px solid #bae6fd; background: #f0f9ff; color: var(--accent-strong);
+      border-radius: 10px; padding: 14px 16px; margin: 20px 0;
+    }
+    .callout strong { color: var(--accent-strong); }
+    .stats {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px; margin: 20px 0;
+    }
+    @media (max-width: 720px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+    .stat {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      padding: 16px; box-shadow: var(--shadow);
+    }
+    .stat .v { font-size: 24px; font-weight: 700; line-height: 1.1; }
+    .stat .l { font-size: 12px; color: var(--text-2); margin-top: 4px; }
+    .stat.success .v { color: var(--success); }
+    .stat.info .v { color: var(--info); }
+    .stat.warn .v { color: var(--warn); }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+    @media (max-width: 880px) { .grid-3 { grid-template-columns: 1fr; } }
+    .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+    .card-h { padding: 10px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-weight: 600; font-size: 13px; }
+    .card-b { padding: 14px; }
+    .card-b p { margin: 0 0 8px; font-size: 13px; }
+    .card-b p.why { color: var(--text-2); font-style: italic; }
+    .filters-block { margin: 16px 0 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+    .filters-block .row + .row { margin-top: 8px; }
+    .filters-block .lbl { font-weight: 600; color: var(--text-2); font-size: 12px; min-width: 76px; }
+    input[type="search"] {
+      width: 100%; max-width: 360px; padding: 8px 12px;
+      border: 1px solid var(--border-strong); border-radius: 8px;
+      background: var(--surface); color: var(--text); font-size: 13px;
+      outline: none;
+    }
+    input[type="search"]:focus { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+    table.catalog {
+      width: 100%; border-collapse: collapse; background: var(--surface);
+      border: 1px solid var(--border); border-radius: 10px; overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+    table.catalog th, table.catalog td {
+      padding: 12px 14px; text-align: left; vertical-align: top;
+      border-top: 1px solid var(--border); font-size: 13px;
+    }
+    table.catalog thead th { background: var(--surface-2); border-top: none; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); }
+    table.catalog tbody tr:nth-child(even) td { background: #fafbfd; }
+    .idea-name { font-weight: 600; color: var(--text); }
+    .idea-pitch { color: var(--text-2); margin-top: 4px; }
+    .idea-why { color: var(--text-3); font-style: italic; margin-top: 4px; font-size: 12px; }
+    table.gap-table { width: 100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; box-shadow: var(--shadow); }
+    table.gap-table th, table.gap-table td { padding: 10px 14px; text-align: left; vertical-align: top; border-top: 1px solid var(--border); font-size: 13px; }
+    table.gap-table thead th { background: var(--surface-2); border-top: none; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-2); }
+    table.gap-table .opening { color: var(--accent-strong); font-weight: 600; }
+    .quartet { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; margin-top: 8px; }
+    @media (max-width: 880px) { .quartet { grid-template-columns: 1fr; } }
+    .quartet > div { padding: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; box-shadow: var(--shadow); }
+    .anchor { color: var(--text-2); font-size: 12px; }
+    .footer { margin-top: 40px; color: var(--text-3); font-size: 12px; text-align: center; }
+    .footer a { color: var(--accent); text-decoration: none; }
+    .toolbar-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; }
+    .count-text { font-size: 12px; color: var(--text-3); }
+    .empty { padding: 24px; text-align: center; color: var(--text-3); font-style: italic; }
+
+    @media print {
+      body { background: white; }
+      .wrap { padding: 0; max-width: none; }
+      .filters-block, .pill { display: none !important; }
+      .card, .stat, table.catalog, table.gap-table, .quartet > div { box-shadow: none; }
+      table.catalog th, table.catalog td { font-size: 11px; padding: 8px 10px; }
+      h1 { font-size: 22px; }
+      tr { break-inside: avoid; }
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>USP Catalog · UMNAAPP</h1>
+    <p class="sub">66 differentiating feature ideas for an open-source map platform. Filter, prioritise, and pick the next bet. Covers ground Google Maps, OpenStreetMap, Apple Maps, Waze and Mapbox leave open.</p>
+  </header>
+
+  <div class="callout">
+    <strong>How to read this.</strong>
+    Each idea is scored on <strong>effort</strong> (S / M / L), <strong>novelty</strong> (Differentiated / Rare / Breakthrough), and <strong>status</strong> (<em>Partial</em> means UMNAAPP already has foundations in the codebase — e.g. AskMaps, polygon explore, vehicle tracking, real-time sync, multilingual). Aim to pair one Breakthrough bet with several Small-effort wins.
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="divider"></div>
+
+  <section>
+    <h2>Top picks — start here</h2>
+    <p class="sub small">High novelty × low/medium effort × leverage on what you've already built.</p>
+    <div class="grid-3" id="top-picks" style="margin-top: 12px;"></div>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <div class="toolbar-row" style="margin-bottom: 8px;">
+      <h2>Browse the catalog</h2>
+      <span class="count-text" id="count-text"></span>
+    </div>
+
+    <div class="filters-block">
+      <div class="row">
+        <span class="lbl">Search</span>
+        <input id="search" type="search" placeholder="Search ideas, rationale, category..." />
+      </div>
+      <div class="row" id="cat-row">
+        <span class="lbl">Category</span>
+      </div>
+      <div class="row" id="effort-row">
+        <span class="lbl">Effort</span>
+      </div>
+      <div class="row" id="novelty-row">
+        <span class="lbl">Novelty</span>
+      </div>
+      <div class="row" id="status-row">
+        <span class="lbl">Status</span>
+      </div>
+    </div>
+
+    <table class="catalog" id="catalog">
+      <thead>
+        <tr>
+          <th style="width: 56%;">Idea</th>
+          <th>Category</th>
+          <th>Effort</th>
+          <th>Novelty</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="catalog-body"></tbody>
+    </table>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <h2>Where competitors are weakest</h2>
+    <p class="sub small">Map of strategic openings — the right column is your land grab.</p>
+    <table class="gap-table" style="margin-top: 12px;">
+      <thead>
+        <tr><th>Battleground</th><th>Google Maps</th><th>OpenStreetMap</th><th>UMNAAPP opening</th></tr>
+      </thead>
+      <tbody id="gaps-body"></tbody>
+    </table>
+  </section>
+
+  <div class="divider"></div>
+
+  <section>
+    <h2>Sequencing recommendation</h2>
+    <div class="quartet">
+      <div>
+        <h3>Quarter 1 — earn trust</h3>
+        <p class="sub small">Ship the cheap-but-loud differentiators: place provenance, export-everything, EXIF photo verification, hyperlocal categories, public utility finder, no-ads pledge. These prove the project's character without big engineering bets.</p>
+      </div>
+      <div>
+        <h3>Quarter 2 — unlock loops</h3>
+        <p class="sub small">SEO-indexable place pages, embeddable widgets, @handle profiles, email digests, expiring live-trip links, MCP server. Each one is a growth loop that compounds.</p>
+      </div>
+      <div>
+        <h3>Quarter 3 — make a moat</h3>
+        <p class="sub small">Pick one breakthrough: E2EE places, AI travelogue, map rooms, offline routing, or pilgrimage multi-day mode. Becomes the headline that defines what UMNAAPP <em>is</em>.</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="callout" style="margin-top: 24px; border-color: #6ee7b7; background: #ecfdf5; color: #065f46;">
+    <strong>Anchor positioning.</strong>
+    The landing page today describes UMNAAPP as "Map-first · Real-time · Secure". After picking a moat above, rewrite that line to claim a category — for example <strong>"The open, multiplayer, India-first map"</strong> or <strong>"The map for the rest of your world"</strong>. The catalog is a means; positioning is the end.
+  </div>
+
+  <p class="footer">Generated from <code>umnaapp-usp-catalog.canvas.tsx</code> · <a href="javascript:window.print()">Print or save as PDF</a></p>
+</div>
+
+<script>
+const CATEGORY_LABEL = {
+  ai: "AI & Intelligence",
+  hyperlocal: "Hyperlocal & Cultural",
+  community: "Community & Trust",
+  privacy: "Privacy & Sovereignty",
+  collab: "Collaboration",
+  offline: "Offline & Resilience",
+  vehicle: "Vehicle & Fleet",
+  a11y: "Accessibility",
+  creator: "Creator / Publisher",
+  dev: "Developer / Open-source",
+  safety: "Safety & Emergency",
+  engagement: "Gamification",
+  niche: "Niche Verticals",
+  monetization: "Monetization",
+};
+const EFFORT_LABEL = { S: "Small", M: "Medium", L: "Large" };
+const NOVELTY_LABEL = { diff: "Differentiated", rare: "Rare", breakthrough: "Breakthrough" };
+const noveltyTone = (n) => n === "breakthrough" ? "success" : n === "rare" ? "info" : "warn";
+const effortTone = (e) => e === "S" ? "success" : e === "M" ? "info" : "warn";
+
+const IDEAS = [
+  { id:"ai-1", name:"Conversational map (multi-turn)", pitch:"Remember context across asks: 'restaurants near here', then 'only veg ones', then 'route me there'.", why:"Google Maps still treats every query as one-shot. Extends your existing AskMaps panel.", category:"ai", effort:"S", novelty:"rare", status:"partial" },
+  { id:"ai-2", name:"AI trip planner", pitch:"'Plan a 3-day temple tour from Bangalore' → auto-generated routed itinerary using your saved places.", why:"Nobody combines personal-place library + LLM routing well today.", category:"ai", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"ai-3", name:"Photo → place extractor", pitch:"Drop a photo, AI guesses location via landmarks/EXIF/visual recognition and pre-fills the Add Place form.", why:"Removes 80% of the friction of contributing.", category:"ai", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"ai-4", name:"Voice-first hands-free mode", pitch:"Push-to-talk navigation with offline TTS narration; ideal for two-wheelers and trekkers.", why:"Google requires data; Apple is iOS-only; nothing serves Indic-language voice well.", category:"ai", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"ai-5", name:"AI duplicate/spam moderator", pitch:"LLM-scored auto-flag for duplicate / wrong-category / abusive places before they hit the approval queue.", why:"Lets the approval scheduler scale to millions of contributions.", category:"ai", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"ai-6", name:"Region summary on draw", pitch:"Draw any polygon → AI summarises 'what's here' (5 hotels, 12 cafes, 2 ATMs, 1 hospital) with one-paragraph vibe description.", why:"Natural extension of your PolygonExplorePanel.", category:"ai", effort:"S", novelty:"rare", status:"partial" },
+  { id:"ai-7", name:"Route → travelogue generator", pitch:"Pick any past trip, AI writes a shareable travel blog using your pins, photos, and timestamps.", why:"Turns the map into a creator-economy surface; deep moat once users have months of trips.", category:"ai", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"ai-8", name:"Natural-language map edits", pitch:"'Move all my home pins one street north' or 'merge these three duplicate temples' — LLM-mediated bulk edits.", why:"Power-user superpower no map app offers.", category:"ai", effort:"M", novelty:"breakthrough", status:"not_started" },
+
+  { id:"hyp-1", name:"Deep regional-language UI", pitch:"First-class Kannada, Tulu, Konkani, Marathi, Tamil with localised category names, RTL where needed.", why:"Already have atozas-translate; doubling down on under-served Indic languages is a defensible USP vs Google.", category:"hyperlocal", effort:"M", novelty:"rare", status:"partial" },
+  { id:"hyp-2", name:"Hyperlocal category set", pitch:"Anganwadi, ASHA worker, fair-price shop, gram panchayat office, post office, weekly santhe — categories no global map has.", why:"Becomes the de-facto map for rural & government workflows.", category:"hyperlocal", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"hyp-3", name:"Festival / jatre overlay", pitch:"Time-bound markers (only visible during the festival window), recurring yearly with countdowns.", why:"Hugely under-served — pilgrims and travellers plan around these.", category:"hyperlocal", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"hyp-4", name:"Curated pilgrimage tour packs", pitch:"Pre-built Char Dham, Ashtavinayak, 7 Tirupathis, Ayyappa, Sufi-circuit packs — one-tap import to your map.", why:"Massive existing demand, no clean product owns it.", category:"hyperlocal", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"hyp-5", name:"Local transport layers", pitch:"Auto-rickshaw fare estimator, KSRTC/RTC bus stops with timings, ferry routes, intercity shared-taxi pickups.", why:"Solves the 'how do I actually get there' problem better than Google in Tier-2/3 India.", category:"hyperlocal", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"hyp-6", name:"Public utility finder", pitch:"Public toilets, drinking-water taps, free wifi, charging points — community-tagged with photos.", why:"Genuinely useful, completely absent from Google. Strong word-of-mouth driver.", category:"hyperlocal", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"hyp-7", name:"Crop / land-use overlay", pitch:"Crowdsourced overlay of cropping pattern, soil type, water table, panchayat boundaries.", why:"Powers agri-tech, govt, NGO use-cases — adjacent revenue surface.", category:"hyperlocal", effort:"L", novelty:"breakthrough", status:"not_started" },
+
+  { id:"com-1", name:"Verified ward-level moderators", pitch:"Geo-scoped editor roles with gamified leaderboards; trusted locals approve edits in their pin code.", why:"OSM-style distributed trust, but with structured authority maps lack.", category:"community", effort:"M", novelty:"rare", status:"partial" },
+  { id:"com-2", name:"Full place provenance trail", pitch:"Public audit log per place: who added, who edited what when, with diff viewer.", why:"Wikipedia-grade trust + accountability — competitors hide this.", category:"community", effort:"S", novelty:"rare", status:"partial" },
+  { id:"com-3", name:"EXIF-verified photos", pitch:"Auto-reject photos taken >500m from the pin or older than a date threshold.", why:"Solves the 'stale photo' problem ratings sites suffer from.", category:"community", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"com-4", name:"Contribution streaks & badges", pitch:"Daily streaks, lifetime contribution count, rare-place badges, public Wikipedia-style editor profiles.", why:"Compounds engagement and crowdsources moderation.", category:"community", effort:"S", novelty:"diff", status:"partial" },
+  { id:"com-5", name:"Bounty system", pitch:"Power users post bounties: 'map 20 ATMs in village X', winners get redeemable points / Pro time.", why:"Solves the cold-start problem for unmapped regions; novel mechanic in maps.", category:"community", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"com-6", name:"Place-anchored Q&A threads", pitch:"Ask a question pinned to a specific place ('open early on Sundays?') — local mods answer.", why:"Replaces the awful 'Ask the community' feature on competitors.", category:"community", effort:"M", novelty:"rare", status:"not_started" },
+
+  { id:"prv-1", name:"End-to-end encrypted private places", pitch:"Toggle on a pin to store it as ciphertext — even you (the operator) can't read it.", why:"Real differentiator vs Google. Major appeal to journalists, activists, women-safety use cases.", category:"privacy", effort:"L", novelty:"breakthrough", status:"not_started" },
+  { id:"prv-2", name:"One-line self-hostable deploy", pitch:"`docker-compose up` ships the full stack including tile server. Pitch as 'your map, your data'.", why:"Massive open-source community signal; powers enterprise / govt deals.", category:"privacy", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"prv-3", name:"Pseudonymous mode", pitch:"Sign up with just a passphrase — no email, no phone. Recovery via printable backup sheet.", why:"Removes the biggest barrier in privacy-sensitive markets.", category:"privacy", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"prv-4", name:"Verifiable no-tracking telemetry", pitch:"Publish an open telemetry config + third-party audit; show a 'no location ever leaves your device' badge.", why:"Branding move that compounds — every leak from competitors becomes your marketing.", category:"privacy", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"prv-5", name:"Export everything + right-to-erase", pitch:"One-tap GeoJSON / KML / CSV / PDF dump; one-tap account+data wipe.", why:"GDPR-grade trust at zero cost to you; competitive moat in EU.", category:"privacy", effort:"S", novelty:"diff", status:"not_started" },
+
+  { id:"col-1", name:"Live cursors on shared maps", pitch:"See teammates' cursors and selections in real time, like Figma — using your existing socket.io.", why:"Map equivalent of multiplayer Figma; zero direct competition.", category:"collab", effort:"M", novelty:"rare", status:"partial" },
+  { id:"col-2", name:"Map rooms (Docs for maps)", pitch:"Persistent shared map workspace with chat sidebar, presence, comments, and version history.", why:"Strong moat; closest competitor (Felt) is Western-only and paid-only.", category:"collab", effort:"L", novelty:"breakthrough", status:"partial" },
+  { id:"col-3", name:"Public, embeddable collections", pitch:"Publish 'My favourite cafes in Mangaluru' — followable, shareable, embeddable as iframe.", why:"Drives organic growth + creator economy.", category:"collab", effort:"M", novelty:"diff", status:"not_started" },
+  { id:"col-4", name:"Co-edited group itineraries", pitch:"Plan a trip with friends — vote on stops, comment on pins, vote-based reordering.", why:"Travel-planning whitespace; competitors are static & ugly.", category:"collab", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"col-5", name:"Map snapshots / permalinks", pitch:"Freeze any map view + overlay state into a shareable URL that always renders identically.", why:"Underused growth loop — every share is a marketing surface.", category:"collab", effort:"S", novelty:"diff", status:"not_started" },
+
+  { id:"off-1", name:"Per-region offline vector tiles", pitch:"Long-press a region → download for offline. Vector tiles keep size tiny.", why:"Critical for trekkers, rural users, travellers.", category:"offline", effort:"M", novelty:"diff", status:"not_started" },
+  { id:"off-2", name:"Offline turn-by-turn routing", pitch:"Bundled OSRM/Valhalla; works with zero signal.", why:"Google Maps offline routing is degraded; this is a genuine product win.", category:"offline", effort:"L", novelty:"rare", status:"not_started" },
+  { id:"off-3", name:"SMS share fallback", pitch:"Share place / live location via SMS deep link — works on 2G feature phones.", why:"Unlocks the half of India that still uses feature phones to receive shares.", category:"offline", effort:"S", novelty:"breakthrough", status:"not_started" },
+  { id:"off-4", name:"Bluetooth/LAN mesh place sync", pitch:"In areas with no internet, sync places peer-to-peer with nearby users.", why:"Useful for survey teams, disaster relief, remote villages — virtually unique.", category:"offline", effort:"L", novelty:"breakthrough", status:"not_started" },
+
+  { id:"veh-1", name:"Find My Family / Truck", pitch:"Free multi-device live tracker with privacy windows and battery-aware update intervals.", why:"Direct extension of your existing vehicle tracking. Replaces paid fleet apps for small operators.", category:"vehicle", effort:"M", novelty:"rare", status:"partial" },
+  { id:"veh-2", name:"Geofence rules engine", pitch:"Alert when a vehicle enters/leaves a zone; auto-start sharing only during a trip; auto-stop on arrival.", why:"Parents, logistics, courier teams. Higher-margin Pro tier hook.", category:"vehicle", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"veh-3", name:"Driver score from phone sensors", pitch:"Score speed, harsh braking, fuel economy via the existing socket location stream.", why:"Selling point for insurance partnerships.", category:"vehicle", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"veh-4", name:"Auto trip diary + tax reports", pitch:"Detects trip start/stop automatically, labels home/work, exports CRA/FBT/IRS-friendly mileage logs.", why:"Replaces apps like MileIQ for free.", category:"vehicle", effort:"M", novelty:"diff", status:"not_started" },
+  { id:"veh-5", name:"Expiring live-trip share link", pitch:"Share a one-time link with ETA — auto-expires on arrival, no app install needed for receiver.", why:"Beats WhatsApp's 'share live location' UX.", category:"vehicle", effort:"S", novelty:"diff", status:"not_started" },
+
+  { id:"a11y-1", name:"Wheelchair accessibility crowd-tags", pitch:"Per-place flags for ramp, lift, accessible toilet, parking; community-verifiable.", why:"Google's AXS Map is half-abandoned; massive under-served audience.", category:"a11y", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"a11y-2", name:"Audio-first map mode", pitch:"Screen-reader-optimised place exploration with spatial-audio cues for nearby items.", why:"Genuine breakthrough — no major map ships this.", category:"a11y", effort:"L", novelty:"breakthrough", status:"not_started" },
+  { id:"a11y-3", name:"Senior mode", pitch:"Larger fonts, simplified UI, voice everything, fewer steps to navigation.", why:"Capture the rising silver demographic; great word-of-mouth driver.", category:"a11y", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"a11y-4", name:"Low-bandwidth text-first mode", pitch:"Text-only place results on 2G; defer map tiles until tapped.", why:"Performance moat in emerging markets.", category:"a11y", effort:"S", novelty:"rare", status:"not_started" },
+
+  { id:"cre-1", name:"Embeddable map widgets", pitch:"<script>-tag-embeddable interactive map for any blog / Notion / WordPress / Wix.", why:"Every embed is a backlink. Drives SEO and brand recognition.", category:"creator", effort:"M", novelty:"diff", status:"not_started" },
+  { id:"cre-2", name:"SEO-indexable place pages", pitch:"Every public place gets a fast static page (place.umnaapp.com/...) with schema.org markup.", why:"Free, compounding organic traffic.", category:"creator", effort:"S", novelty:"diff", status:"not_started" },
+  { id:"cre-3", name:"@handle creator profiles", pitch:"umnaapp.com/@you — public collections, contribution stats, follower count.", why:"Brings social-network growth dynamics to a map app.", category:"creator", effort:"S", novelty:"diff", status:"not_started" },
+  { id:"cre-4", name:"Auto QR codes per place", pitch:"Generate scannable QR for posters/menus that opens the live place page.", why:"Tiny effort, huge for restaurant/event marketing.", category:"creator", effort:"S", novelty:"diff", status:"not_started" },
+  { id:"cre-5", name:"Email/RSS digests", pitch:"Subscribe to 'new restaurants near me' or 'new temples in Kadaba' — weekly digest.", why:"Retention loop competitors don't bother with.", category:"creator", effort:"M", novelty:"rare", status:"not_started" },
+
+  { id:"dev-1", name:"Open REST + JS/Python SDK", pitch:"Public, rate-limited, well-documented API + SDKs. Free tier sufficient for hobbyists.", why:"Wins developer mindshare. Google Maps API is hated for pricing.", category:"dev", effort:"M", novelty:"diff", status:"partial" },
+  { id:"dev-2", name:"Webhooks", pitch:"Fire when a new place enters my polygon, or a place I follow gets edited.", why:"Enables third-party integrations and Zapier-style workflows.", category:"dev", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"dev-3", name:"Plugin / extension system", pitch:"Side-panel plugins (VS Code style) — third parties can ship 'Property Prices', 'Crime Stats', 'Bus Times'.", why:"Long-term moat through ecosystem effects.", category:"dev", effort:"L", novelty:"rare", status:"not_started" },
+  { id:"dev-4", name:"Opt-in OSM sync", pitch:"Push verified place additions back to OpenStreetMap with attribution preserved.", why:"Aligns with the open-source ethos; strong PR & community goodwill.", category:"dev", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"dev-5", name:"MCP server for AI agents", pitch:"Expose UMNAAPP as an MCP endpoint — Claude / Cursor / ChatGPT can read & write your map.", why:"Future-defining positioning; almost no maps service does this yet.", category:"dev", effort:"S", novelty:"breakthrough", status:"not_started" },
+
+  { id:"saf-1", name:"SOS broadcast", pitch:"Long-press → live-share location to 3 emergency contacts for N minutes with a recurring SMS ping.", why:"Direct Apple/Samsung-feature parity, but cross-platform & free.", category:"safety", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"saf-2", name:"Safe-route preference", pitch:"Routing prefers well-lit, busy, women-safe roads (community-rated). Avoid-zone overlay.", why:"Hot-button feature with strong word-of-mouth potential.", category:"safety", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"saf-3", name:"Live disaster overlay", pitch:"Crowdsourced flooded roads, blocked routes, shelter locations during storms / floods; auto-expires.", why:"Becomes essential infrastructure during disasters; massive earned media.", category:"safety", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"saf-4", name:"Nearest 24×7 medical finder", pitch:"One-tap: nearest open pharmacy, ER, blood bank, ambulance dispatcher.", why:"Concrete life-saving feature with simple data model.", category:"safety", effort:"S", novelty:"rare", status:"not_started" },
+
+  { id:"eng-1", name:"Personal exploration heatmap", pitch:"Pokemon-Go-style 'territory you've been to' rendered on your account.", why:"Highly shareable; powerful retention hook.", category:"engagement", effort:"S", novelty:"diff", status:"not_started" },
+  { id:"eng-2", name:"Streaks & day-counter", pitch:"Add-a-place streaks, visit-a-new-place streaks, view-a-route streaks.", why:"Duolingo-style retention compounding.", category:"engagement", effort:"S", novelty:"diff", status:"not_started" },
+  { id:"eng-3", name:"Community challenges", pitch:"'Map 10 ATMs in your panchayat this week' — leaderboard + small rewards.", why:"Drives the bounty system + onboarding loop.", category:"engagement", effort:"M", novelty:"diff", status:"not_started" },
+  { id:"eng-4", name:"Collectible rare-place badges", pitch:"Mountain peaks, ancient temples, historic sites — collect like Pokémon cards.", why:"Strong engagement for niches (trekkers, history buffs).", category:"engagement", effort:"S", novelty:"rare", status:"not_started" },
+
+  { id:"nic-1", name:"Cycling layer", pitch:"Bike-friendly routes, elevation profile, water stops, bike-shop network.", why:"Komoot quality at zero cost — niche but obsessive userbase.", category:"niche", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"nic-2", name:"Trekking mode", pitch:"GPX import/export, topo lines, group live-sync on remote trails (works with mesh-sync).", why:"Strong adjacency to outdoor + safety features.", category:"niche", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"nic-3", name:"Pilgrimage multi-day mode", pitch:"Itinerary with accommodation, prasada timings, queue forecasts, dress code reminders per temple.", why:"Massive market, almost entirely unserved by polished software.", category:"niche", effort:"M", novelty:"breakthrough", status:"not_started" },
+  { id:"nic-4", name:"Real-estate explorer overlay", pitch:"Overlay land prices, school zones, water table, flood history — crowd-edited.", why:"Adjacent monetisation; competitors charge a fortune.", category:"niche", effort:"L", novelty:"breakthrough", status:"not_started" },
+  { id:"nic-5", name:"Education map", pitch:"Colleges, hostels, tuition centres, library hours, admissions calendars.", why:"High-intent traffic during admission seasons.", category:"niche", effort:"M", novelty:"rare", status:"not_started" },
+  { id:"nic-6", name:"Wedding & event venue mode", pitch:"Capacity, parking, catering tie-ups, price band, real photos crowd-sourced.", why:"High-value vertical; SMBs will pay to be listed.", category:"niche", effort:"M", novelty:"rare", status:"not_started" },
+
+  { id:"mon-1", name:"No-ads-forever pledge", pitch:"Public commitment + technical enforcement (open client). Pro tier funds the app.", why:"Strong brand positioning vs ad-laden competitors.", category:"monetization", effort:"S", novelty:"diff", status:"not_started" },
+  { id:"mon-2", name:"Pay-once lifetime Pro", pitch:"Single-payment lifetime license tier alongside the monthly subscription.", why:"Differentiated against subscription-fatigued users; great launch marketing.", category:"monetization", effort:"S", novelty:"rare", status:"not_started" },
+  { id:"mon-3", name:"Claim-your-place SMB dashboard", pitch:"Small businesses claim their pin → analytics, photo management, response to Q&A, weekly visit reports.", why:"Recurring B2B revenue from a base you already have.", category:"monetization", effort:"M", novelty:"diff", status:"not_started" },
+];
+
+const TOP_PICKS = ["dev-5", "ai-3", "off-3", "saf-3", "veh-1", "hyp-5"];
+const COMPETITOR_GAPS = [
+  { area: "Hyperlocal Indian categories", google: "Generic, English-first", osm: "Sparse, no UI", opening: "Anganwadi, jatre, ferry, KSRTC, panchayat office" },
+  { area: "Privacy / sovereignty", google: "Heavy tracking", osm: "OK but no app polish", opening: "E2EE pins, self-hostable, audited telemetry" },
+  { area: "AI on map", google: "Chatbot, no map awareness", osm: "None", opening: "Conversational map, photo→pin, region summaries" },
+  { area: "Multiplayer maps", google: "Shared lists only", osm: "None", opening: "Live cursors, map rooms, vote-based itineraries" },
+  { area: "Creator economy", google: "Reviews + lists", osm: "None", opening: "Embeddable widgets, @handles, place SEO pages" },
+  { area: "Vehicle / family tracking", google: "Family link (basic)", osm: "None", opening: "Free fleet + geofence + driver score" },
+];
+
+const ALL_CATEGORIES = Object.keys(CATEGORY_LABEL);
+
+const state = {
+  cats: new Set(),
+  efforts: new Set(),
+  novelty: new Set(),
+  partialOnly: false,
+  search: "",
+};
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+
+function renderStats() {
+  const stats = {
+    all: IDEAS.length,
+    small: IDEAS.filter(i => i.effort === "S").length,
+    breakthrough: IDEAS.filter(i => i.novelty === "breakthrough").length,
+    partial: IDEAS.filter(i => i.status === "partial").length,
+  };
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="v">${stats.all}</div><div class="l">Total USP ideas</div></div>
+    <div class="stat success"><div class="v">${stats.small}</div><div class="l">Small-effort wins</div></div>
+    <div class="stat info"><div class="v">${stats.breakthrough}</div><div class="l">Breakthrough bets</div></div>
+    <div class="stat warn"><div class="v">${stats.partial}</div><div class="l">Already partial in codebase</div></div>
+  `;
+}
+
+function renderTopPicks() {
+  const root = document.getElementById("top-picks");
+  root.innerHTML = TOP_PICKS.map(id => {
+    const i = IDEAS.find(x => x.id === id);
+    if (!i) return "";
+    return `
+      <article class="card">
+        <div class="card-h">
+          <span>${escapeHtml(i.name)}</span>
+          <span class="pill size-sm label tone-${noveltyTone(i.novelty)} active">${NOVELTY_LABEL[i.novelty]}</span>
+        </div>
+        <div class="card-b">
+          <p>${escapeHtml(i.pitch)}</p>
+          <p class="why">${escapeHtml(i.why)}</p>
+          <div class="row" style="gap:6px;">
+            <span class="pill size-sm label tone-${effortTone(i.effort)}">Effort: ${EFFORT_LABEL[i.effort]}</span>
+            <span class="pill size-sm label">${CATEGORY_LABEL[i.category]}</span>
+          </div>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderFilters() {
+  const catCounts = Object.fromEntries(ALL_CATEGORIES.map(c => [c, IDEAS.filter(i => i.category === c).length]));
+  const catRow = document.getElementById("cat-row");
+  catRow.querySelectorAll(".pill").forEach(n => n.remove());
+  const allPill = document.createElement("button");
+  allPill.className = "pill" + (state.cats.size === 0 ? " active" : "");
+  allPill.textContent = `All (${IDEAS.length})`;
+  allPill.onclick = () => { state.cats.clear(); render(); };
+  catRow.appendChild(allPill);
+  ALL_CATEGORIES.forEach(c => {
+    const p = document.createElement("button");
+    p.className = "pill" + (state.cats.has(c) ? " active" : "");
+    p.textContent = `${CATEGORY_LABEL[c]} (${catCounts[c]})`;
+    p.onclick = () => { state.cats.has(c) ? state.cats.delete(c) : state.cats.add(c); render(); };
+    catRow.appendChild(p);
+  });
+
+  const effortRow = document.getElementById("effort-row");
+  effortRow.querySelectorAll(".pill").forEach(n => n.remove());
+  ["S", "M", "L"].forEach(e => {
+    const p = document.createElement("button");
+    p.className = `pill tone-${effortTone(e)}` + (state.efforts.has(e) ? " active" : "");
+    p.textContent = EFFORT_LABEL[e];
+    p.onclick = () => { state.efforts.has(e) ? state.efforts.delete(e) : state.efforts.add(e); render(); };
+    effortRow.appendChild(p);
+  });
+
+  const novRow = document.getElementById("novelty-row");
+  novRow.querySelectorAll(".pill").forEach(n => n.remove());
+  ["diff", "rare", "breakthrough"].forEach(n => {
+    const p = document.createElement("button");
+    p.className = `pill tone-${noveltyTone(n)}` + (state.novelty.has(n) ? " active" : "");
+    p.textContent = NOVELTY_LABEL[n];
+    p.onclick = () => { state.novelty.has(n) ? state.novelty.delete(n) : state.novelty.add(n); render(); };
+    novRow.appendChild(p);
+  });
+
+  const statusRow = document.getElementById("status-row");
+  statusRow.querySelectorAll(".pill").forEach(n => n.remove());
+  const stp = document.createElement("button");
+  stp.className = "pill tone-warn" + (state.partialOnly ? " active" : "");
+  stp.textContent = "Only show ideas already partial in your codebase";
+  stp.onclick = () => { state.partialOnly = !state.partialOnly; render(); };
+  statusRow.appendChild(stp);
+}
+
+function filtered() {
+  const q = state.search.trim().toLowerCase();
+  return IDEAS.filter(i => {
+    if (state.cats.size && !state.cats.has(i.category)) return false;
+    if (state.efforts.size && !state.efforts.has(i.effort)) return false;
+    if (state.novelty.size && !state.novelty.has(i.novelty)) return false;
+    if (state.partialOnly && i.status !== "partial") return false;
+    if (q) {
+      const hay = `${i.name} ${i.pitch} ${i.why} ${CATEGORY_LABEL[i.category]}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+function renderTable() {
+  const rows = filtered();
+  const body = document.getElementById("catalog-body");
+  if (rows.length === 0) {
+    body.innerHTML = `<tr><td colspan="5" class="empty">No ideas match the current filters. Clear some pills above.</td></tr>`;
+  } else {
+    body.innerHTML = rows.map(i => `
+      <tr>
+        <td>
+          <div class="idea-name">${escapeHtml(i.name)}</div>
+          <div class="idea-pitch">${escapeHtml(i.pitch)}</div>
+          <div class="idea-why">Why USP: ${escapeHtml(i.why)}</div>
+        </td>
+        <td><span class="small">${CATEGORY_LABEL[i.category]}</span></td>
+        <td><span class="pill size-sm label tone-${effortTone(i.effort)}">${EFFORT_LABEL[i.effort]}</span></td>
+        <td><span class="pill size-sm label tone-${noveltyTone(i.novelty)}">${NOVELTY_LABEL[i.novelty]}</span></td>
+        <td>${
+          i.status === "partial"
+            ? `<span class="pill size-sm label tone-warn active">Partial — extend</span>`
+            : `<span class="pill size-sm label">Not started</span>`
+        }</td>
+      </tr>
+    `).join("");
+  }
+  document.getElementById("count-text").textContent = `Showing ${rows.length} of ${IDEAS.length}`;
+}
+
+function renderGaps() {
+  document.getElementById("gaps-body").innerHTML = COMPETITOR_GAPS.map(g => `
+    <tr>
+      <td><strong>${escapeHtml(g.area)}</strong></td>
+      <td>${escapeHtml(g.google)}</td>
+      <td>${escapeHtml(g.osm)}</td>
+      <td class="opening">${escapeHtml(g.opening)}</td>
+    </tr>
+  `).join("");
+}
+
+function render() {
+  renderFilters();
+  renderTable();
+}
+
+document.getElementById("search").addEventListener("input", (e) => {
+  state.search = e.target.value;
+  renderTable();
+});
+
+renderStats();
+renderTopPicks();
+renderGaps();
+render();
+</script>
+</body>
+</html>

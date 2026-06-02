@@ -70,6 +70,16 @@ export const AuthProvider = ({ children }) => {
     localStorage.setItem('token', authToken)
   }
 
+  const updateProfile = useCallback(async (profileData) => {
+    try {
+      const { data } = await api.put('/auth/profile', profileData)
+      setUser(data.user)
+      return { success: true }
+    } catch (err) {
+      return { success: false, error: err.response?.data?.error || 'Failed to update' }
+    }
+  }, [])
+
   const updateProfilePicture = useCallback(async (pictureData) => {
     try {
       const { data } = await api.put('/auth/profile-picture', { picture: pictureData })
@@ -94,6 +104,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     loadUser,
+    updateProfile,
     updateProfilePicture,
     isAuthenticated: !!token,
   }

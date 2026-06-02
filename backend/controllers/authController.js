@@ -228,6 +228,33 @@ export const getCurrentUser = async (req, res) => {
   }
 }
 
+export const updateProfile = async (req, res) => {
+  try {
+    const { name } = req.body
+    if (!name || typeof name !== 'string' || name.trim().length < 2) {
+      return res.status(400).json({ error: 'Name must be at least 2 characters' })
+    }
+
+    const updated = await prisma.user.update({
+      where: { id: req.user.id },
+      data: { name: name.trim() },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+        picture: true,
+        emailVerified: true,
+        createdAt: true,
+      },
+    })
+
+    res.json({ user: { ...updated, isPlaceDeleteAdmin: isPlaceDeleteAdmin(updated) } })
+  } catch (error) {
+    console.error('Update profile error:', error)
+    res.status(500).json({ error: 'Failed to update profile' })
+  }
+}
+
 export const updateProfilePicture = async (req, res) => {
   try {
     const { picture } = req.body
