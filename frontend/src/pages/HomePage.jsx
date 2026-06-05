@@ -9,6 +9,7 @@ import MeasureDistancePanel from '../components/MeasureDistancePanel'
 import AskMapsPanel from '../components/AskMapsPanel'
 import SearchBar from '../components/SearchBar'
 import RoutePanel from '../components/RoutePanel'
+import NavigationView from '../components/NavigationView'
 import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
 import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
 import PlaceDetailPanel from '../components/PlaceDetailPanel'
@@ -123,6 +124,7 @@ const HomePage = () => {
   const [routeStartPlace, setRouteStartPlace] = useState(null)
   const [routeEndPlace, setRouteEndPlace] = useState(null)
   const [routeStops, setRouteStops] = useState([])
+  const [navigation, setNavigation] = useState(null)
   const [addPlacePickMode, setAddPlacePickMode] = useState(false)
   const [fetchingPlaceDetails, setFetchingPlaceDetails] = useState(false)
   const [showMyPlaces, setShowMyPlaces] = useState(false)
@@ -1049,6 +1051,45 @@ const HomePage = () => {
     throw new Error('Map not ready')
   }
 
+  const handleStartNavigation = useCallback((session) => {
+    if (!session?.route) return
+    setNavigation(session)
+    setShowRoutePanel(false)
+    // Re-assert the route polyline on the map so it stays visible once the
+    // directions panel closes and the navigation camera tilts in.
+    const geometry = session.route.geometry
+    if (geometry && mapRef.current?.setRouteGeometry) {
+      mapRef.current.setRouteGeometry({ geometry }, { fitBounds: false })
+      requestAnimationFrame(() => mapRef.current?.ensureRouteOnTop?.())
+    }
+  }, [])
+
+  const handleExitNavigation = useCallback(() => {
+    setNavigation(null)
+  }, [])
+
+  // Recompute the route from the user's current position when they go off-route.
+  const handleNavigationReroute = useCallback(
+    async (location) => {
+      if (!location || !mapRef.current?.calculateRoute) return
+      setNavigation((prev) => {
+        if (!prev?.destination) return prev
+        const start = { lat: location.lat, lng: location.lng }
+        const end = { lat: prev.destination.lat, lng: prev.destination.lng }
+        mapRef.current
+          .calculateRoute(start, end, [], prev.travelMode)
+          .then((result) => {
+            if (result?.route) {
+              setNavigation((cur) => (cur ? { ...cur, route: result.route } : cur))
+            }
+          })
+          .catch(() => {})
+        return prev
+      })
+    },
+    []
+  )
+
   const handleAddExtractedPlaces = async (selected) => {
     const { data } = await api.post('/map/places/bulk', { places: selected })
     if (data.places?.length > 0) {
@@ -1515,6 +1556,7 @@ const HomePage = () => {
                   mapRef.current?.clearRoute?.()
                 }}
                 onSearchResultsChange={() => {}}
+                onStartNavigation={handleStartNavigation}
                 onRoutePlacesChange={(start, end, stops) => {
                   setRouteStartPlace(start)
                   setRouteEndPlace(end)
@@ -1524,6 +1566,18 @@ const HomePage = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {navigation && (
+        <NavigationView
+          mapRef={mapRef}
+          route={navigation.route}
+          currentLocation={currentLocation}
+          travelMode={navigation.travelMode}
+          destinationName={navigation.destinationName}
+          onExit={handleExitNavigation}
+          onReroute={handleNavigationReroute}
+        />
       )}
 
       {/* Location picker crosshair + hint */}

@@ -529,6 +529,7 @@ const MapComponent = forwardRef(({
   const alternativeRoutesRef = useRef(null)
   const ensureRouteOnTopRef = useRef(() => {})
   const watchIdRef = useRef(null)
+  const navModeRef = useRef(false)
   const lastValidLocationRef = useRef(null)
   const hasFlownToUserRef = useRef(false)
   const initialFlyFallbackTimerRef = useRef(null)
@@ -2528,6 +2529,51 @@ const MapComponent = forwardRef(({
       if (mapRef.current) {
         mapRef.current.flyTo(options)
       }
+    },
+    /** Enter follow/tilt mode for turn-by-turn navigation. */
+    enterNavigationMode: () => {
+      const map = mapRef.current
+      if (!map) return
+      navModeRef.current = true
+      try {
+        map.setMaxPitch(60)
+        map.dragRotate.enable()
+      } catch {
+        /* no-op */
+      }
+    },
+    /** Smoothly follow the user during navigation (puck centered, route ahead). */
+    updateNavigationCamera: ({ center, bearing, zoom = 17, pitch = 55, duration = 1000 } = {}) => {
+      const map = mapRef.current
+      if (!map || !navModeRef.current || !center) return
+      map.easeTo({
+        center,
+        bearing: Number.isFinite(bearing) ? bearing : map.getBearing(),
+        pitch,
+        zoom,
+        duration,
+        easing: (t) => t,
+        essential: true,
+      })
+    },
+    /** Restore the locked north-up, flat view after navigation ends. */
+    exitNavigationMode: () => {
+      const map = mapRef.current
+      if (!map) return
+      navModeRef.current = false
+      try {
+        map.dragRotate.disable()
+      } catch {
+        /* no-op */
+      }
+      map.easeTo({ bearing: 0, pitch: 0, duration: 400 })
+      map.once('moveend', () => {
+        try {
+          map.setMaxPitch(0)
+        } catch {
+          /* no-op */
+        }
+      })
     },
     clearMeasureDistance,
     addMeasurePoint: (lat, lng) => {

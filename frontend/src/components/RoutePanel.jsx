@@ -9,6 +9,7 @@ import {
   buildRouteRequestFromStops,
 } from '../utils/routeHelpers'
 import { highlightQuerySegments, splitPlaceSuggestion } from '../utils/gmapsSearchHighlight'
+import { getSpeechController } from '../utils/speech'
 
 const GmapsPinIcon = () => (
   <svg className="gmaps-suggestion-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -355,8 +356,9 @@ const StepIcon = ({ modifier }) => {
   return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5m0 0l-4 4m4-4l4 4" /></svg>
 }
 
-const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, initialEndPlace, initialStartPlace }) => {
+const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, onStartNavigation, initialEndPlace, initialStartPlace }) => {
   const tDirections = useTranslate('Directions')
+  const tStart = useTranslate('Start')
   const tGetDirections = useTranslate('Get Directions')
   const tCalculating = useTranslate('Calculating...')
   const tClear = useTranslate('Clear')
@@ -879,6 +881,19 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     setError(null)
   }
 
+  const handleStartNavigation = () => {
+    if (!routeData || !onStartNavigation) return
+    // Unlock TTS inside this tap so spoken prompts work on mobile browsers.
+    getSpeechController().unlock()
+    onStartNavigation({
+      route: routeData,
+      travelMode,
+      destinationName: endPlace?.name || '',
+      destination: endPlace,
+      stops: resolvedRouteStops,
+    })
+  }
+
   const handleSwap = () => {
     const temp = startPlace
     setStartPlace(endPlace)
@@ -1040,15 +1055,27 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
             className="flex shrink-0 gap-2 border-t border-slate-100 px-4 py-3"
             style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
           >
+            {onStartNavigation && (
+              <button
+                type="button"
+                onClick={handleStartNavigation}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1a73e8] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#1765cc]"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3.5 2.5l17 9.5-17 9.5 2.5-9.5z" />
+                </svg>
+                {tStart}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setMobileSheetCollapsed(false)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
-              Route details
+              Steps
             </button>
             <button
               type="button"
@@ -1363,11 +1390,23 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       </div>
 
       {routeData && (
-        <div className="px-4 py-2 border-t border-[#e8eaed] flex-shrink-0">
+        <div className="px-4 py-2 border-t border-[#e8eaed] flex-shrink-0 flex items-center gap-2">
+          {onStartNavigation && (
+            <button
+              type="button"
+              onClick={handleStartNavigation}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#1a73e8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1765cc]"
+            >
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3.5 2.5l17 9.5-17 9.5 2.5-9.5z" />
+              </svg>
+              {tStart}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleClear}
-            className="w-full py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] rounded-lg transition-colors"
+            className={`py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] rounded-lg transition-colors ${onStartNavigation ? 'px-4' : 'w-full'}`}
           >
             {tClear}
           </button>
