@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
-import { formatAddressSubtitle } from '../utils/formatAddress'
+import { formatSearchSuggestion } from '../utils/formatAddress'
 import { parseQueryFromInput } from '../utils/parseSearchQuery'
 
 const SearchBar = ({
@@ -117,10 +117,11 @@ const SearchBar = ({
   }, [])
 
   const handleSelect = (result) => {
-    setQuery(result.displayName)
+    const { title } = formatSearchSuggestion(result)
+    setQuery(title)
     setShowResults(false)
     if (onSelect) {
-      onSelect({ lat: result.lat, lng: result.lng, name: result.displayName, placeId: result.placeId })
+      onSelect({ lat: result.lat, lng: result.lng, name: title, placeId: result.placeId })
     }
   }
 
@@ -239,10 +240,16 @@ const SearchBar = ({
                   onClick={() => handleSelect(result)}
                   className="flex-1 min-w-0 text-left hover:bg-white/40 active:bg-white/50 transition-colors rounded-lg -m-1 p-1 flex flex-col"
                 >
-                  <div className="font-medium text-slate-700 truncate">{result.displayName}</div>
-                  {result.address && (() => {
-                    const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state || result.address.country
-                    return line2 ? <div className="text-xs text-slate-500 truncate mt-0.5">{line2}</div> : null
+                  {(() => {
+                    const { title, subtitle } = formatSearchSuggestion(result)
+                    return (
+                      <>
+                        <div className="font-medium text-slate-700 truncate">{title}</div>
+                        {subtitle ? (
+                          <div className="text-xs text-slate-500 truncate mt-0.5">{subtitle}</div>
+                        ) : null}
+                      </>
+                    )
                   })()}
                 </button>
                 <button

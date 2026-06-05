@@ -15,6 +15,37 @@ export function formatAddressSubtitle(address) {
 }
 
 /**
+ * Build Google-Maps-style search-suggestion text: a bold main name (title)
+ * plus a lighter area subtitle (taluk / district / state).
+ *
+ * Works for both Nominatim results (full comma-separated `displayName`
+ * + structured `address`) and simple `{ name }` results:
+ *   - title    = the first comma segment of the display name (the place itself)
+ *   - subtitle = structured taluk/district/state, else the remaining
+ *                display-name segments (pincode + country stripped)
+ */
+export function formatSearchSuggestion(result) {
+  const display = String(result?.displayName ?? '').trim()
+  const segments = display
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const title = segments[0] || display || 'Unknown place'
+
+  let subtitle = formatAddressSubtitle(result?.address)
+
+  if (!subtitle && segments.length > 1) {
+    subtitle = segments
+      .slice(1)
+      .filter((s) => !/^\d[\d\s-]*$/.test(s)) // drop pincode (all-digits)
+      .filter((s) => !/^india$/i.test(s)) // drop country
+      .join(', ')
+  }
+
+  return { title, subtitle }
+}
+
+/**
  * Extract just the place-specific name from a Nominatim-style display name.
  *
  * Reverse-geocode `display_name` is a comma-separated full address such as:

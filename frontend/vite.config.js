@@ -95,10 +95,13 @@ export default defineConfig({
         target: 'http://localhost:5000',
         ws: true,
       },
+      // umnaapp.in/tiles is currently down (502), so dev tiles point to the
+      // CORS-enabled CARTO CDN. Switch target/rewrite back to your own tile
+      // server once it is healthy again.
       '/map-tiles': {
-        target: 'https://umnaapp.in',
+        target: 'https://a.basemaps.cartocdn.com',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/map-tiles/, '/tiles'),
+        rewrite: (path) => path.replace(/^\/map-tiles/, '/light_all'),
         secure: true,
       },
     },

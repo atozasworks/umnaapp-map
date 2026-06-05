@@ -31,7 +31,11 @@ import {
   DUPLICATE_MESSAGES,
 } from '../utils/placeDuplicate.js'
 import { runAskMapsQuery } from '../services/groqAskMapsService.js'
-import { axiosWithRetry, searchExternalProviders } from '../services/externalPlaceSearch.js'
+import {
+  axiosWithRetry,
+  normalizeSearchRowAddress,
+  searchExternalProviders,
+} from '../services/externalPlaceSearch.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
 import {
   GRID_EXTRACT_MAX_PLACES,
@@ -60,6 +64,16 @@ const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/
 const REVERSE_URL = process.env.REVERSE_URL || 'https://umnaapp.in/map/reverse'
 const NOMINATIM_URL = process.env.NOMINATIM_URL || ''
 const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
+/** CORS-safe fallback when umnaapp tile host is down or returns HTML errors. */
+const CARTO_TILE_FALLBACK = 'https://a.basemaps.cartocdn.com/light_all'
+
+const isValidPngBuffer = (buf) =>
+  Buffer.isBuffer(buf) &&
+  buf.length > 8 &&
+  buf[0] === 0x89 &&
+  buf[1] === 0x50 &&
+  buf[2] === 0x4e &&
+  buf[3] === 0x47
 
 const NOMINATIM_PUBLIC = 'https://nominatim.openstreetmap.org/reverse'
 const NOMINATIM_PUBLIC_SEARCH = 'https://nominatim.openstreetmap.org/search'
@@ -124,35 +138,56 @@ async function reverseGeocode(lat, lon) {
 router.get('/tiles/:z/:x/:y.png', async (req, res) => {
   try {
     const { z, x, y } = req.params
+    const base = TILESERVER_URL.replace(/\/+$/, '')
+    // umnaapp nginx: /tiles/ ; TileServer GL: /data/india/
     const tileUrls = [
-      `${TILESERVER_URL}/map/tiles/${z}/${x}/${y}.png`,
-      `${TILESERVER_URL}/tiles/${z}/${x}/${y}.png`,
+      `${base}/tiles/${z}/${x}/${y}.png`,
+      `${base}/data/india/${z}/${x}/${y}.png`,
     ]
 
     for (const tileUrl of tileUrls) {
       try {
         const tileResponse = await axios.get(tileUrl, {
-          responseType: 'stream',
+          responseType: 'arraybuffer',
           timeout: 15000,
           headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
           validateStatus: (status) => status === 200,
         })
 
-        if (tileResponse.status === 200) {
-          res.setHeader('Content-Type', tileResponse.headers['content-type'] || 'image/png')
-          res.setHeader('Cache-Control', tileResponse.headers['cache-control'] || 'public, max-age=86400')
-          tileResponse.data.pipe(res)
-          return
-        }
-      } catch (err) {
+        const buf = Buffer.from(tileResponse.data)
+        if (!isValidPngBuffer(buf)) continue
+
+        res.setHeader('Content-Type', 'image/png')
+        res.setHeader('Cache-Control', tileResponse.headers['cache-control'] || 'public, max-age=86400')
+        res.send(buf)
+        return
+      } catch {
         continue
       }
     }
 
-    res.status(502).send('Failed to fetch tile from umnaapp.in')
+    try {
+      const fallbackUrl = `${CARTO_TILE_FALLBACK}/${z}/${x}/${y}.png`
+      const tileResponse = await axios.get(fallbackUrl, {
+        responseType: 'arraybuffer',
+        timeout: 15000,
+        headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
+      })
+      const buf = Buffer.from(tileResponse.data)
+      if (!isValidPngBuffer(buf)) {
+        res.status(502).send('Failed to fetch tile')
+        return
+      }
+      res.setHeader('Content-Type', 'image/png')
+      res.setHeader('Cache-Control', 'public, max-age=604800')
+      res.send(buf)
+    } catch (error) {
+      console.error('Tile proxy fallback error:', error.message)
+      res.status(502).send('Failed to fetch tile')
+    }
   } catch (error) {
     console.error('Tile proxy error:', error.message)
-    res.status(502).send('Failed to fetch tile from umnaapp.in')
+    res.status(502).send('Failed to fetch tile')
   }
 })
 
@@ -549,14 +584,17 @@ router.get(
     const { provider, rows, error } = await searchExternalProviders(q, { limit: 10 })
     if (provider) {
       usedProvider = provider
-      apiResults = rows.map((r, i) => ({
-        placeId: r.place_id ?? r.id ?? r.osm_id ?? `api-${r.lat}-${r.lon ?? r.lng}-${i}`,
-        displayName: r.display_name ?? r.name ?? r.formatted ?? '',
-        lat: parseFloat(r.lat) || 0,
-        lng: parseFloat(r.lon ?? r.lng) || 0,
-        address: r.address ?? null,
-        source: r._provider || null,
-      }))
+      apiResults = rows.map((r, i) => {
+        const n = normalizeSearchRowAddress(r)
+        return {
+          placeId: n.place_id ?? n.id ?? n.osm_id ?? `api-${n.lat}-${n.lon ?? n.lng}-${i}`,
+          displayName: n.display_name ?? n.name ?? n.formatted ?? '',
+          lat: parseFloat(n.lat) || 0,
+          lng: parseFloat(n.lon ?? n.lng) || 0,
+          address: n.address ?? null,
+          source: n._provider || null,
+        }
+      })
     } else if (error) {
       upstreamError = `${error.provider}: ${error.reason}`
     }
@@ -571,6 +609,13 @@ router.get(
         merged.push(r)
       }
     }
+
+    console.log(
+      `[search-simple] q="${q}" → DB places: ${dbResults.length}, ` +
+        `geocoder (${usedProvider || 'none'}): ${apiResults.length}, ` +
+        `merged total: ${merged.length}` +
+        (upstreamError ? ` | upstream error: ${upstreamError}` : '')
+    )
 
     // Only surface an error when we have absolutely nothing to show AND
     // the upstream failed. Otherwise return 200 with whatever we have.

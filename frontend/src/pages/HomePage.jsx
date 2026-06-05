@@ -1569,8 +1569,8 @@ const HomePage = () => {
         }}
       />
 
-      {/* Map Container */}
-      <div className="flex-1 w-full relative">
+      {/* Map Container — min-h-0 lets flex child shrink; avoids partial white canvas on zoom */}
+      <div className="flex-1 min-h-0 w-full relative">
         <MapComponent
           ref={mapRef}
           onLocationUpdate={handleLocationUpdate}

@@ -90,7 +90,54 @@ const BASEMAP_LABEL_LAYER_ID = 'basemap-label-overlay-layer'
 const SATELLITE_TILES = ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']
 const TERRAIN_TILES = ['https://tile.opentopomap.org/{z}/{x}/{y}.png']
 const LABEL_OVERLAY_TILES = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
+/** Always-on CORS-enabled fallback so the map never stays blank if the configured tile host dies. */
+const CARTO_STREET_TILE_URL = 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+/** Same-origin proxy — serves umnaapp.in map data without CORS issues. */
+const PROXY_STREET_TILE_URL = '/api/map/tiles/{z}/{x}/{y}.png'
 const BASEMAP_STORAGE_KEY = 'umnaapp_basemap'
+
+/** Linear resampling + no tile fade = Google Maps–style smooth zoom on raster tiles. */
+const RASTER_TILE_PAINT = {
+  'raster-resampling': 'linear',
+  'raster-fade-duration': 0,
+  'raster-opacity': 1,
+}
+
+const resolveStreetTileUrl = () => {
+  const env = String(import.meta.env.VITE_TILESERVER_URL || '').trim()
+  let url = CARTO_STREET_TILE_URL
+  if (env.includes('{z}') && env.includes('{x}') && env.includes('{y}')) {
+    url = env
+  } else if (env) {
+    url = `${env.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
+  }
+  if (url.includes('umnaapp.in') || url.startsWith('/api/map/tiles')) {
+    return PROXY_STREET_TILE_URL
+  }
+  return url
+}
+
+const applyRasterTilePaint = (map, layerIds = ['simple-tiles', BASEMAP_LABEL_LAYER_ID]) => {
+  if (!map?.isStyleLoaded?.()) return
+  for (const id of layerIds) {
+    if (!map.getLayer(id)) continue
+    for (const [prop, value] of Object.entries(RASTER_TILE_PAINT)) {
+      map.setPaintProperty(id, prop, value)
+    }
+  }
+}
+
+/** Wheel / pinch zoom rates tuned for continuous, Google Maps–like feel. */
+const configureGoogleLikeZoom = (map) => {
+  if (!map) return
+  if (map.scrollZoom?.setWheelZoomRate) {
+    map.scrollZoom.setWheelZoomRate(1 / 450)
+  }
+  if (map.scrollZoom?.setZoomRate) {
+    map.scrollZoom.setZoomRate(1 / 100)
+  }
+  map.doubleClickZoom?.enable?.()
+}
 
 const readStoredBasemapMode = () => {
   try {
@@ -153,7 +200,7 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
         source: BASEMAP_LABEL_SOURCE_ID,
         minzoom: 0,
         maxzoom: 19,
-        paint: { 'raster-opacity': 1 },
+        paint: RASTER_TILE_PAINT,
       })
     } else if (map.getLayer(BASEMAP_LABEL_LAYER_ID)) {
       map.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'visible')
@@ -162,6 +209,7 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
     map.setLayoutProperty(BASEMAP_LABEL_LAYER_ID, 'visibility', 'none')
   }
 
+  applyRasterTilePaint(map)
   if (onRouteLayers) onRouteLayers(map)
   return true
 }
@@ -1000,13 +1048,7 @@ const MapComponent = forwardRef(({
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return
 
-    // Use CORS-enabled tiles. umnaapp.in lacks CORS headers and returns 404 for tiles.
-    const env = import.meta.env.VITE_TILESERVER_URL
-    const tileUrl = env?.includes('{z}')
-      ? env
-      : env
-        ? `${String(env).replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
-        : 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+    const tileUrl = resolveStreetTileUrl()
     streetTilesUrlRef.current = tileUrl
     const initialBasemap = readStoredBasemapMode()
     const initialTileUrls = getBasemapTileUrls(initialBasemap, tileUrl)
@@ -1043,6 +1085,7 @@ const MapComponent = forwardRef(({
             minzoom: 0,
             // Keep in sync with source maxzoom to avoid odd tile requests at high zoom
             maxzoom: 19,
+            paint: RASTER_TILE_PAINT,
           },
         ],
         // demotiles.maplibre.org often 404s for Open Sans; OpenMapTiles CDN is stable for glyphs
@@ -1051,16 +1094,38 @@ const MapComponent = forwardRef(({
       center: [78.5, 20.5], // India center
       zoom: 4,
       minZoom: 3,
+      maxZoom: 19,
+      renderWorldCopies: false,
+      antialias: true,
+      fadeDuration: 0,
       maxBounds: indiaBounds,
       maxBoundsOptions: {
         padding: 20,
       },
+      // Lock orientation: map must stay north-up and flat (no rotate / no tilt)
+      bearing: 0,
+      pitch: 0,
+      maxPitch: 0,
+      dragRotate: false,
+      pitchWithRotate: false,
+      touchPitch: false,
     })
 
-    map.addControl(new maplibregl.NavigationControl(), 'top-right')
+    // Keep pinch-to-zoom but disable two-finger rotation
+    map.touchZoomRotate.disableRotation()
+    // Disable keyboard rotation (Shift + arrows) while keeping pan/zoom
+    map.keyboard.disableRotation()
+    configureGoogleLikeZoom(map)
+
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
 
     map.on('load', () => {
+      // Ensure the canvas matches the real container size before fitting bounds,
+      // otherwise the India view is computed against a stale (smaller) size.
+      map.resize()
+      applyRasterTilePaint(map)
+      configureGoogleLikeZoom(map)
       map.fitBounds(indiaBounds, {
         padding: 20,
         duration: 0,
@@ -1075,7 +1140,17 @@ const MapComponent = forwardRef(({
     })
 
     // Only update zoom state when zooming ends — avoids per-frame React re-renders
-    map.on('zoomend', () => setMapZoom(map.getZoom()))
+    const syncMapViewport = () => {
+      map.resize()
+      setMapZoom(map.getZoom())
+    }
+    map.on('zoomend', syncMapViewport)
+    map.on('rotateend', syncMapViewport)
+    map.on('pitchend', syncMapViewport)
+
+    let tileFailCount = 0
+    let tileFallbackApplied = false
+    const TILE_FALLBACK_THRESHOLD = 6
 
     map.on('error', (e) => {
       const err = e.error
@@ -1085,6 +1160,36 @@ const MapComponent = forwardRef(({
       if (e.tile != null) {
         if (import.meta.env.DEV) {
           console.warn('[map] Tile failed:', msg)
+        }
+        // If the configured (non-CARTO) street tiles keep failing (e.g. the
+        // self-hosted tile server is down/502), swap to the CARTO CDN once so
+        // the map renders instead of staying a blank grey screen.
+        if (
+          !tileFallbackApplied &&
+          basemapModeRef.current === 'street' &&
+          streetTilesUrlRef.current &&
+          !streetTilesUrlRef.current.includes('cartocdn') &&
+          streetTilesUrlRef.current !== CARTO_STREET_TILE_URL
+        ) {
+          tileFailCount += 1
+          if (tileFailCount >= TILE_FALLBACK_THRESHOLD) {
+            tileFallbackApplied = true
+            streetTilesUrlRef.current = CARTO_STREET_TILE_URL
+            const src = map.getSource('raster-tiles')
+            if (src && typeof src.setTiles === 'function') {
+              src.setTiles([CARTO_STREET_TILE_URL])
+              const cache = map.style?.sourceCaches?.['raster-tiles']
+              if (cache) {
+                cache.clearTiles()
+                if (typeof cache.reload === 'function') cache.reload()
+                else cache.update(map.transform)
+              }
+              map.triggerRepaint()
+              if (import.meta.env.DEV) {
+                console.warn('[map] Tile host failing — fell back to CARTO tiles')
+              }
+            }
+          }
         }
         return
       }
@@ -1103,7 +1208,28 @@ const MapComponent = forwardRef(({
 
     mapRef.current = map
 
+    // MapLibre only auto-resizes on window 'resize'. In production the map
+    // container changes size after init (mobile address-bar show/hide, fonts
+    // loading, flex layout settling), leaving the canvas painted at the wrong
+    // size (blank gap above the tiles). Observe the container and resize.
+    let resizeObserver = null
+    if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
+      let resizeRaf = null
+      resizeObserver = new ResizeObserver(() => {
+        if (resizeRaf) return
+        resizeRaf = window.requestAnimationFrame(() => {
+          resizeRaf = null
+          if (mapRef.current) mapRef.current.resize()
+        })
+      })
+      resizeObserver.observe(mapContainerRef.current)
+    }
+
     return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect()
+        resizeObserver = null
+      }
       unbindRouteEditListeners()
       if (routeDragRafRef.current) {
         window.cancelAnimationFrame(routeDragRafRef.current)
@@ -1430,7 +1556,10 @@ const MapComponent = forwardRef(({
       })
     }
 
-    const syncUserPlaceLabelsZoom = () => {
+    // Cheap per-frame update: only the zoom-based opacity fade + interactivity.
+    // Crucially this does NOT recompute the collision layout, so labels do not
+    // pop in/out while the user is actively zooming.
+    const updateUserPlaceLabelOpacity = () => {
       const m = mapRef.current
       if (!m) return
       const z = m.getZoom()
@@ -1445,13 +1574,36 @@ const MapComponent = forwardRef(({
         el.style.pointerEvents = interactive ? 'auto' : 'none'
         el.style.cursor = interactive ? 'pointer' : ''
       })
+    }
+
+    // Full sync: opacity + which labels win the collision layout.
+    const syncUserPlaceLabelsZoom = () => {
+      updateUserPlaceLabelOpacity()
       scheduleUserPlaceLabelCollision()
     }
 
-    const onMapMoveLabels = throttle(scheduleUserPlaceLabelCollision, 120)
+    // Skip collision recompute while a zoom gesture/animation is in flight —
+    // the label set only settles (and re-lays-out once) on zoomend.
+    let isZooming = false
+    const onZoomStart = () => {
+      isZooming = true
+    }
+    const onZoom = () => {
+      updateUserPlaceLabelOpacity()
+    }
+    const onZoomEnd = () => {
+      isZooming = false
+      syncUserPlaceLabelsZoom()
+    }
 
-    map.on('zoom', syncUserPlaceLabelsZoom)
-    map.on('zoomend', syncUserPlaceLabelsZoom)
+    const onMapMoveLabels = throttle(() => {
+      updateUserPlaceLabelOpacity()
+      if (!isZooming) scheduleUserPlaceLabelCollision()
+    }, 120)
+
+    map.on('zoomstart', onZoomStart)
+    map.on('zoom', onZoom)
+    map.on('zoomend', onZoomEnd)
     map.on('move', onMapMoveLabels)
     map.on('moveend', scheduleUserPlaceLabelCollision)
     map.on('rotateend', scheduleUserPlaceLabelCollision)
@@ -1483,8 +1635,9 @@ const MapComponent = forwardRef(({
 
     return () => {
       map.off('moveend', onAfterInitialFit)
-      map.off('zoom', syncUserPlaceLabelsZoom)
-      map.off('zoomend', syncUserPlaceLabelsZoom)
+      map.off('zoomstart', onZoomStart)
+      map.off('zoom', onZoom)
+      map.off('zoomend', onZoomEnd)
       map.off('move', onMapMoveLabels)
       map.off('moveend', scheduleUserPlaceLabelCollision)
       map.off('rotateend', scheduleUserPlaceLabelCollision)
@@ -2456,7 +2609,7 @@ const MapComponent = forwardRef(({
   }), [clearMeasureDistance, drawRoute, measurePointCount, measureTotalMeters, syncMeasurePath])
 
   return (
-    <div className={`relative w-full h-full ${addPlaceMode || measureDistanceActive ? 'cursor-crosshair' : ''}`}>
+    <div className={`absolute inset-0 w-full h-full ${addPlaceMode || measureDistanceActive ? 'cursor-crosshair' : ''}`}>
       {mapInitError ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6 bg-slate-100">
           <p className="text-slate-700 font-medium">Map could not load</p>

@@ -2,9 +2,32 @@ import axios from 'axios'
 
 const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
 const NOMINATIM_URL = (process.env.NOMINATIM_URL || '').trim().replace(/\/+$/, '')
-const UMNAAPP_NOMINATIM_SEARCH = 'https://umnaapp.in/map/nominatim/search'
-const NOMINATIM_PUBLIC_SEARCH = 'https://nominatim.openstreetmap.org/search'
-const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 20000
+const UMNAAPP_NOMINATIM_SEARCH = (process.env.UMNAAPP_NOMINATIM_SEARCH || 'https://umnaapp.in/map/nominatim/search').trim().replace(/\/+$/, '')
+const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 60000
+const USE_UMNAAPP_NOMINATIM =
+  String(process.env.UMNAAPP_NOMINATIM_ENABLED || '').toLowerCase() === 'true'
+
+/** umnaapp.in/search flat fields → Nominatim-style address for subtitles */
+export function normalizeSearchRowAddress(row) {
+  if (!row || typeof row !== 'object') return row
+  if (row.address && typeof row.address === 'object' && !Array.isArray(row.address)) {
+    return row
+  }
+  const taluk = row.taluk ?? row.tehsil
+  const district = row.district ?? row.county
+  const state = row.state
+  if (!taluk && !district && !state) return row
+  return {
+    ...row,
+    address: {
+      municipality: taluk || undefined,
+      subdistrict: taluk || undefined,
+      county: district || undefined,
+      state_district: district || undefined,
+      state: state || undefined,
+    },
+  }
+}
 
 /** Retry axios request on timeout, network, or server (5xx) errors */
 export async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
@@ -29,25 +52,34 @@ export async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
 }
 
 /**
- * Query configured geocoders in parallel and merge results (Nominatim / umnaapp shape).
+ * Query the self-hosted geocoders in parallel and merge results.
+ *
+ * Sources (all self-hosted — the public nominatim.openstreetmap.org URL is
+ * intentionally NOT used):
+ *   1. umnaapp.in/search            — simple { name, lat, lon } search
+ *   2. umnaapp.in/map/nominatim/...  — optional (off by default; service is down on VPS)
+ *   3. NOMINATIM_URL/search          — optional extra self-hosted Nominatim (if env set)
  */
 export async function searchExternalProviders(q, { limit = 10 } = {}) {
   const providers = [
     {
       name: 'umnaapp/search',
       url: SEARCH_SIMPLE_URL,
-      params: { q },
+      params: { q, limit },
       validateStatus: (s) => s === 200 || s === 404,
-      retries: 1,
+      retries: 0,
     },
-    {
+  ]
+
+  if (USE_UMNAAPP_NOMINATIM) {
+    providers.push({
       name: 'umnaapp/nominatim',
       url: UMNAAPP_NOMINATIM_SEARCH,
       params: { q, format: 'json', limit, addressdetails: 1 },
       validateStatus: (s) => s === 200,
-      retries: 2,
-    },
-  ]
+      retries: 0,
+    })
+  }
 
   const selfHosted = NOMINATIM_URL
   if (selfHosted) {
@@ -60,14 +92,10 @@ export async function searchExternalProviders(q, { limit = 10 } = {}) {
     })
   }
 
-  providers.push({
-    name: 'nominatim-public',
-    url: NOMINATIM_PUBLIC_SEARCH,
-    params: { q, format: 'json', limit, addressdetails: 1 },
-    validateStatus: (s) => s === 200,
-    headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
-    retries: 3,
-  })
+  console.log(
+    `[search] q="${q}" → querying ${providers.length} self-hosted provider(s):`,
+    providers.map((p) => `${p.name} (${p.url})`)
+  )
 
   const settled = await Promise.allSettled(
     providers.map((p) =>
@@ -120,6 +148,7 @@ export async function searchExternalProviders(q, { limit = 10 } = {}) {
       const rows = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : []
       if (rows.length === 0) {
         errors.push({ provider: pName, reason: 'empty' })
+        console.log(`[search] ✓ ${pName}: 200 OK but 0 results`)
         continue
       }
       let added = 0
@@ -135,52 +164,36 @@ export async function searchExternalProviders(q, { limit = 10 } = {}) {
         const key = `${lat.toFixed(5)}-${lng.toFixed(5)}`
         if (seen.has(key)) continue
         seen.add(key)
-        merged.push({ ...r, lat, lon: lng, _provider: pName })
+        merged.push(
+          normalizeSearchRowAddress({ ...r, lat, lon: lng, _provider: pName })
+        )
         added += 1
       }
-      if (added > 0) providersUsed.push(pName)
-      else errors.push({ provider: pName, reason: 'no valid coords' })
+      if (added > 0) {
+        providersUsed.push(pName)
+        console.log(`[search] ✓ ${pName}: ${rows.length} raw → ${added} added (after dedupe/validation)`)
+      } else {
+        errors.push({ provider: pName, reason: 'no valid coords' })
+        console.log(`[search] ✓ ${pName}: ${rows.length} raw but 0 usable (no valid coords / duplicates)`)
+      }
     } else {
       const err = outcome.reason
       const status = err?.response?.status
       const reason = status ? `upstream ${status}` : err?.message || 'unknown'
       errors.push({ provider: pName, reason })
-      console.warn(`Search provider ${pName} failed:`, reason)
+      console.warn(`[search] ✗ ${pName} failed:`, reason)
     }
   }
 
   if (merged.length > 0) {
+    console.log(
+      `[search] RESULT for q="${q}": ${merged.length} place(s), used provider(s): ${providersUsed.join(' + ')}`
+    )
     return { provider: providersUsed.join('+'), providers: providersUsed, rows: merged }
   }
 
-  try {
-    const fallback = await axiosWithRetry(
-      () =>
-        axios.get(NOMINATIM_PUBLIC_SEARCH, {
-          params: { q, format: 'json', limit, addressdetails: 1 },
-          headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0 (contact@atozas.com)' },
-          timeout: SEARCH_SIMPLE_TIMEOUT,
-          validateStatus: (s) => s === 200,
-        }),
-      { maxRetries: 2 }
-    )
-    const rows = Array.isArray(fallback.data) ? fallback.data : []
-    for (const r of rows) {
-      const lat = parseFloat(r.lat)
-      const lng = parseFloat(r.lon ?? r.lng)
-      if (!isValidWgs84(lat, lng)) continue
-      const key = `${lat.toFixed(5)}-${lng.toFixed(5)}`
-      if (seen.has(key)) continue
-      seen.add(key)
-      merged.push({ ...r, _provider: 'nominatim-fallback' })
-    }
-    if (merged.length > 0) {
-      return { provider: 'nominatim-fallback', providers: ['nominatim-fallback'], rows: merged }
-    }
-  } catch (fallbackErr) {
-    console.warn('Nominatim fallback also failed:', fallbackErr.message)
-  }
-
+  // No public OpenStreetMap fallback — self-hosted sources only.
+  console.warn(`[search] RESULT for q="${q}": 0 places — all self-hosted providers empty/failed`, errors)
   return {
     provider: null,
     providers: [],
