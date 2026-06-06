@@ -195,7 +195,7 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
  * @route GET /api/map/route
  * @desc Get route between two or more points using UMNAAPP routing service
  * @access Private
- * @see https://umnaapp.in/map/route/{profile}/{lon1,lat1;lon2,lat2}?overview=full&geometries=geojson
+ * @see https://umnaapp.in/route/v1/{profile}/{lon1,lat1;lon2,lat2}?overview=full&geometries=geojson&steps=true
  */
 router.get(
   '/route',
@@ -259,6 +259,10 @@ router.get(
 
         const fetchRoutes = async (p) => {
           const res = await axios.get(url, { params: p, timeout: 10000 })
+          const contentType = String(res.headers?.['content-type'] || '')
+          if (contentType.includes('text/html') || typeof res.data === 'string') {
+            throw new Error('Not an OSRM API (HTML response)')
+          }
           if (res.data?.code && res.data.code !== 'Ok') {
             throw new Error(res.data.message || res.data.code)
           }
@@ -323,12 +327,35 @@ router.get(
         return null
       }
 
-      // 1) umnaapp.in
-      routeData = await tryUmnaapp()
+      // 1) umnaapp.in standard OSRM — https://umnaapp.in/route/v1/{profile}/{coords}
+      try {
+        routeData = await tryOsrm(ROUTE_SERVICE_URL)
+        if (routeData) console.log('🗺️  Route from umnaapp.in/route')
+      } catch (e) {
+        console.warn('Route umnaapp.in/route failed:', e.message)
+      }
 
       const needsMoreAlternatives = wantAlternatives && !hasMultipleRoutes(routeData)
 
-      // 2) OSRM_URL (Docker/local) — primary fallback or extra alternatives
+      // 2) Legacy umnaapp /map/route/... (custom wrapper, if deployed)
+      if (!routeData || needsMoreAlternatives) {
+        try {
+          const legacy = await tryUmnaapp()
+          if (legacy) {
+            if (needsMoreAlternatives && hasMultipleRoutes(legacy)) {
+              routeData = legacy
+              console.log('🗺️  Alternative routes from umnaapp /map/route')
+            } else if (!routeData) {
+              routeData = legacy
+              console.log('🗺️  Route from umnaapp /map/route')
+            }
+          }
+        } catch (e) {
+          console.warn('Route umnaapp /map/route failed:', e.message)
+        }
+      }
+
+      // 3) OSRM_URL (Docker/local) — dev fallback or extra alternatives
       if ((!routeData || needsMoreAlternatives) && OSRM_URL) {
         try {
           const osrmRoutes = await tryOsrm(OSRM_URL)
@@ -346,7 +373,7 @@ router.get(
         }
       }
 
-      // 3) Public OSRM demo
+      // 4) Public OSRM demo
       if (!routeData || (wantAlternatives && !hasMultipleRoutes(routeData))) {
         try {
           const osrmRoutes = await tryOsrm(OSRM_PUBLIC)
