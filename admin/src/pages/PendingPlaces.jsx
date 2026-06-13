@@ -13,6 +13,12 @@ function fmtDate(iso) {
   }
 }
 
+function placeAddKindLabel(kind) {
+  if (kind === 'extracted') return 'Extracted'
+  if (kind === 'manual') return 'Manual'
+  return '—'
+}
+
 function StatusBadge({ status }) {
   const cls =
     status === 'approved'
@@ -42,13 +48,13 @@ function PlaceTable({ places, tab, busyId, onApprove, onReject, hasFilters }) {
         <tr className="border-b border-admin-border text-xs uppercase tracking-wider text-admin-muted">
           <th className="px-4 py-3 font-medium">Place</th>
           <th className="px-4 py-3 font-medium">Category</th>
-          <th className="px-4 py-3 font-medium">Source</th>
+          <th className="px-4 py-3 font-medium">Add type</th>
           <th className="px-4 py-3 font-medium">Contributor</th>
           <th className="px-4 py-3 font-medium">Status</th>
           {tab === 'pending' ? (
             <>
               <th className="px-4 py-3 font-medium">Days left</th>
-              <th className="px-4 py-3 font-medium">Auto-approve</th>
+              <th className="px-4 py-3 font-medium">Auto-approve at</th>
             </>
           ) : (
             <th className="px-4 py-3 font-medium">Approved</th>
@@ -71,7 +77,12 @@ function PlaceTable({ places, tab, busyId, onApprove, onReject, hasFilters }) {
               ) : null}
             </td>
             <td className="px-4 py-3 text-admin-muted">{p.category}</td>
-            <td className="px-4 py-3 text-admin-muted">{p.source || 'contribution'}</td>
+            <td className="px-4 py-3 text-admin-muted">
+              <div>{placeAddKindLabel(p.placeAddKind)}</div>
+              {tab === 'pending' && p.autoApproveDays != null ? (
+                <div className="mt-0.5 text-[11px] text-slate-500">{p.autoApproveDays}-day period</div>
+              ) : null}
+            </td>
             <td className="px-4 py-3">
               <div className="text-slate-200">{p.user_name || '—'}</div>
               <div className="text-xs text-admin-muted">{p.user_email || ''}</div>
@@ -191,7 +202,10 @@ export default function PendingPlaces() {
     }
   }
 
-  const days = pending?.autoApproveDays ?? approved?.autoApproveDays ?? 10
+  const periods = pending?.autoApprovePeriods ?? approved?.autoApprovePeriods ?? {
+    extracted: 1,
+    manual: 5,
+  }
   const active = tab === 'pending' ? pending : approved
   const places = active?.places ?? []
   const resultCount = active?.count ?? places.length
@@ -225,8 +239,11 @@ export default function PendingPlaces() {
         <h1 className="text-2xl font-semibold tracking-tight text-white md:text-3xl">Place approvals</h1>
         <p className="mt-2 max-w-3xl text-sm text-admin-muted">
           Extracted and user-added places start as <strong className="text-slate-300">pending</strong>. Only the
-          contributor and admins see them until approved. Pending places auto-approve after{' '}
-          <span className="font-semibold text-slate-300">{days} days</span> (scheduled hourly on the server).
+          contributor and admins see them until approved. Extracted places auto-approve after{' '}
+          <span className="font-semibold text-slate-300">{periods.extracted} day</span>
+          {periods.extracted === 1 ? '' : 's'}; manually added places after{' '}
+          <span className="font-semibold text-slate-300">{periods.manual} days</span> (checked hourly on the
+          server).
         </p>
       </header>
 

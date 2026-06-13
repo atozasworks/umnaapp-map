@@ -1,9 +1,15 @@
 import { useEffect } from 'react'
 
 /**
- * Shown after a successful grid extraction run (once per day).
+ * Shown after a successful place extraction run (grid or area, once per day).
  */
-export default function GridExtractCompleteModal({ isOpen, onClose, placeCount = 0, maxPlaces = 20 }) {
+export default function GridExtractCompleteModal({
+  isOpen,
+  onClose,
+  placeCount = 0,
+  maxPlaces = 20,
+  slotReleased = false,
+}) {
   useEffect(() => {
     if (!isOpen) return
     const onKey = (e) => {
@@ -50,9 +56,11 @@ export default function GridExtractCompleteModal({ isOpen, onClose, placeCount =
               </svg>
             </div>
             <div className="min-w-0 flex-1 pt-0.5">
-              <p className="text-xs font-semibold uppercase tracking-wider text-primary-600">Grid extract</p>
+              <p className="text-xs font-semibold uppercase tracking-wider text-primary-600">Place extract</p>
               <h2 id="grid-extract-complete-title" className="mt-1 text-xl font-bold text-slate-900">
-                {count > 0 ? `${count} place${count === 1 ? '' : 's'} extracted` : 'Extraction finished'}
+                {count > 0
+                  ? `${count} place${count === 1 ? '' : 's'} extracted`
+                  : 'No places found'}
               </h2>
             </div>
             <button
@@ -70,11 +78,15 @@ export default function GridExtractCompleteModal({ isOpen, onClose, placeCount =
           <p className="mt-4 text-sm leading-relaxed text-slate-600">
             {count > 0
               ? `Up to ${maxPlaces} places can be extracted per run. Review the list, then add selected places to your map.`
-              : 'No new places were found in this region. You can try a different area tomorrow.'}
+              : slotReleased
+                ? 'Google Places returned no results for this area. Try a broader region, zoom in closer, or pick a nearby town — you can run place extract again today.'
+                : 'No new places were found in this region. You can try a different area tomorrow.'}
           </p>
-          <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50/80 px-3 py-2.5 text-sm font-medium text-amber-900">
-            You have used today&apos;s grid extract. Come back tomorrow to extract again.
-          </p>
+          {count > 0 || !slotReleased ? (
+            <p className="mt-3 rounded-xl border border-amber-100 bg-amber-50/80 px-3 py-2.5 text-sm font-medium text-amber-900">
+              You have used today&apos;s place extract. Come back tomorrow to extract again.
+            </p>
+          ) : null}
 
           <button
             type="button"

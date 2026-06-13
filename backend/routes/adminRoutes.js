@@ -5,7 +5,7 @@ import { adminAuth } from '../middleware/adminAuth.js'
 import {
   autoApproveExpiredPendingPlaces,
   enrichPlaceApprovalMeta,
-  getAutoApproveDays,
+  getAutoApprovePeriods,
   pendingAutoApproveAt,
 } from '../services/placeApproval.js'
 import {
@@ -15,6 +15,15 @@ import {
   sanitizePlaceName,
 } from '../utils/placePayload.js'
 import { onPlaceApproved } from '../services/notificationService.js'
+import {
+  recordPlaceAudit,
+  recordPlaceAuditAsync,
+  getPlaceHistory,
+  adminActor,
+  computeChanges,
+  RESTORABLE_KEYS,
+  PLACE_AUDIT_ACTIONS,
+} from '../services/placeAudit.js'
 
 const router = express.Router()
 router.use(adminAuth)
@@ -30,6 +39,7 @@ export const MODEL_META = [
   { key: 'place', label: 'Place' },
   { key: 'placeReview', label: 'PlaceReview' },
   { key: 'placePhoto', label: 'PlacePhoto' },
+  { key: 'placeAudit', label: 'PlaceAudit' },
 ]
 
 const KEY_BY_LABEL = Object.fromEntries(MODEL_META.map((m) => [m.label, m.key]))
@@ -92,7 +102,7 @@ router.get('/places/pending', async (req, res) => {
       count,
       total,
       categories: categories.map((c) => ({ category: c.category, count: c._count.category })),
-      autoApproveDays: getAutoApproveDays(),
+      autoApprovePeriods: getAutoApprovePeriods(),
     })
   } catch (e) {
     console.error('admin places/pending', e)
@@ -133,7 +143,7 @@ router.get('/places/approved', async (req, res) => {
       count,
       total,
       categories: categories.map((c) => ({ category: c.category, count: c._count.category })),
-      autoApproveDays: getAutoApproveDays(),
+      autoApprovePeriods: getAutoApprovePeriods(),
     })
   } catch (e) {
     console.error('admin places/approved', e)
@@ -233,13 +243,13 @@ router.get(
       ])
 
       res.json({
-        places: rows.map(serializePlace),
+        places: rows.map((p) => enrichPlaceApprovalMeta(serializePlace(p))),
         page,
         limit,
         total,
         totalPages: Math.ceil(total / limit),
         categories: categories.map((c) => ({ category: c.category, count: c._count.category })),
-        autoApproveDays: getAutoApproveDays(),
+        autoApprovePeriods: getAutoApprovePeriods(),
       })
     } catch (e) {
       console.error('admin places list', e)
@@ -332,7 +342,7 @@ router.patch(
         }
         if (req.body.approvalStatus === 'pending') {
           data.approvedAt = null
-          if (!existing.autoApproveAt) data.autoApproveAt = pendingAutoApproveAt(new Date())
+          if (!existing.autoApproveAt) data.autoApproveAt = pendingAutoApproveAt(new Date(), existing)
         }
         if (req.body.approvalStatus === 'rejected') {
           data.approvedAt = null
@@ -341,6 +351,31 @@ router.patch(
       }
 
       const place = await prisma.place.update({ where: { id }, data })
+
+      const changes = computeChanges(existing, place)
+      if (Object.keys(changes).length > 0) {
+        const statusChanged =
+          req.body.approvalStatus && req.body.approvalStatus !== existing.approvalStatus
+        let action = PLACE_AUDIT_ACTIONS.UPDATED
+        let note = 'Edited by admin'
+        if (statusChanged && req.body.approvalStatus === 'approved') {
+          action = PLACE_AUDIT_ACTIONS.APPROVED
+          note = 'Approved by admin'
+        } else if (statusChanged && req.body.approvalStatus === 'rejected') {
+          action = PLACE_AUDIT_ACTIONS.REJECTED
+          note = 'Rejected by admin'
+        }
+        recordPlaceAuditAsync({
+          placeId: place.id,
+          action,
+          actor: adminActor(),
+          before: existing,
+          after: place,
+          changesOverride: changes,
+          note,
+        })
+      }
+
       if (req.body.approvalStatus === 'approved' && existing.approvalStatus !== 'approved') {
         onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
           console.error('[notify] onPlaceApproved bg error:', err)
@@ -359,7 +394,17 @@ router.delete('/places/:id', async (req, res) => {
   try {
     if (!prisma.place) return res.status(503).json({ error: 'Place model unavailable' })
     const id = String(req.params.id || '').trim()
+    const existing = await prisma.place.findUnique({ where: { id }, select: PLACE_DETAIL_SELECT })
     await prisma.place.delete({ where: { id } })
+    if (existing) {
+      recordPlaceAuditAsync({
+        placeId: id,
+        action: PLACE_AUDIT_ACTIONS.DELETED,
+        actor: adminActor(),
+        before: existing,
+        note: 'Deleted by admin',
+      })
+    }
     res.json({ success: true })
   } catch (e) {
     if (e.code === 'P2025') return res.status(404).json({ error: 'Place not found' })
@@ -381,6 +426,14 @@ router.patch('/places/:id/reject', async (req, res) => {
       return res.status(404).json({ error: 'Pending place not found' })
     }
     const place = await prisma.place.findUnique({ where: { id } })
+    recordPlaceAuditAsync({
+      placeId: id,
+      action: PLACE_AUDIT_ACTIONS.REJECTED,
+      actor: adminActor(),
+      changesOverride: { approvalStatus: { old: 'pending', new: 'rejected' } },
+      after: place,
+      note: 'Rejected by admin',
+    })
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
     console.error('admin place reject', e)
@@ -405,7 +458,20 @@ router.post(
       const uniqueIds = [...new Set(ids.map((id) => String(id).trim()).filter(Boolean))]
 
       if (action === 'delete') {
+        const existing = await prisma.place.findMany({
+          where: { id: { in: uniqueIds } },
+          select: PLACE_DETAIL_SELECT,
+        })
         const result = await prisma.place.deleteMany({ where: { id: { in: uniqueIds } } })
+        for (const p of existing) {
+          recordPlaceAuditAsync({
+            placeId: p.id,
+            action: PLACE_AUDIT_ACTIONS.DELETED,
+            actor: adminActor(),
+            before: p,
+            note: 'Deleted by admin (bulk)',
+          })
+        }
         return res.json({ success: true, affected: result.count })
       }
 
@@ -419,6 +485,14 @@ router.post(
           data: { approvalStatus: 'approved', approvedAt: new Date(), autoApproveAt: null },
         })
         for (const p of pending) {
+          recordPlaceAuditAsync({
+            placeId: p.id,
+            action: PLACE_AUDIT_ACTIONS.APPROVED,
+            actor: adminActor(),
+            changesOverride: { approvalStatus: { old: p.approvalStatus, new: 'approved' } },
+            after: { ...p, approvalStatus: 'approved' },
+            note: 'Approved by admin (bulk)',
+          })
           onPlaceApproved({ ...p, approvalStatus: 'approved' }, { approvedBy: 'admin' }).catch((err) => {
             console.error('[notify] bulk onPlaceApproved bg error:', err)
           })
@@ -426,10 +500,24 @@ router.post(
         return res.json({ success: true, affected: result.count })
       }
 
+      const toReject = await prisma.place.findMany({
+        where: { id: { in: uniqueIds }, approvalStatus: { not: 'rejected' } },
+        select: PLACE_DETAIL_SELECT,
+      })
       const result = await prisma.place.updateMany({
         where: { id: { in: uniqueIds } },
         data: { approvalStatus: 'rejected', approvedAt: null },
       })
+      for (const p of toReject) {
+        recordPlaceAuditAsync({
+          placeId: p.id,
+          action: PLACE_AUDIT_ACTIONS.REJECTED,
+          actor: adminActor(),
+          changesOverride: { approvalStatus: { old: p.approvalStatus, new: 'rejected' } },
+          after: { ...p, approvalStatus: 'rejected' },
+          note: 'Rejected by admin (bulk)',
+        })
+      }
       res.json({ success: true, affected: result.count })
     } catch (e) {
       console.error('admin places bulk', e)
@@ -454,6 +542,14 @@ router.patch('/places/:id/approve', async (req, res) => {
     }
     const place = await prisma.place.findUnique({ where: { id }, select: PLACE_DETAIL_SELECT })
     if (place) {
+      recordPlaceAuditAsync({
+        placeId: id,
+        action: PLACE_AUDIT_ACTIONS.APPROVED,
+        actor: adminActor(),
+        changesOverride: { approvalStatus: { old: 'pending', new: 'approved' } },
+        after: place,
+        note: 'Approved by admin',
+      })
       onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
         console.error('[notify] onPlaceApproved bg error:', err)
       })
@@ -461,6 +557,71 @@ router.patch('/places/:id/approve', async (req, res) => {
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
     console.error('admin places approve', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** GET /api/admin/places/:id/history — full audit trail incl. version snapshots */
+router.get('/places/:id/history', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').trim()
+    const history = await getPlaceHistory(id, { includeSnapshot: true })
+    res.json({ placeId: id, history })
+  } catch (e) {
+    console.error('admin place history', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+const DATE_RESTORE_KEYS = new Set(['festivalStartDate', 'festivalEndDate'])
+
+/** POST /api/admin/places/:id/restore/:auditId — restore a previous version */
+router.post('/places/:id/restore/:auditId', async (req, res) => {
+  try {
+    if (!prisma.place || !prisma.placeAudit) {
+      return res.status(503).json({ error: 'Place model unavailable' })
+    }
+    const id = String(req.params.id || '').trim()
+    const auditId = String(req.params.auditId || '').trim()
+
+    const existing = await prisma.place.findUnique({ where: { id }, select: PLACE_DETAIL_SELECT })
+    if (!existing) return res.status(404).json({ error: 'Place not found' })
+
+    const audit = await prisma.placeAudit.findUnique({ where: { id: auditId } })
+    if (!audit || audit.placeId !== id) {
+      return res.status(404).json({ error: 'Version not found for this place' })
+    }
+    const snapshot = audit.snapshot
+    if (!snapshot || typeof snapshot !== 'object') {
+      return res.status(400).json({ error: 'This version has no restorable snapshot' })
+    }
+
+    const data = {}
+    for (const key of RESTORABLE_KEYS) {
+      if (!(key in snapshot)) continue
+      let value = snapshot[key]
+      if (DATE_RESTORE_KEYS.has(key)) {
+        value = value ? new Date(value) : null
+        if (value && Number.isNaN(value.getTime())) value = null
+      }
+      if (key === 'placeNameEn') data.name = value ?? existing.name
+      data[key] = value
+    }
+
+    const place = await prisma.place.update({ where: { id }, data })
+    const changes = computeChanges(existing, place)
+    await recordPlaceAudit({
+      placeId: id,
+      action: PLACE_AUDIT_ACTIONS.RESTORED,
+      actor: adminActor(),
+      before: existing,
+      after: place,
+      changesOverride: changes,
+      note: `Restored version from ${new Date(audit.createdAt).toISOString()}`,
+    })
+    res.json({ success: true, place: serializePlace(place), restoredFrom: auditId })
+  } catch (e) {
+    console.error('admin place restore', e)
     res.status(500).json({ error: e.message })
   }
 })

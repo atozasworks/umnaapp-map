@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage'
 import OTPVerificationPage from './pages/OTPVerificationPage'
 import HomePage from './pages/HomePage'
 import SettingsPage from './pages/SettingsPage'
+import NotificationsPage from './pages/NotificationsPage'
 import ProtectedRoute from './components/ProtectedRoute'
 import PwaShell from './components/PwaShell'
 import SplashScreen from './components/SplashScreen'
@@ -83,6 +84,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/notifications"
+                element={
+                  <ProtectedRoute>
+                    <NotificationsPage />
                   </ProtectedRoute>
                 }
               />

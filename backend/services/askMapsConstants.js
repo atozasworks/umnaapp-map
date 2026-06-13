@@ -20,6 +20,7 @@ export const PLACE_CATEGORIES = [
   'Cinema',
   'Gym',
   'Salon',
+  'Festival',
   'Other',
 ]
 
@@ -55,6 +56,7 @@ export const CATEGORY_ALIASES = {
   store: 'Shop',
   grocery: 'Grocery Store',
   supermarket: 'Grocery Store',
+  'general store': 'Grocery Store',
   petrol: 'Petrol Pump',
   'petrol pump': 'Petrol Pump',
   gas: 'Petrol Pump',
@@ -71,4 +73,19 @@ export const CATEGORY_ALIASES = {
   salon: 'Salon',
   tourist: 'Tourist Place',
   transit: 'Transit',
+}
+
+/** Match places whose name contains these when category field is wrong/missing. */
+export const CATEGORY_NAME_KEYWORDS = {
+  Hotel: ['hotel', 'lodge', 'resort', 'inn', 'guest', 'homestay', 'lodging', 'stay'],
+  Restaurant: ['restaurant', 'dhaba', 'eatery', 'biryani', 'cafe'],
+  ATM: ['atm', 'cash point'],
+  Pharmacy: ['pharmacy', 'chemist', 'medical store', 'medicals'],
+  Hospital: ['hospital', 'hospitals', 'clinic', 'nursing home', 'health centre', 'health center', 'medical college', 'dispensary'],
+  Temple: ['temple', 'masjid', 'mosque', 'church', 'juma', 'dargah'],
+  Bank: ['bank'],
+  'Petrol Pump': ['petrol', 'fuel', 'gas station', 'filling'],
+  'Bus Stop': ['bus stop', 'bus stand'],
+  'Grocery Store': ['general stores', 'general store', 'grocery store', 'grocery', 'supermarket', 'provision store', 'provisions store', 'kirana', 'provisions', 'departmental store'],
+  Shop: ['shop', 'mart'],
 }

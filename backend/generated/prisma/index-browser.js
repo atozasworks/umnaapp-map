@@ -259,6 +259,10 @@ exports.Prisma.PlaceScalarFieldEnum = {
   googlePhotos: 'googlePhotos',
   mapRenderingConfig: 'mapRenderingConfig',
   extractedAt: 'extractedAt',
+  festivalStartDate: 'festivalStartDate',
+  festivalEndDate: 'festivalEndDate',
+  festivalRecurrence: 'festivalRecurrence',
+  festivalNotifiedAt: 'festivalNotifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -295,6 +299,77 @@ exports.Prisma.PlacePhotoScalarFieldEnum = {
   dataUrl: 'dataUrl',
   caption: 'caption',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.PlaceAuditScalarFieldEnum = {
+  id: 'id',
+  placeId: 'placeId',
+  action: 'action',
+  actorType: 'actorType',
+  actorId: 'actorId',
+  actorName: 'actorName',
+  changes: 'changes',
+  snapshot: 'snapshot',
+  note: 'note',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItineraryScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  ownerId: 'ownerId',
+  shareToken: 'shareToken',
+  coverEmoji: 'coverEmoji',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  autoSort: 'autoSort',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ItineraryMemberScalarFieldEnum = {
+  id: 'id',
+  itineraryId: 'itineraryId',
+  userId: 'userId',
+  role: 'role',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItineraryStopScalarFieldEnum = {
+  id: 'id',
+  itineraryId: 'itineraryId',
+  placeId: 'placeId',
+  name: 'name',
+  category: 'category',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  address: 'address',
+  notes: 'notes',
+  position: 'position',
+  dayIndex: 'dayIndex',
+  addedById: 'addedById',
+  addedByName: 'addedByName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ItineraryCommentScalarFieldEnum = {
+  id: 'id',
+  stopId: 'stopId',
+  userId: 'userId',
+  userName: 'userName',
+  body: 'body',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItineraryVoteScalarFieldEnum = {
+  id: 'id',
+  stopId: 'stopId',
+  userId: 'userId',
+  value: 'value',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -336,7 +411,13 @@ exports.Prisma.ModelName = {
   Place: 'Place',
   Favorite: 'Favorite',
   PlaceReview: 'PlaceReview',
-  PlacePhoto: 'PlacePhoto'
+  PlacePhoto: 'PlacePhoto',
+  PlaceAudit: 'PlaceAudit',
+  Itinerary: 'Itinerary',
+  ItineraryMember: 'ItineraryMember',
+  ItineraryStop: 'ItineraryStop',
+  ItineraryComment: 'ItineraryComment',
+  ItineraryVote: 'ItineraryVote'
 };
 
 /**

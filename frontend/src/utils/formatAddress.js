@@ -1,15 +1,143 @@
+function pickFirst(obj, keys) {
+  for (const key of keys) {
+    const v = obj?.[key]
+    if (v != null && String(v).trim()) return String(v).trim()
+  }
+  return ''
+}
+
+function stripAdminSuffix(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+(taluk|taluka|tehsil|sub[- ]?district|mandal)$/i, '')
+    .trim()
+}
+
+function isTalukLike(value) {
+  return /\b(taluk|taluka|tehsil|sub[- ]?district|mandal)\b/i.test(String(value || ''))
+}
+
+function extractPincodeFromDisplay(displayName) {
+  const segments = String(displayName || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  const hit = segments.find((s) => /^\d{6}$/.test(s))
+  return hit || ''
+}
+
+function parseDisplayNameAfterVillage(displayName, village) {
+  const segments = String(displayName || '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .filter((s) => !/^india$/i.test(s))
+
+  const pincode = segments.find((s) => /^\d{6}$/.test(s)) || ''
+  const admin = segments.filter((s) => !/^\d{6}$/.test(s))
+
+  const villageLower = String(village || '').toLowerCase().trim()
+  if (!villageLower) return { pincode }
+
+  const idx = admin.findIndex((s) => s.toLowerCase() === villageLower)
+  if (idx < 0) return { pincode }
+
+  const after = admin.slice(idx + 1)
+  const out = { pincode }
+  if (after.length >= 3) {
+    out.taluk = stripAdminSuffix(after[0])
+    out.district = after[1]
+    out.state = after[2]
+  } else if (after.length === 2) {
+    out.taluk = stripAdminSuffix(after[0])
+    out.state = after[1]
+  } else if (after.length === 1) {
+    if (isTalukLike(after[0])) out.taluk = stripAdminSuffix(after[0])
+    else out.state = after[0]
+  }
+  return out
+}
+
+/**
+ * Map raw Nominatim/OSM address to village, taluk, district, state, pincode, country.
+ * In India, `county` is often taluk; `state_district` is the district.
+ */
+export function parseOsmAddressFields(addr, displayName = '') {
+  if (!addr || typeof addr !== 'object') {
+    return {
+      village: '',
+      taluk: '',
+      district: '',
+      state: '',
+      pincode: extractPincodeFromDisplay(displayName),
+      country: '',
+    }
+  }
+
+  const village = pickFirst(addr, [
+    'village',
+    'town',
+    'city',
+    'hamlet',
+    'suburb',
+    'locality',
+    'neighbourhood',
+  ])
+
+  let taluk = pickFirst(addr, ['taluk', 'tehsil', 'subdistrict', 'mandal'])
+  let district = pickFirst(addr, ['state_district', 'district'])
+  const county = pickFirst(addr, ['county'])
+  const municipality = pickFirst(addr, ['municipality'])
+
+  if (county) {
+    if (isTalukLike(county)) {
+      if (!taluk) taluk = stripAdminSuffix(county)
+    } else if (!taluk && district && county.toLowerCase() !== district.toLowerCase()) {
+      taluk = stripAdminSuffix(county)
+    } else if (!taluk && !district) {
+      taluk = stripAdminSuffix(county)
+    } else if (!taluk) {
+      taluk = stripAdminSuffix(county)
+    }
+  }
+
+  if (!taluk && municipality) {
+    taluk = stripAdminSuffix(municipality)
+  }
+
+  if (district && taluk && district.toLowerCase() === taluk.toLowerCase()) {
+    district = pickFirst(addr, ['state_district', 'district'])
+  }
+
+  if (district && isTalukLike(district) && !taluk) {
+    taluk = stripAdminSuffix(district)
+    district = pickFirst(addr, ['state_district']) || ''
+  }
+
+  let state = pickFirst(addr, ['state', 'region'])
+  const country = pickFirst(addr, ['country'])
+
+  const fromDisplay = parseDisplayNameAfterVillage(displayName, village)
+  if (!taluk && fromDisplay.taluk) taluk = fromDisplay.taluk
+  if (!district && fromDisplay.district) district = fromDisplay.district
+  if (!state && fromDisplay.state) state = fromDisplay.state
+
+  const coordinatePincode =
+    fromDisplay.pincode ||
+    pickFirst(addr, ['postcode', 'postal_code']) ||
+    extractPincodeFromDisplay(displayName)
+  const pincode = village ? '' : coordinatePincode
+
+  return { village, taluk, district, state, pincode, country }
+}
+
 /**
  * Format address for display in place search suggestions.
  * Returns "Taluk, District, State" using available OSM/Nominatim address keys.
- * Handles India-specific (taluk, tehsil, subdistrict) and common keys.
  */
 export function formatAddressSubtitle(address) {
   if (!address || typeof address !== 'object') return ''
-
-  const taluk = address.taluk || address.tehsil || address.subdistrict || address.municipality
-  const district = address.county || address.state_district || address.district
-  const state = address.state
-
+  const { taluk, district, state } = parseOsmAddressFields(address)
   const parts = [taluk, district, state].filter(Boolean)
   return parts.join(', ')
 }

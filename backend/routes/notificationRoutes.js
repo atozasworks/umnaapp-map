@@ -116,6 +116,37 @@ router.post('/read-all', async (req, res) => {
   }
 })
 
+/** DELETE /api/notifications — delete ALL of the user's notifications */
+router.delete('/', async (req, res) => {
+  try {
+    if (!prisma.notification) return modelUnavailable(res)
+    const result = await prisma.notification.deleteMany({ where: { userId: req.user.id } })
+    res.json({ success: true, deleted: result.count, unreadCount: 0 })
+  } catch (e) {
+    console.error('notifications clear-all', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** DELETE /api/notifications/:id — delete a single notification */
+router.delete('/:id', async (req, res) => {
+  try {
+    if (!prisma.notification) return modelUnavailable(res)
+    const id = String(req.params.id || '').trim()
+    const result = await prisma.notification.deleteMany({
+      where: { id, userId: req.user.id },
+    })
+    if (result.count === 0) return res.status(404).json({ error: 'Notification not found' })
+    const unreadCount = await prisma.notification.count({
+      where: { userId: req.user.id, read: false },
+    })
+    res.json({ success: true, unreadCount })
+  } catch (e) {
+    console.error('notification delete', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
 /** GET /api/notifications/push/vapid-public-key */
 router.get('/push/vapid-public-key', (req, res) => {
   const publicKey = getVapidPublicKey()

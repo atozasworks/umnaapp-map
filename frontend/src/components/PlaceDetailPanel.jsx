@@ -2,7 +2,18 @@ import { useState, useEffect, useRef, useMemo } from 'react'
 import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
 import TranslatedLabel from './TranslatedLabel'
+import PlaceHistoryTab from './PlaceHistoryTab'
 import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
+import {
+  formatPlaceAddressLine,
+  getGooglePhotoUrls,
+  getGoogleReviewsList,
+  getStoredRating,
+  getStoredReviewCount,
+  getCachedNearbyPlaces,
+} from '../utils/placeDisplay'
+import { displayCategoryForPlace } from '../utils/googlePlaceCategory'
+import { isFestivalPlace, festivalStatus, festivalCountdownLabel, formatFestivalWindow } from '../utils/festival'
 
 const CATEGORY_ICONS = {
   Restaurant: '🍽️', Hospital: '🏥', Hotel: '🏨', Parking: '🅿️', Shop: '🛍️',
@@ -76,7 +87,18 @@ const compressImage = (file, maxSizeKB = 400) =>
   })
 
 export default function PlaceDetailPanel({
-  place, onClose, onDirections, onSave, onUnsave, onEdit, onDelete, currentUser, isSaved, deletingId,
+  place,
+  onClose,
+  onDirections,
+  onSave,
+  onUnsave,
+  onEdit,
+  onDelete,
+  onNearbySelect,
+  currentUser,
+  isSaved,
+  deletingId,
+  stackedWithSidebar = false,
 }) {
   const tDirections = useTranslate('Directions')
   const tSaved = useTranslate('Saved')
@@ -87,6 +109,7 @@ export default function PlaceDetailPanel({
   const tOverview = useTranslate('Overview')
   const tReviews = useTranslate('Reviews')
   const tPhotosTab = useTranslate('Photos')
+  const tHistory = useTranslate('History')
 
   const [entered, setEntered] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
@@ -118,6 +141,7 @@ export default function PlaceDetailPanel({
   const [photoError, setPhotoError] = useState(null)
   const [deletingPhotoId, setDeletingPhotoId] = useState(null)
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
+  const [heroIndex, setHeroIndex] = useState(0)
 
   const isDbPlace = place?._isDbPlace !== false && /^[0-9a-f-]{36}$/.test(place?.id || '')
 
@@ -132,6 +156,7 @@ export default function PlaceDetailPanel({
     setActiveTab('overview')
     setReviewRating(0); setReviewComment(''); setReviewError(null)
     setHoursExpanded(false)
+    setHeroIndex(0)
 
     const hours = place.opening_hours ?? place.openingHours
     if (hours && typeof hours.open_now === 'boolean') {
@@ -162,20 +187,41 @@ export default function PlaceDetailPanel({
         .finally(() => setPhotosLoading(false))
 
       api.get(`/map/places/${place.id}/nearby`)
-        .then(({ data }) => setNearby(Array.isArray(data) ? data : []))
-        .catch(() => setNearby([]))
+        .then(({ data }) => {
+          const list = Array.isArray(data) ? data : []
+          if (list.length > 0) {
+            setNearby(list)
+          } else {
+            setNearby(getCachedNearbyPlaces(place))
+          }
+        })
+        .catch(() => setNearby(getCachedNearbyPlaces(place)))
         .finally(() => setNearbyLoading(false))
     } else {
-      setReviewsLoading(false); setPhotosLoading(false); setNearbyLoading(false)
+      setReviewsLoading(false)
+      setPhotosLoading(false)
+      setNearbyLoading(false)
+      setNearby(getCachedNearbyPlaces(place))
     }
   }, [place?.id])
+
+  useEffect(() => {
+    if (!place) return
+    const cached = getCachedNearbyPlaces(place)
+    if (cached.length > 0) {
+      setNearby((prev) => (prev.length > 0 ? prev : cached))
+    }
+  }, [place?.nearby_places, place?.nearbyPlaces, place?.google_photos, place?.googlePhotos, place?.description])
 
   const handleClose = () => { setIsExiting(true); setTimeout(onClose, 280) }
 
   const name = place.place_name_en || place.name || 'Place'
   const localName = place.place_name_local
-  const icon = CATEGORY_ICONS[place.category] || '📍'
-  const color = CATEGORY_COLORS[place.category] || '#0284C7'
+  const placeIsFestival = isFestivalPlace(place)
+  const festival = placeIsFestival ? festivalStatus(place) : null
+  const category = displayCategoryForPlace(place)
+  const icon = CATEGORY_ICONS[category] || '📍'
+  const color = CATEGORY_COLORS[category] || '#0284C7'
   const isOwner = isPlaceOwner(place, currentUser)
   const mayDelete = canDeletePlace(place, currentUser)
   const contributorName = place.user_name || place.userName || 'a user'
@@ -191,15 +237,30 @@ export default function PlaceDetailPanel({
     if (address.country) addrParts.push(address.country)
   }
   const addrString = addrParts.join(', ')
-    || place.full_address
-    || place.fullAddress
+    || formatPlaceAddressLine(place)
     || null
   const openingHours = place.opening_hours ?? place.openingHours
   const weekdayHours = Array.isArray(openingHours?.weekday_text) ? openingHours.weekday_text : []
+  const description = place.description ? String(place.description).trim() : ''
+  const phone = place.phone ? String(place.phone).trim() : ''
+  const website = place.website ? String(place.website).trim() : ''
+  const googleReviews = getGoogleReviewsList(place)
+  const storedRating = getStoredRating(place)
+  const storedReviewCount = getStoredReviewCount(place)
+  const displayRating = avgRating ?? storedRating
+  const displayReviewCount = reviews.length || storedReviewCount || googleReviews.length
+
+  const heroPhotos = useMemo(() => {
+    const google = getGooglePhotoUrls(place)
+    const user = photos.map((p) => p.dataUrl).filter(Boolean)
+    return [...google, ...user]
+  }, [place, photos])
+
+  const heroPhoto = heroPhotos[heroIndex] || heroPhotos[0] || null
 
   const handleShare = async () => {
     const mapUrl = `https://maps.google.com/?q=${place.latitude},${place.longitude}`
-    const text = `${name} (${place.category})`
+    const text = `${name} (${category})`
     if (navigator.share) {
       try { await navigator.share({ title: text, text: addrString || name, url: mapUrl }) } catch {}
     } else {
@@ -275,14 +336,17 @@ export default function PlaceDetailPanel({
   const TABS = useMemo(
     () => [
       { id: 'overview', label: tOverview },
-      ...(isDbPlace
-        ? [
-            { id: 'reviews', label: `${tReviews}${reviews.length ? ` (${reviews.length})` : ''}` },
-            { id: 'photos', label: `${tPhotosTab}${photos.length ? ` (${photos.length})` : ''}` },
-          ]
-        : []),
+      {
+        id: 'reviews',
+        label: `${tReviews}${displayReviewCount ? ` (${displayReviewCount})` : ''}`,
+      },
+      {
+        id: 'photos',
+        label: `${tPhotosTab}${heroPhotos.length ? ` (${heroPhotos.length})` : ''}`,
+      },
+      { id: 'history', label: tHistory },
     ],
-    [isDbPlace, tOverview, tReviews, tPhotosTab, reviews.length, photos.length]
+    [tOverview, tReviews, tPhotosTab, tHistory, displayReviewCount, heroPhotos.length]
   )
 
   return (
@@ -307,9 +371,10 @@ export default function PlaceDetailPanel({
 
       {/* Panel */}
       <div
-        className="absolute z-50 bg-white shadow-2xl flex flex-col overflow-hidden pointer-events-auto
+        className={`absolute z-50 bg-white shadow-2xl flex flex-col overflow-hidden pointer-events-auto
           bottom-0 left-0 right-0 max-h-[92vh] rounded-t-2xl
-          sm:inset-y-0 sm:left-0 sm:right-auto sm:w-[400px] sm:max-h-none sm:rounded-none"
+          sm:inset-y-0 sm:right-auto sm:w-[400px] sm:max-h-none sm:rounded-none
+          ${stackedWithSidebar ? 'sm:left-[min(100vw,24rem)]' : 'sm:left-0'}`}
         style={{ transform: panelTransform, transition: 'transform 300ms cubic-bezier(0.4,0,0.2,1)' }}
       >
         {/* Mobile handle */}
@@ -339,9 +404,50 @@ export default function PlaceDetailPanel({
         <div className="flex-1 overflow-y-auto overscroll-contain">
 
           {/* Hero */}
-          <div className="relative h-36 sm:h-44 flex-shrink-0 overflow-hidden">
-            {photos.length > 0 ? (
-              <img src={photos[0].dataUrl} alt={name} className="w-full h-full object-cover cursor-pointer" onClick={() => setLightboxPhoto(photos[0].dataUrl)} />
+          <div className="relative h-44 sm:h-52 flex-shrink-0 overflow-hidden bg-slate-100">
+            {heroPhoto ? (
+              <>
+                <img
+                  src={heroPhoto}
+                  alt={name}
+                  className="w-full h-full object-cover cursor-pointer"
+                  onClick={() => setLightboxPhoto(heroPhoto)}
+                />
+                {heroPhotos.length > 1 && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setHeroIndex((i) => (i - 1 + heroPhotos.length) % heroPhotos.length)
+                      }}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center"
+                      aria-label="Previous photo"
+                    >
+                      ‹
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setHeroIndex((i) => (i + 1) % heroPhotos.length)
+                      }}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center"
+                      aria-label="Next photo"
+                    >
+                      ›
+                    </button>
+                    <div className="absolute bottom-14 left-0 right-0 flex justify-center gap-1">
+                      {heroPhotos.map((_, idx) => (
+                        <span
+                          key={idx}
+                          className={`w-1.5 h-1.5 rounded-full ${idx === heroIndex ? 'bg-white' : 'bg-white/50'}`}
+                        />
+                      ))}
+                    </div>
+                  </>
+                )}
+              </>
             ) : (
               <div className="w-full h-full flex items-center justify-center text-6xl" style={{ background: `linear-gradient(135deg, ${color}22 0%, ${color}44 100%)` }}>
                 {icon}
@@ -361,19 +467,51 @@ export default function PlaceDetailPanel({
           <div className="px-4 pt-3 pb-2 flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="inline-flex items-center text-xs font-semibold px-2.5 py-1 rounded-full" style={{ background: `${color}18`, color }}>
-                {icon}<span className="ml-1"><TranslatedLabel text={place.category} /></span>
+                {icon}<span className="ml-1"><TranslatedLabel text={category} /></span>
               </span>
               {isOwner && <span className="text-xs text-slate-400">· Added by you</span>}
               {!isOwner && contributorName && <span className="text-xs text-slate-400">· Added by {contributorName}</span>}
             </div>
-            {avgRating && (
+            {displayRating != null && (
               <div className="flex items-center gap-1 flex-shrink-0">
                 <span className="text-amber-400 text-sm">★</span>
-                <span className="text-sm font-bold text-slate-700">{avgRating}</span>
-                <span className="text-xs text-slate-400">({reviews.length})</span>
+                <span className="text-sm font-bold text-slate-700">{displayRating}</span>
+                {displayReviewCount > 0 && (
+                  <span className="text-xs text-slate-400">({displayReviewCount})</span>
+                )}
               </div>
             )}
           </div>
+
+          {/* Festival / jatre window + countdown */}
+          {festival && (
+            <div className="mx-4 mb-2 rounded-xl border border-fuchsia-200 bg-fuchsia-50/70 px-3 py-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-base leading-none" aria-hidden>🎪</span>
+                {festival.active ? (
+                  <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
+                    Live now
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-semibold px-1.5 py-0.5 rounded-full bg-fuchsia-100 text-fuchsia-700">
+                    {festivalCountdownLabel(festival)}
+                  </span>
+                )}
+                {festival.recurrence === 'yearly' && (
+                  <span className="text-[11px] text-slate-400">· repeats yearly</span>
+                )}
+              </div>
+              <p className="text-xs text-slate-600 mt-1.5">{formatFestivalWindow(festival)}</p>
+              {festival.active && (
+                <p className="text-xs font-medium text-green-600 mt-0.5">{festivalCountdownLabel(festival)}</p>
+              )}
+              {!festival.active && (
+                <p className="text-[11px] text-slate-400 mt-0.5">
+                  This place only appears on the map during the festival window.
+                </p>
+              )}
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="px-3 pb-3 border-b border-slate-100 grid grid-cols-4 gap-1">
@@ -439,12 +577,51 @@ export default function PlaceDetailPanel({
                 )}
               </div>
 
+              {/* Description */}
+              {description && (
+                <div className="px-5 py-4 border-b border-slate-100">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">About</p>
+                  <p className="text-sm text-slate-700 leading-relaxed">{description}</p>
+                </div>
+              )}
+
+              {/* Contact */}
+              {(phone || website) && (
+                <div className="px-5 py-4 border-b border-slate-100 space-y-3">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</p>
+                  {phone && (
+                    <a
+                      href={`tel:${phone.replace(/\s/g, '')}`}
+                      className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700"
+                    >
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      {phone}
+                    </a>
+                  )}
+                  {website && (
+                    <a
+                      href={website.startsWith('http') ? website : `https://${website}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700 truncate"
+                    >
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                      <span className="truncate">{website.replace(/^https?:\/\//, '')}</span>
+                    </a>
+                  )}
+                </div>
+              )}
+
               {/* Quick facts */}
-              {QUICK_FACTS[place.category] && (
+              {QUICK_FACTS[category] && (
                 <div className="px-5 py-3 border-b border-slate-100">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Quick Facts</p>
                   <div className="flex flex-wrap gap-2">
-                    {QUICK_FACTS[place.category].map((fact) => (
+                    {QUICK_FACTS[category].map((fact) => (
                       <span key={fact} className="text-xs py-1 px-2.5 rounded-full bg-slate-100 text-slate-600 font-medium">{fact}</span>
                     ))}
                   </div>
@@ -541,11 +718,16 @@ export default function PlaceDetailPanel({
                   ) : (
                     <div className="px-3 pb-3 flex gap-2 overflow-x-auto scrollbar-hide">
                       {nearby.map((np) => (
-                        <div key={np.id} className="flex-shrink-0 w-28 bg-slate-50 rounded-xl p-2.5 border border-slate-100">
+                        <button
+                          key={np.id || `${np.latitude}-${np.longitude}`}
+                          type="button"
+                          onClick={() => onNearbySelect?.(np)}
+                          className="flex-shrink-0 w-28 bg-slate-50 rounded-xl p-2.5 border border-slate-100 text-left hover:border-primary-200 hover:bg-primary-50/50 transition-colors touch-manipulation"
+                        >
                           <div className="text-xl mb-1">{CATEGORY_ICONS[np.category] || '📍'}</div>
                           <p className="text-xs font-semibold text-slate-700 leading-tight line-clamp-2">{np.place_name_en || np.name}</p>
                           <p className="text-[10px] text-slate-400 mt-0.5 truncate">{np.category}</p>
-                        </div>
+                        </button>
                       ))}
                     </div>
                   )}
@@ -615,34 +797,65 @@ export default function PlaceDetailPanel({
           {activeTab === 'reviews' && (
             <div className="pb-[env(safe-area-inset-bottom)]">
               {/* Rating summary */}
-              {!reviewsLoading && reviews.length > 0 && (
+              {!reviewsLoading && (reviews.length > 0 || storedRating != null) && (
                 <div className="px-5 py-4 border-b border-slate-100 flex items-center gap-4">
                   <div className="text-center">
-                    <p className="text-4xl font-bold text-slate-800">{avgRating}</p>
-                    <StarRating value={Math.round(avgRating)} readonly />
-                    <p className="text-xs text-slate-400 mt-1">{reviews.length} review{reviews.length !== 1 ? 's' : ''}</p>
+                    <p className="text-4xl font-bold text-slate-800">{displayRating ?? '—'}</p>
+                    {displayRating != null && <StarRating value={Math.round(displayRating)} readonly />}
+                    <p className="text-xs text-slate-400 mt-1">
+                      {displayReviewCount} review{displayReviewCount !== 1 ? 's' : ''}
+                    </p>
                   </div>
-                  <div className="flex-1 space-y-1">
-                    {[5, 4, 3, 2, 1].map((star) => {
-                      const cnt = reviews.filter((r) => r.rating === star).length
-                      const pct = reviews.length ? (cnt / reviews.length) * 100 : 0
-                      return (
-                        <div key={star} className="flex items-center gap-2">
-                          <span className="text-[11px] text-slate-500 w-3">{star}</span>
-                          <span className="text-amber-400 text-xs">★</span>
-                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                            <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  {reviews.length > 0 && (
+                    <div className="flex-1 space-y-1">
+                      {[5, 4, 3, 2, 1].map((star) => {
+                        const cnt = reviews.filter((r) => r.rating === star).length
+                        const pct = reviews.length ? (cnt / reviews.length) * 100 : 0
+                        return (
+                          <div key={star} className="flex items-center gap-2">
+                            <span className="text-[11px] text-slate-500 w-3">{star}</span>
+                            <span className="text-amber-400 text-xs">★</span>
+                            <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                              <div className="h-full bg-amber-400 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-[10px] text-slate-400 w-4">{cnt}</span>
                           </div>
-                          <span className="text-[10px] text-slate-400 w-4">{cnt}</span>
-                        </div>
-                      )
-                    })}
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Google reviews */}
+              {googleReviews.length > 0 && (
+                <div className="border-b border-slate-100">
+                  <div className="px-5 pt-3 pb-1">
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">From Google</p>
                   </div>
+                  <ul className="divide-y divide-slate-100">
+                    {googleReviews.map((gr, idx) => (
+                      <li key={idx} className="px-5 py-4">
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <p className="text-sm font-semibold text-slate-800">{gr.author_name || 'Reviewer'}</p>
+                            <StarRating value={gr.rating || 0} readonly />
+                          </div>
+                          {gr.relative_time_description && (
+                            <p className="text-xs text-slate-400">{gr.relative_time_description}</p>
+                          )}
+                        </div>
+                        {gr.text && (
+                          <p className="mt-2 text-sm text-slate-600 leading-relaxed line-clamp-4">{gr.text}</p>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
               {/* Write review */}
-              {currentUser && !myReview && (
+              {isDbPlace && currentUser && !myReview && (
                 <form onSubmit={handleSubmitReview} className="px-5 py-4 border-b border-slate-100">
                   <p className="text-sm font-semibold text-slate-700 mb-2">Write a review</p>
                   <div className="mb-3">
@@ -677,7 +890,7 @@ export default function PlaceDetailPanel({
                     </div>
                   ))}
                 </div>
-              ) : reviews.length === 0 ? (
+              ) : reviews.length === 0 && googleReviews.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-slate-400">
                   <span className="text-3xl mb-2">⭐</span>
                   <p className="text-sm font-medium">No reviews yet</p>
@@ -730,7 +943,7 @@ export default function PlaceDetailPanel({
           {/* ── PHOTOS TAB ── */}
           {activeTab === 'photos' && (
             <div className="pb-[env(safe-area-inset-bottom)]">
-              {currentUser && (
+              {isDbPlace && currentUser && (
                 <div className="px-5 py-4 border-b border-slate-100">
                   <input ref={photoInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoFile} />
                   <button
@@ -748,11 +961,11 @@ export default function PlaceDetailPanel({
                 </div>
               )}
 
-              {photosLoading ? (
+              {photosLoading && heroPhotos.length === 0 ? (
                 <div className="grid grid-cols-3 gap-1 p-3">
                   {[1, 2, 3, 4, 5, 6].map((i) => <div key={i} className="aspect-square bg-slate-100 rounded-lg animate-pulse" />)}
                 </div>
-              ) : photos.length === 0 ? (
+              ) : heroPhotos.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-10 text-slate-400">
                   <span className="text-3xl mb-2">📷</span>
                   <p className="text-sm font-medium">No photos yet</p>
@@ -760,35 +973,53 @@ export default function PlaceDetailPanel({
                 </div>
               ) : (
                 <div className="grid grid-cols-3 gap-1 p-3">
-                  {photos.map((photo) => (
-                    <div key={photo.id} className="relative aspect-square group">
+                  {heroPhotos.map((photoUrl, idx) => (
+                    <div key={`${photoUrl}-${idx}`} className="relative aspect-square group">
                       <img
-                        src={photo.dataUrl}
-                        alt={photo.caption || 'Place photo'}
+                        src={photoUrl}
+                        alt={`Photo ${idx + 1}`}
                         className="w-full h-full object-cover rounded-lg cursor-pointer"
-                        onClick={() => setLightboxPhoto(photo.dataUrl)}
+                        onClick={() => setLightboxPhoto(photoUrl)}
+                        loading="lazy"
                       />
-                      {photo.userId === currentUser?.id && (
-                        <button
-                          onClick={() => handleDeletePhoto(photo.id)}
-                          disabled={deletingPhotoId === photo.id}
-                          className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                        >
-                          {deletingPhotoId === photo.id ? <span className="text-[9px]">…</span> : (
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                          )}
-                        </button>
-                      )}
-                      {photo.userName && (
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent rounded-b-lg px-1.5 py-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <p className="text-white text-[9px] truncate">{photo.userName}</p>
-                        </div>
-                      )}
                     </div>
                   ))}
                 </div>
               )}
+              {photos.length > 0 && isDbPlace && (
+                <div className="px-3 pb-3">
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider px-2 mb-2">Your uploads</p>
+                  <div className="grid grid-cols-3 gap-1">
+                    {photos.map((photo) => (
+                      <div key={photo.id} className="relative aspect-square group">
+                        <img
+                          src={photo.dataUrl}
+                          alt={photo.caption || 'Place photo'}
+                          className="w-full h-full object-cover rounded-lg cursor-pointer"
+                          onClick={() => setLightboxPhoto(photo.dataUrl)}
+                        />
+                        {photo.userId === currentUser?.id && (
+                          <button
+                            onClick={() => handleDeletePhoto(photo.id)}
+                            disabled={deletingPhotoId === photo.id}
+                            className="absolute top-1 right-1 w-6 h-6 rounded-full bg-black/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
+                          >
+                            {deletingPhotoId === photo.id ? <span className="text-[9px]">…</span> : (
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
+          )}
+
+          {/* ── HISTORY TAB ── */}
+          {activeTab === 'history' && (
+            <PlaceHistoryTab placeId={place.id} isDbPlace={isDbPlace} />
           )}
         </div>
       </div>

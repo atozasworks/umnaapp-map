@@ -10,12 +10,19 @@ import prisma from '../config/database.js'
 import { translateText, getLanguageFromAddress } from '../services/translateService.js'
 import {
   autoApproveExpiredPendingPlaces,
+  removeExpiredFestivals,
   placePublicVisibilityOr,
   isPlaceVisibleToUser,
   enrichPlaceApprovalMeta,
   initialApprovalFields,
 } from '../services/placeApproval.js'
 import { onPlaceCreated } from '../services/notificationService.js'
+import {
+  recordPlaceAuditAsync,
+  getPlaceHistory,
+  userActor,
+  PLACE_AUDIT_ACTIONS,
+} from '../services/placeAudit.js'
 import {
   buildPlaceDetailFields,
   serializePlace,
@@ -37,11 +44,15 @@ import {
   searchExternalProviders,
 } from '../services/externalPlaceSearch.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
+import { buildNormalizedAddressFields } from '../utils/osmAddress.js'
 import {
   GRID_EXTRACT_MAX_PLACES,
+  EXTRACT_MAX_AREA_KM2,
   usedGridExtractToday,
 } from '../utils/gridExtractLimit.js'
+import { resolvePlaceCategory, pickPrimaryGoogleType } from '../utils/googlePlaceCategory.js'
 import { canUserDeletePlace } from '../utils/placeOwnership.js'
+import { festivalStatus, isFestivalPlace } from '../utils/festival.js'
 import {
   processAlternativeRoutes,
   toRouteArray,
@@ -694,13 +705,16 @@ router.get(
       }
 
       const targetLang = getLanguageFromAddress(result.address || {})
+      const displayName = result.display_name ?? result.name ?? ''
+      const addressFields = await buildNormalizedAddressFields(result.address || {}, displayName)
 
       const address = {
         placeId: result.place_id,
-        displayName: result.display_name ?? result.name ?? '',
+        displayName,
         lat: parseFloat(result.lat) || parseFloat(lat),
         lng: parseFloat(result.lon ?? result.lng) || parseFloat(lng),
         address: result.address,
+        addressFields,
         boundingBox: result.boundingbox,
         targetLang, // For Add Place auto-translation (e.g. 'kn', 'ta', 'hi')
       }
@@ -766,79 +780,9 @@ const PLACE_CATEGORIES = [
   'Cinema',
   'Gym',
   'Salon',
+  'Festival',
   'Other',
 ]
-
-/** Map Google Places types (extract/search) to app category labels so map filters match. */
-const GOOGLE_PLACE_TYPE_TO_CATEGORY = {
-  restaurant: 'Restaurant',
-  meal_takeaway: 'Restaurant',
-  meal_delivery: 'Restaurant',
-  cafe: 'Restaurant',
-  bar: 'Restaurant',
-  bakery: 'Restaurant',
-  food: 'Restaurant',
-  night_club: 'Restaurant',
-  hospital: 'Hospital',
-  doctor: 'Hospital',
-  dentist: 'Hospital',
-  physiotherapist: 'Hospital',
-  veterinary_care: 'Hospital',
-  lodging: 'Hotel',
-  parking: 'Parking',
-  convenience_store: 'Grocery Store',
-  supermarket: 'Grocery Store',
-  grocery_or_supermarket: 'Grocery Store',
-  store: 'Shop',
-  shopping_mall: 'Shop',
-  clothing_store: 'Shop',
-  electronics_store: 'Shop',
-  furniture_store: 'Shop',
-  hardware_store: 'Shop',
-  home_goods_store: 'Shop',
-  jewelry_store: 'Shop',
-  shoe_store: 'Shop',
-  book_store: 'Shop',
-  florist: 'Shop',
-  school: 'School',
-  secondary_school: 'School',
-  primary_school: 'School',
-  university: 'School',
-  hindu_temple: 'Temple',
-  church: 'Temple',
-  mosque: 'Temple',
-  synagogue: 'Temple',
-  place_of_worship: 'Temple',
-  bank: 'Bank',
-  atm: 'ATM',
-  post_office: 'Post Office',
-  bus_station: 'Bus Stop',
-  bus_stop: 'Bus Stop',
-  subway_station: 'Transit',
-  train_station: 'Transit',
-  transit_station: 'Transit',
-  light_rail_station: 'Transit',
-  police: 'Police Station',
-  gas_station: 'Petrol Pump',
-  tourist_attraction: 'Tourist Place',
-  museum: 'Museum',
-  pharmacy: 'Pharmacy',
-  drugstore: 'Pharmacy',
-  movie_theater: 'Cinema',
-  gym: 'Gym',
-  beauty_salon: 'Salon',
-  hair_care: 'Salon',
-  spa: 'Salon',
-}
-
-function mapGoogleTypeToCategory(rawType) {
-  const type = String(rawType || '')
-    .toLowerCase()
-    .trim()
-  if (GOOGLE_PLACE_TYPE_TO_CATEGORY[type]) return GOOGLE_PLACE_TYPE_TO_CATEGORY[type]
-  if (PLACE_CATEGORIES.includes(String(rawType || '').trim())) return String(rawType).trim()
-  return 'Other'
-}
 
 function buildPlaceCreateRow(item, userId, userName, userEmail, options = {}) {
   const lat = parseFloat(item.lat ?? item.latitude)
@@ -854,7 +798,11 @@ function buildPlaceCreateRow(item, userId, userName, userEmail, options = {}) {
   const rawName = String(item.name || item.place_name_en || '').trim()
   const name = sanitizePlaceName(rawName, addressCtx) || rawName
   const localName = sanitizePlaceName(item.place_name_local, addressCtx)
-  const details = buildPlaceDetailFields(item, {
+  const itemForDetails = {
+    ...item,
+    extracted_at: item.extracted_at ?? item.extractedAt ?? new Date().toISOString(),
+  }
+  const details = buildPlaceDetailFields(itemForDetails, {
     village: item.village,
     taluk: item.taluk,
     district: item.district,
@@ -863,12 +811,25 @@ function buildPlaceCreateRow(item, userId, userName, userEmail, options = {}) {
   })
   const source = options.source || 'contribution'
   const zoomLevel = parseFloat(item.zoomLevel ?? item.zoom_level ?? 15)
+  const resolvedCategory = resolvePlaceCategory({
+    category: item.category,
+    type: item.type,
+    types: item.types ?? item.google_types ?? item.googleTypes ?? details.googleTypes,
+    googleTypes: details.googleTypes,
+    googleType: details.googleType,
+    name,
+  })
+  const primaryGoogleType =
+    pickPrimaryGoogleType(
+      item.types ?? item.google_types ?? item.googleTypes ?? details.googleTypes,
+      item.type ?? details.googleType
+    ) || details.googleType
 
   return {
     name,
     placeNameEn: name,
     placeNameLocal: localName,
-    category: mapGoogleTypeToCategory(item.category || item.type || details.googleType),
+    category: resolvedCategory,
     latitude: lat,
     longitude: lng,
     zoomLevel: Number.isFinite(zoomLevel) ? zoomLevel : 15,
@@ -876,8 +837,9 @@ function buildPlaceCreateRow(item, userId, userName, userEmail, options = {}) {
     userName,
     userEmail,
     source: source === 'saved' ? 'saved' : 'contribution',
-    ...initialApprovalFields(),
+    ...initialApprovalFields(new Date(), { kind: 'extracted' }),
     ...details,
+    googleType: primaryGoogleType || details.googleType,
   }
 }
 
@@ -923,6 +885,9 @@ router.post(
     body('longitude').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
     body('zoomLevel').optional().isFloat({ min: 0, max: 22 }).withMessage('Zoom level 0-22'),
     body('source').optional().isIn(['contribution', 'saved']).withMessage('Source must be contribution or saved'),
+    body('festival_start_date').optional({ nullable: true }).isISO8601().withMessage('Festival start date must be a valid date'),
+    body('festival_end_date').optional({ nullable: true }).isISO8601().withMessage('Festival end date must be a valid date'),
+    body('festival_recurrence').optional({ nullable: true }).isIn(['yearly', 'none']).withMessage('Recurrence must be yearly or none'),
   ],
   async (req, res) => {
     try {
@@ -983,9 +948,17 @@ router.post(
           userName,
           userEmail,
           source: isSaved ? 'saved' : 'contribution',
-          ...initialApprovalFields(),
+          ...initialApprovalFields(new Date(), { kind: 'manual' }),
           ...detailFields,
         },
+      })
+
+      recordPlaceAuditAsync({
+        placeId: place.id,
+        action: PLACE_AUDIT_ACTIONS.CREATED,
+        actor: userActor(req.user),
+        after: place,
+        note: isSaved ? 'Saved from search' : 'Place added',
       })
 
       if (!isSaved) {
@@ -1033,6 +1006,7 @@ router.get(
       }
 
       await autoApproveExpiredPendingPlaces()
+      await removeExpiredFestivals()
       const viewerId = req.user.id
 
       const selectedCategories = String(req.query.categories || '')
@@ -1069,6 +1043,9 @@ router.get(
           approvalStatus: true,
           approvedAt: true,
           autoApproveAt: true,
+          festivalStartDate: true,
+          festivalEndDate: true,
+          festivalRecurrence: true,
         },
       })
 
@@ -1088,6 +1065,10 @@ router.get(
           map_rendering_config: p.mapRenderingConfig,
           user_name: p.userName,
           user_email: p.userEmail,
+          festival_start_date: p.festivalStartDate ?? null,
+          festival_end_date: p.festivalEndDate ?? null,
+          festival_recurrence: p.festivalRecurrence ?? null,
+          festival: isFestivalPlace(p) ? festivalStatus(p) : null,
         })
       )
       res.json({
@@ -1101,6 +1082,104 @@ router.get(
     } catch (error) {
       console.error('List places error:', error)
       res.status(500).json({ error: 'Failed to fetch places', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/festivals/upcoming
+ * @desc Festival / jatre markers sorted by their next occurrence, with countdowns.
+ *       Active + upcoming within `withinDays` (default 365). Approved to everyone;
+ *       a viewer also sees their own pending/rejected ones.
+ * @access Private
+ */
+router.get(
+  '/festivals/upcoming',
+  authenticateToken,
+  rateLimitMiddleware('festivals:upcoming', 60, 60),
+  [query('withinDays').optional().isInt({ min: 1, max: 1830 })],
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      await autoApproveExpiredPendingPlaces()
+      await removeExpiredFestivals()
+      const viewerId = req.user.id
+      const withinDays = parseInt(req.query.withinDays, 10) || 365
+
+      const rows = await prisma.place.findMany({
+        where: {
+          AND: [
+            placePublicVisibilityOr(viewerId),
+            {
+              OR: [
+                { category: 'Festival' },
+                { festivalStartDate: { not: null } },
+              ],
+            },
+          ],
+        },
+        take: 1000,
+        select: {
+          id: true,
+          name: true,
+          placeNameEn: true,
+          placeNameLocal: true,
+          category: true,
+          latitude: true,
+          longitude: true,
+          zoomLevel: true,
+          village: true,
+          taluk: true,
+          district: true,
+          state: true,
+          fullAddress: true,
+          source: true,
+          userId: true,
+          userName: true,
+          approvalStatus: true,
+          approvedAt: true,
+          festivalStartDate: true,
+          festivalEndDate: true,
+          festivalRecurrence: true,
+        },
+      })
+
+      const now = new Date()
+      const festivals = rows
+        .map((p) => {
+          const status = festivalStatus(p, now)
+          if (!status) return null
+          return attachApprovalMeta({
+            ...p,
+            name: p.placeNameEn ?? p.name,
+            place_name_en: p.placeNameEn ?? p.name,
+            place_name_local: p.placeNameLocal,
+            user_name: p.userName,
+            full_address: p.fullAddress,
+            festival_start_date: p.festivalStartDate ?? null,
+            festival_end_date: p.festivalEndDate ?? null,
+            festival_recurrence: p.festivalRecurrence ?? null,
+            festival: status,
+          })
+        })
+        .filter(Boolean)
+        .filter((p) => p.festival.active || p.festival.daysUntilStart <= withinDays)
+        .sort((a, b) => {
+          if (a.festival.active !== b.festival.active) return a.festival.active ? -1 : 1
+          return a.festival.daysUntilStart - b.festival.daysUntilStart
+        })
+
+      res.json({ festivals, count: festivals.length })
+    } catch (error) {
+      console.error('Upcoming festivals error:', error)
+      res.status(500).json({ error: 'Failed to fetch festivals', message: error.message })
     }
   }
 )
@@ -1185,9 +1264,6 @@ router.post(
       const maxLng = Math.max(...lngs)
 
       const categoryRaw = String(req.body.category || '').trim()
-      const categoryFilter = categoryRaw
-        ? { category: { equals: categoryRaw, mode: 'insensitive' } }
-        : {}
 
       await autoApproveExpiredPendingPlaces()
       const viewerId = req.user.id
@@ -1198,7 +1274,6 @@ router.post(
             placePublicVisibilityOr(viewerId),
             { latitude: { gte: minLat, lte: maxLat } },
             { longitude: { gte: minLng, lte: maxLng } },
-            categoryFilter,
           ],
         },
         take: 2500,
@@ -1209,6 +1284,8 @@ router.post(
           placeNameEn: true,
           placeNameLocal: true,
           category: true,
+          googleType: true,
+          googleTypes: true,
           latitude: true,
           longitude: true,
           zoomLevel: true,
@@ -1226,7 +1303,21 @@ router.post(
         pointInRing(p.longitude, p.latitude, ring)
       )
 
-      const normalized = inside.map((p) =>
+      const categoryMatched = categoryRaw
+        ? inside.filter((p) => {
+            const resolved = resolvePlaceCategory({
+              category: p.category,
+              type: p.googleType,
+              types: Array.isArray(p.googleTypes) ? p.googleTypes : null,
+              googleType: p.googleType,
+              googleTypes: p.googleTypes,
+              name: p.placeNameEn ?? p.name,
+            })
+            return resolved === categoryRaw
+          })
+        : inside
+
+      const normalized = categoryMatched.map((p) =>
         attachApprovalMeta({
           ...p,
           name: p.placeNameEn ?? p.name,
@@ -1279,6 +1370,23 @@ router.post(
       const userName = req.user.name || null
       const userEmail = req.user.email || null
 
+      const looksLikeExtractBatch = incoming.some(
+        (item) => item.extracted_at || item.extractedAt || item.place_id || item.placeId
+      )
+      if (looksLikeExtractBatch) {
+        const extractRow = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { lastGridExtractAt: true },
+        })
+        if (!usedGridExtractToday(extractRow?.lastGridExtractAt)) {
+          return res.status(429).json({
+            error: 'EXTRACT_DAILY_LIMIT',
+            message: 'Start place extract from the Extract panel before adding extracted places (once per day).',
+            usedToday: false,
+          })
+        }
+      }
+
       const dupIndex = await PlaceDuplicateIndex.load(prisma)
       const batchSeen = []
       const created = []
@@ -1313,6 +1421,13 @@ router.post(
             dupIndex.nameAddress.set(`${candidate.nameKey}|${candidate.addressKey}`, place)
           }
           rememberInBatch(batchSeen, candidate)
+          recordPlaceAuditAsync({
+            placeId: place.id,
+            action: PLACE_AUDIT_ACTIONS.CREATED,
+            actor: userActor(req.user),
+            after: place,
+            note: 'Extracted place added',
+          })
           if (place.source !== 'saved') {
             onPlaceCreated(place, { id: userId, name: userName }).catch(() => {})
           }
@@ -1365,7 +1480,7 @@ router.delete(
 
       const place = await prisma.place.findUnique({
         where: { id: id.trim() },
-        select: { id: true, userId: true },
+        select: PLACE_DETAIL_SELECT,
       })
 
       if (!place) {
@@ -1377,6 +1492,14 @@ router.delete(
       }
 
       await prisma.place.delete({ where: { id: id.trim() } })
+
+      recordPlaceAuditAsync({
+        placeId: place.id,
+        action: PLACE_AUDIT_ACTIONS.DELETED,
+        actor: userActor(req.user),
+        before: place,
+        note: req.user?.id === place.userId ? 'Deleted by owner' : 'Deleted by admin',
+      })
 
       res.json({ success: true, id: id.trim() })
     } catch (error) {
@@ -1410,6 +1533,36 @@ router.get(
       res.json(attachApprovalMeta(serializePlace(place)))
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch place', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/places/:id/history
+ * @desc Public provenance / audit trail for a place (Wikipedia-style transparency)
+ * @access Private (visible to all signed-in users for approved/deleted places;
+ *         pending/rejected places remain visible only to their contributor)
+ */
+router.get(
+  '/places/:id/history',
+  authenticateToken,
+  rateLimitMiddleware('places:history', 120, 60),
+  async (req, res) => {
+    try {
+      const { id } = req.params
+      const place = await prisma.place.findUnique({
+        where: { id },
+        select: { id: true, userId: true, approvalStatus: true },
+      })
+      // If the place still exists, honour normal visibility rules. If it was
+      // deleted, its history stays publicly viewable for accountability.
+      if (place && !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+      const history = await getPlaceHistory(id, { includeSnapshot: false })
+      res.json({ placeId: id, deleted: !place, history })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch place history', message: error.message })
     }
   }
 )
@@ -1923,8 +2076,8 @@ router.post(
 
       res.json(result)
     } catch (error) {
-      console.error('Ask Maps error:', error)
-      res.status(500).json({ error: 'Ask Maps failed', message: error.message })
+      console.error('PlaceFinder error:', error)
+      res.status(500).json({ error: 'PlaceFinder failed', message: error.message })
     }
   }
 )
@@ -1940,6 +2093,7 @@ router.get('/config', authenticateToken, (req, res) => {
     placesQuota: getPlacesQuotaConfig(),
     gridExtract: {
       maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      maxAreaKm2: EXTRACT_MAX_AREA_KM2,
       oncePerDay: true,
     },
   })
@@ -1960,11 +2114,36 @@ router.get('/grid-extract/status', authenticateToken, async (req, res) => {
       canExtract: !usedToday,
       usedToday,
       maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      maxAreaKm2: EXTRACT_MAX_AREA_KM2,
       lastExtractAt: row?.lastGridExtractAt ?? null,
     })
   } catch (error) {
     console.error('grid-extract status error:', error)
     res.status(500).json({ error: 'Failed to load grid extract status' })
+  }
+})
+
+/**
+ * @route POST /api/map/grid-extract/release
+ * @desc Return today's grid extract slot when a run found zero places (one retry same day)
+ */
+router.post('/grid-extract/release', authenticateToken, async (req, res) => {
+  try {
+    const row = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { lastGridExtractAt: true },
+    })
+    if (!usedGridExtractToday(row?.lastGridExtractAt)) {
+      return res.json({ ok: true, released: false })
+    }
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { lastGridExtractAt: null },
+    })
+    res.json({ ok: true, released: true })
+  } catch (error) {
+    console.error('grid-extract release error:', error)
+    res.status(500).json({ error: 'Failed to release grid extract slot' })
   }
 })
 
@@ -1980,10 +2159,11 @@ router.post('/grid-extract/consume', authenticateToken, async (req, res) => {
     })
     if (usedGridExtractToday(row?.lastGridExtractAt)) {
       return res.status(429).json({
-        error: 'GRID_EXTRACT_DAILY_LIMIT',
-        message: 'You have already used grid extract today. You can extract again tomorrow.',
+        error: 'EXTRACT_DAILY_LIMIT',
+        message: 'You have already used place extract today. You can extract again tomorrow.',
         usedToday: true,
         maxPlaces: GRID_EXTRACT_MAX_PLACES,
+        maxAreaKm2: EXTRACT_MAX_AREA_KM2,
       })
     }
     const updated = await prisma.user.update({
@@ -1994,6 +2174,7 @@ router.post('/grid-extract/consume', authenticateToken, async (req, res) => {
     res.json({
       ok: true,
       maxPlaces: GRID_EXTRACT_MAX_PLACES,
+      maxAreaKm2: EXTRACT_MAX_AREA_KM2,
       lastExtractAt: updated.lastGridExtractAt,
     })
   } catch (error) {

@@ -7,6 +7,18 @@ const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) ||
 const USE_UMNAAPP_NOMINATIM =
   String(process.env.UMNAAPP_NOMINATIM_ENABLED || '').toLowerCase() === 'true'
 
+// Public OpenStreetMap Nominatim. Enabled by default so place search always has
+// global OSM coverage merged alongside umnaapp.in results. Set
+// OSM_NOMINATIM_ENABLED=false to disable. Respect the OSM usage policy: a real
+// User-Agent is sent and request volume is modest.
+const OSM_NOMINATIM_URL = (process.env.OSM_NOMINATIM_URL || 'https://nominatim.openstreetmap.org')
+  .trim()
+  .replace(/\/+$/, '')
+const USE_OSM_NOMINATIM =
+  String(process.env.OSM_NOMINATIM_ENABLED ?? 'true').toLowerCase() !== 'false'
+const OSM_USER_AGENT =
+  process.env.OSM_USER_AGENT || 'UMNAAPP-Map-Platform/1.0 (https://umnaapp.in; support@umnaapp.in)'
+
 /** umnaapp.in/search flat fields → Nominatim-style address for subtitles */
 export function normalizeSearchRowAddress(row) {
   if (!row || typeof row !== 'object') return row
@@ -52,15 +64,16 @@ export async function axiosWithRetry(fn, { maxRetries = 3 } = {}) {
 }
 
 /**
- * Query the self-hosted geocoders in parallel and merge results.
+ * Query the geocoders in parallel and merge results.
  *
- * Sources (all self-hosted — the public nominatim.openstreetmap.org URL is
- * intentionally NOT used):
- *   1. umnaapp.in/search            — simple { name, lat, lon } search
- *   2. umnaapp.in/map/nominatim/...  — optional (off by default; service is down on VPS)
- *   3. NOMINATIM_URL/search          — optional extra self-hosted Nominatim (if env set)
+ * Sources:
+ *   1. umnaapp.in/search                 — simple { name, lat, lon } search
+ *   2. nominatim.openstreetmap.org       — public OpenStreetMap (on by default)
+ *   3. umnaapp.in/map/nominatim/...      — optional (off by default; service is down on VPS)
+ *   4. NOMINATIM_URL/search              — optional extra self-hosted Nominatim (if env set)
  */
-export async function searchExternalProviders(q, { limit = 10 } = {}) {
+export async function searchExternalProviders(q, { limit = 10, lat, lng, radiusKm } = {}) {
+  const hasOrigin = Number.isFinite(lat) && Number.isFinite(lng)
   const providers = [
     {
       name: 'umnaapp/search',
@@ -81,12 +94,39 @@ export async function searchExternalProviders(q, { limit = 10 } = {}) {
     })
   }
 
+  if (USE_OSM_NOMINATIM && OSM_NOMINATIM_URL) {
+    const osmParams = { q, format: 'jsonv2', limit, addressdetails: 1 }
+    if (hasOrigin && radiusKm != null) {
+      const delta = Math.max(radiusKm / 111, 0.005)
+      osmParams.viewbox = `${lng - delta},${lat + delta},${lng + delta},${lat - delta}`
+      osmParams.bounded = 1
+    }
+    providers.push({
+      name: 'openstreetmap',
+      url: `${OSM_NOMINATIM_URL}/search`,
+      params: osmParams,
+      headers: { 'User-Agent': OSM_USER_AGENT, 'Accept-Language': 'en' },
+      validateStatus: (s) => s === 200,
+      retries: 1,
+    })
+  }
+
   const selfHosted = NOMINATIM_URL
   if (selfHosted) {
+    const nominatimParams = { q, format: 'json', limit, addressdetails: 1 }
+    if (hasOrigin && radiusKm != null) {
+      const delta = Math.max(radiusKm / 111, 0.005)
+      const minLng = lng - delta
+      const maxLng = lng + delta
+      const minLat = lat - delta
+      const maxLat = lat + delta
+      nominatimParams.viewbox = `${minLng},${maxLat},${maxLng},${minLat}`
+      nominatimParams.bounded = 1
+    }
     providers.push({
       name: 'nominatim-self',
       url: `${selfHosted}/search`,
-      params: { q, format: 'json', limit, addressdetails: 1 },
+      params: nominatimParams,
       validateStatus: (s) => s === 200,
       retries: 2,
     })
@@ -192,8 +232,7 @@ export async function searchExternalProviders(q, { limit = 10 } = {}) {
     return { provider: providersUsed.join('+'), providers: providersUsed, rows: merged }
   }
 
-  // No public OpenStreetMap fallback — self-hosted sources only.
-  console.warn(`[search] RESULT for q="${q}": 0 places — all self-hosted providers empty/failed`, errors)
+  console.warn(`[search] RESULT for q="${q}": 0 places — all providers empty/failed`, errors)
   return {
     provider: null,
     providers: [],

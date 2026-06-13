@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslate } from '../lib/i18n'
 import LanguagePickerModal from '../lib/i18n/LanguagePickerModal'
 import { useAuth } from '../contexts/AuthContext'
@@ -17,6 +17,9 @@ import PlaceExtractPanel from '../components/PlaceExtractPanel'
 import DuplicatePlaceModal, { buildDuplicatePopupPayload } from '../components/DuplicatePlaceModal'
 import PlaceAddedSuccessModal, { buildPlaceAddedPayload } from '../components/PlaceAddedSuccessModal'
 import PolygonExplorePanel from '../components/PolygonExplorePanel'
+import UpcomingFestivalsPanel from '../components/UpcomingFestivalsPanel'
+import GroupItinerariesPanel from '../components/GroupItinerariesPanel'
+import ItineraryDetailPanel from '../components/ItineraryDetailPanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
 import NotificationBell from '../components/NotificationBell'
@@ -28,8 +31,10 @@ import {
   withMapRenderingConfig,
 } from '../utils/mapRenderingConfig'
 import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
+import { isFestivalPlace, isFestivalVisibleNow } from '../utils/festival'
 import { getAppOrigin } from '../utils/apiBase'
 import { extractPlaceNameFromDisplay } from '../utils/formatAddress'
+import { getCurrentPositionAsync } from '../utils/geolocation'
 
 const MAX_AVATAR_SIZE = 200
 
@@ -94,7 +99,8 @@ const buildCategoryOptions = (placesList) => {
     .map((category) => ({ category, count: counts.get(category) || 0 }))
 
   const extras = [...counts.entries()]
-    .filter(([category]) => !PLACE_CATEGORIES.includes(category))
+    // Festivals are a separate flow (own panel), never shown as a place category chip.
+    .filter(([category]) => !PLACE_CATEGORIES.includes(category) && category !== 'Festival')
     .sort((a, b) => a[0].localeCompare(b[0]))
     .map(([category, count]) => ({ category, count }))
 
@@ -105,12 +111,18 @@ const buildCategoryOptions = (placesList) => {
 const HomePage = () => {
   const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
   const navigateTo = useNavigate()
+  const location = useLocation()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
   const [showAskMapsPanel, setShowAskMapsPanel] = useState(false)
+  const [showFestivalsPanel, setShowFestivalsPanel] = useState(false)
+  const [showItinerariesPanel, setShowItinerariesPanel] = useState(false)
+  const [openItineraryId, setOpenItineraryId] = useState(null)
+  const [itineraryJoinToken, setItineraryJoinToken] = useState(null)
   const [askMapsPlaces, setAskMapsPlaces] = useState([])
   const [currentLocation, setCurrentLocation] = useState(null)
   const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
+  const [addFestivalMode, setAddFestivalMode] = useState(false)
   const [addPlaceExcludeId, setAddPlaceExcludeId] = useState(null)
   const [showAddPlaceMethodModal, setShowAddPlaceMethodModal] = useState(false)
   const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
@@ -127,6 +139,7 @@ const HomePage = () => {
   const [navigation, setNavigation] = useState(null)
   const [addPlacePickMode, setAddPlacePickMode] = useState(false)
   const [fetchingPlaceDetails, setFetchingPlaceDetails] = useState(false)
+  const [useCurrentLocationLoading, setUseCurrentLocationLoading] = useState(false)
   const [showMyPlaces, setShowMyPlaces] = useState(false)
   const [showContributionsOnly, setShowContributionsOnly] = useState(false)
   const [showMenu, setShowMenu] = useState(false)
@@ -154,6 +167,7 @@ const HomePage = () => {
   const hasInitialAutoCenterRef = useRef(false)
   const [polygonOverlayPlaces, setPolygonOverlayPlaces] = useState([])
   const [polygonMapInteraction, setPolygonMapInteraction] = useState(false)
+  const [areaExploreFeature, setAreaExploreFeature] = useState(null)
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -163,6 +177,7 @@ const HomePage = () => {
   const menuPrint = useTranslate('Print')
   const menuAddMissingPlace = useTranslate('Add a missing place')
   const menuExtractPlaces = useTranslate('Extract Places')
+  const menuGroupTrips = useTranslate('Group Trips')
   const menuLanguage = useTranslate('Language')
   const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
@@ -180,7 +195,7 @@ const HomePage = () => {
   const ariaClose = useTranslate('Close')
   const myPlacesViewOnMap = useTranslate('View on map')
   const menuAreaExplore = useTranslate('Area explore (draw)')
-  const menuAskMaps = useTranslate('Ask Maps')
+  const menuPlaceFinder = useTranslate('PlaceFinder')
 
   const closeMapContextMenu = useCallback(() => {
     setMapContextMenu(null)
@@ -348,13 +363,33 @@ const HomePage = () => {
   // Derive map markers from allPlaces only so newly added places always appear once categories align
   // (avoids overwriting visiblePlaces after bulk add / extract).
   useEffect(() => {
+    // Festival / jatre markers are time-bound: hide them outside their active
+    // window, except for the contributor (who keeps seeing their own to manage).
+    const festivalGate = (place) => {
+      if (!isFestivalPlace(place)) return true
+      if (isFestivalVisibleNow(place)) return true
+      return isPlaceOwner(place, user)
+    }
+    const base = allPlaces.filter(festivalGate)
     if (selectedCategories.length === 0) {
-      setVisiblePlaces(allPlaces)
+      setVisiblePlaces(base)
     } else {
-      setVisiblePlaces(allPlaces.filter((place) => placeMatchesCategories(place, selectedCategories)))
+      setVisiblePlaces(base.filter((place) => placeMatchesCategories(place, selectedCategories)))
     }
     setLoadingCategoryPlaces(false)
-  }, [allPlaces, selectedCategories])
+  }, [allPlaces, selectedCategories, user])
+
+  // Places rendered as map markers — festival/jatre markers are hidden outside
+  // their active window (contributor still sees their own).
+  const mapPlaces = useMemo(
+    () =>
+      allPlaces.filter((place) => {
+        if (!isFestivalPlace(place)) return true
+        if (isFestivalVisibleNow(place)) return true
+        return isPlaceOwner(place, user)
+      }),
+    [allPlaces, user]
+  )
 
   const toggleCategoryFilter = (category) => {
     const normalized = normalizeCategory(category)
@@ -880,12 +915,20 @@ const HomePage = () => {
       // pre-filled name, never the full comma-separated address. The remaining
       // address parts are populated separately into village/taluk/district/etc.
       const placeOnlyName = extractPlaceNameFromDisplay(data.displayName, data.address)
+      const fields = data.addressFields || {}
       const base = {
         latitude: loc.latitude,
         longitude: loc.longitude,
         zoomLevel: loc.zoomLevel,
         name: placeOnlyName,
         address: data.address || {},
+        addressFields: fields,
+        village: fields.village || '',
+        taluk: fields.taluk || '',
+        district: fields.district || '',
+        state: fields.state || '',
+        pincode: fields.pincode || '',
+        country: fields.country || '',
         targetLang: data.targetLang || 'hi',
       }
       return withMapRenderingConfig(base, { map, place: base })
@@ -903,6 +946,93 @@ const HomePage = () => {
       setFetchingPlaceDetails(false)
     }
   }
+
+  const handleUseCurrentLocationForAddPlace = useCallback(async () => {
+    if (useCurrentLocationLoading) return
+
+    setUseCurrentLocationLoading(true)
+    setFetchingPlaceDetails(true)
+    const hadCached =
+      Number.isFinite(currentLocation?.lat) && Number.isFinite(currentLocation?.lng)
+    const zoomLevel = 16
+
+    try {
+      if (hadCached) {
+        setShowAddPlaceMethodModal(false)
+        setAddPlaceLocationMethod('map-or-current')
+        setMapLocation({
+          latitude: currentLocation.lat,
+          longitude: currentLocation.lng,
+          zoomLevel,
+        })
+        setShowAddPlaceModal(true)
+        mapRef.current?.flyTo?.({
+          center: [currentLocation.lng, currentLocation.lat],
+          zoom: zoomLevel,
+          duration: 800,
+        })
+      }
+
+      const pos = await getCurrentPositionAsync({
+        fallback: hadCached ? currentLocation : null,
+      })
+
+      setCurrentLocation({ lat: pos.lat, lng: pos.lng, name: 'My location' })
+
+      if (!hadCached) {
+        setShowAddPlaceMethodModal(false)
+        setAddPlaceLocationMethod('map-or-current')
+        setMapLocation({
+          latitude: pos.lat,
+          longitude: pos.lng,
+          zoomLevel,
+        })
+        setShowAddPlaceModal(true)
+        mapRef.current?.flyTo?.({
+          center: [pos.lng, pos.lat],
+          zoom: zoomLevel,
+          duration: 800,
+        })
+      } else if (
+        Math.abs(pos.lat - currentLocation.lat) > 0.00005 ||
+        Math.abs(pos.lng - currentLocation.lng) > 0.00005
+      ) {
+        setMapLocation((prev) =>
+          prev
+            ? { ...prev, latitude: pos.lat, longitude: pos.lng, zoomLevel }
+            : { latitude: pos.lat, longitude: pos.lng, zoomLevel }
+        )
+        mapRef.current?.flyTo?.({
+          center: [pos.lng, pos.lat],
+          zoom: zoomLevel,
+          duration: 600,
+        })
+      }
+
+      try {
+        const details = await fetchPlaceDetails({
+          latitude: pos.lat,
+          longitude: pos.lng,
+          zoomLevel,
+        })
+        setMapLocation(details)
+      } catch (err) {
+        console.warn('handleUseCurrentLocationForAddPlace: reverse geocode failed', err)
+        setFetchingPlaceDetails(false)
+      }
+    } catch (err) {
+      setFetchingPlaceDetails(false)
+      if (!showAddPlaceModal) {
+        setShowAddPlaceMethodModal(true)
+      }
+      showToast(
+        err?.message || 'Could not get your location. Enable GPS or pick a spot on the map.',
+        'error'
+      )
+    } finally {
+      setUseCurrentLocationLoading(false)
+    }
+  }, [currentLocation, useCurrentLocationLoading, showAddPlaceModal, showToast])
 
   const handleMapClickForPlace = useCallback(async (loc) => {
     if (!addPlacePickMode) return
@@ -927,7 +1057,7 @@ const HomePage = () => {
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
-    showPlaceAddedPopup([place], { variant: 'manual' })
+    showPlaceAddedPopup([place], { variant: isFestivalPlace(place) ? 'festival' : 'manual' })
     if (mapRef.current?.flyTo) {
       mapRef.current.flyTo({
         center: [place.longitude, place.latitude],
@@ -1050,6 +1180,117 @@ const HomePage = () => {
     }
     throw new Error('Map not ready')
   }
+
+  // Co-Edited Group Itineraries: open the list, open a specific trip, and draw
+  // a trip's stops as an optimized multi-stop route on the map.
+  const openItinerariesPanel = useCallback(() => {
+    setShowMenu(false)
+    setOpenItineraryId(null)
+    setShowItinerariesPanel(true)
+  }, [])
+
+  const handleShowItineraryOnMap = useCallback(async (stops) => {
+    const points = (stops || [])
+      .map((s) => ({ lat: Number(s.latitude), lng: Number(s.longitude), name: s.name }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+    if (points.length === 0) return
+
+    // Close the trip panels so the map (and route) is visible.
+    setShowItinerariesPanel(false)
+    setOpenItineraryId(null)
+
+    if (points.length === 1) {
+      setRouteStartPlace(points[0])
+      setRouteEndPlace(null)
+      setRouteStops([])
+      mapRef.current?.flyTo?.({ center: [points[0].lng, points[0].lat], zoom: 14, duration: 800 })
+      return
+    }
+
+    // Render A/B/C stop markers via the existing route-marker system.
+    setRouteStartPlace(points[0])
+    setRouteEndPlace(points[points.length - 1])
+    setRouteStops(points)
+
+    const start = points[0]
+    const end = points[points.length - 1]
+    const waypoints = points.slice(1, -1)
+
+    // Draw a straight connecting line through every stop. Always available, so
+    // the user sees *something* even when the road router is unreachable.
+    const drawStraightLine = () => {
+      mapRef.current?.setRouteGeometry?.(
+        { type: 'LineString', coordinates: points.map((p) => [p.lng, p.lat]) },
+        { fitBounds: true }
+      )
+    }
+
+    try {
+      if (mapRef.current?.calculateRoute) {
+        const result = await mapRef.current.calculateRoute(start, end, waypoints, 'driving')
+        // If the router returned no usable geometry, fall back to a straight line.
+        if (!result?.route?.geometry?.coordinates?.length) {
+          drawStraightLine()
+          setToast({ type: 'info', msg: 'Showing trip stops (road route unavailable).' })
+        }
+      } else {
+        drawStraightLine()
+      }
+    } catch (err) {
+      // Routing failed (far-apart points, rate limit, upstream down): draw the
+      // straight connecting line so the trip is still visible on the map.
+      drawStraightLine()
+      setToast({ type: 'info', msg: 'Showing trip stops (road route unavailable).' })
+    }
+  }, [])
+
+  // Open a trip when arriving via a link or from the notifications page:
+  //   /home?joinTrip=<shareToken>  → join then open
+  //   /home?openTrip=<itineraryId> → open existing trip
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('joinTrip')
+    const openTrip = params.get('openTrip')
+    if (token || openTrip) {
+      if (token) {
+        setItineraryJoinToken(token)
+        setOpenItineraryId(null)
+      } else {
+        setItineraryJoinToken(null)
+        setOpenItineraryId(openTrip)
+      }
+      setShowItinerariesPanel(true)
+      params.delete('joinTrip')
+      params.delete('openTrip')
+      const qs = params.toString()
+      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
+    }
+  }, [])
+
+  // Focus a place when arriving from the notifications page (router state).
+  useEffect(() => {
+    const focusPlace = location.state?.focusPlace
+    if (focusPlace) {
+      handleNotificationPlaceFocus(focusPlace)
+      navigateTo(location.pathname, { replace: true, state: {} })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.state])
+
+  // Open/join a trip from the in-app notification bell (already on /home).
+  const handleNotificationItineraryOpen = useCallback(({ itineraryId, shareToken, join }) => {
+    setShowItinerariesPanel(true)
+    if (join && shareToken) {
+      setOpenItineraryId(null)
+      setItineraryJoinToken(shareToken)
+    } else if (itineraryId) {
+      setItineraryJoinToken(null)
+      setOpenItineraryId(itineraryId)
+    } else if (shareToken) {
+      setOpenItineraryId(null)
+      setItineraryJoinToken(shareToken)
+    }
+  }, [])
 
   const handleStartNavigation = useCallback((session) => {
     if (!session?.route) return
@@ -1305,7 +1546,10 @@ const HomePage = () => {
 
           {/* Right side: Notifications + Extract Places + Add Place */}
           <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
-            <NotificationBell onPlaceFocus={handleNotificationPlaceFocus} />
+            <NotificationBell
+              onPlaceFocus={handleNotificationPlaceFocus}
+              onOpenItinerary={handleNotificationItineraryOpen}
+            />
             {/* Extract Places button */}
             <button
               onClick={() => setShowExtractPanel(true)}
@@ -1453,19 +1697,8 @@ const HomePage = () => {
           setShowAddPlaceMethodModal(false)
           setAddPlacePickMode(true)
         }}
-        onUseCurrentLocation={async () => {
-          setShowAddPlaceMethodModal(false)
-          if (currentLocation?.lat != null && currentLocation?.lng != null) {
-            const details = await fetchPlaceDetails({
-              latitude: currentLocation.lat,
-              longitude: currentLocation.lng,
-              zoomLevel: 15,
-            })
-            setMapLocation(details)
-            setAddPlaceLocationMethod('map-or-current')
-            setShowAddPlaceModal(true)
-          }
-        }}
+        onUseCurrentLocation={handleUseCurrentLocationForAddPlace}
+        useCurrentLocationLoading={useCurrentLocationLoading}
         onSelectManualCoords={() => {
           setShowAddPlaceMethodModal(false)
           setAddPlaceLocationMethod('manual-coords')
@@ -1482,6 +1715,7 @@ const HomePage = () => {
           setAddPlacePickMode(false)
           setAddPlaceLocationMethod(null)
           setAddPlaceExcludeId(null)
+          setAddFestivalMode(false)
         }}
         initialData={null}
         mapLocation={mapLocation}
@@ -1490,14 +1724,18 @@ const HomePage = () => {
         existingPlaces={allPlaces}
         excludePlaceId={addPlaceExcludeId}
         onShowDuplicate={showDuplicatePopup}
+        festivalMode={addFestivalMode}
         onRequestMapPick={() => {
           setShowAddPlaceModal(false)
           setAddPlacePickMode(true)
         }}
+        onUseCurrentLocation={handleUseCurrentLocationForAddPlace}
+        useCurrentLocationLoading={useCurrentLocationLoading}
+        locationDetailsLoading={fetchingPlaceDetails}
         onSaved={handlePlaceSaved}
       />
 
-      {/* Ask Maps — AI natural-language search */}
+      {/* PlaceFinder — AI natural-language search */}
       {showAskMapsPanel && (
         <div className="absolute inset-0 z-[45] flex pointer-events-none" style={{ top: 0 }}>
           <div
@@ -1511,13 +1749,64 @@ const HomePage = () => {
             <AskMapsPanel
               mapRef={mapRef}
               currentLocation={currentLocation}
+              mapPlaces={allPlaces}
               onClose={handleAskMapsClose}
               onResults={handleAskMapsResults}
               onPlaceSelect={handleAskMapsPlaceSelect}
               onDirections={handleAskMapsDirections}
+              selectedPlaceId={selectedPlace?.id ?? null}
             />
           </div>
         </div>
+      )}
+
+      {/* Festivals & Jatres — time-bound markers with countdowns */}
+      {showFestivalsPanel && (
+        <UpcomingFestivalsPanel
+          onClose={() => setShowFestivalsPanel(false)}
+          onPlaceSelect={(place) => {
+            setShowFestivalsPanel(false)
+            openPlaceDetail(place, { fly: true })
+          }}
+          onAddFestival={() => {
+            setShowFestivalsPanel(false)
+            setMapLocation(null)
+            setAddPlaceExcludeId(null)
+            setAddPlaceLocationMethod(null)
+            setAddFestivalMode(true)
+            setShowAddPlaceModal(true)
+          }}
+        />
+      )}
+
+      {/* Co-Edited Group Itineraries: list panel (also handles join-via-link) */}
+      {showItinerariesPanel && !openItineraryId && (
+        <GroupItinerariesPanel
+          initialJoinToken={itineraryJoinToken}
+          onClose={() => {
+            setShowItinerariesPanel(false)
+            setItineraryJoinToken(null)
+          }}
+          onOpenItinerary={(id) => {
+            setItineraryJoinToken(null)
+            setOpenItineraryId(id)
+          }}
+        />
+      )}
+
+      {/* Co-Edited Group Itineraries: detail / co-editing view */}
+      {showItinerariesPanel && openItineraryId && (
+        <ItineraryDetailPanel
+          itineraryId={openItineraryId}
+          currentUser={user}
+          onBack={() => setOpenItineraryId(null)}
+          onClose={() => {
+            setShowItinerariesPanel(false)
+            setOpenItineraryId(null)
+            setItineraryJoinToken(null)
+          }}
+          onShowOnMap={handleShowItineraryOnMap}
+        />
       )}
 
       {/* Route Panel — mobile: bottom sheet; desktop: left panel */}
@@ -1612,9 +1901,12 @@ const HomePage = () => {
       {/* Map tools sidebar — draw area & explore by category */}
       <PolygonExplorePanel
         mapRef={mapRef}
+        mapReadyTick={mapReadyTick}
         isOpen={showSidebar}
         onClose={() => setShowSidebar(false)}
         onInteractionChange={setPolygonMapInteraction}
+        onShapeChange={setAreaExploreFeature}
+        onPlaceSelect={(place) => openPlaceDetail(place, { fly: true })}
         onPlacesFound={(places) => {
           setPolygonOverlayPlaces(places)
         }}
@@ -1638,9 +1930,10 @@ const HomePage = () => {
           blockContextMenu={polygonMapInteraction || addPlacePickMode}
           measureDistanceActive={measureDistanceActive}
           onMeasureDistanceChange={setMeasureStats}
-          places={allPlaces}
+          places={mapPlaces}
           searchResultPlaces={mapSearchResultPlaces}
           polygonOverlayPlaces={polygonOverlayPlaces}
+          areaExploreFeature={areaExploreFeature}
           autoFitSearchResults={askMapsPlaces.length > 1}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
@@ -1666,9 +1959,9 @@ const HomePage = () => {
         />
       )}
 
-      {/* Place detail panel — map labels, search, Ask Maps, filters */}
+      {/* Place detail panel — map labels, search, PlaceFinder, filters */}
       {selectedPlace && (
-        <div className="absolute inset-0 z-40 pointer-events-none">
+        <div className={`absolute inset-0 pointer-events-none ${showAskMapsPanel ? 'z-[55]' : 'z-40'}`}>
           <PlaceDetailPanel
             place={selectedPlace}
             onClose={() => setSelectedPlace(null)}
@@ -1676,6 +1969,8 @@ const HomePage = () => {
             onSave={handlePlaceSaveFromPanel}
             onUnsave={handleUnsavePlaceFromPanel}
             onEdit={handlePlaceEdit}
+            onNearbySelect={(np) => openPlaceDetail(np, { fly: true })}
+            stackedWithSidebar={showAskMapsPanel}
             onDelete={
               canDeletePlace(selectedPlace, user)
                 ? (placeId) =>
@@ -1820,7 +2115,29 @@ const HomePage = () => {
                   <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  <span className="text-sm font-medium text-slate-800">{menuAskMaps}</span>
+                  <span className="text-sm font-medium text-slate-800">{menuPlaceFinder}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
+                    setShowFestivalsPanel(true)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-fuchsia-50 active:bg-fuchsia-100 transition-colors text-left touch-manipulation"
+                >
+                  <span className="w-5 h-5 flex items-center justify-center text-lg leading-none" aria-hidden>🎪</span>
+                  <span className="text-sm font-medium text-slate-800">Festivals &amp; Jatres</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={openItinerariesPanel}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-indigo-50 active:bg-indigo-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuGroupTrips}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 ml-auto">New</span>
                 </button>
               </div>
 

@@ -6,6 +6,10 @@ import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { whenStyleReady } from '../utils/mapWhenStyleReady'
 import { formatMeasureLabel } from '../utils/measureDistance'
+import {
+  applyAreaExploreFeature,
+  bringAreaExploreLayersToTop,
+} from '../utils/areaExploreMapLayers'
 import { resolvePlaceRendering } from '../utils/mapRenderingConfig'
 import { sortAndTagRoutes, getRouteCoordinates } from '../utils/routeHelpers'
 import {
@@ -314,17 +318,20 @@ const PLACE_LABEL_TEXT_SHADOW =
 /** DOM marker: place name label only (no pin dots), Google Maps–style. */
 const createUserPlaceMarkerElement = (place, rendering = null) => {
   const render = rendering || resolvePlaceRendering(place, 15)
-  const displayName = String(
+  const baseName = String(
     (place.place_name_local && String(place.place_name_local).trim())
     || (place.name && String(place.name).trim())
     || (place.place_name_en && String(place.place_name_en).trim())
     || 'Place'
   )
+  const isFestival = place?.category === 'Festival'
+  const displayName = isFestival ? `🎪 ${baseName}` : baseName
 
   const isPending = place?.approvalStatus === 'pending'
 
   const wrapper = document.createElement('div')
   wrapper.className = isPending ? 'user-place-marker user-place-marker--pending' : 'user-place-marker'
+  if (isFestival) wrapper.classList.add('user-place-marker--festival')
   wrapper.style.display = 'flex'
   wrapper.style.flexDirection = 'column'
   wrapper.style.alignItems = 'center'
@@ -374,16 +381,28 @@ const createSearchResultMarkerElement = (place) => {
   label.textContent = place.displayName || place.name || 'Place'
   label.style.maxWidth = '180px'
   label.style.fontSize = '12px'
-  label.style.fontWeight = '500'
+  label.style.fontWeight = '600'
   label.style.lineHeight = '1.25'
   label.style.color = '#1a1a1a'
-  label.style.background = 'transparent'
-  label.style.padding = '0'
-  label.style.margin = '0 0 2px 0'
+  label.style.background = 'rgba(255,255,255,0.92)'
+  label.style.padding = '2px 6px'
+  label.style.borderRadius = '4px'
+  label.style.margin = '0 0 4px 0'
   label.style.textAlign = 'center'
   label.style.whiteSpace = 'normal'
   label.style.wordBreak = 'break-word'
-  label.style.textShadow = PLACE_LABEL_TEXT_SHADOW
+  label.style.boxShadow = '0 1px 3px rgba(0,0,0,0.15)'
+
+  const pinColor = place.markerColor || '#7C3AED'
+  const pin = document.createElement('div')
+  pin.className = 'search-result-marker-pin'
+  pin.style.width = '14px'
+  pin.style.height = '14px'
+  pin.style.borderRadius = '50%'
+  pin.style.background = pinColor
+  pin.style.border = '2px solid #fff'
+  pin.style.boxShadow = '0 1px 4px rgba(0,0,0,0.35)'
+  pin.style.flexShrink = '0'
 
   const anchor = document.createElement('div')
   anchor.className = 'user-place-marker-anchor'
@@ -394,6 +413,7 @@ const createSearchResultMarkerElement = (place) => {
   anchor.style.opacity = '0'
 
   wrapper.appendChild(label)
+  wrapper.appendChild(pin)
   wrapper.appendChild(anchor)
   wrapper.title = place.displayName || place.name || ''
   return wrapper
@@ -473,15 +493,19 @@ const applyPlaceMarkerSelected = (el, placeId, selectedPlaceId) => {
   el.classList.toggle('user-place-marker--selected', isSelected)
 }
 
-const placeFromSearchMarker = (place) => ({
-  id: place.placeId,
-  place_name_en: place.displayName || place.name,
-  name: place.displayName || place.name,
-  latitude: place.lat,
-  longitude: place.lng,
-  category: place.category || 'Other',
-  _isDbPlace: Boolean(place.placeId && /^[0-9a-f-]{36}$/.test(String(place.placeId))),
-})
+const placeFromSearchMarker = (place) => {
+  const id = place.placeId ?? place.id
+  return {
+    ...place,
+    id,
+    place_name_en: place.displayName || place.place_name_en || place.name,
+    name: place.displayName || place.name,
+    latitude: place.lat ?? place.latitude,
+    longitude: place.lng ?? place.longitude,
+    category: place.category || 'Other',
+    _isDbPlace: Boolean(id && /^[0-9a-f-]{36}$/.test(String(id))),
+  }
+}
 
 const MapComponent = forwardRef(({
   onLocationUpdate,
@@ -498,6 +522,7 @@ const MapComponent = forwardRef(({
   places = [],
   searchResultPlaces = [],
   polygonOverlayPlaces = [],
+  areaExploreFeature = null,
   autoFitSearchResults = true,
   routeStartPlace = null,
   routeEndPlace = null,
@@ -562,9 +587,13 @@ const MapComponent = forwardRef(({
   const [route, setRoute] = useState(null)
   const [basemapMode, setBasemapMode] = useState(readStoredBasemapMode)
   const basemapModeRef = useRef(basemapMode)
+  const areaExploreFeatureRef = useRef(areaExploreFeature)
   useEffect(() => {
     basemapModeRef.current = basemapMode
   }, [basemapMode])
+  useEffect(() => {
+    areaExploreFeatureRef.current = areaExploreFeature
+  }, [areaExploreFeature])
 
   const selectBasemapMode = useCallback((mode) => {
     if (mode !== 'street' && mode !== 'satellite' && mode !== 'terrain') return
@@ -582,9 +611,10 @@ const MapComponent = forwardRef(({
       'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
     const apply = () =>
       applyBasemapToMap(map, mode, streetUrl, {
-        onRouteLayers: routeLayerRef.current
-          ? (m) => ensureRouteOnTopRef.current(m)
-          : undefined,
+        onRouteLayers: (m) => {
+          if (areaExploreFeatureRef.current) bringAreaExploreLayersToTop(m)
+          if (routeLayerRef.current) ensureRouteOnTopRef.current(m)
+        },
       })
     if (map.isStyleLoaded()) {
       apply()
@@ -1408,6 +1438,20 @@ const MapComponent = forwardRef(({
       clearMeasureDistance()
     }
   }, [measureDistanceActive, clearMeasureDistance])
+
+  // Area explore draw shape — owned here so layers stay above basemap tiles/labels
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return undefined
+
+    applyAreaExploreFeature(map, areaExploreFeature)
+
+    const onIdle = () => {
+      if (areaExploreFeatureRef.current) bringAreaExploreLayersToTop(map)
+    }
+    map.on('idle', onIdle)
+    return () => map.off('idle', onIdle)
+  }, [mapLoaded, areaExploreFeature])
 
   // Sync basemap when map becomes ready (e.g. remount) — clicks use selectBasemapMode for instant apply
   useEffect(() => {
@@ -2386,8 +2430,18 @@ const MapComponent = forwardRef(({
       }
     }
 
+    const restoreAreaExploreLayers = () => {
+      const feature = areaExploreFeatureRef.current
+      if (!feature) return
+      applyAreaExploreFeature(map, feature)
+    }
+
     map.on('style.load', restoreRouteLayers)
-    return () => map.off('style.load', restoreRouteLayers)
+    map.on('style.load', restoreAreaExploreLayers)
+    return () => {
+      map.off('style.load', restoreRouteLayers)
+      map.off('style.load', restoreAreaExploreLayers)
+    }
   }, [mapLoaded, applyRouteToMap])
 
   const refitRouteBounds = useCallback((padding = 50) => {

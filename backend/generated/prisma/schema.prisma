@@ -35,6 +35,11 @@ model User {
   notifications     Notification[]
   pushSubscriptions PushSubscription[]
 
+  ownedItineraries     Itinerary[]        @relation("ItineraryOwner")
+  itineraryMemberships ItineraryMember[]
+  itineraryComments    ItineraryComment[]
+  itineraryVotes       ItineraryVote[]
+
   @@index([email])
   @@index([googleId])
 }
@@ -209,6 +214,11 @@ model Place {
   googlePhotos       Json?     @map("google_photos")
   mapRenderingConfig Json?     @map("map_rendering_config")
   extractedAt        DateTime? @map("extracted_at")
+  // Festival / jatre overlay: time-bound markers shown only during their window.
+  festivalStartDate  DateTime? @map("festival_start_date")
+  festivalEndDate    DateTime? @map("festival_end_date")
+  festivalRecurrence String?   @map("festival_recurrence") // 'yearly' | 'none'
+  festivalNotifiedAt DateTime? @map("festival_notified_at") // last occurrence start we broadcast to all users
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
 
@@ -228,6 +238,7 @@ model Place {
   @@index([latitude, longitude])
   @@index([googlePlaceId])
   @@index([extractedAt])
+  @@index([festivalStartDate])
 }
 
 // User-specific personal bookmark / favorite of a location.
@@ -288,4 +299,123 @@ model PlacePhoto {
 
   @@index([placeId])
   @@index([userId])
+}
+
+// Public provenance / audit trail for every place lifecycle event.
+// Intentionally NOT linked to Place via a foreign key: when a Place row is
+// hard-deleted we still want to preserve its full history (Wikipedia-style
+// transparency), so audit rows survive deletion. `actorId` is likewise a loose
+// reference (no FK) so the trail outlives user deletions.
+model PlaceAudit {
+  id        String   @id @default(uuid())
+  placeId   String   @map("place_id")
+  action    String // created | updated | approved | rejected | deleted | restored
+  actorType String   @default("user") @map("actor_type") // user | admin | system
+  actorId   String?  @map("actor_id")
+  actorName String?  @map("actor_name")
+  changes   Json? // { field: { old, new } } diff for this event
+  snapshot  Json? // full place snapshot at this version (used for restore)
+  note      String?  @db.Text // optional human note (e.g. "auto-approved")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([placeId, createdAt])
+  @@index([action])
+  @@index([createdAt])
+}
+
+// ---------------------------------------------------------------------------
+// Co-Edited Group Itineraries — collaborative trip planning.
+// An Itinerary is a shared trip owned by one user and co-edited by members.
+// Stops are ordered places; members vote (like/dislike) and comment on each
+// stop, and the stop order can be auto-sorted by net votes. A share token lets
+// anyone with the link join as an editor.
+// ---------------------------------------------------------------------------
+model Itinerary {
+  id          String    @id @default(uuid())
+  title       String
+  description String?   @db.Text
+  ownerId     String    @map("owner_id")
+  shareToken  String    @unique @map("share_token")
+  coverEmoji  String?   @map("cover_emoji")
+  startDate   DateTime? @map("start_date")
+  endDate     DateTime? @map("end_date")
+  autoSort    Boolean   @default(false) @map("auto_sort") // reorder stops by net votes
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  owner   User              @relation("ItineraryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members ItineraryMember[]
+  stops   ItineraryStop[]
+
+  @@index([ownerId])
+  @@index([shareToken])
+  @@index([updatedAt])
+}
+
+model ItineraryMember {
+  id          String   @id @default(uuid())
+  itineraryId String   @map("itinerary_id")
+  userId      String   @map("user_id")
+  role        String   @default("editor") // owner | editor | viewer
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([itineraryId, userId])
+  @@index([userId])
+  @@index([itineraryId])
+}
+
+model ItineraryStop {
+  id          String   @id @default(uuid())
+  itineraryId String   @map("itinerary_id")
+  placeId     String?  @map("place_id") // optional link to an existing Place
+  name        String
+  category    String?
+  latitude    Float
+  longitude   Float
+  address     String?
+  notes       String?  @db.Text
+  position    Int      @default(0) // manual order index within the trip
+  dayIndex    Int?     @map("day_index")
+  addedById   String?  @map("added_by_id")
+  addedByName String?  @map("added_by_name")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  itinerary Itinerary          @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
+  comments  ItineraryComment[]
+  votes     ItineraryVote[]
+
+  @@index([itineraryId, position])
+}
+
+model ItineraryComment {
+  id        String   @id @default(uuid())
+  stopId    String   @map("stop_id")
+  userId    String   @map("user_id")
+  userName  String?  @map("user_name")
+  body      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+
+  stop ItineraryStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([stopId, createdAt])
+}
+
+model ItineraryVote {
+  id        String   @id @default(uuid())
+  stopId    String   @map("stop_id")
+  userId    String   @map("user_id")
+  value     Int // 1 = like, -1 = dislike
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  stop ItineraryStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
+  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([stopId, userId])
+  @@index([stopId])
 }

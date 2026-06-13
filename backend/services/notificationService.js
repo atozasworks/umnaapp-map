@@ -1,11 +1,13 @@
 import webpush from 'web-push'
 import prisma from '../config/database.js'
 import { getIo } from '../lib/socketIo.js'
+import { festivalStatus, isFestivalPlace } from '../utils/festival.js'
 
 export const NOTIFICATION_TYPES = {
   PLACE_SUBMITTED: 'place_submitted',
   PLACE_ADDED: 'place_added',
   PLACE_APPROVED: 'place_approved',
+  FESTIVAL_TODAY: 'festival_today',
 }
 
 let vapidConfigured = false
@@ -243,4 +245,83 @@ export async function onPlacesAutoApproved(placeIds) {
   for (const place of places) {
     await onPlaceApproved(place, { approvedBy: 'auto' })
   }
+}
+
+/** Broadcast "this festival is happening" to every user (in-app + push). */
+export async function notifyFestivalStarting(place, status) {
+  if (!prisma.notification || !prisma.user) return 0
+  const name = placeDisplayName(place)
+  const recipients = await prisma.user.findMany({ select: { id: true } })
+  if (!recipients.length) return 0
+
+  const title = '🎪 Festival happening'
+  const body = `"${name}" is on now${place.village ? ` at ${place.village}` : ''}. Tap to see it on the map.`
+  const data = placePayload(place, {
+    festival: true,
+    startISO: status?.startISO ?? null,
+    endISO: status?.endISO ?? null,
+  })
+
+  await Promise.all(
+    recipients.map((u) =>
+      createUserNotification({
+        userId: u.id,
+        type: NOTIFICATION_TYPES.FESTIVAL_TODAY,
+        title,
+        body,
+        data,
+      })
+    )
+  )
+  return recipients.length
+}
+
+/**
+ * Find festivals whose active window has begun and broadcast a one-time
+ * "festival is happening" notification to all users. festivalNotifiedAt records
+ * the occurrence start we last broadcast, so each occurrence fires once (yearly
+ * festivals re-fire next year). Only approved festivals are broadcast so we
+ * don't spam everyone with unverified submissions.
+ */
+export async function notifyFestivalsStartingToday() {
+  if (!prisma.place) return { count: 0 }
+  const now = new Date()
+  let candidates
+  try {
+    candidates = await prisma.place.findMany({
+      where: {
+        approvalStatus: 'approved',
+        OR: [{ category: 'Festival' }, { festivalStartDate: { not: null } }],
+      },
+    })
+  } catch (e) {
+    // festival_notified_at column / prisma client may be missing on old DBs.
+    console.warn('[notify] notifyFestivalsStartingToday query failed:', e.message)
+    return { count: 0 }
+  }
+
+  let notified = 0
+  for (const place of candidates) {
+    if (!isFestivalPlace(place)) continue
+    const status = festivalStatus(place, now)
+    if (!status || !status.active) continue
+
+    const alreadyNotified =
+      place.festivalNotifiedAt &&
+      new Date(place.festivalNotifiedAt).getTime() >= status.start.getTime()
+    if (alreadyNotified) continue
+
+    try {
+      const sent = await notifyFestivalStarting(place, status)
+      await prisma.place.update({
+        where: { id: place.id },
+        data: { festivalNotifiedAt: now },
+      })
+      if (sent > 0) notified += 1
+      console.log(`[notify] festival "${placeDisplayName(place)}" broadcast to ${sent} user(s)`)
+    } catch (e) {
+      console.error('[notify] notifyFestivalStarting failed:', e.message)
+    }
+  }
+  return { count: notified }
 }
