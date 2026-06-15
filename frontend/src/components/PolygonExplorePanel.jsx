@@ -104,6 +104,9 @@ export default function PolygonExplorePanel({
   const [editMode, setEditMode] = useState(false)
   const [areaPlaceCount, setAreaPlaceCount] = useState(null)
   const [areaPlacesList, setAreaPlacesList] = useState([])
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  )
 
   const phaseRef = useRef('idle')
   const toolRef = useRef('polygon')
@@ -125,6 +128,15 @@ export default function PolygonExplorePanel({
     if (map) applyAreaExploreFeature(map, feature ?? null)
     onShapeChangeRef.current?.(feature ?? null)
   }, [mapRef])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined
+    const mq = window.matchMedia('(max-width: 639px)')
+    const onChange = (e) => setIsMobileViewport(e.matches)
+    setIsMobileViewport(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
 
   useEffect(() => {
     completedFeatureRef.current = completedFeature
@@ -540,6 +552,70 @@ export default function PolygonExplorePanel({
     }
   }, [drawPhase, mapRef])
 
+  const cancelDrawing = useCallback(() => {
+    const map = mapRef.current?.getMap?.()
+    pointsRef.current = []
+    freehandRef.current = []
+    startRef.current = null
+    lastPointerRef.current = null
+    emitShapeChange(null)
+    setDrawPhase('idle')
+    phaseRef.current = 'idle'
+    if (map) teardownDrawing(map)
+  }, [mapRef, emitShapeChange, teardownDrawing])
+
+  const finishPolygon = useCallback(() => {
+    const map = mapRef.current?.getMap?.()
+    if (map && pointsRef.current.length >= 3) {
+      applyPolygonFromOpenRing(map, pointsRef.current)
+    }
+  }, [mapRef, applyPolygonFromOpenRing])
+
+  // On phones the panel becomes a bottom sheet, so a shape drawn near the lower
+  // edge would hide behind it. Nudge the camera so the completed shape sits in
+  // the visible area above the sheet.
+  const fitMapToFeatureMobile = useCallback((map, feature) => {
+    if (!map || !feature || typeof window === 'undefined' || window.innerWidth >= 640) return
+    const ring = feature.geometry?.coordinates?.[0]
+    if (!ring?.length) return
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const [x, y] of ring) {
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+    if (!Number.isFinite(minX)) return
+    const sheet = Math.min(window.innerHeight * 0.68, 480)
+    try {
+      map.fitBounds(
+        [
+          [minX, minY],
+          [maxX, maxY],
+        ],
+        {
+          padding: { top: 110, bottom: Math.round(sheet) + 24, left: 36, right: 36 },
+          maxZoom: 17,
+          duration: 500,
+        }
+      )
+    } catch {
+      /* fitBounds can throw on degenerate bounds */
+    }
+  }, [])
+
+  // When a shape is freshly completed (category picker appears), keep it visible
+  // above the mobile bottom sheet. Keyed on showCategories so edit-mode vertex
+  // drags (which leave showCategories true) don't keep re-centering the map.
+  useEffect(() => {
+    if (!showCategories || !isMobileViewport) return
+    const map = mapRef.current?.getMap?.()
+    if (map) fitMapToFeatureMobile(map, completedFeatureRef.current)
+  }, [showCategories, isMobileViewport, mapRef, fitMapToFeatureMobile])
+
   const fetchForCategory = useCallback(
     async (category) => {
       if (!completedFeature?.geometry?.coordinates?.[0]) return
@@ -636,23 +712,96 @@ export default function PolygonExplorePanel({
 
   if (!visible && !isOpen) return null
 
-  const panelMotion = entered && !isExiting
-    ? { transform: 'translateX(0)', opacity: 1 }
-    : { transform: 'translateX(calc(-100% - 0.75rem))', opacity: 0 }
+  const drawHint = {
+    polygon: 'Tap corners on the map; tap the first point or use Finish to close.',
+    rectangle: 'Drag a corner to the opposite corner.',
+    square: 'Drag to set a square area.',
+    circle: 'Drag from the center outward for the radius.',
+    freehand: 'Hold and drag to draw; release to close the area.',
+  }
+
+  // Mobile: while drawing, collapse to a slim bottom bar so the whole map is
+  // free to draw on and the drawn shape stays visible (it would otherwise sit
+  // behind the full panel).
+  if (isMobileViewport && drawPhase === 'drawing') {
+    return (
+      <div
+        className="absolute inset-x-0 bottom-0 z-[28] pointer-events-none"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="mx-2 mb-2 rounded-2xl glass border border-white/40 shadow-xl pointer-events-auto px-3 py-2.5">
+          <div className="flex items-start gap-2">
+            <span className="mt-1 flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary-600" aria-hidden />
+            <p className="flex-1 text-[11px] leading-snug text-slate-700">
+              {drawHint[shapeTool]}
+            </p>
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={cancelDrawing}
+              className="flex-1 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-700 active:scale-95 touch-manipulation"
+            >
+              Cancel
+            </button>
+            {shapeTool === 'polygon' && (
+              <button
+                type="button"
+                onClick={finishPolygon}
+                className="flex-1 rounded-xl bg-primary-600 px-3 py-2 text-xs font-semibold text-white shadow active:scale-95 touch-manipulation"
+              >
+                Finish shape
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const enteredOpen = entered && !isExiting
+  const panelMotion = isMobileViewport
+    ? enteredOpen
+      ? { transform: 'translateY(0)', opacity: 1 }
+      : { transform: 'translateY(calc(100% + 1rem))', opacity: 1 }
+    : enteredOpen
+      ? { transform: 'translateX(0)', opacity: 1 }
+      : { transform: 'translateX(calc(-100% - 0.75rem))', opacity: 0 }
+
+  const containerClass = isMobileViewport
+    ? 'absolute z-[28] inset-x-0 bottom-0 w-full flex flex-col glass rounded-t-2xl border border-white/40 shadow-xl overflow-hidden pointer-events-auto'
+    : 'absolute z-[28] w-[min(100vw-0.5rem,18rem)] max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom))] flex flex-col glass rounded-r-2xl border border-white/40 shadow-xl overflow-hidden pointer-events-auto'
+
+  const containerStyle = isMobileViewport
+    ? {
+        left: 0,
+        right: 0,
+        bottom: 0,
+        maxHeight: 'min(68dvh, 30rem)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        ...panelMotion,
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }
+    : {
+        top: 'calc(env(safe-area-inset-top) + 3.75rem)',
+        left: 0,
+        ...panelMotion,
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="area-explore-title"
-      className="absolute z-[28] w-[min(100vw-0.5rem,18rem)] max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom))] flex flex-col glass rounded-r-2xl border border-white/40 shadow-xl overflow-hidden pointer-events-auto"
-      style={{
-        top: 'calc(env(safe-area-inset-top) + 3.75rem)',
-        left: 0,
-        ...panelMotion,
-        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
+      className={containerClass}
+      style={containerStyle}
     >
+      {isMobileViewport && (
+        <div className="flex shrink-0 justify-center pt-2 pb-0.5" aria-hidden>
+          <div className="h-1 w-10 rounded-full bg-slate-300/90" />
+        </div>
+      )}
       <div className="relative shrink-0 border-b border-white/40 bg-white/50 px-3 py-2.5 pr-12">
         <h2 id="area-explore-title" className="text-sm font-bold text-slate-800 pr-1">Area explore</h2>
         <p className="text-[11px] text-slate-600 mt-0.5 leading-snug pr-1">
