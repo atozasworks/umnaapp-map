@@ -10,6 +10,72 @@ export const NOTIFICATION_TYPES = {
   FESTIVAL_TODAY: 'festival_today',
 }
 
+/**
+ * Maps a notification type to the user-preference flag that gates it. Types not
+ * listed here (e.g. place_submitted — a direct response to the user's own
+ * action) are always delivered and cannot be turned off.
+ */
+const PREF_KEY_BY_TYPE = {
+  place_approved: 'placeApproved',
+  place_added: 'placeAdded',
+  festival_today: 'festival',
+  business_claim_approved: 'businessClaim',
+  business_claim_rejected: 'businessClaim',
+}
+
+/** Default preferences when a user has no preference row (everything on). */
+export const DEFAULT_NOTIFICATION_PREFERENCE = {
+  pushEnabled: true,
+  placeApproved: true,
+  placeAdded: true,
+  festival: true,
+  businessClaim: true,
+}
+
+export async function getNotificationPreference(userId) {
+  if (!prisma.notificationPreference || !userId) return null
+  try {
+    return await prisma.notificationPreference.findUnique({ where: { userId } })
+  } catch {
+    return null
+  }
+}
+
+/** Whether a notification of `type` should be created for a user given their prefs. */
+function categoryEnabled(pref, type) {
+  const key = PREF_KEY_BY_TYPE[type]
+  if (!key) return true // always-on / transactional
+  if (!pref) return true // no row => default on
+  return pref[key] !== false
+}
+
+/**
+ * Resolve the set of users opted in to a broadcast category. A missing
+ * preference row counts as opted in. Converts former "broadcast to ALL users"
+ * sends into targeted, opt-in deliveries. Falls back gracefully if the
+ * preference model isn't migrated yet.
+ */
+async function recipientsForCategory(prefKey, excludeUserId) {
+  const base = excludeUserId ? { id: { not: excludeUserId } } : {}
+  if (prisma.notificationPreference) {
+    try {
+      return await prisma.user.findMany({
+        where: {
+          ...base,
+          OR: [
+            { notificationPreference: { is: null } },
+            { notificationPreference: { [prefKey]: true } },
+          ],
+        },
+        select: { id: true },
+      })
+    } catch (e) {
+      console.warn('[notify] preference-aware recipient query failed, falling back:', e.message)
+    }
+  }
+  return prisma.user.findMany({ where: base, select: { id: true } })
+}
+
 let vapidConfigured = false
 
 function configureVapid() {
@@ -58,13 +124,17 @@ function placePayload(place, extra = {}) {
   }
 }
 
-async function deliverToUser(userId, notification) {
+async function deliverToUser(userId, notification, pref) {
   const payload = serializeNotification(notification)
   const io = getIo()
   if (io) {
     io.to(`user:${userId}`).emit('notification:new', payload)
     const count = await prisma.notification.count({ where: { userId, read: false } })
     io.to(`user:${userId}`).emit('notification:unread-count', { count })
+  }
+  const pushEnabled = !pref || pref.pushEnabled !== false
+  if (!pushEnabled) {
+    return
   }
   if (configureVapid()) {
     sendPushToUser(userId, payload).catch((err) => {
@@ -132,6 +202,11 @@ export async function createUserNotification({ userId, type, title, body, data }
     console.warn('[notify] createUserNotification: missing userId, type=', type)
     return null
   }
+  const pref = await getNotificationPreference(userId)
+  if (!categoryEnabled(pref, type)) {
+    console.log(`[notify] skipped type=${type} → user=${userId} (category muted)`)
+    return null
+  }
   let notification
   try {
     notification = await prisma.notification.create({
@@ -143,7 +218,7 @@ export async function createUserNotification({ userId, type, title, body, data }
   }
   console.log(`[notify] created id=${notification.id} type=${type} → user=${userId}`)
   try {
-    await deliverToUser(userId, notification)
+    await deliverToUser(userId, notification, pref)
   } catch (e) {
     console.error('[notify] deliverToUser failed:', e)
   }
@@ -165,10 +240,8 @@ export async function notifyPlaceAddedToCommunity(place, actor) {
   if (!prisma.notification || !prisma.user) return
   const name = placeDisplayName(place)
   const actorName = (actor?.name || 'Someone').trim()
-  const recipients = await prisma.user.findMany({
-    where: { id: { not: place.userId } },
-    select: { id: true },
-  })
+  // Targeted: only users who haven't muted the "new community place" category.
+  const recipients = await recipientsForCategory('placeAdded', place.userId)
   if (!recipients.length) return
 
   const title = 'New place added'
@@ -251,7 +324,8 @@ export async function onPlacesAutoApproved(placeIds) {
 export async function notifyFestivalStarting(place, status) {
   if (!prisma.notification || !prisma.user) return 0
   const name = placeDisplayName(place)
-  const recipients = await prisma.user.findMany({ select: { id: true } })
+  // Targeted: only users who haven't muted the "festival happening" category.
+  const recipients = await recipientsForCategory('festival', null)
   if (!recipients.length) return 0
 
   const title = '🎪 Festival happening'

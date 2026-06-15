@@ -3,9 +3,9 @@ import { URL } from 'url'
 import axios from 'axios'
 import polyline from '@mapbox/polyline'
 import { body, query, validationResult } from 'express-validator'
-import { authenticateToken } from '../middleware/auth.js'
+import { authenticateToken, optionalAuth } from '../middleware/auth.js'
 import { cacheMiddleware } from '../middleware/cache.js'
-import { rateLimitMiddleware } from '../middleware/rateLimit.js'
+import { rateLimitMiddleware, tieredRateLimitMiddleware } from '../middleware/rateLimit.js'
 import prisma from '../config/database.js'
 import { translateText, getLanguageFromAddress } from '../services/translateService.js'
 import {
@@ -16,11 +16,12 @@ import {
   enrichPlaceApprovalMeta,
   initialApprovalFields,
 } from '../services/placeApproval.js'
-import { onPlaceCreated } from '../services/notificationService.js'
+import { onPlaceCreated, onPlaceApproved } from '../services/notificationService.js'
 import {
   recordPlaceAuditAsync,
   getPlaceHistory,
   userActor,
+  computeChanges,
   PLACE_AUDIT_ACTIONS,
 } from '../services/placeAudit.js'
 import {
@@ -38,6 +39,8 @@ import {
   DUPLICATE_MESSAGES,
 } from '../utils/placeDuplicate.js'
 import { runAskMapsQuery } from '../services/groqAskMapsService.js'
+import { runMapAssistant } from '../services/mapAssistantService.js'
+import { findNearbyPostgis, findInPolygonPostgis } from '../services/placeSpatial.js'
 import {
   axiosWithRetry,
   normalizeSearchRowAddress,
@@ -51,7 +54,7 @@ import {
   usedGridExtractToday,
 } from '../utils/gridExtractLimit.js'
 import { resolvePlaceCategory, pickPrimaryGoogleType } from '../utils/googlePlaceCategory.js'
-import { canUserDeletePlace } from '../utils/placeOwnership.js'
+import { canUserDeletePlace, isPlaceOwner, isPlaceDeleteAdmin } from '../utils/placeOwnership.js'
 import { festivalStatus, isFestivalPlace } from '../utils/festival.js'
 import {
   processAlternativeRoutes,
@@ -580,7 +583,7 @@ router.get(
     let dbResults = []
     if (prisma.place && q.length >= 2) {
       try {
-        await autoApproveExpiredPendingPlaces()
+        // Auto-approval runs on the 15-minute scheduler, not during search.
         const viewerId = req.user.id
         const dbPlaces = await prisma.place.findMany({
           where: {
@@ -990,6 +993,12 @@ router.get(
       .isString()
       .isLength({ max: 500 })
       .withMessage('Categories filter is too long'),
+    query('limit').optional().isInt({ min: 1, max: 5000 }).withMessage('limit 1-5000'),
+    query('offset').optional().isInt({ min: 0 }).withMessage('offset must be >= 0'),
+    query('minLat').optional().isFloat({ min: -90, max: 90 }),
+    query('maxLat').optional().isFloat({ min: -90, max: 90 }),
+    query('minLng').optional().isFloat({ min: -180, max: 180 }),
+    query('maxLng').optional().isFloat({ min: -180, max: 180 }),
   ],
   async (req, res) => {
     try {
@@ -1005,8 +1014,8 @@ router.get(
         return res.status(400).json({ errors: errors.array() })
       }
 
-      await autoApproveExpiredPendingPlaces()
-      await removeExpiredFestivals()
+      // Auto-approval & festival cleanup run on the 15-minute scheduler, not
+      // during list/search/detail requests (see startPlaceApprovalScheduler).
       const viewerId = req.user.id
 
       const selectedCategories = String(req.query.categories || '')
@@ -1017,14 +1026,28 @@ router.get(
       const categoryFilter =
         selectedCategories.length > 0 ? { category: { in: selectedCategories } } : {}
 
+      // Optional viewport (bounding-box) filtering so the client can load only
+      // places in view instead of everything. Omitted params = no bbox filter.
+      const bboxFilter = {}
+      const minLat = req.query.minLat != null ? parseFloat(req.query.minLat) : null
+      const maxLat = req.query.maxLat != null ? parseFloat(req.query.maxLat) : null
+      const minLng = req.query.minLng != null ? parseFloat(req.query.minLng) : null
+      const maxLng = req.query.maxLng != null ? parseFloat(req.query.maxLng) : null
+      if (minLat != null && maxLat != null) bboxFilter.latitude = { gte: minLat, lte: maxLat }
+      if (minLng != null && maxLng != null) bboxFilter.longitude = { gte: minLng, lte: maxLng }
+
+      const limit = req.query.limit != null ? parseInt(req.query.limit, 10) : 5000
+      const offset = req.query.offset != null ? parseInt(req.query.offset, 10) : 0
+
       const visibilityWhere = {
-        AND: [placePublicVisibilityOr(viewerId), categoryFilter],
+        AND: [placePublicVisibilityOr(viewerId), categoryFilter, bboxFilter],
       }
 
       const places = await prisma.place.findMany({
         where: visibilityWhere,
         orderBy: { createdAt: 'desc' },
-        take: 5000,
+        take: limit,
+        skip: offset,
         select: {
           id: true,
           name: true,
@@ -1074,6 +1097,10 @@ router.get(
       res.json({
         places: normalized,
         selectedCategories,
+        // Pagination metadata (additive — existing clients ignore these).
+        limit,
+        offset,
+        returned: normalized.length,
         availableCategories: categoryCounts.map((item) => ({
           category: item.category,
           count: item._count.category,
@@ -1256,52 +1283,53 @@ router.post(
         return res.status(400).json({ error: 'Invalid polygon coordinates' })
       }
 
-      const lats = ring.map((c) => c[1])
-      const lngs = ring.map((c) => c[0])
-      const minLat = Math.min(...lats)
-      const maxLat = Math.max(...lats)
-      const minLng = Math.min(...lngs)
-      const maxLng = Math.max(...lngs)
-
       const categoryRaw = String(req.body.category || '').trim()
-
-      await autoApproveExpiredPendingPlaces()
       const viewerId = req.user.id
 
-      const candidates = await prisma.place.findMany({
-        where: {
-          AND: [
-            placePublicVisibilityOr(viewerId),
-            { latitude: { gte: minLat, lte: maxLat } },
-            { longitude: { gte: minLng, lte: maxLng } },
-          ],
-        },
-        take: 2500,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          placeNameEn: true,
-          placeNameLocal: true,
-          category: true,
-          googleType: true,
-          googleTypes: true,
-          latitude: true,
-          longitude: true,
-          zoomLevel: true,
-          source: true,
-          userId: true,
-          userName: true,
-          userEmail: true,
-          createdAt: true,
-          approvalStatus: true,
-          approvedAt: true,
-        },
-      })
+      // Prefer PostGIS ST_Contains (GiST-indexed) over bbox + JS point-in-ring.
+      let inside = await findInPolygonPostgis({ ring, viewerId, limit: 2500 })
 
-      const inside = candidates.filter((p) =>
-        pointInRing(p.longitude, p.latitude, ring)
-      )
+      if (!inside) {
+        const lats = ring.map((c) => c[1])
+        const lngs = ring.map((c) => c[0])
+        const minLat = Math.min(...lats)
+        const maxLat = Math.max(...lats)
+        const minLng = Math.min(...lngs)
+        const maxLng = Math.max(...lngs)
+
+        const candidates = await prisma.place.findMany({
+          where: {
+            AND: [
+              placePublicVisibilityOr(viewerId),
+              { latitude: { gte: minLat, lte: maxLat } },
+              { longitude: { gte: minLng, lte: maxLng } },
+            ],
+          },
+          take: 2500,
+          orderBy: { createdAt: 'desc' },
+          select: {
+            id: true,
+            name: true,
+            placeNameEn: true,
+            placeNameLocal: true,
+            category: true,
+            googleType: true,
+            googleTypes: true,
+            latitude: true,
+            longitude: true,
+            zoomLevel: true,
+            source: true,
+            userId: true,
+            userName: true,
+            userEmail: true,
+            createdAt: true,
+            approvalStatus: true,
+            approvedAt: true,
+          },
+        })
+
+        inside = candidates.filter((p) => pointInRing(p.longitude, p.latitude, ring))
+      }
 
       const categoryMatched = categoryRaw
         ? inside.filter((p) => {
@@ -1387,7 +1415,9 @@ router.post(
         }
       }
 
-      const dupIndex = await PlaceDuplicateIndex.load(prisma)
+      // Scope duplicate detection to a bounding box around the incoming places
+      // instead of scanning the whole table (bulk/extract is clustered).
+      const dupIndex = await PlaceDuplicateIndex.loadNear(prisma, incoming)
       const batchSeen = []
       const created = []
       const skipped = []
@@ -1510,6 +1540,211 @@ router.delete(
 )
 
 /**
+ * @route PATCH /api/map/places/:id
+ * @desc Edit a place. Only the place owner (or a configured place admin) may
+ *       edit. Performs duplicate detection (excluding the place itself),
+ *       records an audit entry with the field-level diff, and only updates the
+ *       fields actually sent in the body — existing Google / detail columns are
+ *       never wiped by a partial edit. Backward compatible (additive route).
+ * @access Private
+ */
+router.patch(
+  '/places/:id',
+  authenticateToken,
+  rateLimitMiddleware('places:update', 30, 60),
+  [
+    body('place_name_en').optional().trim().isLength({ min: 1, max: 200 }).withMessage('Place name (English) 1-200 chars'),
+    body('place_name_local').optional({ nullable: true }).trim().isLength({ max: 200 }).withMessage('Local name max 200 chars'),
+    body('category').optional().trim().isLength({ min: 1, max: 50 }).withMessage('Category 1-50 chars'),
+    body('latitude').optional().isFloat({ min: -90, max: 90 }).withMessage('Valid latitude required'),
+    body('longitude').optional().isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
+    body('zoomLevel').optional().isFloat({ min: 0, max: 22 }).withMessage('Zoom level 0-22'),
+    body('approvalStatus').optional().isIn(['pending', 'approved', 'rejected']).withMessage('Invalid approval status'),
+    body('festival_start_date').optional({ nullable: true }).isISO8601().withMessage('Festival start date must be a valid date'),
+    body('festival_end_date').optional({ nullable: true }).isISO8601().withMessage('Festival end date must be a valid date'),
+    body('festival_recurrence').optional({ nullable: true }).isIn(['yearly', 'none']).withMessage('Recurrence must be yearly or none'),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const id = String(req.params.id || '').trim()
+      if (!id) return res.status(400).json({ error: 'Place ID required' })
+
+      const existing = await prisma.place.findUnique({ where: { id } })
+      if (!existing) return res.status(404).json({ error: 'Place not found' })
+
+      const isAdmin = isPlaceDeleteAdmin(req.user)
+      const isOwner = isPlaceOwner(existing, req.user)
+      if (!isAdmin && !isOwner) {
+        return res.status(403).json({ error: 'Not authorized to edit this place' })
+      }
+
+      // Duplicate detection — only when an identity field (name / coords /
+      // google id) changes. Always exclude the place being edited.
+      const identityChanged =
+        req.body.place_name_en != null ||
+        req.body.latitude != null ||
+        req.body.longitude != null ||
+        req.body.google_place_id != null ||
+        req.body.place_id != null ||
+        req.body.placeId != null
+      if (identityChanged) {
+        const dupPayload = {
+          place_name_en: req.body.place_name_en ?? existing.placeNameEn ?? existing.name,
+          latitude: req.body.latitude ?? existing.latitude,
+          longitude: req.body.longitude ?? existing.longitude,
+          village: req.body.village ?? existing.village,
+          taluk: req.body.taluk ?? existing.taluk,
+          district: req.body.district ?? existing.district,
+          state: req.body.state ?? existing.state,
+          country: req.body.country ?? existing.country,
+          pincode: req.body.pincode ?? existing.pincode,
+          place_id: req.body.place_id ?? req.body.placeId ?? req.body.google_place_id ?? existing.googlePlaceId,
+        }
+        const dup = await findPlaceDuplicate(prisma, dupPayload, { excludePlaceId: id })
+        if (dup.duplicate) {
+          return res.status(409).json({
+            error: 'Duplicate place',
+            reason: dup.reason,
+            message: dup.message,
+            existingPlaceId: dup.existingPlaceId,
+            existingPlaceName: dup.existingPlaceName,
+          })
+        }
+      }
+
+      const addressCtx = {
+        village: req.body.village ?? existing.village,
+        taluk: req.body.taluk ?? existing.taluk,
+        district: req.body.district ?? existing.district,
+        state: req.body.state ?? existing.state,
+        country: req.body.country ?? existing.country,
+        pincode: req.body.pincode ?? existing.pincode,
+      }
+
+      const data = {}
+      if (req.body.place_name_en) {
+        const rawName = String(req.body.place_name_en).trim()
+        data.placeNameEn = sanitizePlaceName(rawName, addressCtx) || rawName
+        data.name = data.placeNameEn
+      }
+      if (req.body.place_name_local !== undefined) {
+        data.placeNameLocal = sanitizePlaceName(req.body.place_name_local, addressCtx)
+      }
+      if (req.body.category) data.category = String(req.body.category).trim()
+      if (req.body.latitude != null) data.latitude = parseFloat(req.body.latitude)
+      if (req.body.longitude != null) data.longitude = parseFloat(req.body.longitude)
+      if (req.body.zoomLevel != null) data.zoomLevel = parseFloat(req.body.zoomLevel)
+
+      // Plain detail fields: only update the ones actually present in the body
+      // so a partial edit never nulls existing columns (Google data, etc.).
+      const DETAIL_ALIASES = {
+        fullAddress: ['full_address', 'fullAddress', 'address'],
+        vicinity: ['vicinity'],
+        village: ['village'],
+        taluk: ['taluk'],
+        district: ['district'],
+        state: ['state'],
+        country: ['country'],
+        pincode: ['pincode'],
+        phone: ['phone'],
+        website: ['website'],
+        description: ['description'],
+      }
+      for (const [field, aliases] of Object.entries(DETAIL_ALIASES)) {
+        const alias = aliases.find((a) => req.body[a] !== undefined)
+        if (alias !== undefined) {
+          const raw = req.body[alias]
+          const trimmed = raw == null ? '' : String(raw).trim()
+          data[field] = trimmed === '' ? null : trimmed.slice(0, field === 'fullAddress' ? 2000 : 500)
+        }
+      }
+
+      if (req.body.mapRenderingConfig !== undefined || req.body.map_rendering_config !== undefined) {
+        const built = buildPlaceDetailFields(
+          { mapRenderingConfig: req.body.mapRenderingConfig ?? req.body.map_rendering_config, zoomLevel: data.zoomLevel ?? existing.zoomLevel },
+          {},
+          { forUpdate: true }
+        )
+        data.mapRenderingConfig = built.mapRenderingConfig
+      }
+
+      // Festival window edits (only if any festival key present)
+      if (
+        req.body.festival_start_date !== undefined ||
+        req.body.festival_end_date !== undefined ||
+        req.body.festival_recurrence !== undefined
+      ) {
+        const fest = buildPlaceDetailFields(req.body, {}, { forUpdate: true })
+        data.festivalStartDate = fest.festivalStartDate
+        data.festivalEndDate = fest.festivalEndDate
+        data.festivalRecurrence = fest.festivalRecurrence
+      }
+
+      // Approval workflow: only admins may directly change approval status.
+      let note = isOwner && !isAdmin ? 'Edited by owner' : 'Edited by admin'
+      let action = PLACE_AUDIT_ACTIONS.UPDATED
+      let approvedJustNow = false
+      if (isAdmin && req.body.approvalStatus) {
+        data.approvalStatus = req.body.approvalStatus
+        if (req.body.approvalStatus === 'approved') {
+          data.approvedAt = new Date()
+          data.autoApproveAt = null
+          if (existing.approvalStatus !== 'approved') {
+            action = PLACE_AUDIT_ACTIONS.APPROVED
+            note = 'Approved by admin'
+            approvedJustNow = true
+          }
+        } else if (req.body.approvalStatus === 'rejected') {
+          data.approvedAt = null
+          data.autoApproveAt = null
+          if (existing.approvalStatus !== 'rejected') {
+            action = PLACE_AUDIT_ACTIONS.REJECTED
+            note = 'Rejected by admin'
+          }
+        } else if (req.body.approvalStatus === 'pending') {
+          data.approvedAt = null
+        }
+      }
+
+      const place = await prisma.place.update({ where: { id }, data })
+
+      const changes = computeChanges(existing, place)
+      if (Object.keys(changes).length > 0) {
+        recordPlaceAuditAsync({
+          placeId: place.id,
+          action,
+          actor: userActor(req.user),
+          before: existing,
+          after: place,
+          changesOverride: changes,
+          note,
+        })
+      }
+
+      if (approvedJustNow) {
+        onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
+          console.error('[notify] onPlaceApproved bg error:', err)
+        })
+      }
+
+      res.json(attachApprovalMeta(serializePlace(place)))
+    } catch (error) {
+      console.error('Update place error:', error)
+      res.status(500).json({ error: 'Failed to update place', message: error.message })
+    }
+  }
+)
+
+/**
  * @route GET /api/map/places/:id
  * @desc Get a single place by ID (any user's place)
  * @access Private
@@ -1521,7 +1756,7 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
-      await autoApproveExpiredPendingPlaces()
+      // Auto-approval runs on the 15-minute scheduler, not during place detail.
       const place = await prisma.place.findUnique({
         where: { id },
         select: PLACE_DETAIL_SELECT,
@@ -1579,7 +1814,7 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
-      await autoApproveExpiredPendingPlaces()
+      // Auto-approval runs on the 15-minute scheduler, not during place detail.
       const place = await prisma.place.findUnique({
         where: { id },
         select: { latitude: true, longitude: true, category: true, userId: true, approvalStatus: true },
@@ -1589,22 +1824,38 @@ router.get(
         return res.status(404).json({ error: 'Place not found' })
       }
 
-      const delta = 0.018 // ~2km
-      const nearby = await prisma.place.findMany({
-        where: {
-          AND: [
-            placePublicVisibilityOr(req.user.id),
-            {
-              id: { not: id },
-              latitude: { gte: place.latitude - delta, lte: place.latitude + delta },
-              longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
-            },
-          ],
-        },
-        take: 8,
-        orderBy: { createdAt: 'desc' },
-        select: { id: true, name: true, placeNameEn: true, category: true, latitude: true, longitude: true, userId: true, userName: true },
+      // Prefer PostGIS: true radius + nearest ordering via the GiST index.
+      const spatial = await findNearbyPostgis({
+        lat: place.latitude,
+        lng: place.longitude,
+        radiusMeters: 2000,
+        excludeId: id,
+        limit: 8,
+        viewerId: req.user.id,
       })
+
+      let nearby
+      if (spatial) {
+        nearby = spatial
+      } else {
+        // Fallback: bounding-box (~2km) + recency ordering.
+        const delta = 0.018
+        nearby = await prisma.place.findMany({
+          where: {
+            AND: [
+              placePublicVisibilityOr(req.user.id),
+              {
+                id: { not: id },
+                latitude: { gte: place.latitude - delta, lte: place.latitude + delta },
+                longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
+              },
+            ],
+          },
+          take: 8,
+          orderBy: { createdAt: 'desc' },
+          select: { id: true, name: true, placeNameEn: true, category: true, latitude: true, longitude: true, userId: true, userName: true },
+        })
+      }
       res.json(nearby.map((p) => ({ ...p, name: p.placeNameEn ?? p.name, place_name_en: p.placeNameEn ?? p.name })))
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch nearby places', message: error.message })
@@ -1809,6 +2060,195 @@ router.delete(
       res.json({ success: true })
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete photo', message: error.message })
+    }
+  }
+)
+
+/**
+ * Business ownership claims.
+ *
+ * A user submits a claim ("I own / manage this business"); an admin later
+ * approves or rejects it from the admin panel. On approval the Place is
+ * stamped with claimedById + claimVerifiedAt, which drives the "verified
+ * owner" badge in the UI.
+ */
+
+const CLAIM_ROLES = ['owner', 'manager', 'employee', 'other']
+
+/**
+ * @route GET /api/map/places/:id/claim
+ * @desc Get the current user's claim status for a place (+ whether it's verified)
+ * @access Private
+ */
+router.get(
+  '/places/:id/claim',
+  authenticateToken,
+  rateLimitMiddleware('claims:get', 120, 60),
+  async (req, res) => {
+    try {
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true, claimedById: true, claimVerifiedAt: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+      const verified = Boolean(place.claimVerifiedAt)
+      if (!prisma.businessClaim) {
+        return res.json({ claim: null, verified, claimedByMe: place.claimedById === req.user.id })
+      }
+      const claim = await prisma.businessClaim.findUnique({
+        where: { placeId_userId: { placeId: req.params.id, userId: req.user.id } },
+        select: { id: true, role: true, status: true, message: true, reviewNote: true, createdAt: true, reviewedAt: true },
+      })
+      res.json({ claim: claim || null, verified, claimedByMe: place.claimedById === req.user.id })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch claim', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/places/:id/claim
+ * @desc Submit (or re-submit) a business ownership claim for a place
+ * @access Private
+ */
+router.post(
+  '/places/:id/claim',
+  authenticateToken,
+  rateLimitMiddleware('claims:create', 10, 60),
+  [
+    body('role').optional().isIn(CLAIM_ROLES).withMessage(`Role must be one of: ${CLAIM_ROLES.join(', ')}`),
+    body('contactPhone').optional().trim().isLength({ max: 30 }).withMessage('Phone too long'),
+    body('contactEmail').optional().trim().isEmail().withMessage('Valid email required').isLength({ max: 200 }),
+    body('message').optional().trim().isLength({ max: 1000 }).withMessage('Message max 1000 chars'),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.businessClaim) {
+        return res.status(503).json({ error: 'Business claims not available. Run migration: add-phase7-claims-labels.sql, then `npx prisma generate` and restart.' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true, claimedById: true, claimVerifiedAt: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+      if (place.claimVerifiedAt && place.claimedById && place.claimedById !== req.user.id) {
+        return res.status(409).json({ error: 'This business has already been claimed by another user.' })
+      }
+
+      const { role, contactPhone, contactEmail, message } = req.body
+      const data = {
+        userName: req.user.name || null,
+        role: role || 'owner',
+        contactPhone: contactPhone?.trim() || null,
+        contactEmail: contactEmail?.trim() || req.user.email || null,
+        message: message?.trim() || null,
+        status: 'pending',
+        reviewNote: null,
+        reviewedById: null,
+        reviewedAt: null,
+      }
+      const claim = await prisma.businessClaim.upsert({
+        where: { placeId_userId: { placeId: req.params.id, userId: req.user.id } },
+        create: { placeId: req.params.id, userId: req.user.id, ...data },
+        update: data,
+        select: { id: true, role: true, status: true, message: true, createdAt: true },
+      })
+      res.status(201).json({ claim })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to submit claim', message: error.message })
+    }
+  }
+)
+
+/**
+ * Personal place labels (Google Maps "Add a label"). Private per-user.
+ */
+
+/**
+ * @route GET /api/map/places/:id/label
+ * @desc Get the current user's label for a place
+ * @access Private
+ */
+router.get(
+  '/places/:id/label',
+  authenticateToken,
+  rateLimitMiddleware('labels:get', 200, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.placeLabel) return res.json({ label: null })
+      const row = await prisma.placeLabel.findUnique({
+        where: { userId_placeId: { userId: req.user.id, placeId: req.params.id } },
+        select: { id: true, label: true, updatedAt: true },
+      })
+      res.json({ label: row || null })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to fetch label', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route PUT /api/map/places/:id/label
+ * @desc Create / update the current user's personal label for a place
+ * @access Private
+ */
+router.put(
+  '/places/:id/label',
+  authenticateToken,
+  rateLimitMiddleware('labels:set', 60, 60),
+  [body('label').isString().trim().isLength({ min: 1, max: 60 }).withMessage('Label must be 1-60 chars')],
+  async (req, res) => {
+    try {
+      if (!prisma.placeLabel) {
+        return res.status(503).json({ error: 'Labels not available. Run migration: add-phase7-claims-labels.sql, then `npx prisma generate` and restart.' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const place = await prisma.place.findUnique({
+        where: { id: req.params.id },
+        select: { id: true, userId: true, approvalStatus: true, latitude: true, longitude: true },
+      })
+      if (!place || !isPlaceVisibleToUser(place, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+      const label = req.body.label.trim()
+      const row = await prisma.placeLabel.upsert({
+        where: { userId_placeId: { userId: req.user.id, placeId: req.params.id } },
+        create: { userId: req.user.id, placeId: req.params.id, label, latitude: place.latitude, longitude: place.longitude },
+        update: { label },
+        select: { id: true, label: true, updatedAt: true },
+      })
+      res.json({ label: row })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to save label', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route DELETE /api/map/places/:id/label
+ * @desc Remove the current user's personal label for a place
+ * @access Private
+ */
+router.delete(
+  '/places/:id/label',
+  authenticateToken,
+  rateLimitMiddleware('labels:delete', 60, 60),
+  async (req, res) => {
+    try {
+      if (!prisma.placeLabel) return res.json({ success: true })
+      await prisma.placeLabel.deleteMany({ where: { userId: req.user.id, placeId: req.params.id } })
+      res.json({ success: true })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to delete label', message: error.message })
     }
   }
 )
@@ -2078,6 +2518,43 @@ router.post(
     } catch (error) {
       console.error('PlaceFinder error:', error)
       res.status(500).json({ error: 'PlaceFinder failed', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/assistant
+ * @desc Support chatbot for UmnaApp Maps features (Groq chat, topic-restricted).
+ *       Public so it can be used on the landing page before login.
+ * @access Public
+ */
+router.post(
+  '/assistant',
+  optionalAuth,
+  // Per-minute burst limit: signed-in users get a higher cap than anonymous.
+  tieredRateLimitMiddleware('map:assistant', { authMax: 30, anonMax: 12, windowSeconds: 60 }),
+  // Daily usage cap to deter abuse of the public LLM endpoint.
+  tieredRateLimitMiddleware('map:assistant:daily', { authMax: 400, anonMax: 80, windowSeconds: 86400 }),
+  [
+    body('messages').isArray({ min: 1, max: 30 }).withMessage('messages must be a non-empty array'),
+    body('messages.*.role').optional().isIn(['user', 'assistant']),
+    body('messages.*.content').isString().trim().isLength({ min: 1, max: 1500 }),
+    body('context').optional().isObject(),
+    body('context.lat').optional().isFloat({ min: -90, max: 90 }),
+    body('context.lng').optional().isFloat({ min: -180, max: 180 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const result = await runMapAssistant(req.body.messages, { context: req.body.context || null })
+      res.json(result)
+    } catch (error) {
+      console.error('Map Assistant error:', error)
+      res.status(500).json({ error: 'Assistant failed', message: error.message })
     }
   }
 )

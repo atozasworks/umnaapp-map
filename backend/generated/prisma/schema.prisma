@@ -19,21 +19,25 @@ model User {
   googleId          String?   @unique
   picture           String? // Profile image: URL (Google) or base64 data URL (uploaded)
   emailVerified     Boolean   @default(false)
+  profilePublic     Boolean   @default(true) @map("profile_public") // public profile visibility
   lastGridExtractAt DateTime? @map("last_grid_extract_at")
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
-  otpVerifications  OTPVerification[]
-  sessions          Session[]
-  vehicles          Vehicle[]
-  locations         Location[]
-  routes            Route[]
-  places            Place[]
-  placeReviews      PlaceReview[]
-  placePhotos       PlacePhoto[]
-  favorites         Favorite[]
-  notifications     Notification[]
-  pushSubscriptions PushSubscription[]
+  otpVerifications       OTPVerification[]
+  sessions               Session[]
+  vehicles               Vehicle[]
+  locations              Location[]
+  routes                 Route[]
+  places                 Place[]
+  placeReviews           PlaceReview[]
+  placePhotos            PlacePhoto[]
+  favorites              Favorite[]
+  notifications          Notification[]
+  pushSubscriptions      PushSubscription[]
+  notificationPreference NotificationPreference?
+  businessClaims         BusinessClaim[]
+  placeLabels            PlaceLabel[]
 
   ownedItineraries     Itinerary[]        @relation("ItineraryOwner")
   itineraryMemberships ItineraryMember[]
@@ -58,6 +62,24 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+// Per-user notification category preferences. A missing row means "all on"
+// (the defaults below). pushEnabled is the master switch for web-push delivery;
+// the per-category flags gate whether a notification of that kind is created at
+// all (used to convert former broadcast-to-all sends into opt-in targeted ones).
+model NotificationPreference {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  pushEnabled   Boolean  @default(true) @map("push_enabled")
+  placeApproved Boolean  @default(true) @map("place_approved")
+  placeAdded    Boolean  @default(true) @map("place_added")
+  festival      Boolean  @default(true)
+  businessClaim Boolean  @default(true) @map("business_claim")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model PushSubscription {
@@ -175,27 +197,27 @@ model Route {
 }
 
 model Place {
-  id                 String    @id @default(uuid())
+  id                 String                               @id @default(uuid())
   name               String // Legacy: kept for backward compat; equals place_name_en for new places
-  placeNameEn        String?   @map("place_name_en") // English name (preferred)
-  placeNameLocal     String?   @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
+  placeNameEn        String?                              @map("place_name_en") // English name (preferred)
+  placeNameLocal     String?                              @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
   category           String // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
   latitude           Float
   longitude          Float
-  zoomLevel          Float     @default(15)
+  zoomLevel          Float                                @default(15)
   userId             String
-  userName           String?   @map("user_name") // User name when place was added
-  userEmail          String?   @map("user_email") // User email when place was added
-  source             String    @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
-  approvalStatus     String    @default("pending") @map("approval_status") // pending | approved | rejected
-  approvedAt         DateTime? @map("approved_at")
-  autoApproveAt      DateTime? @map("auto_approve_at")
-  googlePlaceId      String?   @map("google_place_id")
-  googleType         String?   @map("google_type")
-  googleTypes        Json?     @map("google_types")
-  googleMapsUrl      String?   @map("google_maps_url")
+  userName           String?                              @map("user_name") // User name when place was added
+  userEmail          String?                              @map("user_email") // User email when place was added
+  source             String                               @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
+  approvalStatus     String                               @default("pending") @map("approval_status") // pending | approved | rejected
+  approvedAt         DateTime?                            @map("approved_at")
+  autoApproveAt      DateTime?                            @map("auto_approve_at")
+  googlePlaceId      String?                              @map("google_place_id")
+  googleType         String?                              @map("google_type")
+  googleTypes        Json?                                @map("google_types")
+  googleMapsUrl      String?                              @map("google_maps_url")
   vicinity           String?
-  fullAddress        String?   @map("full_address")
+  fullAddress        String?                              @map("full_address")
   village            String?
   taluk              String?
   district           String?
@@ -205,28 +227,36 @@ model Place {
   phone              String?
   website            String?
   rating             Float?
-  reviewCount        Int?      @map("review_count")
-  openingHours       Json?     @map("opening_hours")
-  businessStatus     String?   @map("business_status")
-  description        String?   @db.Text
-  googleReviews      Json?     @map("google_reviews")
-  nearbyPlaces       Json?     @map("nearby_places")
-  googlePhotos       Json?     @map("google_photos")
-  mapRenderingConfig Json?     @map("map_rendering_config")
-  extractedAt        DateTime? @map("extracted_at")
+  reviewCount        Int?                                 @map("review_count")
+  openingHours       Json?                                @map("opening_hours")
+  businessStatus     String?                              @map("business_status")
+  description        String?                              @db.Text
+  googleReviews      Json?                                @map("google_reviews")
+  nearbyPlaces       Json?                                @map("nearby_places")
+  googlePhotos       Json?                                @map("google_photos")
+  mapRenderingConfig Json?                                @map("map_rendering_config")
+  extractedAt        DateTime?                            @map("extracted_at")
   // Festival / jatre overlay: time-bound markers shown only during their window.
-  festivalStartDate  DateTime? @map("festival_start_date")
-  festivalEndDate    DateTime? @map("festival_end_date")
-  festivalRecurrence String?   @map("festival_recurrence") // 'yearly' | 'none'
-  festivalNotifiedAt DateTime? @map("festival_notified_at") // last occurrence start we broadcast to all users
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  festivalStartDate  DateTime?                            @map("festival_start_date")
+  festivalEndDate    DateTime?                            @map("festival_end_date")
+  festivalRecurrence String?                              @map("festival_recurrence") // 'yearly' | 'none'
+  festivalNotifiedAt DateTime?                            @map("festival_notified_at") // last occurrence start we broadcast to all users
+  // Business ownership: set when an admin approves a BusinessClaim for this place.
+  claimedById        String?                              @map("claimed_by_id")
+  claimVerifiedAt    DateTime?                            @map("claim_verified_at")
+  // PostGIS geometry, kept in sync with latitude/longitude by a DB trigger.
+  // Enables GiST-indexed ST_DWithin / ST_Contains spatial queries.
+  geom               Unsupported("geometry(Point,4326)")?
+  createdAt          DateTime                             @default(now())
+  updatedAt          DateTime                             @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   reviews   PlaceReview[]
   photos    PlacePhoto[]
   favorites Favorite[]
+  claims    BusinessClaim[]
+  labels    PlaceLabel[]
 
   @@unique([userId, googlePlaceId])
   @@index([userId])
@@ -239,6 +269,9 @@ model Place {
   @@index([googlePlaceId])
   @@index([extractedAt])
   @@index([festivalStartDate])
+  // Composite indexes for the common list / search access patterns.
+  @@index([approvalStatus, category])
+  @@index([approvalStatus, createdAt])
 }
 
 // User-specific personal bookmark / favorite of a location.
@@ -299,6 +332,54 @@ model PlacePhoto {
 
   @@index([placeId])
   @@index([userId])
+}
+
+// Business ownership claim. A user requests to be recognized as the owner /
+// manager of a place; an admin reviews and approves or rejects it. On approval
+// the Place is stamped with claimedById + claimVerifiedAt (the "verified" badge).
+model BusinessClaim {
+  id           String    @id @default(uuid())
+  placeId      String    @map("place_id")
+  userId       String    @map("user_id")
+  userName     String?   @map("user_name")
+  contactEmail String?   @map("contact_email")
+  contactPhone String?   @map("contact_phone")
+  role         String    @default("owner") // owner | manager | employee | other
+  message      String?   @db.Text
+  status       String    @default("pending") // pending | approved | rejected
+  reviewNote   String?   @map("review_note") @db.Text
+  reviewedById String?   @map("reviewed_by_id")
+  reviewedAt   DateTime? @map("reviewed_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  place Place @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, userId])
+  @@index([placeId])
+  @@index([userId])
+  @@index([status])
+}
+
+// Personal, per-user label for a place (Google Maps "Add a label" — e.g. Home,
+// Work, Favourite). Private to the user; does not affect the public place.
+model PlaceLabel {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  placeId   String?  @map("place_id")
+  label     String
+  latitude  Float?
+  longitude Float?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user  User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  place Place? @relation(fields: [placeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, placeId])
+  @@index([userId])
+  @@index([placeId])
 }
 
 // Public provenance / audit trail for every place lifecycle event.

@@ -94,20 +94,38 @@ export function pendingDaysRemaining(autoApproveAt) {
   return Math.ceil(ms / DAY_MS)
 }
 
-export async function autoApproveExpiredPendingPlaces() {
+// In-process throttle so high-traffic read paths that still call this never
+// trigger more than one DB sweep per window. The 15-minute scheduler passes
+// { force: true } to always run.
+let lastAutoApproveRun = 0
+const AUTO_APPROVE_THROTTLE_MS = 60 * 1000
+
+export async function autoApproveExpiredPendingPlaces({ force = false } = {}) {
   if (!prisma.place) return { count: 0 }
   const now = new Date()
+  if (!force && now.getTime() - lastAutoApproveRun < AUTO_APPROVE_THROTTLE_MS) {
+    return { count: 0, throttled: true }
+  }
+  lastAutoApproveRun = now.getTime()
   try {
-    const pending = await prisma.place.findMany({
-      where: { approvalStatus: 'pending' },
-      select: { id: true, autoApproveAt: true, createdAt: true, extractedAt: true },
+    // Primary: rows with an explicit due date — uses the autoApproveAt index
+    // instead of scanning every pending row.
+    const due = await prisma.place.findMany({
+      where: { approvalStatus: 'pending', autoApproveAt: { lte: now } },
+      select: { id: true },
     })
-    const ids = pending
-      .filter((p) => {
-        const at = resolveAutoApproveAt(p)
-        return at && at.getTime() <= now.getTime()
-      })
-      .map((p) => p.id)
+    const ids = due.map((p) => p.id)
+
+    // Legacy fallback: pending rows created before autoApproveAt was stored.
+    // This set shrinks to zero over time as new rows always set autoApproveAt.
+    const legacy = await prisma.place.findMany({
+      where: { approvalStatus: 'pending', autoApproveAt: null },
+      select: { id: true, createdAt: true, extractedAt: true },
+    })
+    for (const p of legacy) {
+      const at = resolveAutoApproveAt(p)
+      if (at && at.getTime() <= now.getTime()) ids.push(p.id)
+    }
     if (!ids.length) return { count: 0 }
 
     const result = await prisma.place.updateMany({
@@ -142,9 +160,16 @@ export async function autoApproveExpiredPendingPlaces() {
  * One-time festivals are deleted after their end date passes. Yearly festivals
  * roll forward to next year's occurrence (never expire), so they are kept.
  */
-export async function removeExpiredFestivals() {
+let lastFestivalCleanupRun = 0
+const FESTIVAL_CLEANUP_THROTTLE_MS = 60 * 1000
+
+export async function removeExpiredFestivals({ force = false } = {}) {
   if (!prisma.place) return { count: 0 }
   const now = new Date()
+  if (!force && now.getTime() - lastFestivalCleanupRun < FESTIVAL_CLEANUP_THROTTLE_MS) {
+    return { count: 0, throttled: true }
+  }
+  lastFestivalCleanupRun = now.getTime()
   try {
     const candidates = await prisma.place.findMany({
       where: {
@@ -231,9 +256,11 @@ export function enrichPlaceApprovalMeta(place) {
 }
 
 export function startPlaceApprovalScheduler() {
-  const HOUR = 60 * 60 * 1000
+  // Auto-approval / festival maintenance runs on a fixed schedule (every 15
+  // minutes) instead of during search / place-detail / list requests.
+  const FIFTEEN_MIN = 15 * 60 * 1000
   const runMaintenance = () => {
-    autoApproveExpiredPendingPlaces()
+    autoApproveExpiredPendingPlaces({ force: true })
       .then(({ count }) => {
         if (count > 0) console.log(`Place approval: auto-approved ${count} pending place(s)`)
       })
@@ -243,12 +270,12 @@ export function startPlaceApprovalScheduler() {
         if (count > 0) console.log(`Festivals: broadcast start notification for ${count} festival(s)`)
       })
       .catch(() => {})
-    removeExpiredFestivals()
+    removeExpiredFestivals({ force: true })
       .then(({ count }) => {
         if (count > 0) console.log(`Festivals: auto-removed ${count} expired festival(s)`)
       })
       .catch(() => {})
   }
   runMaintenance()
-  setInterval(runMaintenance, HOUR)
+  setInterval(runMaintenance, FIFTEEN_MIN)
 }

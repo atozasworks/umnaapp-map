@@ -147,3 +147,18 @@ export async function restorePlaceVersion(id, auditId) {
   )
   return data
 }
+
+export async function fetchBusinessClaims(status = 'pending') {
+  const { data } = await api.get('/admin/claims', { params: { status } })
+  return data
+}
+
+export async function approveBusinessClaim(id, note) {
+  const { data } = await api.post(`/admin/claims/${encodeURIComponent(id)}/approve`, { note })
+  return data
+}
+
+export async function rejectBusinessClaim(id, note) {
+  const { data } = await api.post(`/admin/claims/${encodeURIComponent(id)}/reject`, { note })
+  return data
+}

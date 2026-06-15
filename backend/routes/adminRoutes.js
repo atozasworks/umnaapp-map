@@ -40,6 +40,9 @@ export const MODEL_META = [
   { key: 'placeReview', label: 'PlaceReview' },
   { key: 'placePhoto', label: 'PlacePhoto' },
   { key: 'placeAudit', label: 'PlaceAudit' },
+  { key: 'businessClaim', label: 'BusinessClaim' },
+  { key: 'placeLabel', label: 'PlaceLabel' },
+  { key: 'notificationPreference', label: 'NotificationPreference' },
 ]
 
 const KEY_BY_LABEL = Object.fromEntries(MODEL_META.map((m) => [m.label, m.key]))
@@ -622,6 +625,107 @@ router.post('/places/:id/restore/:auditId', async (req, res) => {
     res.json({ success: true, place: serializePlace(place), restoredFrom: auditId })
   } catch (e) {
     console.error('admin place restore', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── Business ownership claims ──────────────────────────────────────────────
+
+/** GET /api/admin/claims?status=pending|approved|rejected|all */
+router.get('/claims', async (req, res) => {
+  try {
+    if (!prisma.businessClaim) {
+      return res.status(503).json({ error: 'Business claims unavailable. Run migration add-phase7-claims-labels.sql and `npx prisma generate`.' })
+    }
+    const status = String(req.query.status || 'pending').toLowerCase()
+    const where = status === 'all' ? {} : { status }
+    const claims = await prisma.businessClaim.findMany({
+      where,
+      orderBy: [{ status: 'asc' }, { createdAt: 'desc' }],
+      take: 500,
+      include: {
+        place: { select: { id: true, name: true, placeNameEn: true, category: true, latitude: true, longitude: true, fullAddress: true, claimVerifiedAt: true, claimedById: true } },
+        user: { select: { id: true, name: true, email: true } },
+      },
+    })
+    res.json({ claims, count: claims.length })
+  } catch (e) {
+    console.error('admin claims list', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** POST /api/admin/claims/:id/approve — approve a claim & stamp the place */
+router.post('/claims/:id/approve', async (req, res) => {
+  try {
+    if (!prisma.businessClaim) return res.status(503).json({ error: 'Business claims unavailable' })
+    const id = String(req.params.id || '').trim()
+    const claim = await prisma.businessClaim.findUnique({ where: { id } })
+    if (!claim) return res.status(404).json({ error: 'Claim not found' })
+
+    const [updated] = await prisma.$transaction([
+      prisma.businessClaim.update({
+        where: { id },
+        data: { status: 'approved', reviewedAt: new Date(), reviewedById: 'admin', reviewNote: req.body?.note?.trim() || null },
+      }),
+      prisma.place.update({
+        where: { id: claim.placeId },
+        data: { claimedById: claim.userId, claimVerifiedAt: new Date() },
+      }),
+      // Any other pending claims on the same place become rejected.
+      prisma.businessClaim.updateMany({
+        where: { placeId: claim.placeId, status: 'pending', id: { not: id } },
+        data: { status: 'rejected', reviewedAt: new Date(), reviewedById: 'admin', reviewNote: 'Another claim was approved for this place.' },
+      }),
+    ])
+
+    if (prisma.notification) {
+      prisma.notification.create({
+        data: {
+          userId: claim.userId,
+          type: 'business_claim_approved',
+          title: 'Business claim approved',
+          body: 'Your ownership claim has been verified. You now have a verified owner badge on this place.',
+          data: { placeId: claim.placeId },
+        },
+      }).catch((err) => console.error('[notify] claim approved', err))
+    }
+
+    res.json({ success: true, claim: updated })
+  } catch (e) {
+    console.error('admin claim approve', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** POST /api/admin/claims/:id/reject — reject a claim with an optional note */
+router.post('/claims/:id/reject', async (req, res) => {
+  try {
+    if (!prisma.businessClaim) return res.status(503).json({ error: 'Business claims unavailable' })
+    const id = String(req.params.id || '').trim()
+    const claim = await prisma.businessClaim.findUnique({ where: { id } })
+    if (!claim) return res.status(404).json({ error: 'Claim not found' })
+
+    const updated = await prisma.businessClaim.update({
+      where: { id },
+      data: { status: 'rejected', reviewedAt: new Date(), reviewedById: 'admin', reviewNote: req.body?.note?.trim() || null },
+    })
+
+    if (prisma.notification) {
+      prisma.notification.create({
+        data: {
+          userId: claim.userId,
+          type: 'business_claim_rejected',
+          title: 'Business claim not approved',
+          body: req.body?.note?.trim() || 'Your ownership claim was reviewed but could not be verified.',
+          data: { placeId: claim.placeId },
+        },
+      }).catch((err) => console.error('[notify] claim rejected', err))
+    }
+
+    res.json({ success: true, claim: updated })
+  } catch (e) {
+    console.error('admin claim reject', e)
     res.status(500).json({ error: e.message })
   }
 })

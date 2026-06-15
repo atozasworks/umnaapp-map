@@ -24,6 +24,11 @@ export type User = $Result.DefaultSelection<Prisma.$UserPayload>
  */
 export type Notification = $Result.DefaultSelection<Prisma.$NotificationPayload>
 /**
+ * Model NotificationPreference
+ * 
+ */
+export type NotificationPreference = $Result.DefaultSelection<Prisma.$NotificationPreferencePayload>
+/**
  * Model PushSubscription
  * 
  */
@@ -73,6 +78,16 @@ export type PlaceReview = $Result.DefaultSelection<Prisma.$PlaceReviewPayload>
  * 
  */
 export type PlacePhoto = $Result.DefaultSelection<Prisma.$PlacePhotoPayload>
+/**
+ * Model BusinessClaim
+ * 
+ */
+export type BusinessClaim = $Result.DefaultSelection<Prisma.$BusinessClaimPayload>
+/**
+ * Model PlaceLabel
+ * 
+ */
+export type PlaceLabel = $Result.DefaultSelection<Prisma.$PlaceLabelPayload>
 /**
  * Model PlaceAudit
  * 
@@ -248,6 +263,16 @@ export class PrismaClient<
   get notification(): Prisma.NotificationDelegate<ExtArgs>;
 
   /**
+   * `prisma.notificationPreference`: Exposes CRUD operations for the **NotificationPreference** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more NotificationPreferences
+    * const notificationPreferences = await prisma.notificationPreference.findMany()
+    * ```
+    */
+  get notificationPreference(): Prisma.NotificationPreferenceDelegate<ExtArgs>;
+
+  /**
    * `prisma.pushSubscription`: Exposes CRUD operations for the **PushSubscription** model.
     * Example usage:
     * ```ts
@@ -346,6 +371,26 @@ export class PrismaClient<
     * ```
     */
   get placePhoto(): Prisma.PlacePhotoDelegate<ExtArgs>;
+
+  /**
+   * `prisma.businessClaim`: Exposes CRUD operations for the **BusinessClaim** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more BusinessClaims
+    * const businessClaims = await prisma.businessClaim.findMany()
+    * ```
+    */
+  get businessClaim(): Prisma.BusinessClaimDelegate<ExtArgs>;
+
+  /**
+   * `prisma.placeLabel`: Exposes CRUD operations for the **PlaceLabel** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more PlaceLabels
+    * const placeLabels = await prisma.placeLabel.findMany()
+    * ```
+    */
+  get placeLabel(): Prisma.PlaceLabelDelegate<ExtArgs>;
 
   /**
    * `prisma.placeAudit`: Exposes CRUD operations for the **PlaceAudit** model.
@@ -849,6 +894,7 @@ export namespace Prisma {
   export const ModelName: {
     User: 'User',
     Notification: 'Notification',
+    NotificationPreference: 'NotificationPreference',
     PushSubscription: 'PushSubscription',
     OTPVerification: 'OTPVerification',
     Session: 'Session',
@@ -859,6 +905,8 @@ export namespace Prisma {
     Favorite: 'Favorite',
     PlaceReview: 'PlaceReview',
     PlacePhoto: 'PlacePhoto',
+    BusinessClaim: 'BusinessClaim',
+    PlaceLabel: 'PlaceLabel',
     PlaceAudit: 'PlaceAudit',
     Itinerary: 'Itinerary',
     ItineraryMember: 'ItineraryMember',
@@ -880,7 +928,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "notification" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "placeAudit" | "itinerary" | "itineraryMember" | "itineraryStop" | "itineraryComment" | "itineraryVote"
+      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "itinerary" | "itineraryMember" | "itineraryStop" | "itineraryComment" | "itineraryVote"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -1021,6 +1069,76 @@ export namespace Prisma {
           count: {
             args: Prisma.NotificationCountArgs<ExtArgs>
             result: $Utils.Optional<NotificationCountAggregateOutputType> | number
+          }
+        }
+      }
+      NotificationPreference: {
+        payload: Prisma.$NotificationPreferencePayload<ExtArgs>
+        fields: Prisma.NotificationPreferenceFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.NotificationPreferenceFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.NotificationPreferenceFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>
+          }
+          findFirst: {
+            args: Prisma.NotificationPreferenceFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.NotificationPreferenceFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>
+          }
+          findMany: {
+            args: Prisma.NotificationPreferenceFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>[]
+          }
+          create: {
+            args: Prisma.NotificationPreferenceCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>
+          }
+          createMany: {
+            args: Prisma.NotificationPreferenceCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.NotificationPreferenceCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>[]
+          }
+          delete: {
+            args: Prisma.NotificationPreferenceDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>
+          }
+          update: {
+            args: Prisma.NotificationPreferenceUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>
+          }
+          deleteMany: {
+            args: Prisma.NotificationPreferenceDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.NotificationPreferenceUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.NotificationPreferenceUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$NotificationPreferencePayload>
+          }
+          aggregate: {
+            args: Prisma.NotificationPreferenceAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateNotificationPreference>
+          }
+          groupBy: {
+            args: Prisma.NotificationPreferenceGroupByArgs<ExtArgs>
+            result: $Utils.Optional<NotificationPreferenceGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.NotificationPreferenceCountArgs<ExtArgs>
+            result: $Utils.Optional<NotificationPreferenceCountAggregateOutputType> | number
           }
         }
       }
@@ -1724,6 +1842,146 @@ export namespace Prisma {
           }
         }
       }
+      BusinessClaim: {
+        payload: Prisma.$BusinessClaimPayload<ExtArgs>
+        fields: Prisma.BusinessClaimFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.BusinessClaimFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.BusinessClaimFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>
+          }
+          findFirst: {
+            args: Prisma.BusinessClaimFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.BusinessClaimFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>
+          }
+          findMany: {
+            args: Prisma.BusinessClaimFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>[]
+          }
+          create: {
+            args: Prisma.BusinessClaimCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>
+          }
+          createMany: {
+            args: Prisma.BusinessClaimCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.BusinessClaimCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>[]
+          }
+          delete: {
+            args: Prisma.BusinessClaimDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>
+          }
+          update: {
+            args: Prisma.BusinessClaimUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>
+          }
+          deleteMany: {
+            args: Prisma.BusinessClaimDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.BusinessClaimUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.BusinessClaimUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$BusinessClaimPayload>
+          }
+          aggregate: {
+            args: Prisma.BusinessClaimAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateBusinessClaim>
+          }
+          groupBy: {
+            args: Prisma.BusinessClaimGroupByArgs<ExtArgs>
+            result: $Utils.Optional<BusinessClaimGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.BusinessClaimCountArgs<ExtArgs>
+            result: $Utils.Optional<BusinessClaimCountAggregateOutputType> | number
+          }
+        }
+      }
+      PlaceLabel: {
+        payload: Prisma.$PlaceLabelPayload<ExtArgs>
+        fields: Prisma.PlaceLabelFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.PlaceLabelFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.PlaceLabelFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>
+          }
+          findFirst: {
+            args: Prisma.PlaceLabelFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.PlaceLabelFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>
+          }
+          findMany: {
+            args: Prisma.PlaceLabelFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>[]
+          }
+          create: {
+            args: Prisma.PlaceLabelCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>
+          }
+          createMany: {
+            args: Prisma.PlaceLabelCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.PlaceLabelCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>[]
+          }
+          delete: {
+            args: Prisma.PlaceLabelDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>
+          }
+          update: {
+            args: Prisma.PlaceLabelUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>
+          }
+          deleteMany: {
+            args: Prisma.PlaceLabelDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.PlaceLabelUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.PlaceLabelUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$PlaceLabelPayload>
+          }
+          aggregate: {
+            args: Prisma.PlaceLabelAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregatePlaceLabel>
+          }
+          groupBy: {
+            args: Prisma.PlaceLabelGroupByArgs<ExtArgs>
+            result: $Utils.Optional<PlaceLabelGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.PlaceLabelCountArgs<ExtArgs>
+            result: $Utils.Optional<PlaceLabelCountAggregateOutputType> | number
+          }
+        }
+      }
       PlaceAudit: {
         payload: Prisma.$PlaceAuditPayload<ExtArgs>
         fields: Prisma.PlaceAuditFieldRefs
@@ -2316,6 +2574,8 @@ export namespace Prisma {
     favorites: number
     notifications: number
     pushSubscriptions: number
+    businessClaims: number
+    placeLabels: number
     ownedItineraries: number
     itineraryMemberships: number
     itineraryComments: number
@@ -2334,6 +2594,8 @@ export namespace Prisma {
     favorites?: boolean | UserCountOutputTypeCountFavoritesArgs
     notifications?: boolean | UserCountOutputTypeCountNotificationsArgs
     pushSubscriptions?: boolean | UserCountOutputTypeCountPushSubscriptionsArgs
+    businessClaims?: boolean | UserCountOutputTypeCountBusinessClaimsArgs
+    placeLabels?: boolean | UserCountOutputTypeCountPlaceLabelsArgs
     ownedItineraries?: boolean | UserCountOutputTypeCountOwnedItinerariesArgs
     itineraryMemberships?: boolean | UserCountOutputTypeCountItineraryMembershipsArgs
     itineraryComments?: boolean | UserCountOutputTypeCountItineraryCommentsArgs
@@ -2431,6 +2693,20 @@ export namespace Prisma {
   /**
    * UserCountOutputType without action
    */
+  export type UserCountOutputTypeCountBusinessClaimsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: BusinessClaimWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountPlaceLabelsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlaceLabelWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
   export type UserCountOutputTypeCountOwnedItinerariesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ItineraryWhereInput
   }
@@ -2505,12 +2781,16 @@ export namespace Prisma {
     reviews: number
     photos: number
     favorites: number
+    claims: number
+    labels: number
   }
 
   export type PlaceCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     reviews?: boolean | PlaceCountOutputTypeCountReviewsArgs
     photos?: boolean | PlaceCountOutputTypeCountPhotosArgs
     favorites?: boolean | PlaceCountOutputTypeCountFavoritesArgs
+    claims?: boolean | PlaceCountOutputTypeCountClaimsArgs
+    labels?: boolean | PlaceCountOutputTypeCountLabelsArgs
   }
 
   // Custom InputTypes
@@ -2543,6 +2823,20 @@ export namespace Prisma {
    */
   export type PlaceCountOutputTypeCountFavoritesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: FavoriteWhereInput
+  }
+
+  /**
+   * PlaceCountOutputType without action
+   */
+  export type PlaceCountOutputTypeCountClaimsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: BusinessClaimWhereInput
+  }
+
+  /**
+   * PlaceCountOutputType without action
+   */
+  export type PlaceCountOutputTypeCountLabelsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlaceLabelWhereInput
   }
 
 
@@ -2648,6 +2942,7 @@ export namespace Prisma {
     googleId: string | null
     picture: string | null
     emailVerified: boolean | null
+    profilePublic: boolean | null
     lastGridExtractAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -2661,6 +2956,7 @@ export namespace Prisma {
     googleId: string | null
     picture: string | null
     emailVerified: boolean | null
+    profilePublic: boolean | null
     lastGridExtractAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
@@ -2674,6 +2970,7 @@ export namespace Prisma {
     googleId: number
     picture: number
     emailVerified: number
+    profilePublic: number
     lastGridExtractAt: number
     createdAt: number
     updatedAt: number
@@ -2689,6 +2986,7 @@ export namespace Prisma {
     googleId?: true
     picture?: true
     emailVerified?: true
+    profilePublic?: true
     lastGridExtractAt?: true
     createdAt?: true
     updatedAt?: true
@@ -2702,6 +3000,7 @@ export namespace Prisma {
     googleId?: true
     picture?: true
     emailVerified?: true
+    profilePublic?: true
     lastGridExtractAt?: true
     createdAt?: true
     updatedAt?: true
@@ -2715,6 +3014,7 @@ export namespace Prisma {
     googleId?: true
     picture?: true
     emailVerified?: true
+    profilePublic?: true
     lastGridExtractAt?: true
     createdAt?: true
     updatedAt?: true
@@ -2801,6 +3101,7 @@ export namespace Prisma {
     googleId: string | null
     picture: string | null
     emailVerified: boolean
+    profilePublic: boolean
     lastGridExtractAt: Date | null
     createdAt: Date
     updatedAt: Date
@@ -2831,6 +3132,7 @@ export namespace Prisma {
     googleId?: boolean
     picture?: boolean
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2845,6 +3147,9 @@ export namespace Prisma {
     favorites?: boolean | User$favoritesArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     pushSubscriptions?: boolean | User$pushSubscriptionsArgs<ExtArgs>
+    notificationPreference?: boolean | User$notificationPreferenceArgs<ExtArgs>
+    businessClaims?: boolean | User$businessClaimsArgs<ExtArgs>
+    placeLabels?: boolean | User$placeLabelsArgs<ExtArgs>
     ownedItineraries?: boolean | User$ownedItinerariesArgs<ExtArgs>
     itineraryMemberships?: boolean | User$itineraryMembershipsArgs<ExtArgs>
     itineraryComments?: boolean | User$itineraryCommentsArgs<ExtArgs>
@@ -2860,6 +3165,7 @@ export namespace Prisma {
     googleId?: boolean
     picture?: boolean
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2873,6 +3179,7 @@ export namespace Prisma {
     googleId?: boolean
     picture?: boolean
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
@@ -2890,6 +3197,9 @@ export namespace Prisma {
     favorites?: boolean | User$favoritesArgs<ExtArgs>
     notifications?: boolean | User$notificationsArgs<ExtArgs>
     pushSubscriptions?: boolean | User$pushSubscriptionsArgs<ExtArgs>
+    notificationPreference?: boolean | User$notificationPreferenceArgs<ExtArgs>
+    businessClaims?: boolean | User$businessClaimsArgs<ExtArgs>
+    placeLabels?: boolean | User$placeLabelsArgs<ExtArgs>
     ownedItineraries?: boolean | User$ownedItinerariesArgs<ExtArgs>
     itineraryMemberships?: boolean | User$itineraryMembershipsArgs<ExtArgs>
     itineraryComments?: boolean | User$itineraryCommentsArgs<ExtArgs>
@@ -2912,6 +3222,9 @@ export namespace Prisma {
       favorites: Prisma.$FavoritePayload<ExtArgs>[]
       notifications: Prisma.$NotificationPayload<ExtArgs>[]
       pushSubscriptions: Prisma.$PushSubscriptionPayload<ExtArgs>[]
+      notificationPreference: Prisma.$NotificationPreferencePayload<ExtArgs> | null
+      businessClaims: Prisma.$BusinessClaimPayload<ExtArgs>[]
+      placeLabels: Prisma.$PlaceLabelPayload<ExtArgs>[]
       ownedItineraries: Prisma.$ItineraryPayload<ExtArgs>[]
       itineraryMemberships: Prisma.$ItineraryMemberPayload<ExtArgs>[]
       itineraryComments: Prisma.$ItineraryCommentPayload<ExtArgs>[]
@@ -2925,6 +3238,7 @@ export namespace Prisma {
       googleId: string | null
       picture: string | null
       emailVerified: boolean
+      profilePublic: boolean
       lastGridExtractAt: Date | null
       createdAt: Date
       updatedAt: Date
@@ -3303,6 +3617,9 @@ export namespace Prisma {
     favorites<T extends User$favoritesArgs<ExtArgs> = {}>(args?: Subset<T, User$favoritesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FavoritePayload<ExtArgs>, T, "findMany"> | Null>
     notifications<T extends User$notificationsArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPayload<ExtArgs>, T, "findMany"> | Null>
     pushSubscriptions<T extends User$pushSubscriptionsArgs<ExtArgs> = {}>(args?: Subset<T, User$pushSubscriptionsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PushSubscriptionPayload<ExtArgs>, T, "findMany"> | Null>
+    notificationPreference<T extends User$notificationPreferenceArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationPreferenceArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    businessClaims<T extends User$businessClaimsArgs<ExtArgs> = {}>(args?: Subset<T, User$businessClaimsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findMany"> | Null>
+    placeLabels<T extends User$placeLabelsArgs<ExtArgs> = {}>(args?: Subset<T, User$placeLabelsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findMany"> | Null>
     ownedItineraries<T extends User$ownedItinerariesArgs<ExtArgs> = {}>(args?: Subset<T, User$ownedItinerariesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findMany"> | Null>
     itineraryMemberships<T extends User$itineraryMembershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findMany"> | Null>
     itineraryComments<T extends User$itineraryCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findMany"> | Null>
@@ -3343,6 +3660,7 @@ export namespace Prisma {
     readonly googleId: FieldRef<"User", 'String'>
     readonly picture: FieldRef<"User", 'String'>
     readonly emailVerified: FieldRef<"User", 'Boolean'>
+    readonly profilePublic: FieldRef<"User", 'Boolean'>
     readonly lastGridExtractAt: FieldRef<"User", 'DateTime'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
@@ -3877,6 +4195,61 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: PushSubscriptionScalarFieldEnum | PushSubscriptionScalarFieldEnum[]
+  }
+
+  /**
+   * User.notificationPreference
+   */
+  export type User$notificationPreferenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    where?: NotificationPreferenceWhereInput
+  }
+
+  /**
+   * User.businessClaims
+   */
+  export type User$businessClaimsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    where?: BusinessClaimWhereInput
+    orderBy?: BusinessClaimOrderByWithRelationInput | BusinessClaimOrderByWithRelationInput[]
+    cursor?: BusinessClaimWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: BusinessClaimScalarFieldEnum | BusinessClaimScalarFieldEnum[]
+  }
+
+  /**
+   * User.placeLabels
+   */
+  export type User$placeLabelsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    where?: PlaceLabelWhereInput
+    orderBy?: PlaceLabelOrderByWithRelationInput | PlaceLabelOrderByWithRelationInput[]
+    cursor?: PlaceLabelWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PlaceLabelScalarFieldEnum | PlaceLabelScalarFieldEnum[]
   }
 
   /**
@@ -4936,6 +5309,987 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: NotificationInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model NotificationPreference
+   */
+
+  export type AggregateNotificationPreference = {
+    _count: NotificationPreferenceCountAggregateOutputType | null
+    _min: NotificationPreferenceMinAggregateOutputType | null
+    _max: NotificationPreferenceMaxAggregateOutputType | null
+  }
+
+  export type NotificationPreferenceMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    pushEnabled: boolean | null
+    placeApproved: boolean | null
+    placeAdded: boolean | null
+    festival: boolean | null
+    businessClaim: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NotificationPreferenceMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    pushEnabled: boolean | null
+    placeApproved: boolean | null
+    placeAdded: boolean | null
+    festival: boolean | null
+    businessClaim: boolean | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type NotificationPreferenceCountAggregateOutputType = {
+    id: number
+    userId: number
+    pushEnabled: number
+    placeApproved: number
+    placeAdded: number
+    festival: number
+    businessClaim: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type NotificationPreferenceMinAggregateInputType = {
+    id?: true
+    userId?: true
+    pushEnabled?: true
+    placeApproved?: true
+    placeAdded?: true
+    festival?: true
+    businessClaim?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NotificationPreferenceMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    pushEnabled?: true
+    placeApproved?: true
+    placeAdded?: true
+    festival?: true
+    businessClaim?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type NotificationPreferenceCountAggregateInputType = {
+    id?: true
+    userId?: true
+    pushEnabled?: true
+    placeApproved?: true
+    placeAdded?: true
+    festival?: true
+    businessClaim?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type NotificationPreferenceAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NotificationPreference to aggregate.
+     */
+    where?: NotificationPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotificationPreferences to fetch.
+     */
+    orderBy?: NotificationPreferenceOrderByWithRelationInput | NotificationPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: NotificationPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotificationPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotificationPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned NotificationPreferences
+    **/
+    _count?: true | NotificationPreferenceCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: NotificationPreferenceMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: NotificationPreferenceMaxAggregateInputType
+  }
+
+  export type GetNotificationPreferenceAggregateType<T extends NotificationPreferenceAggregateArgs> = {
+        [P in keyof T & keyof AggregateNotificationPreference]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateNotificationPreference[P]>
+      : GetScalarType<T[P], AggregateNotificationPreference[P]>
+  }
+
+
+
+
+  export type NotificationPreferenceGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: NotificationPreferenceWhereInput
+    orderBy?: NotificationPreferenceOrderByWithAggregationInput | NotificationPreferenceOrderByWithAggregationInput[]
+    by: NotificationPreferenceScalarFieldEnum[] | NotificationPreferenceScalarFieldEnum
+    having?: NotificationPreferenceScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: NotificationPreferenceCountAggregateInputType | true
+    _min?: NotificationPreferenceMinAggregateInputType
+    _max?: NotificationPreferenceMaxAggregateInputType
+  }
+
+  export type NotificationPreferenceGroupByOutputType = {
+    id: string
+    userId: string
+    pushEnabled: boolean
+    placeApproved: boolean
+    placeAdded: boolean
+    festival: boolean
+    businessClaim: boolean
+    createdAt: Date
+    updatedAt: Date
+    _count: NotificationPreferenceCountAggregateOutputType | null
+    _min: NotificationPreferenceMinAggregateOutputType | null
+    _max: NotificationPreferenceMaxAggregateOutputType | null
+  }
+
+  type GetNotificationPreferenceGroupByPayload<T extends NotificationPreferenceGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<NotificationPreferenceGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof NotificationPreferenceGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], NotificationPreferenceGroupByOutputType[P]>
+            : GetScalarType<T[P], NotificationPreferenceGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type NotificationPreferenceSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["notificationPreference"]>
+
+  export type NotificationPreferenceSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["notificationPreference"]>
+
+  export type NotificationPreferenceSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type NotificationPreferenceInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type NotificationPreferenceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $NotificationPreferencePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "NotificationPreference"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      pushEnabled: boolean
+      placeApproved: boolean
+      placeAdded: boolean
+      festival: boolean
+      businessClaim: boolean
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["notificationPreference"]>
+    composites: {}
+  }
+
+  type NotificationPreferenceGetPayload<S extends boolean | null | undefined | NotificationPreferenceDefaultArgs> = $Result.GetResult<Prisma.$NotificationPreferencePayload, S>
+
+  type NotificationPreferenceCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<NotificationPreferenceFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: NotificationPreferenceCountAggregateInputType | true
+    }
+
+  export interface NotificationPreferenceDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['NotificationPreference'], meta: { name: 'NotificationPreference' } }
+    /**
+     * Find zero or one NotificationPreference that matches the filter.
+     * @param {NotificationPreferenceFindUniqueArgs} args - Arguments to find a NotificationPreference
+     * @example
+     * // Get one NotificationPreference
+     * const notificationPreference = await prisma.notificationPreference.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends NotificationPreferenceFindUniqueArgs>(args: SelectSubset<T, NotificationPreferenceFindUniqueArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one NotificationPreference that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {NotificationPreferenceFindUniqueOrThrowArgs} args - Arguments to find a NotificationPreference
+     * @example
+     * // Get one NotificationPreference
+     * const notificationPreference = await prisma.notificationPreference.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends NotificationPreferenceFindUniqueOrThrowArgs>(args: SelectSubset<T, NotificationPreferenceFindUniqueOrThrowArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first NotificationPreference that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationPreferenceFindFirstArgs} args - Arguments to find a NotificationPreference
+     * @example
+     * // Get one NotificationPreference
+     * const notificationPreference = await prisma.notificationPreference.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends NotificationPreferenceFindFirstArgs>(args?: SelectSubset<T, NotificationPreferenceFindFirstArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first NotificationPreference that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationPreferenceFindFirstOrThrowArgs} args - Arguments to find a NotificationPreference
+     * @example
+     * // Get one NotificationPreference
+     * const notificationPreference = await prisma.notificationPreference.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends NotificationPreferenceFindFirstOrThrowArgs>(args?: SelectSubset<T, NotificationPreferenceFindFirstOrThrowArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more NotificationPreferences that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationPreferenceFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all NotificationPreferences
+     * const notificationPreferences = await prisma.notificationPreference.findMany()
+     * 
+     * // Get first 10 NotificationPreferences
+     * const notificationPreferences = await prisma.notificationPreference.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const notificationPreferenceWithIdOnly = await prisma.notificationPreference.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends NotificationPreferenceFindManyArgs>(args?: SelectSubset<T, NotificationPreferenceFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a NotificationPreference.
+     * @param {NotificationPreferenceCreateArgs} args - Arguments to create a NotificationPreference.
+     * @example
+     * // Create one NotificationPreference
+     * const NotificationPreference = await prisma.notificationPreference.create({
+     *   data: {
+     *     // ... data to create a NotificationPreference
+     *   }
+     * })
+     * 
+     */
+    create<T extends NotificationPreferenceCreateArgs>(args: SelectSubset<T, NotificationPreferenceCreateArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many NotificationPreferences.
+     * @param {NotificationPreferenceCreateManyArgs} args - Arguments to create many NotificationPreferences.
+     * @example
+     * // Create many NotificationPreferences
+     * const notificationPreference = await prisma.notificationPreference.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends NotificationPreferenceCreateManyArgs>(args?: SelectSubset<T, NotificationPreferenceCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many NotificationPreferences and returns the data saved in the database.
+     * @param {NotificationPreferenceCreateManyAndReturnArgs} args - Arguments to create many NotificationPreferences.
+     * @example
+     * // Create many NotificationPreferences
+     * const notificationPreference = await prisma.notificationPreference.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many NotificationPreferences and only return the `id`
+     * const notificationPreferenceWithIdOnly = await prisma.notificationPreference.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends NotificationPreferenceCreateManyAndReturnArgs>(args?: SelectSubset<T, NotificationPreferenceCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a NotificationPreference.
+     * @param {NotificationPreferenceDeleteArgs} args - Arguments to delete one NotificationPreference.
+     * @example
+     * // Delete one NotificationPreference
+     * const NotificationPreference = await prisma.notificationPreference.delete({
+     *   where: {
+     *     // ... filter to delete one NotificationPreference
+     *   }
+     * })
+     * 
+     */
+    delete<T extends NotificationPreferenceDeleteArgs>(args: SelectSubset<T, NotificationPreferenceDeleteArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one NotificationPreference.
+     * @param {NotificationPreferenceUpdateArgs} args - Arguments to update one NotificationPreference.
+     * @example
+     * // Update one NotificationPreference
+     * const notificationPreference = await prisma.notificationPreference.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends NotificationPreferenceUpdateArgs>(args: SelectSubset<T, NotificationPreferenceUpdateArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more NotificationPreferences.
+     * @param {NotificationPreferenceDeleteManyArgs} args - Arguments to filter NotificationPreferences to delete.
+     * @example
+     * // Delete a few NotificationPreferences
+     * const { count } = await prisma.notificationPreference.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends NotificationPreferenceDeleteManyArgs>(args?: SelectSubset<T, NotificationPreferenceDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more NotificationPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationPreferenceUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many NotificationPreferences
+     * const notificationPreference = await prisma.notificationPreference.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends NotificationPreferenceUpdateManyArgs>(args: SelectSubset<T, NotificationPreferenceUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one NotificationPreference.
+     * @param {NotificationPreferenceUpsertArgs} args - Arguments to update or create a NotificationPreference.
+     * @example
+     * // Update or create a NotificationPreference
+     * const notificationPreference = await prisma.notificationPreference.upsert({
+     *   create: {
+     *     // ... data to create a NotificationPreference
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the NotificationPreference we want to update
+     *   }
+     * })
+     */
+    upsert<T extends NotificationPreferenceUpsertArgs>(args: SelectSubset<T, NotificationPreferenceUpsertArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of NotificationPreferences.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationPreferenceCountArgs} args - Arguments to filter NotificationPreferences to count.
+     * @example
+     * // Count the number of NotificationPreferences
+     * const count = await prisma.notificationPreference.count({
+     *   where: {
+     *     // ... the filter for the NotificationPreferences we want to count
+     *   }
+     * })
+    **/
+    count<T extends NotificationPreferenceCountArgs>(
+      args?: Subset<T, NotificationPreferenceCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], NotificationPreferenceCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a NotificationPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationPreferenceAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends NotificationPreferenceAggregateArgs>(args: Subset<T, NotificationPreferenceAggregateArgs>): Prisma.PrismaPromise<GetNotificationPreferenceAggregateType<T>>
+
+    /**
+     * Group by NotificationPreference.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {NotificationPreferenceGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends NotificationPreferenceGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: NotificationPreferenceGroupByArgs['orderBy'] }
+        : { orderBy?: NotificationPreferenceGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, NotificationPreferenceGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetNotificationPreferenceGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the NotificationPreference model
+   */
+  readonly fields: NotificationPreferenceFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for NotificationPreference.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__NotificationPreferenceClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the NotificationPreference model
+   */ 
+  interface NotificationPreferenceFieldRefs {
+    readonly id: FieldRef<"NotificationPreference", 'String'>
+    readonly userId: FieldRef<"NotificationPreference", 'String'>
+    readonly pushEnabled: FieldRef<"NotificationPreference", 'Boolean'>
+    readonly placeApproved: FieldRef<"NotificationPreference", 'Boolean'>
+    readonly placeAdded: FieldRef<"NotificationPreference", 'Boolean'>
+    readonly festival: FieldRef<"NotificationPreference", 'Boolean'>
+    readonly businessClaim: FieldRef<"NotificationPreference", 'Boolean'>
+    readonly createdAt: FieldRef<"NotificationPreference", 'DateTime'>
+    readonly updatedAt: FieldRef<"NotificationPreference", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * NotificationPreference findUnique
+   */
+  export type NotificationPreferenceFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which NotificationPreference to fetch.
+     */
+    where: NotificationPreferenceWhereUniqueInput
+  }
+
+  /**
+   * NotificationPreference findUniqueOrThrow
+   */
+  export type NotificationPreferenceFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which NotificationPreference to fetch.
+     */
+    where: NotificationPreferenceWhereUniqueInput
+  }
+
+  /**
+   * NotificationPreference findFirst
+   */
+  export type NotificationPreferenceFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which NotificationPreference to fetch.
+     */
+    where?: NotificationPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotificationPreferences to fetch.
+     */
+    orderBy?: NotificationPreferenceOrderByWithRelationInput | NotificationPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NotificationPreferences.
+     */
+    cursor?: NotificationPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotificationPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotificationPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NotificationPreferences.
+     */
+    distinct?: NotificationPreferenceScalarFieldEnum | NotificationPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * NotificationPreference findFirstOrThrow
+   */
+  export type NotificationPreferenceFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which NotificationPreference to fetch.
+     */
+    where?: NotificationPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotificationPreferences to fetch.
+     */
+    orderBy?: NotificationPreferenceOrderByWithRelationInput | NotificationPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for NotificationPreferences.
+     */
+    cursor?: NotificationPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotificationPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotificationPreferences.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of NotificationPreferences.
+     */
+    distinct?: NotificationPreferenceScalarFieldEnum | NotificationPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * NotificationPreference findMany
+   */
+  export type NotificationPreferenceFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter, which NotificationPreferences to fetch.
+     */
+    where?: NotificationPreferenceWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of NotificationPreferences to fetch.
+     */
+    orderBy?: NotificationPreferenceOrderByWithRelationInput | NotificationPreferenceOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing NotificationPreferences.
+     */
+    cursor?: NotificationPreferenceWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` NotificationPreferences from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` NotificationPreferences.
+     */
+    skip?: number
+    distinct?: NotificationPreferenceScalarFieldEnum | NotificationPreferenceScalarFieldEnum[]
+  }
+
+  /**
+   * NotificationPreference create
+   */
+  export type NotificationPreferenceCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * The data needed to create a NotificationPreference.
+     */
+    data: XOR<NotificationPreferenceCreateInput, NotificationPreferenceUncheckedCreateInput>
+  }
+
+  /**
+   * NotificationPreference createMany
+   */
+  export type NotificationPreferenceCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many NotificationPreferences.
+     */
+    data: NotificationPreferenceCreateManyInput | NotificationPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * NotificationPreference createManyAndReturn
+   */
+  export type NotificationPreferenceCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many NotificationPreferences.
+     */
+    data: NotificationPreferenceCreateManyInput | NotificationPreferenceCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * NotificationPreference update
+   */
+  export type NotificationPreferenceUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * The data needed to update a NotificationPreference.
+     */
+    data: XOR<NotificationPreferenceUpdateInput, NotificationPreferenceUncheckedUpdateInput>
+    /**
+     * Choose, which NotificationPreference to update.
+     */
+    where: NotificationPreferenceWhereUniqueInput
+  }
+
+  /**
+   * NotificationPreference updateMany
+   */
+  export type NotificationPreferenceUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update NotificationPreferences.
+     */
+    data: XOR<NotificationPreferenceUpdateManyMutationInput, NotificationPreferenceUncheckedUpdateManyInput>
+    /**
+     * Filter which NotificationPreferences to update
+     */
+    where?: NotificationPreferenceWhereInput
+  }
+
+  /**
+   * NotificationPreference upsert
+   */
+  export type NotificationPreferenceUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * The filter to search for the NotificationPreference to update in case it exists.
+     */
+    where: NotificationPreferenceWhereUniqueInput
+    /**
+     * In case the NotificationPreference found by the `where` argument doesn't exist, create a new NotificationPreference with this data.
+     */
+    create: XOR<NotificationPreferenceCreateInput, NotificationPreferenceUncheckedCreateInput>
+    /**
+     * In case the NotificationPreference was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<NotificationPreferenceUpdateInput, NotificationPreferenceUncheckedUpdateInput>
+  }
+
+  /**
+   * NotificationPreference delete
+   */
+  export type NotificationPreferenceDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
+    /**
+     * Filter which NotificationPreference to delete.
+     */
+    where: NotificationPreferenceWhereUniqueInput
+  }
+
+  /**
+   * NotificationPreference deleteMany
+   */
+  export type NotificationPreferenceDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which NotificationPreferences to delete
+     */
+    where?: NotificationPreferenceWhereInput
+  }
+
+  /**
+   * NotificationPreference without action
+   */
+  export type NotificationPreferenceDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the NotificationPreference
+     */
+    select?: NotificationPreferenceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: NotificationPreferenceInclude<ExtArgs> | null
   }
 
 
@@ -11125,6 +12479,8 @@ export namespace Prisma {
     festivalEndDate: Date | null
     festivalRecurrence: string | null
     festivalNotifiedAt: Date | null
+    claimedById: string | null
+    claimVerifiedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -11167,6 +12523,8 @@ export namespace Prisma {
     festivalEndDate: Date | null
     festivalRecurrence: string | null
     festivalNotifiedAt: Date | null
+    claimedById: string | null
+    claimVerifiedAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -11215,6 +12573,8 @@ export namespace Prisma {
     festivalEndDate: number
     festivalRecurrence: number
     festivalNotifiedAt: number
+    claimedById: number
+    claimVerifiedAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -11275,6 +12635,8 @@ export namespace Prisma {
     festivalEndDate?: true
     festivalRecurrence?: true
     festivalNotifiedAt?: true
+    claimedById?: true
+    claimVerifiedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -11317,6 +12679,8 @@ export namespace Prisma {
     festivalEndDate?: true
     festivalRecurrence?: true
     festivalNotifiedAt?: true
+    claimedById?: true
+    claimVerifiedAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -11365,6 +12729,8 @@ export namespace Prisma {
     festivalEndDate?: true
     festivalRecurrence?: true
     festivalNotifiedAt?: true
+    claimedById?: true
+    claimVerifiedAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -11500,6 +12866,8 @@ export namespace Prisma {
     festivalEndDate: Date | null
     festivalRecurrence: string | null
     festivalNotifiedAt: Date | null
+    claimedById: string | null
+    claimVerifiedAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: PlaceCountAggregateOutputType | null
@@ -11567,12 +12935,16 @@ export namespace Prisma {
     festivalEndDate?: boolean
     festivalRecurrence?: boolean
     festivalNotifiedAt?: boolean
+    claimedById?: boolean
+    claimVerifiedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
     reviews?: boolean | Place$reviewsArgs<ExtArgs>
     photos?: boolean | Place$photosArgs<ExtArgs>
     favorites?: boolean | Place$favoritesArgs<ExtArgs>
+    claims?: boolean | Place$claimsArgs<ExtArgs>
+    labels?: boolean | Place$labelsArgs<ExtArgs>
     _count?: boolean | PlaceCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["place"]>
 
@@ -11620,6 +12992,8 @@ export namespace Prisma {
     festivalEndDate?: boolean
     festivalRecurrence?: boolean
     festivalNotifiedAt?: boolean
+    claimedById?: boolean
+    claimVerifiedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -11669,6 +13043,8 @@ export namespace Prisma {
     festivalEndDate?: boolean
     festivalRecurrence?: boolean
     festivalNotifiedAt?: boolean
+    claimedById?: boolean
+    claimVerifiedAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -11678,6 +13054,8 @@ export namespace Prisma {
     reviews?: boolean | Place$reviewsArgs<ExtArgs>
     photos?: boolean | Place$photosArgs<ExtArgs>
     favorites?: boolean | Place$favoritesArgs<ExtArgs>
+    claims?: boolean | Place$claimsArgs<ExtArgs>
+    labels?: boolean | Place$labelsArgs<ExtArgs>
     _count?: boolean | PlaceCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type PlaceIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -11691,6 +13069,8 @@ export namespace Prisma {
       reviews: Prisma.$PlaceReviewPayload<ExtArgs>[]
       photos: Prisma.$PlacePhotoPayload<ExtArgs>[]
       favorites: Prisma.$FavoritePayload<ExtArgs>[]
+      claims: Prisma.$BusinessClaimPayload<ExtArgs>[]
+      labels: Prisma.$PlaceLabelPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -11736,6 +13116,8 @@ export namespace Prisma {
       festivalEndDate: Date | null
       festivalRecurrence: string | null
       festivalNotifiedAt: Date | null
+      claimedById: string | null
+      claimVerifiedAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["place"]>
@@ -12106,6 +13488,8 @@ export namespace Prisma {
     reviews<T extends Place$reviewsArgs<ExtArgs> = {}>(args?: Subset<T, Place$reviewsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlaceReviewPayload<ExtArgs>, T, "findMany"> | Null>
     photos<T extends Place$photosArgs<ExtArgs> = {}>(args?: Subset<T, Place$photosArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlacePhotoPayload<ExtArgs>, T, "findMany"> | Null>
     favorites<T extends Place$favoritesArgs<ExtArgs> = {}>(args?: Subset<T, Place$favoritesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$FavoritePayload<ExtArgs>, T, "findMany"> | Null>
+    claims<T extends Place$claimsArgs<ExtArgs> = {}>(args?: Subset<T, Place$claimsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findMany"> | Null>
+    labels<T extends Place$labelsArgs<ExtArgs> = {}>(args?: Subset<T, Place$labelsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -12178,6 +13562,8 @@ export namespace Prisma {
     readonly festivalEndDate: FieldRef<"Place", 'DateTime'>
     readonly festivalRecurrence: FieldRef<"Place", 'String'>
     readonly festivalNotifiedAt: FieldRef<"Place", 'DateTime'>
+    readonly claimedById: FieldRef<"Place", 'String'>
+    readonly claimVerifiedAt: FieldRef<"Place", 'DateTime'>
     readonly createdAt: FieldRef<"Place", 'DateTime'>
     readonly updatedAt: FieldRef<"Place", 'DateTime'>
   }
@@ -12555,6 +13941,46 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: FavoriteScalarFieldEnum | FavoriteScalarFieldEnum[]
+  }
+
+  /**
+   * Place.claims
+   */
+  export type Place$claimsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    where?: BusinessClaimWhereInput
+    orderBy?: BusinessClaimOrderByWithRelationInput | BusinessClaimOrderByWithRelationInput[]
+    cursor?: BusinessClaimWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: BusinessClaimScalarFieldEnum | BusinessClaimScalarFieldEnum[]
+  }
+
+  /**
+   * Place.labels
+   */
+  export type Place$labelsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    where?: PlaceLabelWhereInput
+    orderBy?: PlaceLabelOrderByWithRelationInput | PlaceLabelOrderByWithRelationInput[]
+    cursor?: PlaceLabelWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: PlaceLabelScalarFieldEnum | PlaceLabelScalarFieldEnum[]
   }
 
   /**
@@ -15589,6 +17015,2081 @@ export namespace Prisma {
      * Choose, which related nodes to fetch as well
      */
     include?: PlacePhotoInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model BusinessClaim
+   */
+
+  export type AggregateBusinessClaim = {
+    _count: BusinessClaimCountAggregateOutputType | null
+    _min: BusinessClaimMinAggregateOutputType | null
+    _max: BusinessClaimMaxAggregateOutputType | null
+  }
+
+  export type BusinessClaimMinAggregateOutputType = {
+    id: string | null
+    placeId: string | null
+    userId: string | null
+    userName: string | null
+    contactEmail: string | null
+    contactPhone: string | null
+    role: string | null
+    message: string | null
+    status: string | null
+    reviewNote: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type BusinessClaimMaxAggregateOutputType = {
+    id: string | null
+    placeId: string | null
+    userId: string | null
+    userName: string | null
+    contactEmail: string | null
+    contactPhone: string | null
+    role: string | null
+    message: string | null
+    status: string | null
+    reviewNote: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type BusinessClaimCountAggregateOutputType = {
+    id: number
+    placeId: number
+    userId: number
+    userName: number
+    contactEmail: number
+    contactPhone: number
+    role: number
+    message: number
+    status: number
+    reviewNote: number
+    reviewedById: number
+    reviewedAt: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type BusinessClaimMinAggregateInputType = {
+    id?: true
+    placeId?: true
+    userId?: true
+    userName?: true
+    contactEmail?: true
+    contactPhone?: true
+    role?: true
+    message?: true
+    status?: true
+    reviewNote?: true
+    reviewedById?: true
+    reviewedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type BusinessClaimMaxAggregateInputType = {
+    id?: true
+    placeId?: true
+    userId?: true
+    userName?: true
+    contactEmail?: true
+    contactPhone?: true
+    role?: true
+    message?: true
+    status?: true
+    reviewNote?: true
+    reviewedById?: true
+    reviewedAt?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type BusinessClaimCountAggregateInputType = {
+    id?: true
+    placeId?: true
+    userId?: true
+    userName?: true
+    contactEmail?: true
+    contactPhone?: true
+    role?: true
+    message?: true
+    status?: true
+    reviewNote?: true
+    reviewedById?: true
+    reviewedAt?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type BusinessClaimAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which BusinessClaim to aggregate.
+     */
+    where?: BusinessClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BusinessClaims to fetch.
+     */
+    orderBy?: BusinessClaimOrderByWithRelationInput | BusinessClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: BusinessClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BusinessClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BusinessClaims.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned BusinessClaims
+    **/
+    _count?: true | BusinessClaimCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: BusinessClaimMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: BusinessClaimMaxAggregateInputType
+  }
+
+  export type GetBusinessClaimAggregateType<T extends BusinessClaimAggregateArgs> = {
+        [P in keyof T & keyof AggregateBusinessClaim]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateBusinessClaim[P]>
+      : GetScalarType<T[P], AggregateBusinessClaim[P]>
+  }
+
+
+
+
+  export type BusinessClaimGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: BusinessClaimWhereInput
+    orderBy?: BusinessClaimOrderByWithAggregationInput | BusinessClaimOrderByWithAggregationInput[]
+    by: BusinessClaimScalarFieldEnum[] | BusinessClaimScalarFieldEnum
+    having?: BusinessClaimScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: BusinessClaimCountAggregateInputType | true
+    _min?: BusinessClaimMinAggregateInputType
+    _max?: BusinessClaimMaxAggregateInputType
+  }
+
+  export type BusinessClaimGroupByOutputType = {
+    id: string
+    placeId: string
+    userId: string
+    userName: string | null
+    contactEmail: string | null
+    contactPhone: string | null
+    role: string
+    message: string | null
+    status: string
+    reviewNote: string | null
+    reviewedById: string | null
+    reviewedAt: Date | null
+    createdAt: Date
+    updatedAt: Date
+    _count: BusinessClaimCountAggregateOutputType | null
+    _min: BusinessClaimMinAggregateOutputType | null
+    _max: BusinessClaimMaxAggregateOutputType | null
+  }
+
+  type GetBusinessClaimGroupByPayload<T extends BusinessClaimGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<BusinessClaimGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof BusinessClaimGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], BusinessClaimGroupByOutputType[P]>
+            : GetScalarType<T[P], BusinessClaimGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type BusinessClaimSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    placeId?: boolean
+    userId?: boolean
+    userName?: boolean
+    contactEmail?: boolean
+    contactPhone?: boolean
+    role?: boolean
+    message?: boolean
+    status?: boolean
+    reviewNote?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    place?: boolean | PlaceDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["businessClaim"]>
+
+  export type BusinessClaimSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    placeId?: boolean
+    userId?: boolean
+    userName?: boolean
+    contactEmail?: boolean
+    contactPhone?: boolean
+    role?: boolean
+    message?: boolean
+    status?: boolean
+    reviewNote?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    place?: boolean | PlaceDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["businessClaim"]>
+
+  export type BusinessClaimSelectScalar = {
+    id?: boolean
+    placeId?: boolean
+    userId?: boolean
+    userName?: boolean
+    contactEmail?: boolean
+    contactPhone?: boolean
+    role?: boolean
+    message?: boolean
+    status?: boolean
+    reviewNote?: boolean
+    reviewedById?: boolean
+    reviewedAt?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type BusinessClaimInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    place?: boolean | PlaceDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type BusinessClaimIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    place?: boolean | PlaceDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $BusinessClaimPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "BusinessClaim"
+    objects: {
+      place: Prisma.$PlacePayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      placeId: string
+      userId: string
+      userName: string | null
+      contactEmail: string | null
+      contactPhone: string | null
+      role: string
+      message: string | null
+      status: string
+      reviewNote: string | null
+      reviewedById: string | null
+      reviewedAt: Date | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["businessClaim"]>
+    composites: {}
+  }
+
+  type BusinessClaimGetPayload<S extends boolean | null | undefined | BusinessClaimDefaultArgs> = $Result.GetResult<Prisma.$BusinessClaimPayload, S>
+
+  type BusinessClaimCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<BusinessClaimFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: BusinessClaimCountAggregateInputType | true
+    }
+
+  export interface BusinessClaimDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['BusinessClaim'], meta: { name: 'BusinessClaim' } }
+    /**
+     * Find zero or one BusinessClaim that matches the filter.
+     * @param {BusinessClaimFindUniqueArgs} args - Arguments to find a BusinessClaim
+     * @example
+     * // Get one BusinessClaim
+     * const businessClaim = await prisma.businessClaim.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends BusinessClaimFindUniqueArgs>(args: SelectSubset<T, BusinessClaimFindUniqueArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one BusinessClaim that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {BusinessClaimFindUniqueOrThrowArgs} args - Arguments to find a BusinessClaim
+     * @example
+     * // Get one BusinessClaim
+     * const businessClaim = await prisma.businessClaim.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends BusinessClaimFindUniqueOrThrowArgs>(args: SelectSubset<T, BusinessClaimFindUniqueOrThrowArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first BusinessClaim that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BusinessClaimFindFirstArgs} args - Arguments to find a BusinessClaim
+     * @example
+     * // Get one BusinessClaim
+     * const businessClaim = await prisma.businessClaim.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends BusinessClaimFindFirstArgs>(args?: SelectSubset<T, BusinessClaimFindFirstArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first BusinessClaim that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BusinessClaimFindFirstOrThrowArgs} args - Arguments to find a BusinessClaim
+     * @example
+     * // Get one BusinessClaim
+     * const businessClaim = await prisma.businessClaim.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends BusinessClaimFindFirstOrThrowArgs>(args?: SelectSubset<T, BusinessClaimFindFirstOrThrowArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more BusinessClaims that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BusinessClaimFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all BusinessClaims
+     * const businessClaims = await prisma.businessClaim.findMany()
+     * 
+     * // Get first 10 BusinessClaims
+     * const businessClaims = await prisma.businessClaim.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const businessClaimWithIdOnly = await prisma.businessClaim.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends BusinessClaimFindManyArgs>(args?: SelectSubset<T, BusinessClaimFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a BusinessClaim.
+     * @param {BusinessClaimCreateArgs} args - Arguments to create a BusinessClaim.
+     * @example
+     * // Create one BusinessClaim
+     * const BusinessClaim = await prisma.businessClaim.create({
+     *   data: {
+     *     // ... data to create a BusinessClaim
+     *   }
+     * })
+     * 
+     */
+    create<T extends BusinessClaimCreateArgs>(args: SelectSubset<T, BusinessClaimCreateArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many BusinessClaims.
+     * @param {BusinessClaimCreateManyArgs} args - Arguments to create many BusinessClaims.
+     * @example
+     * // Create many BusinessClaims
+     * const businessClaim = await prisma.businessClaim.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends BusinessClaimCreateManyArgs>(args?: SelectSubset<T, BusinessClaimCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many BusinessClaims and returns the data saved in the database.
+     * @param {BusinessClaimCreateManyAndReturnArgs} args - Arguments to create many BusinessClaims.
+     * @example
+     * // Create many BusinessClaims
+     * const businessClaim = await prisma.businessClaim.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many BusinessClaims and only return the `id`
+     * const businessClaimWithIdOnly = await prisma.businessClaim.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends BusinessClaimCreateManyAndReturnArgs>(args?: SelectSubset<T, BusinessClaimCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a BusinessClaim.
+     * @param {BusinessClaimDeleteArgs} args - Arguments to delete one BusinessClaim.
+     * @example
+     * // Delete one BusinessClaim
+     * const BusinessClaim = await prisma.businessClaim.delete({
+     *   where: {
+     *     // ... filter to delete one BusinessClaim
+     *   }
+     * })
+     * 
+     */
+    delete<T extends BusinessClaimDeleteArgs>(args: SelectSubset<T, BusinessClaimDeleteArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one BusinessClaim.
+     * @param {BusinessClaimUpdateArgs} args - Arguments to update one BusinessClaim.
+     * @example
+     * // Update one BusinessClaim
+     * const businessClaim = await prisma.businessClaim.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends BusinessClaimUpdateArgs>(args: SelectSubset<T, BusinessClaimUpdateArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more BusinessClaims.
+     * @param {BusinessClaimDeleteManyArgs} args - Arguments to filter BusinessClaims to delete.
+     * @example
+     * // Delete a few BusinessClaims
+     * const { count } = await prisma.businessClaim.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends BusinessClaimDeleteManyArgs>(args?: SelectSubset<T, BusinessClaimDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more BusinessClaims.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BusinessClaimUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many BusinessClaims
+     * const businessClaim = await prisma.businessClaim.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends BusinessClaimUpdateManyArgs>(args: SelectSubset<T, BusinessClaimUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one BusinessClaim.
+     * @param {BusinessClaimUpsertArgs} args - Arguments to update or create a BusinessClaim.
+     * @example
+     * // Update or create a BusinessClaim
+     * const businessClaim = await prisma.businessClaim.upsert({
+     *   create: {
+     *     // ... data to create a BusinessClaim
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the BusinessClaim we want to update
+     *   }
+     * })
+     */
+    upsert<T extends BusinessClaimUpsertArgs>(args: SelectSubset<T, BusinessClaimUpsertArgs<ExtArgs>>): Prisma__BusinessClaimClient<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of BusinessClaims.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BusinessClaimCountArgs} args - Arguments to filter BusinessClaims to count.
+     * @example
+     * // Count the number of BusinessClaims
+     * const count = await prisma.businessClaim.count({
+     *   where: {
+     *     // ... the filter for the BusinessClaims we want to count
+     *   }
+     * })
+    **/
+    count<T extends BusinessClaimCountArgs>(
+      args?: Subset<T, BusinessClaimCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], BusinessClaimCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a BusinessClaim.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BusinessClaimAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends BusinessClaimAggregateArgs>(args: Subset<T, BusinessClaimAggregateArgs>): Prisma.PrismaPromise<GetBusinessClaimAggregateType<T>>
+
+    /**
+     * Group by BusinessClaim.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {BusinessClaimGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends BusinessClaimGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: BusinessClaimGroupByArgs['orderBy'] }
+        : { orderBy?: BusinessClaimGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, BusinessClaimGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetBusinessClaimGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the BusinessClaim model
+   */
+  readonly fields: BusinessClaimFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for BusinessClaim.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__BusinessClaimClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    place<T extends PlaceDefaultArgs<ExtArgs> = {}>(args?: Subset<T, PlaceDefaultArgs<ExtArgs>>): Prisma__PlaceClient<$Result.GetResult<Prisma.$PlacePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the BusinessClaim model
+   */ 
+  interface BusinessClaimFieldRefs {
+    readonly id: FieldRef<"BusinessClaim", 'String'>
+    readonly placeId: FieldRef<"BusinessClaim", 'String'>
+    readonly userId: FieldRef<"BusinessClaim", 'String'>
+    readonly userName: FieldRef<"BusinessClaim", 'String'>
+    readonly contactEmail: FieldRef<"BusinessClaim", 'String'>
+    readonly contactPhone: FieldRef<"BusinessClaim", 'String'>
+    readonly role: FieldRef<"BusinessClaim", 'String'>
+    readonly message: FieldRef<"BusinessClaim", 'String'>
+    readonly status: FieldRef<"BusinessClaim", 'String'>
+    readonly reviewNote: FieldRef<"BusinessClaim", 'String'>
+    readonly reviewedById: FieldRef<"BusinessClaim", 'String'>
+    readonly reviewedAt: FieldRef<"BusinessClaim", 'DateTime'>
+    readonly createdAt: FieldRef<"BusinessClaim", 'DateTime'>
+    readonly updatedAt: FieldRef<"BusinessClaim", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * BusinessClaim findUnique
+   */
+  export type BusinessClaimFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which BusinessClaim to fetch.
+     */
+    where: BusinessClaimWhereUniqueInput
+  }
+
+  /**
+   * BusinessClaim findUniqueOrThrow
+   */
+  export type BusinessClaimFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which BusinessClaim to fetch.
+     */
+    where: BusinessClaimWhereUniqueInput
+  }
+
+  /**
+   * BusinessClaim findFirst
+   */
+  export type BusinessClaimFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which BusinessClaim to fetch.
+     */
+    where?: BusinessClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BusinessClaims to fetch.
+     */
+    orderBy?: BusinessClaimOrderByWithRelationInput | BusinessClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for BusinessClaims.
+     */
+    cursor?: BusinessClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BusinessClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BusinessClaims.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of BusinessClaims.
+     */
+    distinct?: BusinessClaimScalarFieldEnum | BusinessClaimScalarFieldEnum[]
+  }
+
+  /**
+   * BusinessClaim findFirstOrThrow
+   */
+  export type BusinessClaimFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which BusinessClaim to fetch.
+     */
+    where?: BusinessClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BusinessClaims to fetch.
+     */
+    orderBy?: BusinessClaimOrderByWithRelationInput | BusinessClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for BusinessClaims.
+     */
+    cursor?: BusinessClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BusinessClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BusinessClaims.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of BusinessClaims.
+     */
+    distinct?: BusinessClaimScalarFieldEnum | BusinessClaimScalarFieldEnum[]
+  }
+
+  /**
+   * BusinessClaim findMany
+   */
+  export type BusinessClaimFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * Filter, which BusinessClaims to fetch.
+     */
+    where?: BusinessClaimWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of BusinessClaims to fetch.
+     */
+    orderBy?: BusinessClaimOrderByWithRelationInput | BusinessClaimOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing BusinessClaims.
+     */
+    cursor?: BusinessClaimWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` BusinessClaims from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` BusinessClaims.
+     */
+    skip?: number
+    distinct?: BusinessClaimScalarFieldEnum | BusinessClaimScalarFieldEnum[]
+  }
+
+  /**
+   * BusinessClaim create
+   */
+  export type BusinessClaimCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * The data needed to create a BusinessClaim.
+     */
+    data: XOR<BusinessClaimCreateInput, BusinessClaimUncheckedCreateInput>
+  }
+
+  /**
+   * BusinessClaim createMany
+   */
+  export type BusinessClaimCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many BusinessClaims.
+     */
+    data: BusinessClaimCreateManyInput | BusinessClaimCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * BusinessClaim createManyAndReturn
+   */
+  export type BusinessClaimCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many BusinessClaims.
+     */
+    data: BusinessClaimCreateManyInput | BusinessClaimCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * BusinessClaim update
+   */
+  export type BusinessClaimUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * The data needed to update a BusinessClaim.
+     */
+    data: XOR<BusinessClaimUpdateInput, BusinessClaimUncheckedUpdateInput>
+    /**
+     * Choose, which BusinessClaim to update.
+     */
+    where: BusinessClaimWhereUniqueInput
+  }
+
+  /**
+   * BusinessClaim updateMany
+   */
+  export type BusinessClaimUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update BusinessClaims.
+     */
+    data: XOR<BusinessClaimUpdateManyMutationInput, BusinessClaimUncheckedUpdateManyInput>
+    /**
+     * Filter which BusinessClaims to update
+     */
+    where?: BusinessClaimWhereInput
+  }
+
+  /**
+   * BusinessClaim upsert
+   */
+  export type BusinessClaimUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * The filter to search for the BusinessClaim to update in case it exists.
+     */
+    where: BusinessClaimWhereUniqueInput
+    /**
+     * In case the BusinessClaim found by the `where` argument doesn't exist, create a new BusinessClaim with this data.
+     */
+    create: XOR<BusinessClaimCreateInput, BusinessClaimUncheckedCreateInput>
+    /**
+     * In case the BusinessClaim was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<BusinessClaimUpdateInput, BusinessClaimUncheckedUpdateInput>
+  }
+
+  /**
+   * BusinessClaim delete
+   */
+  export type BusinessClaimDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+    /**
+     * Filter which BusinessClaim to delete.
+     */
+    where: BusinessClaimWhereUniqueInput
+  }
+
+  /**
+   * BusinessClaim deleteMany
+   */
+  export type BusinessClaimDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which BusinessClaims to delete
+     */
+    where?: BusinessClaimWhereInput
+  }
+
+  /**
+   * BusinessClaim without action
+   */
+  export type BusinessClaimDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the BusinessClaim
+     */
+    select?: BusinessClaimSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: BusinessClaimInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model PlaceLabel
+   */
+
+  export type AggregatePlaceLabel = {
+    _count: PlaceLabelCountAggregateOutputType | null
+    _avg: PlaceLabelAvgAggregateOutputType | null
+    _sum: PlaceLabelSumAggregateOutputType | null
+    _min: PlaceLabelMinAggregateOutputType | null
+    _max: PlaceLabelMaxAggregateOutputType | null
+  }
+
+  export type PlaceLabelAvgAggregateOutputType = {
+    latitude: number | null
+    longitude: number | null
+  }
+
+  export type PlaceLabelSumAggregateOutputType = {
+    latitude: number | null
+    longitude: number | null
+  }
+
+  export type PlaceLabelMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    placeId: string | null
+    label: string | null
+    latitude: number | null
+    longitude: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PlaceLabelMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    placeId: string | null
+    label: string | null
+    latitude: number | null
+    longitude: number | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type PlaceLabelCountAggregateOutputType = {
+    id: number
+    userId: number
+    placeId: number
+    label: number
+    latitude: number
+    longitude: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type PlaceLabelAvgAggregateInputType = {
+    latitude?: true
+    longitude?: true
+  }
+
+  export type PlaceLabelSumAggregateInputType = {
+    latitude?: true
+    longitude?: true
+  }
+
+  export type PlaceLabelMinAggregateInputType = {
+    id?: true
+    userId?: true
+    placeId?: true
+    label?: true
+    latitude?: true
+    longitude?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PlaceLabelMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    placeId?: true
+    label?: true
+    latitude?: true
+    longitude?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type PlaceLabelCountAggregateInputType = {
+    id?: true
+    userId?: true
+    placeId?: true
+    label?: true
+    latitude?: true
+    longitude?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type PlaceLabelAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlaceLabel to aggregate.
+     */
+    where?: PlaceLabelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlaceLabels to fetch.
+     */
+    orderBy?: PlaceLabelOrderByWithRelationInput | PlaceLabelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: PlaceLabelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlaceLabels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlaceLabels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned PlaceLabels
+    **/
+    _count?: true | PlaceLabelCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: PlaceLabelAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: PlaceLabelSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: PlaceLabelMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: PlaceLabelMaxAggregateInputType
+  }
+
+  export type GetPlaceLabelAggregateType<T extends PlaceLabelAggregateArgs> = {
+        [P in keyof T & keyof AggregatePlaceLabel]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregatePlaceLabel[P]>
+      : GetScalarType<T[P], AggregatePlaceLabel[P]>
+  }
+
+
+
+
+  export type PlaceLabelGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: PlaceLabelWhereInput
+    orderBy?: PlaceLabelOrderByWithAggregationInput | PlaceLabelOrderByWithAggregationInput[]
+    by: PlaceLabelScalarFieldEnum[] | PlaceLabelScalarFieldEnum
+    having?: PlaceLabelScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: PlaceLabelCountAggregateInputType | true
+    _avg?: PlaceLabelAvgAggregateInputType
+    _sum?: PlaceLabelSumAggregateInputType
+    _min?: PlaceLabelMinAggregateInputType
+    _max?: PlaceLabelMaxAggregateInputType
+  }
+
+  export type PlaceLabelGroupByOutputType = {
+    id: string
+    userId: string
+    placeId: string | null
+    label: string
+    latitude: number | null
+    longitude: number | null
+    createdAt: Date
+    updatedAt: Date
+    _count: PlaceLabelCountAggregateOutputType | null
+    _avg: PlaceLabelAvgAggregateOutputType | null
+    _sum: PlaceLabelSumAggregateOutputType | null
+    _min: PlaceLabelMinAggregateOutputType | null
+    _max: PlaceLabelMaxAggregateOutputType | null
+  }
+
+  type GetPlaceLabelGroupByPayload<T extends PlaceLabelGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<PlaceLabelGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof PlaceLabelGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], PlaceLabelGroupByOutputType[P]>
+            : GetScalarType<T[P], PlaceLabelGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type PlaceLabelSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    placeId?: boolean
+    label?: boolean
+    latitude?: boolean
+    longitude?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    place?: boolean | PlaceLabel$placeArgs<ExtArgs>
+  }, ExtArgs["result"]["placeLabel"]>
+
+  export type PlaceLabelSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    placeId?: boolean
+    label?: boolean
+    latitude?: boolean
+    longitude?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    place?: boolean | PlaceLabel$placeArgs<ExtArgs>
+  }, ExtArgs["result"]["placeLabel"]>
+
+  export type PlaceLabelSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    placeId?: boolean
+    label?: boolean
+    latitude?: boolean
+    longitude?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type PlaceLabelInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    place?: boolean | PlaceLabel$placeArgs<ExtArgs>
+  }
+  export type PlaceLabelIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+    place?: boolean | PlaceLabel$placeArgs<ExtArgs>
+  }
+
+  export type $PlaceLabelPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "PlaceLabel"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+      place: Prisma.$PlacePayload<ExtArgs> | null
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      placeId: string | null
+      label: string
+      latitude: number | null
+      longitude: number | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["placeLabel"]>
+    composites: {}
+  }
+
+  type PlaceLabelGetPayload<S extends boolean | null | undefined | PlaceLabelDefaultArgs> = $Result.GetResult<Prisma.$PlaceLabelPayload, S>
+
+  type PlaceLabelCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<PlaceLabelFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: PlaceLabelCountAggregateInputType | true
+    }
+
+  export interface PlaceLabelDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['PlaceLabel'], meta: { name: 'PlaceLabel' } }
+    /**
+     * Find zero or one PlaceLabel that matches the filter.
+     * @param {PlaceLabelFindUniqueArgs} args - Arguments to find a PlaceLabel
+     * @example
+     * // Get one PlaceLabel
+     * const placeLabel = await prisma.placeLabel.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends PlaceLabelFindUniqueArgs>(args: SelectSubset<T, PlaceLabelFindUniqueArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one PlaceLabel that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {PlaceLabelFindUniqueOrThrowArgs} args - Arguments to find a PlaceLabel
+     * @example
+     * // Get one PlaceLabel
+     * const placeLabel = await prisma.placeLabel.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends PlaceLabelFindUniqueOrThrowArgs>(args: SelectSubset<T, PlaceLabelFindUniqueOrThrowArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first PlaceLabel that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlaceLabelFindFirstArgs} args - Arguments to find a PlaceLabel
+     * @example
+     * // Get one PlaceLabel
+     * const placeLabel = await prisma.placeLabel.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends PlaceLabelFindFirstArgs>(args?: SelectSubset<T, PlaceLabelFindFirstArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first PlaceLabel that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlaceLabelFindFirstOrThrowArgs} args - Arguments to find a PlaceLabel
+     * @example
+     * // Get one PlaceLabel
+     * const placeLabel = await prisma.placeLabel.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends PlaceLabelFindFirstOrThrowArgs>(args?: SelectSubset<T, PlaceLabelFindFirstOrThrowArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more PlaceLabels that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlaceLabelFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all PlaceLabels
+     * const placeLabels = await prisma.placeLabel.findMany()
+     * 
+     * // Get first 10 PlaceLabels
+     * const placeLabels = await prisma.placeLabel.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const placeLabelWithIdOnly = await prisma.placeLabel.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends PlaceLabelFindManyArgs>(args?: SelectSubset<T, PlaceLabelFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a PlaceLabel.
+     * @param {PlaceLabelCreateArgs} args - Arguments to create a PlaceLabel.
+     * @example
+     * // Create one PlaceLabel
+     * const PlaceLabel = await prisma.placeLabel.create({
+     *   data: {
+     *     // ... data to create a PlaceLabel
+     *   }
+     * })
+     * 
+     */
+    create<T extends PlaceLabelCreateArgs>(args: SelectSubset<T, PlaceLabelCreateArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many PlaceLabels.
+     * @param {PlaceLabelCreateManyArgs} args - Arguments to create many PlaceLabels.
+     * @example
+     * // Create many PlaceLabels
+     * const placeLabel = await prisma.placeLabel.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends PlaceLabelCreateManyArgs>(args?: SelectSubset<T, PlaceLabelCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many PlaceLabels and returns the data saved in the database.
+     * @param {PlaceLabelCreateManyAndReturnArgs} args - Arguments to create many PlaceLabels.
+     * @example
+     * // Create many PlaceLabels
+     * const placeLabel = await prisma.placeLabel.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many PlaceLabels and only return the `id`
+     * const placeLabelWithIdOnly = await prisma.placeLabel.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends PlaceLabelCreateManyAndReturnArgs>(args?: SelectSubset<T, PlaceLabelCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a PlaceLabel.
+     * @param {PlaceLabelDeleteArgs} args - Arguments to delete one PlaceLabel.
+     * @example
+     * // Delete one PlaceLabel
+     * const PlaceLabel = await prisma.placeLabel.delete({
+     *   where: {
+     *     // ... filter to delete one PlaceLabel
+     *   }
+     * })
+     * 
+     */
+    delete<T extends PlaceLabelDeleteArgs>(args: SelectSubset<T, PlaceLabelDeleteArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one PlaceLabel.
+     * @param {PlaceLabelUpdateArgs} args - Arguments to update one PlaceLabel.
+     * @example
+     * // Update one PlaceLabel
+     * const placeLabel = await prisma.placeLabel.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends PlaceLabelUpdateArgs>(args: SelectSubset<T, PlaceLabelUpdateArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more PlaceLabels.
+     * @param {PlaceLabelDeleteManyArgs} args - Arguments to filter PlaceLabels to delete.
+     * @example
+     * // Delete a few PlaceLabels
+     * const { count } = await prisma.placeLabel.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends PlaceLabelDeleteManyArgs>(args?: SelectSubset<T, PlaceLabelDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more PlaceLabels.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlaceLabelUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many PlaceLabels
+     * const placeLabel = await prisma.placeLabel.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends PlaceLabelUpdateManyArgs>(args: SelectSubset<T, PlaceLabelUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one PlaceLabel.
+     * @param {PlaceLabelUpsertArgs} args - Arguments to update or create a PlaceLabel.
+     * @example
+     * // Update or create a PlaceLabel
+     * const placeLabel = await prisma.placeLabel.upsert({
+     *   create: {
+     *     // ... data to create a PlaceLabel
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the PlaceLabel we want to update
+     *   }
+     * })
+     */
+    upsert<T extends PlaceLabelUpsertArgs>(args: SelectSubset<T, PlaceLabelUpsertArgs<ExtArgs>>): Prisma__PlaceLabelClient<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of PlaceLabels.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlaceLabelCountArgs} args - Arguments to filter PlaceLabels to count.
+     * @example
+     * // Count the number of PlaceLabels
+     * const count = await prisma.placeLabel.count({
+     *   where: {
+     *     // ... the filter for the PlaceLabels we want to count
+     *   }
+     * })
+    **/
+    count<T extends PlaceLabelCountArgs>(
+      args?: Subset<T, PlaceLabelCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], PlaceLabelCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a PlaceLabel.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlaceLabelAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends PlaceLabelAggregateArgs>(args: Subset<T, PlaceLabelAggregateArgs>): Prisma.PrismaPromise<GetPlaceLabelAggregateType<T>>
+
+    /**
+     * Group by PlaceLabel.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {PlaceLabelGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends PlaceLabelGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: PlaceLabelGroupByArgs['orderBy'] }
+        : { orderBy?: PlaceLabelGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, PlaceLabelGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetPlaceLabelGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the PlaceLabel model
+   */
+  readonly fields: PlaceLabelFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for PlaceLabel.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__PlaceLabelClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    place<T extends PlaceLabel$placeArgs<ExtArgs> = {}>(args?: Subset<T, PlaceLabel$placeArgs<ExtArgs>>): Prisma__PlaceClient<$Result.GetResult<Prisma.$PlacePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the PlaceLabel model
+   */ 
+  interface PlaceLabelFieldRefs {
+    readonly id: FieldRef<"PlaceLabel", 'String'>
+    readonly userId: FieldRef<"PlaceLabel", 'String'>
+    readonly placeId: FieldRef<"PlaceLabel", 'String'>
+    readonly label: FieldRef<"PlaceLabel", 'String'>
+    readonly latitude: FieldRef<"PlaceLabel", 'Float'>
+    readonly longitude: FieldRef<"PlaceLabel", 'Float'>
+    readonly createdAt: FieldRef<"PlaceLabel", 'DateTime'>
+    readonly updatedAt: FieldRef<"PlaceLabel", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * PlaceLabel findUnique
+   */
+  export type PlaceLabelFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * Filter, which PlaceLabel to fetch.
+     */
+    where: PlaceLabelWhereUniqueInput
+  }
+
+  /**
+   * PlaceLabel findUniqueOrThrow
+   */
+  export type PlaceLabelFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * Filter, which PlaceLabel to fetch.
+     */
+    where: PlaceLabelWhereUniqueInput
+  }
+
+  /**
+   * PlaceLabel findFirst
+   */
+  export type PlaceLabelFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * Filter, which PlaceLabel to fetch.
+     */
+    where?: PlaceLabelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlaceLabels to fetch.
+     */
+    orderBy?: PlaceLabelOrderByWithRelationInput | PlaceLabelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlaceLabels.
+     */
+    cursor?: PlaceLabelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlaceLabels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlaceLabels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlaceLabels.
+     */
+    distinct?: PlaceLabelScalarFieldEnum | PlaceLabelScalarFieldEnum[]
+  }
+
+  /**
+   * PlaceLabel findFirstOrThrow
+   */
+  export type PlaceLabelFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * Filter, which PlaceLabel to fetch.
+     */
+    where?: PlaceLabelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlaceLabels to fetch.
+     */
+    orderBy?: PlaceLabelOrderByWithRelationInput | PlaceLabelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for PlaceLabels.
+     */
+    cursor?: PlaceLabelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlaceLabels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlaceLabels.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of PlaceLabels.
+     */
+    distinct?: PlaceLabelScalarFieldEnum | PlaceLabelScalarFieldEnum[]
+  }
+
+  /**
+   * PlaceLabel findMany
+   */
+  export type PlaceLabelFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * Filter, which PlaceLabels to fetch.
+     */
+    where?: PlaceLabelWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of PlaceLabels to fetch.
+     */
+    orderBy?: PlaceLabelOrderByWithRelationInput | PlaceLabelOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing PlaceLabels.
+     */
+    cursor?: PlaceLabelWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` PlaceLabels from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` PlaceLabels.
+     */
+    skip?: number
+    distinct?: PlaceLabelScalarFieldEnum | PlaceLabelScalarFieldEnum[]
+  }
+
+  /**
+   * PlaceLabel create
+   */
+  export type PlaceLabelCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * The data needed to create a PlaceLabel.
+     */
+    data: XOR<PlaceLabelCreateInput, PlaceLabelUncheckedCreateInput>
+  }
+
+  /**
+   * PlaceLabel createMany
+   */
+  export type PlaceLabelCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many PlaceLabels.
+     */
+    data: PlaceLabelCreateManyInput | PlaceLabelCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * PlaceLabel createManyAndReturn
+   */
+  export type PlaceLabelCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many PlaceLabels.
+     */
+    data: PlaceLabelCreateManyInput | PlaceLabelCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * PlaceLabel update
+   */
+  export type PlaceLabelUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * The data needed to update a PlaceLabel.
+     */
+    data: XOR<PlaceLabelUpdateInput, PlaceLabelUncheckedUpdateInput>
+    /**
+     * Choose, which PlaceLabel to update.
+     */
+    where: PlaceLabelWhereUniqueInput
+  }
+
+  /**
+   * PlaceLabel updateMany
+   */
+  export type PlaceLabelUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update PlaceLabels.
+     */
+    data: XOR<PlaceLabelUpdateManyMutationInput, PlaceLabelUncheckedUpdateManyInput>
+    /**
+     * Filter which PlaceLabels to update
+     */
+    where?: PlaceLabelWhereInput
+  }
+
+  /**
+   * PlaceLabel upsert
+   */
+  export type PlaceLabelUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * The filter to search for the PlaceLabel to update in case it exists.
+     */
+    where: PlaceLabelWhereUniqueInput
+    /**
+     * In case the PlaceLabel found by the `where` argument doesn't exist, create a new PlaceLabel with this data.
+     */
+    create: XOR<PlaceLabelCreateInput, PlaceLabelUncheckedCreateInput>
+    /**
+     * In case the PlaceLabel was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<PlaceLabelUpdateInput, PlaceLabelUncheckedUpdateInput>
+  }
+
+  /**
+   * PlaceLabel delete
+   */
+  export type PlaceLabelDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
+    /**
+     * Filter which PlaceLabel to delete.
+     */
+    where: PlaceLabelWhereUniqueInput
+  }
+
+  /**
+   * PlaceLabel deleteMany
+   */
+  export type PlaceLabelDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which PlaceLabels to delete
+     */
+    where?: PlaceLabelWhereInput
+  }
+
+  /**
+   * PlaceLabel.place
+   */
+  export type PlaceLabel$placeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the Place
+     */
+    select?: PlaceSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceInclude<ExtArgs> | null
+    where?: PlaceWhereInput
+  }
+
+  /**
+   * PlaceLabel without action
+   */
+  export type PlaceLabelDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the PlaceLabel
+     */
+    select?: PlaceLabelSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: PlaceLabelInclude<ExtArgs> | null
   }
 
 
@@ -21623,6 +25124,7 @@ export namespace Prisma {
     googleId: 'googleId',
     picture: 'picture',
     emailVerified: 'emailVerified',
+    profilePublic: 'profilePublic',
     lastGridExtractAt: 'lastGridExtractAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
@@ -21643,6 +25145,21 @@ export namespace Prisma {
   };
 
   export type NotificationScalarFieldEnum = (typeof NotificationScalarFieldEnum)[keyof typeof NotificationScalarFieldEnum]
+
+
+  export const NotificationPreferenceScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    pushEnabled: 'pushEnabled',
+    placeApproved: 'placeApproved',
+    placeAdded: 'placeAdded',
+    festival: 'festival',
+    businessClaim: 'businessClaim',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type NotificationPreferenceScalarFieldEnum = (typeof NotificationPreferenceScalarFieldEnum)[keyof typeof NotificationPreferenceScalarFieldEnum]
 
 
   export const PushSubscriptionScalarFieldEnum: {
@@ -21780,6 +25297,8 @@ export namespace Prisma {
     festivalEndDate: 'festivalEndDate',
     festivalRecurrence: 'festivalRecurrence',
     festivalNotifiedAt: 'festivalNotifiedAt',
+    claimedById: 'claimedById',
+    claimVerifiedAt: 'claimVerifiedAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -21828,6 +25347,40 @@ export namespace Prisma {
   };
 
   export type PlacePhotoScalarFieldEnum = (typeof PlacePhotoScalarFieldEnum)[keyof typeof PlacePhotoScalarFieldEnum]
+
+
+  export const BusinessClaimScalarFieldEnum: {
+    id: 'id',
+    placeId: 'placeId',
+    userId: 'userId',
+    userName: 'userName',
+    contactEmail: 'contactEmail',
+    contactPhone: 'contactPhone',
+    role: 'role',
+    message: 'message',
+    status: 'status',
+    reviewNote: 'reviewNote',
+    reviewedById: 'reviewedById',
+    reviewedAt: 'reviewedAt',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type BusinessClaimScalarFieldEnum = (typeof BusinessClaimScalarFieldEnum)[keyof typeof BusinessClaimScalarFieldEnum]
+
+
+  export const PlaceLabelScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    placeId: 'placeId',
+    label: 'label',
+    latitude: 'latitude',
+    longitude: 'longitude',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type PlaceLabelScalarFieldEnum = (typeof PlaceLabelScalarFieldEnum)[keyof typeof PlaceLabelScalarFieldEnum]
 
 
   export const PlaceAuditScalarFieldEnum: {
@@ -22049,6 +25602,7 @@ export namespace Prisma {
     googleId?: StringNullableFilter<"User"> | string | null
     picture?: StringNullableFilter<"User"> | string | null
     emailVerified?: BoolFilter<"User"> | boolean
+    profilePublic?: BoolFilter<"User"> | boolean
     lastGridExtractAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
@@ -22063,6 +25617,9 @@ export namespace Prisma {
     favorites?: FavoriteListRelationFilter
     notifications?: NotificationListRelationFilter
     pushSubscriptions?: PushSubscriptionListRelationFilter
+    notificationPreference?: XOR<NotificationPreferenceNullableRelationFilter, NotificationPreferenceWhereInput> | null
+    businessClaims?: BusinessClaimListRelationFilter
+    placeLabels?: PlaceLabelListRelationFilter
     ownedItineraries?: ItineraryListRelationFilter
     itineraryMemberships?: ItineraryMemberListRelationFilter
     itineraryComments?: ItineraryCommentListRelationFilter
@@ -22077,6 +25634,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     picture?: SortOrderInput | SortOrder
     emailVerified?: SortOrder
+    profilePublic?: SortOrder
     lastGridExtractAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -22091,6 +25649,9 @@ export namespace Prisma {
     favorites?: FavoriteOrderByRelationAggregateInput
     notifications?: NotificationOrderByRelationAggregateInput
     pushSubscriptions?: PushSubscriptionOrderByRelationAggregateInput
+    notificationPreference?: NotificationPreferenceOrderByWithRelationInput
+    businessClaims?: BusinessClaimOrderByRelationAggregateInput
+    placeLabels?: PlaceLabelOrderByRelationAggregateInput
     ownedItineraries?: ItineraryOrderByRelationAggregateInput
     itineraryMemberships?: ItineraryMemberOrderByRelationAggregateInput
     itineraryComments?: ItineraryCommentOrderByRelationAggregateInput
@@ -22108,6 +25669,7 @@ export namespace Prisma {
     password?: StringNullableFilter<"User"> | string | null
     picture?: StringNullableFilter<"User"> | string | null
     emailVerified?: BoolFilter<"User"> | boolean
+    profilePublic?: BoolFilter<"User"> | boolean
     lastGridExtractAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
@@ -22122,6 +25684,9 @@ export namespace Prisma {
     favorites?: FavoriteListRelationFilter
     notifications?: NotificationListRelationFilter
     pushSubscriptions?: PushSubscriptionListRelationFilter
+    notificationPreference?: XOR<NotificationPreferenceNullableRelationFilter, NotificationPreferenceWhereInput> | null
+    businessClaims?: BusinessClaimListRelationFilter
+    placeLabels?: PlaceLabelListRelationFilter
     ownedItineraries?: ItineraryListRelationFilter
     itineraryMemberships?: ItineraryMemberListRelationFilter
     itineraryComments?: ItineraryCommentListRelationFilter
@@ -22136,6 +25701,7 @@ export namespace Prisma {
     googleId?: SortOrderInput | SortOrder
     picture?: SortOrderInput | SortOrder
     emailVerified?: SortOrder
+    profilePublic?: SortOrder
     lastGridExtractAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -22155,6 +25721,7 @@ export namespace Prisma {
     googleId?: StringNullableWithAggregatesFilter<"User"> | string | null
     picture?: StringNullableWithAggregatesFilter<"User"> | string | null
     emailVerified?: BoolWithAggregatesFilter<"User"> | boolean
+    profilePublic?: BoolWithAggregatesFilter<"User"> | boolean
     lastGridExtractAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
@@ -22228,6 +25795,81 @@ export namespace Prisma {
     data?: JsonNullableWithAggregatesFilter<"Notification">
     read?: BoolWithAggregatesFilter<"Notification"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"Notification"> | Date | string
+  }
+
+  export type NotificationPreferenceWhereInput = {
+    AND?: NotificationPreferenceWhereInput | NotificationPreferenceWhereInput[]
+    OR?: NotificationPreferenceWhereInput[]
+    NOT?: NotificationPreferenceWhereInput | NotificationPreferenceWhereInput[]
+    id?: StringFilter<"NotificationPreference"> | string
+    userId?: StringFilter<"NotificationPreference"> | string
+    pushEnabled?: BoolFilter<"NotificationPreference"> | boolean
+    placeApproved?: BoolFilter<"NotificationPreference"> | boolean
+    placeAdded?: BoolFilter<"NotificationPreference"> | boolean
+    festival?: BoolFilter<"NotificationPreference"> | boolean
+    businessClaim?: BoolFilter<"NotificationPreference"> | boolean
+    createdAt?: DateTimeFilter<"NotificationPreference"> | Date | string
+    updatedAt?: DateTimeFilter<"NotificationPreference"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }
+
+  export type NotificationPreferenceOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    pushEnabled?: SortOrder
+    placeApproved?: SortOrder
+    placeAdded?: SortOrder
+    festival?: SortOrder
+    businessClaim?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type NotificationPreferenceWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId?: string
+    AND?: NotificationPreferenceWhereInput | NotificationPreferenceWhereInput[]
+    OR?: NotificationPreferenceWhereInput[]
+    NOT?: NotificationPreferenceWhereInput | NotificationPreferenceWhereInput[]
+    pushEnabled?: BoolFilter<"NotificationPreference"> | boolean
+    placeApproved?: BoolFilter<"NotificationPreference"> | boolean
+    placeAdded?: BoolFilter<"NotificationPreference"> | boolean
+    festival?: BoolFilter<"NotificationPreference"> | boolean
+    businessClaim?: BoolFilter<"NotificationPreference"> | boolean
+    createdAt?: DateTimeFilter<"NotificationPreference"> | Date | string
+    updatedAt?: DateTimeFilter<"NotificationPreference"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }, "id" | "userId">
+
+  export type NotificationPreferenceOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    pushEnabled?: SortOrder
+    placeApproved?: SortOrder
+    placeAdded?: SortOrder
+    festival?: SortOrder
+    businessClaim?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: NotificationPreferenceCountOrderByAggregateInput
+    _max?: NotificationPreferenceMaxOrderByAggregateInput
+    _min?: NotificationPreferenceMinOrderByAggregateInput
+  }
+
+  export type NotificationPreferenceScalarWhereWithAggregatesInput = {
+    AND?: NotificationPreferenceScalarWhereWithAggregatesInput | NotificationPreferenceScalarWhereWithAggregatesInput[]
+    OR?: NotificationPreferenceScalarWhereWithAggregatesInput[]
+    NOT?: NotificationPreferenceScalarWhereWithAggregatesInput | NotificationPreferenceScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"NotificationPreference"> | string
+    userId?: StringWithAggregatesFilter<"NotificationPreference"> | string
+    pushEnabled?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+    placeApproved?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+    placeAdded?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+    festival?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+    businessClaim?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
   }
 
   export type PushSubscriptionWhereInput = {
@@ -22748,12 +26390,16 @@ export namespace Prisma {
     festivalEndDate?: DateTimeNullableFilter<"Place"> | Date | string | null
     festivalRecurrence?: StringNullableFilter<"Place"> | string | null
     festivalNotifiedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
+    claimedById?: StringNullableFilter<"Place"> | string | null
+    claimVerifiedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
     createdAt?: DateTimeFilter<"Place"> | Date | string
     updatedAt?: DateTimeFilter<"Place"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
     reviews?: PlaceReviewListRelationFilter
     photos?: PlacePhotoListRelationFilter
     favorites?: FavoriteListRelationFilter
+    claims?: BusinessClaimListRelationFilter
+    labels?: PlaceLabelListRelationFilter
   }
 
   export type PlaceOrderByWithRelationInput = {
@@ -22800,12 +26446,16 @@ export namespace Prisma {
     festivalEndDate?: SortOrderInput | SortOrder
     festivalRecurrence?: SortOrderInput | SortOrder
     festivalNotifiedAt?: SortOrderInput | SortOrder
+    claimedById?: SortOrderInput | SortOrder
+    claimVerifiedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
     reviews?: PlaceReviewOrderByRelationAggregateInput
     photos?: PlacePhotoOrderByRelationAggregateInput
     favorites?: FavoriteOrderByRelationAggregateInput
+    claims?: BusinessClaimOrderByRelationAggregateInput
+    labels?: PlaceLabelOrderByRelationAggregateInput
   }
 
   export type PlaceWhereUniqueInput = Prisma.AtLeast<{
@@ -22856,12 +26506,16 @@ export namespace Prisma {
     festivalEndDate?: DateTimeNullableFilter<"Place"> | Date | string | null
     festivalRecurrence?: StringNullableFilter<"Place"> | string | null
     festivalNotifiedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
+    claimedById?: StringNullableFilter<"Place"> | string | null
+    claimVerifiedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
     createdAt?: DateTimeFilter<"Place"> | Date | string
     updatedAt?: DateTimeFilter<"Place"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
     reviews?: PlaceReviewListRelationFilter
     photos?: PlacePhotoListRelationFilter
     favorites?: FavoriteListRelationFilter
+    claims?: BusinessClaimListRelationFilter
+    labels?: PlaceLabelListRelationFilter
   }, "id" | "userId_googlePlaceId">
 
   export type PlaceOrderByWithAggregationInput = {
@@ -22908,6 +26562,8 @@ export namespace Prisma {
     festivalEndDate?: SortOrderInput | SortOrder
     festivalRecurrence?: SortOrderInput | SortOrder
     festivalNotifiedAt?: SortOrderInput | SortOrder
+    claimedById?: SortOrderInput | SortOrder
+    claimVerifiedAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: PlaceCountOrderByAggregateInput
@@ -22964,6 +26620,8 @@ export namespace Prisma {
     festivalEndDate?: DateTimeNullableWithAggregatesFilter<"Place"> | Date | string | null
     festivalRecurrence?: StringNullableWithAggregatesFilter<"Place"> | string | null
     festivalNotifiedAt?: DateTimeNullableWithAggregatesFilter<"Place"> | Date | string | null
+    claimedById?: StringNullableWithAggregatesFilter<"Place"> | string | null
+    claimVerifiedAt?: DateTimeNullableWithAggregatesFilter<"Place"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Place"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"Place"> | Date | string
   }
@@ -23195,6 +26853,186 @@ export namespace Prisma {
     dataUrl?: StringWithAggregatesFilter<"PlacePhoto"> | string
     caption?: StringNullableWithAggregatesFilter<"PlacePhoto"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"PlacePhoto"> | Date | string
+  }
+
+  export type BusinessClaimWhereInput = {
+    AND?: BusinessClaimWhereInput | BusinessClaimWhereInput[]
+    OR?: BusinessClaimWhereInput[]
+    NOT?: BusinessClaimWhereInput | BusinessClaimWhereInput[]
+    id?: StringFilter<"BusinessClaim"> | string
+    placeId?: StringFilter<"BusinessClaim"> | string
+    userId?: StringFilter<"BusinessClaim"> | string
+    userName?: StringNullableFilter<"BusinessClaim"> | string | null
+    contactEmail?: StringNullableFilter<"BusinessClaim"> | string | null
+    contactPhone?: StringNullableFilter<"BusinessClaim"> | string | null
+    role?: StringFilter<"BusinessClaim"> | string
+    message?: StringNullableFilter<"BusinessClaim"> | string | null
+    status?: StringFilter<"BusinessClaim"> | string
+    reviewNote?: StringNullableFilter<"BusinessClaim"> | string | null
+    reviewedById?: StringNullableFilter<"BusinessClaim"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"BusinessClaim"> | Date | string | null
+    createdAt?: DateTimeFilter<"BusinessClaim"> | Date | string
+    updatedAt?: DateTimeFilter<"BusinessClaim"> | Date | string
+    place?: XOR<PlaceRelationFilter, PlaceWhereInput>
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }
+
+  export type BusinessClaimOrderByWithRelationInput = {
+    id?: SortOrder
+    placeId?: SortOrder
+    userId?: SortOrder
+    userName?: SortOrderInput | SortOrder
+    contactEmail?: SortOrderInput | SortOrder
+    contactPhone?: SortOrderInput | SortOrder
+    role?: SortOrder
+    message?: SortOrderInput | SortOrder
+    status?: SortOrder
+    reviewNote?: SortOrderInput | SortOrder
+    reviewedById?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    place?: PlaceOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type BusinessClaimWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    placeId_userId?: BusinessClaimPlaceIdUserIdCompoundUniqueInput
+    AND?: BusinessClaimWhereInput | BusinessClaimWhereInput[]
+    OR?: BusinessClaimWhereInput[]
+    NOT?: BusinessClaimWhereInput | BusinessClaimWhereInput[]
+    placeId?: StringFilter<"BusinessClaim"> | string
+    userId?: StringFilter<"BusinessClaim"> | string
+    userName?: StringNullableFilter<"BusinessClaim"> | string | null
+    contactEmail?: StringNullableFilter<"BusinessClaim"> | string | null
+    contactPhone?: StringNullableFilter<"BusinessClaim"> | string | null
+    role?: StringFilter<"BusinessClaim"> | string
+    message?: StringNullableFilter<"BusinessClaim"> | string | null
+    status?: StringFilter<"BusinessClaim"> | string
+    reviewNote?: StringNullableFilter<"BusinessClaim"> | string | null
+    reviewedById?: StringNullableFilter<"BusinessClaim"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"BusinessClaim"> | Date | string | null
+    createdAt?: DateTimeFilter<"BusinessClaim"> | Date | string
+    updatedAt?: DateTimeFilter<"BusinessClaim"> | Date | string
+    place?: XOR<PlaceRelationFilter, PlaceWhereInput>
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }, "id" | "placeId_userId">
+
+  export type BusinessClaimOrderByWithAggregationInput = {
+    id?: SortOrder
+    placeId?: SortOrder
+    userId?: SortOrder
+    userName?: SortOrderInput | SortOrder
+    contactEmail?: SortOrderInput | SortOrder
+    contactPhone?: SortOrderInput | SortOrder
+    role?: SortOrder
+    message?: SortOrderInput | SortOrder
+    status?: SortOrder
+    reviewNote?: SortOrderInput | SortOrder
+    reviewedById?: SortOrderInput | SortOrder
+    reviewedAt?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: BusinessClaimCountOrderByAggregateInput
+    _max?: BusinessClaimMaxOrderByAggregateInput
+    _min?: BusinessClaimMinOrderByAggregateInput
+  }
+
+  export type BusinessClaimScalarWhereWithAggregatesInput = {
+    AND?: BusinessClaimScalarWhereWithAggregatesInput | BusinessClaimScalarWhereWithAggregatesInput[]
+    OR?: BusinessClaimScalarWhereWithAggregatesInput[]
+    NOT?: BusinessClaimScalarWhereWithAggregatesInput | BusinessClaimScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"BusinessClaim"> | string
+    placeId?: StringWithAggregatesFilter<"BusinessClaim"> | string
+    userId?: StringWithAggregatesFilter<"BusinessClaim"> | string
+    userName?: StringNullableWithAggregatesFilter<"BusinessClaim"> | string | null
+    contactEmail?: StringNullableWithAggregatesFilter<"BusinessClaim"> | string | null
+    contactPhone?: StringNullableWithAggregatesFilter<"BusinessClaim"> | string | null
+    role?: StringWithAggregatesFilter<"BusinessClaim"> | string
+    message?: StringNullableWithAggregatesFilter<"BusinessClaim"> | string | null
+    status?: StringWithAggregatesFilter<"BusinessClaim"> | string
+    reviewNote?: StringNullableWithAggregatesFilter<"BusinessClaim"> | string | null
+    reviewedById?: StringNullableWithAggregatesFilter<"BusinessClaim"> | string | null
+    reviewedAt?: DateTimeNullableWithAggregatesFilter<"BusinessClaim"> | Date | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"BusinessClaim"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"BusinessClaim"> | Date | string
+  }
+
+  export type PlaceLabelWhereInput = {
+    AND?: PlaceLabelWhereInput | PlaceLabelWhereInput[]
+    OR?: PlaceLabelWhereInput[]
+    NOT?: PlaceLabelWhereInput | PlaceLabelWhereInput[]
+    id?: StringFilter<"PlaceLabel"> | string
+    userId?: StringFilter<"PlaceLabel"> | string
+    placeId?: StringNullableFilter<"PlaceLabel"> | string | null
+    label?: StringFilter<"PlaceLabel"> | string
+    latitude?: FloatNullableFilter<"PlaceLabel"> | number | null
+    longitude?: FloatNullableFilter<"PlaceLabel"> | number | null
+    createdAt?: DateTimeFilter<"PlaceLabel"> | Date | string
+    updatedAt?: DateTimeFilter<"PlaceLabel"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+    place?: XOR<PlaceNullableRelationFilter, PlaceWhereInput> | null
+  }
+
+  export type PlaceLabelOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    placeId?: SortOrderInput | SortOrder
+    label?: SortOrder
+    latitude?: SortOrderInput | SortOrder
+    longitude?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+    place?: PlaceOrderByWithRelationInput
+  }
+
+  export type PlaceLabelWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    userId_placeId?: PlaceLabelUserIdPlaceIdCompoundUniqueInput
+    AND?: PlaceLabelWhereInput | PlaceLabelWhereInput[]
+    OR?: PlaceLabelWhereInput[]
+    NOT?: PlaceLabelWhereInput | PlaceLabelWhereInput[]
+    userId?: StringFilter<"PlaceLabel"> | string
+    placeId?: StringNullableFilter<"PlaceLabel"> | string | null
+    label?: StringFilter<"PlaceLabel"> | string
+    latitude?: FloatNullableFilter<"PlaceLabel"> | number | null
+    longitude?: FloatNullableFilter<"PlaceLabel"> | number | null
+    createdAt?: DateTimeFilter<"PlaceLabel"> | Date | string
+    updatedAt?: DateTimeFilter<"PlaceLabel"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+    place?: XOR<PlaceNullableRelationFilter, PlaceWhereInput> | null
+  }, "id" | "userId_placeId">
+
+  export type PlaceLabelOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    placeId?: SortOrderInput | SortOrder
+    label?: SortOrder
+    latitude?: SortOrderInput | SortOrder
+    longitude?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: PlaceLabelCountOrderByAggregateInput
+    _avg?: PlaceLabelAvgOrderByAggregateInput
+    _max?: PlaceLabelMaxOrderByAggregateInput
+    _min?: PlaceLabelMinOrderByAggregateInput
+    _sum?: PlaceLabelSumOrderByAggregateInput
+  }
+
+  export type PlaceLabelScalarWhereWithAggregatesInput = {
+    AND?: PlaceLabelScalarWhereWithAggregatesInput | PlaceLabelScalarWhereWithAggregatesInput[]
+    OR?: PlaceLabelScalarWhereWithAggregatesInput[]
+    NOT?: PlaceLabelScalarWhereWithAggregatesInput | PlaceLabelScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"PlaceLabel"> | string
+    userId?: StringWithAggregatesFilter<"PlaceLabel"> | string
+    placeId?: StringNullableWithAggregatesFilter<"PlaceLabel"> | string | null
+    label?: StringWithAggregatesFilter<"PlaceLabel"> | string
+    latitude?: FloatNullableWithAggregatesFilter<"PlaceLabel"> | number | null
+    longitude?: FloatNullableWithAggregatesFilter<"PlaceLabel"> | number | null
+    createdAt?: DateTimeWithAggregatesFilter<"PlaceLabel"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"PlaceLabel"> | Date | string
   }
 
   export type PlaceAuditWhereInput = {
@@ -23674,6 +27512,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23688,6 +27527,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -23702,6 +27544,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23716,6 +27559,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -23730,6 +27576,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23744,6 +27591,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -23758,6 +27608,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23772,6 +27623,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -23786,6 +27640,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -23799,6 +27654,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23812,6 +27668,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -23891,6 +27748,89 @@ export namespace Prisma {
     data?: NullableJsonNullValueInput | InputJsonValue
     read?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationPreferenceCreateInput = {
+    id?: string
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutNotificationPreferenceInput
+  }
+
+  export type NotificationPreferenceUncheckedCreateInput = {
+    id?: string
+    userId: string
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NotificationPreferenceUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    pushEnabled?: BoolFieldUpdateOperationsInput | boolean
+    placeApproved?: BoolFieldUpdateOperationsInput | boolean
+    placeAdded?: BoolFieldUpdateOperationsInput | boolean
+    festival?: BoolFieldUpdateOperationsInput | boolean
+    businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutNotificationPreferenceNestedInput
+  }
+
+  export type NotificationPreferenceUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    pushEnabled?: BoolFieldUpdateOperationsInput | boolean
+    placeApproved?: BoolFieldUpdateOperationsInput | boolean
+    placeAdded?: BoolFieldUpdateOperationsInput | boolean
+    festival?: BoolFieldUpdateOperationsInput | boolean
+    businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationPreferenceCreateManyInput = {
+    id?: string
+    userId: string
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NotificationPreferenceUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    pushEnabled?: BoolFieldUpdateOperationsInput | boolean
+    placeApproved?: BoolFieldUpdateOperationsInput | boolean
+    placeAdded?: BoolFieldUpdateOperationsInput | boolean
+    festival?: BoolFieldUpdateOperationsInput | boolean
+    businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationPreferenceUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    pushEnabled?: BoolFieldUpdateOperationsInput | boolean
+    placeApproved?: BoolFieldUpdateOperationsInput | boolean
+    placeAdded?: BoolFieldUpdateOperationsInput | boolean
+    festival?: BoolFieldUpdateOperationsInput | boolean
+    businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PushSubscriptionCreateInput = {
@@ -24447,12 +28387,16 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutPlacesInput
     reviews?: PlaceReviewCreateNestedManyWithoutPlaceInput
     photos?: PlacePhotoCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceUncheckedCreateInput = {
@@ -24499,11 +28443,15 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlaceReviewUncheckedCreateNestedManyWithoutPlaceInput
     photos?: PlacePhotoUncheckedCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteUncheckedCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimUncheckedCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelUncheckedCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceUpdateInput = {
@@ -24549,12 +28497,16 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutPlacesNestedInput
     reviews?: PlaceReviewUpdateManyWithoutPlaceNestedInput
     photos?: PlacePhotoUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceUncheckedUpdateInput = {
@@ -24601,11 +28553,15 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlaceReviewUncheckedUpdateManyWithoutPlaceNestedInput
     photos?: PlacePhotoUncheckedUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUncheckedUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUncheckedUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceCreateManyInput = {
@@ -24652,6 +28608,8 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -24699,6 +28657,8 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -24747,6 +28707,8 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -24981,6 +28943,198 @@ export namespace Prisma {
     dataUrl?: StringFieldUpdateOperationsInput | string
     caption?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimCreateInput = {
+    id?: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    place: PlaceCreateNestedOneWithoutClaimsInput
+    user: UserCreateNestedOneWithoutBusinessClaimsInput
+  }
+
+  export type BusinessClaimUncheckedCreateInput = {
+    id?: string
+    placeId: string
+    userId: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type BusinessClaimUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    place?: PlaceUpdateOneRequiredWithoutClaimsNestedInput
+    user?: UserUpdateOneRequiredWithoutBusinessClaimsNestedInput
+  }
+
+  export type BusinessClaimUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    placeId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimCreateManyInput = {
+    id?: string
+    placeId: string
+    userId: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type BusinessClaimUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    placeId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlaceLabelCreateInput = {
+    id?: string
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutPlaceLabelsInput
+    place?: PlaceCreateNestedOneWithoutLabelsInput
+  }
+
+  export type PlaceLabelUncheckedCreateInput = {
+    id?: string
+    userId: string
+    placeId?: string | null
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlaceLabelUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutPlaceLabelsNestedInput
+    place?: PlaceUpdateOneWithoutLabelsNestedInput
+  }
+
+  export type PlaceLabelUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    placeId?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlaceLabelCreateManyInput = {
+    id?: string
+    userId: string
+    placeId?: string | null
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlaceLabelUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlaceLabelUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    placeId?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type PlaceAuditCreateInput = {
@@ -25611,6 +29765,23 @@ export namespace Prisma {
     none?: PushSubscriptionWhereInput
   }
 
+  export type NotificationPreferenceNullableRelationFilter = {
+    is?: NotificationPreferenceWhereInput | null
+    isNot?: NotificationPreferenceWhereInput | null
+  }
+
+  export type BusinessClaimListRelationFilter = {
+    every?: BusinessClaimWhereInput
+    some?: BusinessClaimWhereInput
+    none?: BusinessClaimWhereInput
+  }
+
+  export type PlaceLabelListRelationFilter = {
+    every?: PlaceLabelWhereInput
+    some?: PlaceLabelWhereInput
+    none?: PlaceLabelWhereInput
+  }
+
   export type ItineraryListRelationFilter = {
     every?: ItineraryWhereInput
     some?: ItineraryWhereInput
@@ -25684,6 +29855,14 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
+  export type BusinessClaimOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type PlaceLabelOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
   export type ItineraryOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
@@ -25708,6 +29887,7 @@ export namespace Prisma {
     googleId?: SortOrder
     picture?: SortOrder
     emailVerified?: SortOrder
+    profilePublic?: SortOrder
     lastGridExtractAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -25721,6 +29901,7 @@ export namespace Prisma {
     googleId?: SortOrder
     picture?: SortOrder
     emailVerified?: SortOrder
+    profilePublic?: SortOrder
     lastGridExtractAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -25734,6 +29915,7 @@ export namespace Prisma {
     googleId?: SortOrder
     picture?: SortOrder
     emailVerified?: SortOrder
+    profilePublic?: SortOrder
     lastGridExtractAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
@@ -25892,6 +30074,42 @@ export namespace Prisma {
     _count?: NestedIntNullableFilter<$PrismaModel>
     _min?: NestedJsonNullableFilter<$PrismaModel>
     _max?: NestedJsonNullableFilter<$PrismaModel>
+  }
+
+  export type NotificationPreferenceCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    pushEnabled?: SortOrder
+    placeApproved?: SortOrder
+    placeAdded?: SortOrder
+    festival?: SortOrder
+    businessClaim?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NotificationPreferenceMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    pushEnabled?: SortOrder
+    placeApproved?: SortOrder
+    placeAdded?: SortOrder
+    festival?: SortOrder
+    businessClaim?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type NotificationPreferenceMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    pushEnabled?: SortOrder
+    placeApproved?: SortOrder
+    placeAdded?: SortOrder
+    festival?: SortOrder
+    businessClaim?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
   }
 
   export type PushSubscriptionCountOrderByAggregateInput = {
@@ -26285,6 +30503,8 @@ export namespace Prisma {
     festivalEndDate?: SortOrder
     festivalRecurrence?: SortOrder
     festivalNotifiedAt?: SortOrder
+    claimedById?: SortOrder
+    claimVerifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -26335,6 +30555,8 @@ export namespace Prisma {
     festivalEndDate?: SortOrder
     festivalRecurrence?: SortOrder
     festivalNotifiedAt?: SortOrder
+    claimedById?: SortOrder
+    claimVerifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -26377,6 +30599,8 @@ export namespace Prisma {
     festivalEndDate?: SortOrder
     festivalRecurrence?: SortOrder
     festivalNotifiedAt?: SortOrder
+    claimedById?: SortOrder
+    claimVerifiedAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -26547,6 +30771,110 @@ export namespace Prisma {
     dataUrl?: SortOrder
     caption?: SortOrder
     createdAt?: SortOrder
+  }
+
+  export type BusinessClaimPlaceIdUserIdCompoundUniqueInput = {
+    placeId: string
+    userId: string
+  }
+
+  export type BusinessClaimCountOrderByAggregateInput = {
+    id?: SortOrder
+    placeId?: SortOrder
+    userId?: SortOrder
+    userName?: SortOrder
+    contactEmail?: SortOrder
+    contactPhone?: SortOrder
+    role?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    reviewNote?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type BusinessClaimMaxOrderByAggregateInput = {
+    id?: SortOrder
+    placeId?: SortOrder
+    userId?: SortOrder
+    userName?: SortOrder
+    contactEmail?: SortOrder
+    contactPhone?: SortOrder
+    role?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    reviewNote?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type BusinessClaimMinOrderByAggregateInput = {
+    id?: SortOrder
+    placeId?: SortOrder
+    userId?: SortOrder
+    userName?: SortOrder
+    contactEmail?: SortOrder
+    contactPhone?: SortOrder
+    role?: SortOrder
+    message?: SortOrder
+    status?: SortOrder
+    reviewNote?: SortOrder
+    reviewedById?: SortOrder
+    reviewedAt?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlaceLabelUserIdPlaceIdCompoundUniqueInput = {
+    userId: string
+    placeId: string
+  }
+
+  export type PlaceLabelCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    placeId?: SortOrder
+    label?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlaceLabelAvgOrderByAggregateInput = {
+    latitude?: SortOrder
+    longitude?: SortOrder
+  }
+
+  export type PlaceLabelMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    placeId?: SortOrder
+    label?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlaceLabelMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    placeId?: SortOrder
+    label?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type PlaceLabelSumOrderByAggregateInput = {
+    latitude?: SortOrder
+    longitude?: SortOrder
   }
 
   export type PlaceAuditCountOrderByAggregateInput = {
@@ -26887,6 +31215,26 @@ export namespace Prisma {
     connect?: PushSubscriptionWhereUniqueInput | PushSubscriptionWhereUniqueInput[]
   }
 
+  export type NotificationPreferenceCreateNestedOneWithoutUserInput = {
+    create?: XOR<NotificationPreferenceCreateWithoutUserInput, NotificationPreferenceUncheckedCreateWithoutUserInput>
+    connectOrCreate?: NotificationPreferenceCreateOrConnectWithoutUserInput
+    connect?: NotificationPreferenceWhereUniqueInput
+  }
+
+  export type BusinessClaimCreateNestedManyWithoutUserInput = {
+    create?: XOR<BusinessClaimCreateWithoutUserInput, BusinessClaimUncheckedCreateWithoutUserInput> | BusinessClaimCreateWithoutUserInput[] | BusinessClaimUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutUserInput | BusinessClaimCreateOrConnectWithoutUserInput[]
+    createMany?: BusinessClaimCreateManyUserInputEnvelope
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+  }
+
+  export type PlaceLabelCreateNestedManyWithoutUserInput = {
+    create?: XOR<PlaceLabelCreateWithoutUserInput, PlaceLabelUncheckedCreateWithoutUserInput> | PlaceLabelCreateWithoutUserInput[] | PlaceLabelUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutUserInput | PlaceLabelCreateOrConnectWithoutUserInput[]
+    createMany?: PlaceLabelCreateManyUserInputEnvelope
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+  }
+
   export type ItineraryCreateNestedManyWithoutOwnerInput = {
     create?: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput> | ItineraryCreateWithoutOwnerInput[] | ItineraryUncheckedCreateWithoutOwnerInput[]
     connectOrCreate?: ItineraryCreateOrConnectWithoutOwnerInput | ItineraryCreateOrConnectWithoutOwnerInput[]
@@ -26990,6 +31338,26 @@ export namespace Prisma {
     connectOrCreate?: PushSubscriptionCreateOrConnectWithoutUserInput | PushSubscriptionCreateOrConnectWithoutUserInput[]
     createMany?: PushSubscriptionCreateManyUserInputEnvelope
     connect?: PushSubscriptionWhereUniqueInput | PushSubscriptionWhereUniqueInput[]
+  }
+
+  export type NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput = {
+    create?: XOR<NotificationPreferenceCreateWithoutUserInput, NotificationPreferenceUncheckedCreateWithoutUserInput>
+    connectOrCreate?: NotificationPreferenceCreateOrConnectWithoutUserInput
+    connect?: NotificationPreferenceWhereUniqueInput
+  }
+
+  export type BusinessClaimUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<BusinessClaimCreateWithoutUserInput, BusinessClaimUncheckedCreateWithoutUserInput> | BusinessClaimCreateWithoutUserInput[] | BusinessClaimUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutUserInput | BusinessClaimCreateOrConnectWithoutUserInput[]
+    createMany?: BusinessClaimCreateManyUserInputEnvelope
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+  }
+
+  export type PlaceLabelUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<PlaceLabelCreateWithoutUserInput, PlaceLabelUncheckedCreateWithoutUserInput> | PlaceLabelCreateWithoutUserInput[] | PlaceLabelUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutUserInput | PlaceLabelCreateOrConnectWithoutUserInput[]
+    createMany?: PlaceLabelCreateManyUserInputEnvelope
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
   }
 
   export type ItineraryUncheckedCreateNestedManyWithoutOwnerInput = {
@@ -27192,6 +31560,44 @@ export namespace Prisma {
     update?: PushSubscriptionUpdateWithWhereUniqueWithoutUserInput | PushSubscriptionUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: PushSubscriptionUpdateManyWithWhereWithoutUserInput | PushSubscriptionUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: PushSubscriptionScalarWhereInput | PushSubscriptionScalarWhereInput[]
+  }
+
+  export type NotificationPreferenceUpdateOneWithoutUserNestedInput = {
+    create?: XOR<NotificationPreferenceCreateWithoutUserInput, NotificationPreferenceUncheckedCreateWithoutUserInput>
+    connectOrCreate?: NotificationPreferenceCreateOrConnectWithoutUserInput
+    upsert?: NotificationPreferenceUpsertWithoutUserInput
+    disconnect?: NotificationPreferenceWhereInput | boolean
+    delete?: NotificationPreferenceWhereInput | boolean
+    connect?: NotificationPreferenceWhereUniqueInput
+    update?: XOR<XOR<NotificationPreferenceUpdateToOneWithWhereWithoutUserInput, NotificationPreferenceUpdateWithoutUserInput>, NotificationPreferenceUncheckedUpdateWithoutUserInput>
+  }
+
+  export type BusinessClaimUpdateManyWithoutUserNestedInput = {
+    create?: XOR<BusinessClaimCreateWithoutUserInput, BusinessClaimUncheckedCreateWithoutUserInput> | BusinessClaimCreateWithoutUserInput[] | BusinessClaimUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutUserInput | BusinessClaimCreateOrConnectWithoutUserInput[]
+    upsert?: BusinessClaimUpsertWithWhereUniqueWithoutUserInput | BusinessClaimUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: BusinessClaimCreateManyUserInputEnvelope
+    set?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    disconnect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    delete?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    update?: BusinessClaimUpdateWithWhereUniqueWithoutUserInput | BusinessClaimUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: BusinessClaimUpdateManyWithWhereWithoutUserInput | BusinessClaimUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: BusinessClaimScalarWhereInput | BusinessClaimScalarWhereInput[]
+  }
+
+  export type PlaceLabelUpdateManyWithoutUserNestedInput = {
+    create?: XOR<PlaceLabelCreateWithoutUserInput, PlaceLabelUncheckedCreateWithoutUserInput> | PlaceLabelCreateWithoutUserInput[] | PlaceLabelUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutUserInput | PlaceLabelCreateOrConnectWithoutUserInput[]
+    upsert?: PlaceLabelUpsertWithWhereUniqueWithoutUserInput | PlaceLabelUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: PlaceLabelCreateManyUserInputEnvelope
+    set?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    disconnect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    delete?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    update?: PlaceLabelUpdateWithWhereUniqueWithoutUserInput | PlaceLabelUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: PlaceLabelUpdateManyWithWhereWithoutUserInput | PlaceLabelUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
   }
 
   export type ItineraryUpdateManyWithoutOwnerNestedInput = {
@@ -27404,6 +31810,44 @@ export namespace Prisma {
     deleteMany?: PushSubscriptionScalarWhereInput | PushSubscriptionScalarWhereInput[]
   }
 
+  export type NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput = {
+    create?: XOR<NotificationPreferenceCreateWithoutUserInput, NotificationPreferenceUncheckedCreateWithoutUserInput>
+    connectOrCreate?: NotificationPreferenceCreateOrConnectWithoutUserInput
+    upsert?: NotificationPreferenceUpsertWithoutUserInput
+    disconnect?: NotificationPreferenceWhereInput | boolean
+    delete?: NotificationPreferenceWhereInput | boolean
+    connect?: NotificationPreferenceWhereUniqueInput
+    update?: XOR<XOR<NotificationPreferenceUpdateToOneWithWhereWithoutUserInput, NotificationPreferenceUpdateWithoutUserInput>, NotificationPreferenceUncheckedUpdateWithoutUserInput>
+  }
+
+  export type BusinessClaimUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<BusinessClaimCreateWithoutUserInput, BusinessClaimUncheckedCreateWithoutUserInput> | BusinessClaimCreateWithoutUserInput[] | BusinessClaimUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutUserInput | BusinessClaimCreateOrConnectWithoutUserInput[]
+    upsert?: BusinessClaimUpsertWithWhereUniqueWithoutUserInput | BusinessClaimUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: BusinessClaimCreateManyUserInputEnvelope
+    set?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    disconnect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    delete?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    update?: BusinessClaimUpdateWithWhereUniqueWithoutUserInput | BusinessClaimUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: BusinessClaimUpdateManyWithWhereWithoutUserInput | BusinessClaimUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: BusinessClaimScalarWhereInput | BusinessClaimScalarWhereInput[]
+  }
+
+  export type PlaceLabelUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<PlaceLabelCreateWithoutUserInput, PlaceLabelUncheckedCreateWithoutUserInput> | PlaceLabelCreateWithoutUserInput[] | PlaceLabelUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutUserInput | PlaceLabelCreateOrConnectWithoutUserInput[]
+    upsert?: PlaceLabelUpsertWithWhereUniqueWithoutUserInput | PlaceLabelUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: PlaceLabelCreateManyUserInputEnvelope
+    set?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    disconnect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    delete?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    update?: PlaceLabelUpdateWithWhereUniqueWithoutUserInput | PlaceLabelUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: PlaceLabelUpdateManyWithWhereWithoutUserInput | PlaceLabelUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
+  }
+
   export type ItineraryUncheckedUpdateManyWithoutOwnerNestedInput = {
     create?: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput> | ItineraryCreateWithoutOwnerInput[] | ItineraryUncheckedCreateWithoutOwnerInput[]
     connectOrCreate?: ItineraryCreateOrConnectWithoutOwnerInput | ItineraryCreateOrConnectWithoutOwnerInput[]
@@ -27472,6 +31916,20 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutNotificationsInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutNotificationsInput, UserUpdateWithoutNotificationsInput>, UserUncheckedUpdateWithoutNotificationsInput>
+  }
+
+  export type UserCreateNestedOneWithoutNotificationPreferenceInput = {
+    create?: XOR<UserCreateWithoutNotificationPreferenceInput, UserUncheckedCreateWithoutNotificationPreferenceInput>
+    connectOrCreate?: UserCreateOrConnectWithoutNotificationPreferenceInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutNotificationPreferenceNestedInput = {
+    create?: XOR<UserCreateWithoutNotificationPreferenceInput, UserUncheckedCreateWithoutNotificationPreferenceInput>
+    connectOrCreate?: UserCreateOrConnectWithoutNotificationPreferenceInput
+    upsert?: UserUpsertWithoutNotificationPreferenceInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutNotificationPreferenceInput, UserUpdateWithoutNotificationPreferenceInput>, UserUncheckedUpdateWithoutNotificationPreferenceInput>
   }
 
   export type UserCreateNestedOneWithoutPushSubscriptionsInput = {
@@ -27729,6 +32187,20 @@ export namespace Prisma {
     connect?: FavoriteWhereUniqueInput | FavoriteWhereUniqueInput[]
   }
 
+  export type BusinessClaimCreateNestedManyWithoutPlaceInput = {
+    create?: XOR<BusinessClaimCreateWithoutPlaceInput, BusinessClaimUncheckedCreateWithoutPlaceInput> | BusinessClaimCreateWithoutPlaceInput[] | BusinessClaimUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutPlaceInput | BusinessClaimCreateOrConnectWithoutPlaceInput[]
+    createMany?: BusinessClaimCreateManyPlaceInputEnvelope
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+  }
+
+  export type PlaceLabelCreateNestedManyWithoutPlaceInput = {
+    create?: XOR<PlaceLabelCreateWithoutPlaceInput, PlaceLabelUncheckedCreateWithoutPlaceInput> | PlaceLabelCreateWithoutPlaceInput[] | PlaceLabelUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutPlaceInput | PlaceLabelCreateOrConnectWithoutPlaceInput[]
+    createMany?: PlaceLabelCreateManyPlaceInputEnvelope
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+  }
+
   export type PlaceReviewUncheckedCreateNestedManyWithoutPlaceInput = {
     create?: XOR<PlaceReviewCreateWithoutPlaceInput, PlaceReviewUncheckedCreateWithoutPlaceInput> | PlaceReviewCreateWithoutPlaceInput[] | PlaceReviewUncheckedCreateWithoutPlaceInput[]
     connectOrCreate?: PlaceReviewCreateOrConnectWithoutPlaceInput | PlaceReviewCreateOrConnectWithoutPlaceInput[]
@@ -27748,6 +32220,20 @@ export namespace Prisma {
     connectOrCreate?: FavoriteCreateOrConnectWithoutPlaceInput | FavoriteCreateOrConnectWithoutPlaceInput[]
     createMany?: FavoriteCreateManyPlaceInputEnvelope
     connect?: FavoriteWhereUniqueInput | FavoriteWhereUniqueInput[]
+  }
+
+  export type BusinessClaimUncheckedCreateNestedManyWithoutPlaceInput = {
+    create?: XOR<BusinessClaimCreateWithoutPlaceInput, BusinessClaimUncheckedCreateWithoutPlaceInput> | BusinessClaimCreateWithoutPlaceInput[] | BusinessClaimUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutPlaceInput | BusinessClaimCreateOrConnectWithoutPlaceInput[]
+    createMany?: BusinessClaimCreateManyPlaceInputEnvelope
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+  }
+
+  export type PlaceLabelUncheckedCreateNestedManyWithoutPlaceInput = {
+    create?: XOR<PlaceLabelCreateWithoutPlaceInput, PlaceLabelUncheckedCreateWithoutPlaceInput> | PlaceLabelCreateWithoutPlaceInput[] | PlaceLabelUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutPlaceInput | PlaceLabelCreateOrConnectWithoutPlaceInput[]
+    createMany?: PlaceLabelCreateManyPlaceInputEnvelope
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
   }
 
   export type UserUpdateOneRequiredWithoutPlacesNestedInput = {
@@ -27800,6 +32286,34 @@ export namespace Prisma {
     deleteMany?: FavoriteScalarWhereInput | FavoriteScalarWhereInput[]
   }
 
+  export type BusinessClaimUpdateManyWithoutPlaceNestedInput = {
+    create?: XOR<BusinessClaimCreateWithoutPlaceInput, BusinessClaimUncheckedCreateWithoutPlaceInput> | BusinessClaimCreateWithoutPlaceInput[] | BusinessClaimUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutPlaceInput | BusinessClaimCreateOrConnectWithoutPlaceInput[]
+    upsert?: BusinessClaimUpsertWithWhereUniqueWithoutPlaceInput | BusinessClaimUpsertWithWhereUniqueWithoutPlaceInput[]
+    createMany?: BusinessClaimCreateManyPlaceInputEnvelope
+    set?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    disconnect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    delete?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    update?: BusinessClaimUpdateWithWhereUniqueWithoutPlaceInput | BusinessClaimUpdateWithWhereUniqueWithoutPlaceInput[]
+    updateMany?: BusinessClaimUpdateManyWithWhereWithoutPlaceInput | BusinessClaimUpdateManyWithWhereWithoutPlaceInput[]
+    deleteMany?: BusinessClaimScalarWhereInput | BusinessClaimScalarWhereInput[]
+  }
+
+  export type PlaceLabelUpdateManyWithoutPlaceNestedInput = {
+    create?: XOR<PlaceLabelCreateWithoutPlaceInput, PlaceLabelUncheckedCreateWithoutPlaceInput> | PlaceLabelCreateWithoutPlaceInput[] | PlaceLabelUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutPlaceInput | PlaceLabelCreateOrConnectWithoutPlaceInput[]
+    upsert?: PlaceLabelUpsertWithWhereUniqueWithoutPlaceInput | PlaceLabelUpsertWithWhereUniqueWithoutPlaceInput[]
+    createMany?: PlaceLabelCreateManyPlaceInputEnvelope
+    set?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    disconnect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    delete?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    update?: PlaceLabelUpdateWithWhereUniqueWithoutPlaceInput | PlaceLabelUpdateWithWhereUniqueWithoutPlaceInput[]
+    updateMany?: PlaceLabelUpdateManyWithWhereWithoutPlaceInput | PlaceLabelUpdateManyWithWhereWithoutPlaceInput[]
+    deleteMany?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
+  }
+
   export type PlaceReviewUncheckedUpdateManyWithoutPlaceNestedInput = {
     create?: XOR<PlaceReviewCreateWithoutPlaceInput, PlaceReviewUncheckedCreateWithoutPlaceInput> | PlaceReviewCreateWithoutPlaceInput[] | PlaceReviewUncheckedCreateWithoutPlaceInput[]
     connectOrCreate?: PlaceReviewCreateOrConnectWithoutPlaceInput | PlaceReviewCreateOrConnectWithoutPlaceInput[]
@@ -27840,6 +32354,34 @@ export namespace Prisma {
     update?: FavoriteUpdateWithWhereUniqueWithoutPlaceInput | FavoriteUpdateWithWhereUniqueWithoutPlaceInput[]
     updateMany?: FavoriteUpdateManyWithWhereWithoutPlaceInput | FavoriteUpdateManyWithWhereWithoutPlaceInput[]
     deleteMany?: FavoriteScalarWhereInput | FavoriteScalarWhereInput[]
+  }
+
+  export type BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput = {
+    create?: XOR<BusinessClaimCreateWithoutPlaceInput, BusinessClaimUncheckedCreateWithoutPlaceInput> | BusinessClaimCreateWithoutPlaceInput[] | BusinessClaimUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: BusinessClaimCreateOrConnectWithoutPlaceInput | BusinessClaimCreateOrConnectWithoutPlaceInput[]
+    upsert?: BusinessClaimUpsertWithWhereUniqueWithoutPlaceInput | BusinessClaimUpsertWithWhereUniqueWithoutPlaceInput[]
+    createMany?: BusinessClaimCreateManyPlaceInputEnvelope
+    set?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    disconnect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    delete?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    connect?: BusinessClaimWhereUniqueInput | BusinessClaimWhereUniqueInput[]
+    update?: BusinessClaimUpdateWithWhereUniqueWithoutPlaceInput | BusinessClaimUpdateWithWhereUniqueWithoutPlaceInput[]
+    updateMany?: BusinessClaimUpdateManyWithWhereWithoutPlaceInput | BusinessClaimUpdateManyWithWhereWithoutPlaceInput[]
+    deleteMany?: BusinessClaimScalarWhereInput | BusinessClaimScalarWhereInput[]
+  }
+
+  export type PlaceLabelUncheckedUpdateManyWithoutPlaceNestedInput = {
+    create?: XOR<PlaceLabelCreateWithoutPlaceInput, PlaceLabelUncheckedCreateWithoutPlaceInput> | PlaceLabelCreateWithoutPlaceInput[] | PlaceLabelUncheckedCreateWithoutPlaceInput[]
+    connectOrCreate?: PlaceLabelCreateOrConnectWithoutPlaceInput | PlaceLabelCreateOrConnectWithoutPlaceInput[]
+    upsert?: PlaceLabelUpsertWithWhereUniqueWithoutPlaceInput | PlaceLabelUpsertWithWhereUniqueWithoutPlaceInput[]
+    createMany?: PlaceLabelCreateManyPlaceInputEnvelope
+    set?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    disconnect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    delete?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
+    update?: PlaceLabelUpdateWithWhereUniqueWithoutPlaceInput | PlaceLabelUpdateWithWhereUniqueWithoutPlaceInput[]
+    updateMany?: PlaceLabelUpdateManyWithWhereWithoutPlaceInput | PlaceLabelUpdateManyWithWhereWithoutPlaceInput[]
+    deleteMany?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutFavoritesInput = {
@@ -27934,6 +32476,64 @@ export namespace Prisma {
     upsert?: UserUpsertWithoutPlacePhotosInput
     connect?: UserWhereUniqueInput
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPlacePhotosInput, UserUpdateWithoutPlacePhotosInput>, UserUncheckedUpdateWithoutPlacePhotosInput>
+  }
+
+  export type PlaceCreateNestedOneWithoutClaimsInput = {
+    create?: XOR<PlaceCreateWithoutClaimsInput, PlaceUncheckedCreateWithoutClaimsInput>
+    connectOrCreate?: PlaceCreateOrConnectWithoutClaimsInput
+    connect?: PlaceWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutBusinessClaimsInput = {
+    create?: XOR<UserCreateWithoutBusinessClaimsInput, UserUncheckedCreateWithoutBusinessClaimsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBusinessClaimsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type PlaceUpdateOneRequiredWithoutClaimsNestedInput = {
+    create?: XOR<PlaceCreateWithoutClaimsInput, PlaceUncheckedCreateWithoutClaimsInput>
+    connectOrCreate?: PlaceCreateOrConnectWithoutClaimsInput
+    upsert?: PlaceUpsertWithoutClaimsInput
+    connect?: PlaceWhereUniqueInput
+    update?: XOR<XOR<PlaceUpdateToOneWithWhereWithoutClaimsInput, PlaceUpdateWithoutClaimsInput>, PlaceUncheckedUpdateWithoutClaimsInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutBusinessClaimsNestedInput = {
+    create?: XOR<UserCreateWithoutBusinessClaimsInput, UserUncheckedCreateWithoutBusinessClaimsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutBusinessClaimsInput
+    upsert?: UserUpsertWithoutBusinessClaimsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutBusinessClaimsInput, UserUpdateWithoutBusinessClaimsInput>, UserUncheckedUpdateWithoutBusinessClaimsInput>
+  }
+
+  export type UserCreateNestedOneWithoutPlaceLabelsInput = {
+    create?: XOR<UserCreateWithoutPlaceLabelsInput, UserUncheckedCreateWithoutPlaceLabelsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPlaceLabelsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type PlaceCreateNestedOneWithoutLabelsInput = {
+    create?: XOR<PlaceCreateWithoutLabelsInput, PlaceUncheckedCreateWithoutLabelsInput>
+    connectOrCreate?: PlaceCreateOrConnectWithoutLabelsInput
+    connect?: PlaceWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutPlaceLabelsNestedInput = {
+    create?: XOR<UserCreateWithoutPlaceLabelsInput, UserUncheckedCreateWithoutPlaceLabelsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutPlaceLabelsInput
+    upsert?: UserUpsertWithoutPlaceLabelsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutPlaceLabelsInput, UserUpdateWithoutPlaceLabelsInput>, UserUncheckedUpdateWithoutPlaceLabelsInput>
+  }
+
+  export type PlaceUpdateOneWithoutLabelsNestedInput = {
+    create?: XOR<PlaceCreateWithoutLabelsInput, PlaceUncheckedCreateWithoutLabelsInput>
+    connectOrCreate?: PlaceCreateOrConnectWithoutLabelsInput
+    upsert?: PlaceUpsertWithoutLabelsInput
+    disconnect?: PlaceWhereInput | boolean
+    delete?: PlaceWhereInput | boolean
+    connect?: PlaceWhereUniqueInput
+    update?: XOR<XOR<PlaceUpdateToOneWithWhereWithoutLabelsInput, PlaceUpdateWithoutLabelsInput>, PlaceUncheckedUpdateWithoutLabelsInput>
   }
 
   export type UserCreateNestedOneWithoutOwnedItinerariesInput = {
@@ -28682,11 +33282,15 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlaceReviewCreateNestedManyWithoutPlaceInput
     photos?: PlacePhotoCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceUncheckedCreateWithoutUserInput = {
@@ -28732,11 +33336,15 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlaceReviewUncheckedCreateNestedManyWithoutPlaceInput
     photos?: PlacePhotoUncheckedCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteUncheckedCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimUncheckedCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelUncheckedCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceCreateOrConnectWithoutUserInput = {
@@ -28898,6 +33506,105 @@ export namespace Prisma {
 
   export type PushSubscriptionCreateManyUserInputEnvelope = {
     data: PushSubscriptionCreateManyUserInput | PushSubscriptionCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type NotificationPreferenceCreateWithoutUserInput = {
+    id?: string
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NotificationPreferenceUncheckedCreateWithoutUserInput = {
+    id?: string
+    pushEnabled?: boolean
+    placeApproved?: boolean
+    placeAdded?: boolean
+    festival?: boolean
+    businessClaim?: boolean
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type NotificationPreferenceCreateOrConnectWithoutUserInput = {
+    where: NotificationPreferenceWhereUniqueInput
+    create: XOR<NotificationPreferenceCreateWithoutUserInput, NotificationPreferenceUncheckedCreateWithoutUserInput>
+  }
+
+  export type BusinessClaimCreateWithoutUserInput = {
+    id?: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    place: PlaceCreateNestedOneWithoutClaimsInput
+  }
+
+  export type BusinessClaimUncheckedCreateWithoutUserInput = {
+    id?: string
+    placeId: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type BusinessClaimCreateOrConnectWithoutUserInput = {
+    where: BusinessClaimWhereUniqueInput
+    create: XOR<BusinessClaimCreateWithoutUserInput, BusinessClaimUncheckedCreateWithoutUserInput>
+  }
+
+  export type BusinessClaimCreateManyUserInputEnvelope = {
+    data: BusinessClaimCreateManyUserInput | BusinessClaimCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PlaceLabelCreateWithoutUserInput = {
+    id?: string
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    place?: PlaceCreateNestedOneWithoutLabelsInput
+  }
+
+  export type PlaceLabelUncheckedCreateWithoutUserInput = {
+    id?: string
+    placeId?: string | null
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlaceLabelCreateOrConnectWithoutUserInput = {
+    where: PlaceLabelWhereUniqueInput
+    create: XOR<PlaceLabelCreateWithoutUserInput, PlaceLabelUncheckedCreateWithoutUserInput>
+  }
+
+  export type PlaceLabelCreateManyUserInputEnvelope = {
+    data: PlaceLabelCreateManyUserInput | PlaceLabelCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -29237,6 +33944,8 @@ export namespace Prisma {
     festivalEndDate?: DateTimeNullableFilter<"Place"> | Date | string | null
     festivalRecurrence?: StringNullableFilter<"Place"> | string | null
     festivalNotifiedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
+    claimedById?: StringNullableFilter<"Place"> | string | null
+    claimVerifiedAt?: DateTimeNullableFilter<"Place"> | Date | string | null
     createdAt?: DateTimeFilter<"Place"> | Date | string
     updatedAt?: DateTimeFilter<"Place"> | Date | string
   }
@@ -29392,6 +34101,105 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"PushSubscription"> | Date | string
   }
 
+  export type NotificationPreferenceUpsertWithoutUserInput = {
+    update: XOR<NotificationPreferenceUpdateWithoutUserInput, NotificationPreferenceUncheckedUpdateWithoutUserInput>
+    create: XOR<NotificationPreferenceCreateWithoutUserInput, NotificationPreferenceUncheckedCreateWithoutUserInput>
+    where?: NotificationPreferenceWhereInput
+  }
+
+  export type NotificationPreferenceUpdateToOneWithWhereWithoutUserInput = {
+    where?: NotificationPreferenceWhereInput
+    data: XOR<NotificationPreferenceUpdateWithoutUserInput, NotificationPreferenceUncheckedUpdateWithoutUserInput>
+  }
+
+  export type NotificationPreferenceUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    pushEnabled?: BoolFieldUpdateOperationsInput | boolean
+    placeApproved?: BoolFieldUpdateOperationsInput | boolean
+    placeAdded?: BoolFieldUpdateOperationsInput | boolean
+    festival?: BoolFieldUpdateOperationsInput | boolean
+    businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type NotificationPreferenceUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    pushEnabled?: BoolFieldUpdateOperationsInput | boolean
+    placeApproved?: BoolFieldUpdateOperationsInput | boolean
+    placeAdded?: BoolFieldUpdateOperationsInput | boolean
+    festival?: BoolFieldUpdateOperationsInput | boolean
+    businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimUpsertWithWhereUniqueWithoutUserInput = {
+    where: BusinessClaimWhereUniqueInput
+    update: XOR<BusinessClaimUpdateWithoutUserInput, BusinessClaimUncheckedUpdateWithoutUserInput>
+    create: XOR<BusinessClaimCreateWithoutUserInput, BusinessClaimUncheckedCreateWithoutUserInput>
+  }
+
+  export type BusinessClaimUpdateWithWhereUniqueWithoutUserInput = {
+    where: BusinessClaimWhereUniqueInput
+    data: XOR<BusinessClaimUpdateWithoutUserInput, BusinessClaimUncheckedUpdateWithoutUserInput>
+  }
+
+  export type BusinessClaimUpdateManyWithWhereWithoutUserInput = {
+    where: BusinessClaimScalarWhereInput
+    data: XOR<BusinessClaimUpdateManyMutationInput, BusinessClaimUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type BusinessClaimScalarWhereInput = {
+    AND?: BusinessClaimScalarWhereInput | BusinessClaimScalarWhereInput[]
+    OR?: BusinessClaimScalarWhereInput[]
+    NOT?: BusinessClaimScalarWhereInput | BusinessClaimScalarWhereInput[]
+    id?: StringFilter<"BusinessClaim"> | string
+    placeId?: StringFilter<"BusinessClaim"> | string
+    userId?: StringFilter<"BusinessClaim"> | string
+    userName?: StringNullableFilter<"BusinessClaim"> | string | null
+    contactEmail?: StringNullableFilter<"BusinessClaim"> | string | null
+    contactPhone?: StringNullableFilter<"BusinessClaim"> | string | null
+    role?: StringFilter<"BusinessClaim"> | string
+    message?: StringNullableFilter<"BusinessClaim"> | string | null
+    status?: StringFilter<"BusinessClaim"> | string
+    reviewNote?: StringNullableFilter<"BusinessClaim"> | string | null
+    reviewedById?: StringNullableFilter<"BusinessClaim"> | string | null
+    reviewedAt?: DateTimeNullableFilter<"BusinessClaim"> | Date | string | null
+    createdAt?: DateTimeFilter<"BusinessClaim"> | Date | string
+    updatedAt?: DateTimeFilter<"BusinessClaim"> | Date | string
+  }
+
+  export type PlaceLabelUpsertWithWhereUniqueWithoutUserInput = {
+    where: PlaceLabelWhereUniqueInput
+    update: XOR<PlaceLabelUpdateWithoutUserInput, PlaceLabelUncheckedUpdateWithoutUserInput>
+    create: XOR<PlaceLabelCreateWithoutUserInput, PlaceLabelUncheckedCreateWithoutUserInput>
+  }
+
+  export type PlaceLabelUpdateWithWhereUniqueWithoutUserInput = {
+    where: PlaceLabelWhereUniqueInput
+    data: XOR<PlaceLabelUpdateWithoutUserInput, PlaceLabelUncheckedUpdateWithoutUserInput>
+  }
+
+  export type PlaceLabelUpdateManyWithWhereWithoutUserInput = {
+    where: PlaceLabelScalarWhereInput
+    data: XOR<PlaceLabelUpdateManyMutationInput, PlaceLabelUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type PlaceLabelScalarWhereInput = {
+    AND?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
+    OR?: PlaceLabelScalarWhereInput[]
+    NOT?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
+    id?: StringFilter<"PlaceLabel"> | string
+    userId?: StringFilter<"PlaceLabel"> | string
+    placeId?: StringNullableFilter<"PlaceLabel"> | string | null
+    label?: StringFilter<"PlaceLabel"> | string
+    latitude?: FloatNullableFilter<"PlaceLabel"> | number | null
+    longitude?: FloatNullableFilter<"PlaceLabel"> | number | null
+    createdAt?: DateTimeFilter<"PlaceLabel"> | Date | string
+    updatedAt?: DateTimeFilter<"PlaceLabel"> | Date | string
+  }
+
   export type ItineraryUpsertWithWhereUniqueWithoutOwnerInput = {
     where: ItineraryWhereUniqueInput
     update: XOR<ItineraryUpdateWithoutOwnerInput, ItineraryUncheckedUpdateWithoutOwnerInput>
@@ -29516,6 +34324,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29529,6 +34338,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -29543,6 +34355,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29556,6 +34369,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -29586,6 +34402,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29599,6 +34416,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -29613,6 +34433,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29626,6 +34447,149 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutNotificationPreferenceInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    vehicles?: VehicleCreateNestedManyWithoutUserInput
+    locations?: LocationCreateNestedManyWithoutUserInput
+    routes?: RouteCreateNestedManyWithoutUserInput
+    places?: PlaceCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
+    favorites?: FavoriteCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutNotificationPreferenceInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    vehicles?: VehicleUncheckedCreateNestedManyWithoutUserInput
+    locations?: LocationUncheckedCreateNestedManyWithoutUserInput
+    routes?: RouteUncheckedCreateNestedManyWithoutUserInput
+    places?: PlaceUncheckedCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewUncheckedCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutNotificationPreferenceInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutNotificationPreferenceInput, UserUncheckedCreateWithoutNotificationPreferenceInput>
+  }
+
+  export type UserUpsertWithoutNotificationPreferenceInput = {
+    update: XOR<UserUpdateWithoutNotificationPreferenceInput, UserUncheckedUpdateWithoutNotificationPreferenceInput>
+    create: XOR<UserCreateWithoutNotificationPreferenceInput, UserUncheckedCreateWithoutNotificationPreferenceInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutNotificationPreferenceInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutNotificationPreferenceInput, UserUncheckedUpdateWithoutNotificationPreferenceInput>
+  }
+
+  export type UserUpdateWithoutNotificationPreferenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUpdateManyWithoutUserNestedInput
+    locations?: LocationUpdateManyWithoutUserNestedInput
+    routes?: RouteUpdateManyWithoutUserNestedInput
+    places?: PlaceUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutNotificationPreferenceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUncheckedUpdateManyWithoutUserNestedInput
+    locations?: LocationUncheckedUpdateManyWithoutUserNestedInput
+    routes?: RouteUncheckedUpdateManyWithoutUserNestedInput
+    places?: PlaceUncheckedUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUncheckedUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -29640,6 +34604,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29653,6 +34618,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -29667,6 +34635,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29680,6 +34649,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -29710,6 +34682,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29723,6 +34696,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -29737,6 +34713,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29750,6 +34727,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -29764,6 +34744,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29777,6 +34758,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -29791,6 +34775,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29804,6 +34789,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -29834,6 +34822,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29847,6 +34836,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -29861,6 +34853,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29874,6 +34867,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -29888,6 +34884,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29901,6 +34898,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -29915,6 +34915,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -29928,6 +34929,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -29958,6 +34962,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29971,6 +34976,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -29985,6 +34993,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -29998,6 +35007,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -30012,6 +35024,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30025,6 +35038,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -30039,6 +35055,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30052,6 +35069,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -30162,6 +35182,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30175,6 +35196,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -30189,6 +35213,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30202,6 +35227,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -30277,6 +35305,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30290,6 +35319,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -30304,6 +35336,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30317,6 +35350,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -30382,6 +35418,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30395,6 +35432,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -30409,6 +35449,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30422,6 +35463,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -30465,6 +35509,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30478,6 +35523,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -30492,6 +35540,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30505,6 +35554,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -30570,6 +35622,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30583,6 +35636,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -30597,6 +35653,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30610,6 +35667,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -30624,6 +35684,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30637,6 +35698,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -30651,6 +35715,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30664,6 +35729,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -30767,6 +35835,78 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
+  export type BusinessClaimCreateWithoutPlaceInput = {
+    id?: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutBusinessClaimsInput
+  }
+
+  export type BusinessClaimUncheckedCreateWithoutPlaceInput = {
+    id?: string
+    userId: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type BusinessClaimCreateOrConnectWithoutPlaceInput = {
+    where: BusinessClaimWhereUniqueInput
+    create: XOR<BusinessClaimCreateWithoutPlaceInput, BusinessClaimUncheckedCreateWithoutPlaceInput>
+  }
+
+  export type BusinessClaimCreateManyPlaceInputEnvelope = {
+    data: BusinessClaimCreateManyPlaceInput | BusinessClaimCreateManyPlaceInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type PlaceLabelCreateWithoutPlaceInput = {
+    id?: string
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutPlaceLabelsInput
+  }
+
+  export type PlaceLabelUncheckedCreateWithoutPlaceInput = {
+    id?: string
+    userId: string
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlaceLabelCreateOrConnectWithoutPlaceInput = {
+    where: PlaceLabelWhereUniqueInput
+    create: XOR<PlaceLabelCreateWithoutPlaceInput, PlaceLabelUncheckedCreateWithoutPlaceInput>
+  }
+
+  export type PlaceLabelCreateManyPlaceInputEnvelope = {
+    data: PlaceLabelCreateManyPlaceInput | PlaceLabelCreateManyPlaceInput[]
+    skipDuplicates?: boolean
+  }
+
   export type UserUpsertWithoutPlacesInput = {
     update: XOR<UserUpdateWithoutPlacesInput, UserUncheckedUpdateWithoutPlacesInput>
     create: XOR<UserCreateWithoutPlacesInput, UserUncheckedCreateWithoutPlacesInput>
@@ -30786,6 +35926,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30799,6 +35940,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -30813,6 +35957,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -30826,6 +35971,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -30880,6 +36028,38 @@ export namespace Prisma {
     data: XOR<FavoriteUpdateManyMutationInput, FavoriteUncheckedUpdateManyWithoutPlaceInput>
   }
 
+  export type BusinessClaimUpsertWithWhereUniqueWithoutPlaceInput = {
+    where: BusinessClaimWhereUniqueInput
+    update: XOR<BusinessClaimUpdateWithoutPlaceInput, BusinessClaimUncheckedUpdateWithoutPlaceInput>
+    create: XOR<BusinessClaimCreateWithoutPlaceInput, BusinessClaimUncheckedCreateWithoutPlaceInput>
+  }
+
+  export type BusinessClaimUpdateWithWhereUniqueWithoutPlaceInput = {
+    where: BusinessClaimWhereUniqueInput
+    data: XOR<BusinessClaimUpdateWithoutPlaceInput, BusinessClaimUncheckedUpdateWithoutPlaceInput>
+  }
+
+  export type BusinessClaimUpdateManyWithWhereWithoutPlaceInput = {
+    where: BusinessClaimScalarWhereInput
+    data: XOR<BusinessClaimUpdateManyMutationInput, BusinessClaimUncheckedUpdateManyWithoutPlaceInput>
+  }
+
+  export type PlaceLabelUpsertWithWhereUniqueWithoutPlaceInput = {
+    where: PlaceLabelWhereUniqueInput
+    update: XOR<PlaceLabelUpdateWithoutPlaceInput, PlaceLabelUncheckedUpdateWithoutPlaceInput>
+    create: XOR<PlaceLabelCreateWithoutPlaceInput, PlaceLabelUncheckedCreateWithoutPlaceInput>
+  }
+
+  export type PlaceLabelUpdateWithWhereUniqueWithoutPlaceInput = {
+    where: PlaceLabelWhereUniqueInput
+    data: XOR<PlaceLabelUpdateWithoutPlaceInput, PlaceLabelUncheckedUpdateWithoutPlaceInput>
+  }
+
+  export type PlaceLabelUpdateManyWithWhereWithoutPlaceInput = {
+    where: PlaceLabelScalarWhereInput
+    data: XOR<PlaceLabelUpdateManyMutationInput, PlaceLabelUncheckedUpdateManyWithoutPlaceInput>
+  }
+
   export type UserCreateWithoutFavoritesInput = {
     id?: string
     name: string
@@ -30888,6 +36068,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30901,6 +36082,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -30915,6 +36099,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -30928,6 +36113,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -30982,11 +36170,15 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutPlacesInput
     reviews?: PlaceReviewCreateNestedManyWithoutPlaceInput
     photos?: PlacePhotoCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceUncheckedCreateWithoutFavoritesInput = {
@@ -31033,10 +36225,14 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlaceReviewUncheckedCreateNestedManyWithoutPlaceInput
     photos?: PlacePhotoUncheckedCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimUncheckedCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelUncheckedCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceCreateOrConnectWithoutFavoritesInput = {
@@ -31063,6 +36259,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31076,6 +36273,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -31090,6 +36290,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31103,6 +36304,9 @@ export namespace Prisma {
     placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -31163,11 +36367,15 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutPlacesNestedInput
     reviews?: PlaceReviewUpdateManyWithoutPlaceNestedInput
     photos?: PlacePhotoUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceUncheckedUpdateWithoutFavoritesInput = {
@@ -31214,10 +36422,14 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlaceReviewUncheckedUpdateManyWithoutPlaceNestedInput
     photos?: PlacePhotoUncheckedUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUncheckedUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceCreateWithoutReviewsInput = {
@@ -31263,11 +36475,15 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutPlacesInput
     photos?: PlacePhotoCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceUncheckedCreateWithoutReviewsInput = {
@@ -31314,10 +36530,14 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     photos?: PlacePhotoUncheckedCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteUncheckedCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimUncheckedCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelUncheckedCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceCreateOrConnectWithoutReviewsInput = {
@@ -31333,6 +36553,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -31346,6 +36567,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -31360,6 +36584,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -31373,6 +36598,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -31438,11 +36666,15 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutPlacesNestedInput
     photos?: PlacePhotoUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceUncheckedUpdateWithoutReviewsInput = {
@@ -31489,10 +36721,14 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     photos?: PlacePhotoUncheckedUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUncheckedUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUncheckedUpdateManyWithoutPlaceNestedInput
   }
 
   export type UserUpsertWithoutPlaceReviewsInput = {
@@ -31514,6 +36750,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31527,6 +36764,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -31541,6 +36781,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31554,6 +36795,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -31603,11 +36847,15 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutPlacesInput
     reviews?: PlaceReviewCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceUncheckedCreateWithoutPhotosInput = {
@@ -31654,10 +36902,14 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     reviews?: PlaceReviewUncheckedCreateNestedManyWithoutPlaceInput
     favorites?: FavoriteUncheckedCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimUncheckedCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelUncheckedCreateNestedManyWithoutPlaceInput
   }
 
   export type PlaceCreateOrConnectWithoutPhotosInput = {
@@ -31673,6 +36925,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -31686,6 +36939,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -31700,6 +36956,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -31713,6 +36970,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -31778,11 +37038,15 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutPlacesNestedInput
     reviews?: PlaceReviewUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceUncheckedUpdateWithoutPhotosInput = {
@@ -31829,10 +37093,14 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlaceReviewUncheckedUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUncheckedUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUncheckedUpdateManyWithoutPlaceNestedInput
   }
 
   export type UserUpsertWithoutPlacePhotosInput = {
@@ -31854,6 +37122,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31867,6 +37136,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -31881,6 +37153,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -31894,13 +37167,129 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
   }
 
-  export type UserCreateWithoutOwnedItinerariesInput = {
+  export type PlaceCreateWithoutClaimsInput = {
+    id?: string
+    name: string
+    placeNameEn?: string | null
+    placeNameLocal?: string | null
+    category: string
+    latitude: number
+    longitude: number
+    zoomLevel?: number
+    userName?: string | null
+    userEmail?: string | null
+    source?: string
+    approvalStatus?: string
+    approvedAt?: Date | string | null
+    autoApproveAt?: Date | string | null
+    googlePlaceId?: string | null
+    googleType?: string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: string | null
+    vicinity?: string | null
+    fullAddress?: string | null
+    village?: string | null
+    taluk?: string | null
+    district?: string | null
+    state?: string | null
+    country?: string | null
+    pincode?: string | null
+    phone?: string | null
+    website?: string | null
+    rating?: number | null
+    reviewCount?: number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: string | null
+    description?: string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: Date | string | null
+    festivalStartDate?: Date | string | null
+    festivalEndDate?: Date | string | null
+    festivalRecurrence?: string | null
+    festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutPlacesInput
+    reviews?: PlaceReviewCreateNestedManyWithoutPlaceInput
+    photos?: PlacePhotoCreateNestedManyWithoutPlaceInput
+    favorites?: FavoriteCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelCreateNestedManyWithoutPlaceInput
+  }
+
+  export type PlaceUncheckedCreateWithoutClaimsInput = {
+    id?: string
+    name: string
+    placeNameEn?: string | null
+    placeNameLocal?: string | null
+    category: string
+    latitude: number
+    longitude: number
+    zoomLevel?: number
+    userId: string
+    userName?: string | null
+    userEmail?: string | null
+    source?: string
+    approvalStatus?: string
+    approvedAt?: Date | string | null
+    autoApproveAt?: Date | string | null
+    googlePlaceId?: string | null
+    googleType?: string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: string | null
+    vicinity?: string | null
+    fullAddress?: string | null
+    village?: string | null
+    taluk?: string | null
+    district?: string | null
+    state?: string | null
+    country?: string | null
+    pincode?: string | null
+    phone?: string | null
+    website?: string | null
+    rating?: number | null
+    reviewCount?: number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: string | null
+    description?: string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: Date | string | null
+    festivalStartDate?: Date | string | null
+    festivalEndDate?: Date | string | null
+    festivalRecurrence?: string | null
+    festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: PlaceReviewUncheckedCreateNestedManyWithoutPlaceInput
+    photos?: PlacePhotoUncheckedCreateNestedManyWithoutPlaceInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutPlaceInput
+    labels?: PlaceLabelUncheckedCreateNestedManyWithoutPlaceInput
+  }
+
+  export type PlaceCreateOrConnectWithoutClaimsInput = {
+    where: PlaceWhereUniqueInput
+    create: XOR<PlaceCreateWithoutClaimsInput, PlaceUncheckedCreateWithoutClaimsInput>
+  }
+
+  export type UserCreateWithoutBusinessClaimsInput = {
     id?: string
     name: string
     email: string
@@ -31908,6 +37297,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -31922,12 +37312,15 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
   }
 
-  export type UserUncheckedCreateWithoutOwnedItinerariesInput = {
+  export type UserUncheckedCreateWithoutBusinessClaimsInput = {
     id?: string
     name: string
     email: string
@@ -31935,6 +37328,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -31949,6 +37343,640 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutBusinessClaimsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutBusinessClaimsInput, UserUncheckedCreateWithoutBusinessClaimsInput>
+  }
+
+  export type PlaceUpsertWithoutClaimsInput = {
+    update: XOR<PlaceUpdateWithoutClaimsInput, PlaceUncheckedUpdateWithoutClaimsInput>
+    create: XOR<PlaceCreateWithoutClaimsInput, PlaceUncheckedCreateWithoutClaimsInput>
+    where?: PlaceWhereInput
+  }
+
+  export type PlaceUpdateToOneWithWhereWithoutClaimsInput = {
+    where?: PlaceWhereInput
+    data: XOR<PlaceUpdateWithoutClaimsInput, PlaceUncheckedUpdateWithoutClaimsInput>
+  }
+
+  export type PlaceUpdateWithoutClaimsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    placeNameEn?: NullableStringFieldUpdateOperationsInput | string | null
+    placeNameLocal?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    zoomLevel?: FloatFieldUpdateOperationsInput | number
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    userEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    approvalStatus?: StringFieldUpdateOperationsInput | string
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoApproveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    googlePlaceId?: NullableStringFieldUpdateOperationsInput | string | null
+    googleType?: NullableStringFieldUpdateOperationsInput | string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    vicinity?: NullableStringFieldUpdateOperationsInput | string | null
+    fullAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    village?: NullableStringFieldUpdateOperationsInput | string | null
+    taluk?: NullableStringFieldUpdateOperationsInput | string | null
+    district?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    pincode?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    rating?: NullableFloatFieldUpdateOperationsInput | number | null
+    reviewCount?: NullableIntFieldUpdateOperationsInput | number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalStartDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
+    festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutPlacesNestedInput
+    reviews?: PlaceReviewUpdateManyWithoutPlaceNestedInput
+    photos?: PlacePhotoUpdateManyWithoutPlaceNestedInput
+    favorites?: FavoriteUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUpdateManyWithoutPlaceNestedInput
+  }
+
+  export type PlaceUncheckedUpdateWithoutClaimsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    placeNameEn?: NullableStringFieldUpdateOperationsInput | string | null
+    placeNameLocal?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    zoomLevel?: FloatFieldUpdateOperationsInput | number
+    userId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    userEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    approvalStatus?: StringFieldUpdateOperationsInput | string
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoApproveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    googlePlaceId?: NullableStringFieldUpdateOperationsInput | string | null
+    googleType?: NullableStringFieldUpdateOperationsInput | string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    vicinity?: NullableStringFieldUpdateOperationsInput | string | null
+    fullAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    village?: NullableStringFieldUpdateOperationsInput | string | null
+    taluk?: NullableStringFieldUpdateOperationsInput | string | null
+    district?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    pincode?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    rating?: NullableFloatFieldUpdateOperationsInput | number | null
+    reviewCount?: NullableIntFieldUpdateOperationsInput | number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalStartDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
+    festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: PlaceReviewUncheckedUpdateManyWithoutPlaceNestedInput
+    photos?: PlacePhotoUncheckedUpdateManyWithoutPlaceNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUncheckedUpdateManyWithoutPlaceNestedInput
+  }
+
+  export type UserUpsertWithoutBusinessClaimsInput = {
+    update: XOR<UserUpdateWithoutBusinessClaimsInput, UserUncheckedUpdateWithoutBusinessClaimsInput>
+    create: XOR<UserCreateWithoutBusinessClaimsInput, UserUncheckedCreateWithoutBusinessClaimsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutBusinessClaimsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutBusinessClaimsInput, UserUncheckedUpdateWithoutBusinessClaimsInput>
+  }
+
+  export type UserUpdateWithoutBusinessClaimsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUpdateManyWithoutUserNestedInput
+    locations?: LocationUpdateManyWithoutUserNestedInput
+    routes?: RouteUpdateManyWithoutUserNestedInput
+    places?: PlaceUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutBusinessClaimsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUncheckedUpdateManyWithoutUserNestedInput
+    locations?: LocationUncheckedUpdateManyWithoutUserNestedInput
+    routes?: RouteUncheckedUpdateManyWithoutUserNestedInput
+    places?: PlaceUncheckedUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUncheckedUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutPlaceLabelsInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    vehicles?: VehicleCreateNestedManyWithoutUserInput
+    locations?: LocationCreateNestedManyWithoutUserInput
+    routes?: RouteCreateNestedManyWithoutUserInput
+    places?: PlaceCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
+    favorites?: FavoriteCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutPlaceLabelsInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    vehicles?: VehicleUncheckedCreateNestedManyWithoutUserInput
+    locations?: LocationUncheckedCreateNestedManyWithoutUserInput
+    routes?: RouteUncheckedCreateNestedManyWithoutUserInput
+    places?: PlaceUncheckedCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewUncheckedCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutPlaceLabelsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutPlaceLabelsInput, UserUncheckedCreateWithoutPlaceLabelsInput>
+  }
+
+  export type PlaceCreateWithoutLabelsInput = {
+    id?: string
+    name: string
+    placeNameEn?: string | null
+    placeNameLocal?: string | null
+    category: string
+    latitude: number
+    longitude: number
+    zoomLevel?: number
+    userName?: string | null
+    userEmail?: string | null
+    source?: string
+    approvalStatus?: string
+    approvedAt?: Date | string | null
+    autoApproveAt?: Date | string | null
+    googlePlaceId?: string | null
+    googleType?: string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: string | null
+    vicinity?: string | null
+    fullAddress?: string | null
+    village?: string | null
+    taluk?: string | null
+    district?: string | null
+    state?: string | null
+    country?: string | null
+    pincode?: string | null
+    phone?: string | null
+    website?: string | null
+    rating?: number | null
+    reviewCount?: number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: string | null
+    description?: string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: Date | string | null
+    festivalStartDate?: Date | string | null
+    festivalEndDate?: Date | string | null
+    festivalRecurrence?: string | null
+    festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutPlacesInput
+    reviews?: PlaceReviewCreateNestedManyWithoutPlaceInput
+    photos?: PlacePhotoCreateNestedManyWithoutPlaceInput
+    favorites?: FavoriteCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimCreateNestedManyWithoutPlaceInput
+  }
+
+  export type PlaceUncheckedCreateWithoutLabelsInput = {
+    id?: string
+    name: string
+    placeNameEn?: string | null
+    placeNameLocal?: string | null
+    category: string
+    latitude: number
+    longitude: number
+    zoomLevel?: number
+    userId: string
+    userName?: string | null
+    userEmail?: string | null
+    source?: string
+    approvalStatus?: string
+    approvedAt?: Date | string | null
+    autoApproveAt?: Date | string | null
+    googlePlaceId?: string | null
+    googleType?: string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: string | null
+    vicinity?: string | null
+    fullAddress?: string | null
+    village?: string | null
+    taluk?: string | null
+    district?: string | null
+    state?: string | null
+    country?: string | null
+    pincode?: string | null
+    phone?: string | null
+    website?: string | null
+    rating?: number | null
+    reviewCount?: number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: string | null
+    description?: string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: Date | string | null
+    festivalStartDate?: Date | string | null
+    festivalEndDate?: Date | string | null
+    festivalRecurrence?: string | null
+    festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    reviews?: PlaceReviewUncheckedCreateNestedManyWithoutPlaceInput
+    photos?: PlacePhotoUncheckedCreateNestedManyWithoutPlaceInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutPlaceInput
+    claims?: BusinessClaimUncheckedCreateNestedManyWithoutPlaceInput
+  }
+
+  export type PlaceCreateOrConnectWithoutLabelsInput = {
+    where: PlaceWhereUniqueInput
+    create: XOR<PlaceCreateWithoutLabelsInput, PlaceUncheckedCreateWithoutLabelsInput>
+  }
+
+  export type UserUpsertWithoutPlaceLabelsInput = {
+    update: XOR<UserUpdateWithoutPlaceLabelsInput, UserUncheckedUpdateWithoutPlaceLabelsInput>
+    create: XOR<UserCreateWithoutPlaceLabelsInput, UserUncheckedCreateWithoutPlaceLabelsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutPlaceLabelsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutPlaceLabelsInput, UserUncheckedUpdateWithoutPlaceLabelsInput>
+  }
+
+  export type UserUpdateWithoutPlaceLabelsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUpdateManyWithoutUserNestedInput
+    locations?: LocationUpdateManyWithoutUserNestedInput
+    routes?: RouteUpdateManyWithoutUserNestedInput
+    places?: PlaceUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutPlaceLabelsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUncheckedUpdateManyWithoutUserNestedInput
+    locations?: LocationUncheckedUpdateManyWithoutUserNestedInput
+    routes?: RouteUncheckedUpdateManyWithoutUserNestedInput
+    places?: PlaceUncheckedUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUncheckedUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type PlaceUpsertWithoutLabelsInput = {
+    update: XOR<PlaceUpdateWithoutLabelsInput, PlaceUncheckedUpdateWithoutLabelsInput>
+    create: XOR<PlaceCreateWithoutLabelsInput, PlaceUncheckedCreateWithoutLabelsInput>
+    where?: PlaceWhereInput
+  }
+
+  export type PlaceUpdateToOneWithWhereWithoutLabelsInput = {
+    where?: PlaceWhereInput
+    data: XOR<PlaceUpdateWithoutLabelsInput, PlaceUncheckedUpdateWithoutLabelsInput>
+  }
+
+  export type PlaceUpdateWithoutLabelsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    placeNameEn?: NullableStringFieldUpdateOperationsInput | string | null
+    placeNameLocal?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    zoomLevel?: FloatFieldUpdateOperationsInput | number
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    userEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    approvalStatus?: StringFieldUpdateOperationsInput | string
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoApproveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    googlePlaceId?: NullableStringFieldUpdateOperationsInput | string | null
+    googleType?: NullableStringFieldUpdateOperationsInput | string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    vicinity?: NullableStringFieldUpdateOperationsInput | string | null
+    fullAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    village?: NullableStringFieldUpdateOperationsInput | string | null
+    taluk?: NullableStringFieldUpdateOperationsInput | string | null
+    district?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    pincode?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    rating?: NullableFloatFieldUpdateOperationsInput | number | null
+    reviewCount?: NullableIntFieldUpdateOperationsInput | number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalStartDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
+    festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutPlacesNestedInput
+    reviews?: PlaceReviewUpdateManyWithoutPlaceNestedInput
+    photos?: PlacePhotoUpdateManyWithoutPlaceNestedInput
+    favorites?: FavoriteUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUpdateManyWithoutPlaceNestedInput
+  }
+
+  export type PlaceUncheckedUpdateWithoutLabelsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    placeNameEn?: NullableStringFieldUpdateOperationsInput | string | null
+    placeNameLocal?: NullableStringFieldUpdateOperationsInput | string | null
+    category?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    zoomLevel?: FloatFieldUpdateOperationsInput | number
+    userId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    userEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    source?: StringFieldUpdateOperationsInput | string
+    approvalStatus?: StringFieldUpdateOperationsInput | string
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    autoApproveAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    googlePlaceId?: NullableStringFieldUpdateOperationsInput | string | null
+    googleType?: NullableStringFieldUpdateOperationsInput | string | null
+    googleTypes?: NullableJsonNullValueInput | InputJsonValue
+    googleMapsUrl?: NullableStringFieldUpdateOperationsInput | string | null
+    vicinity?: NullableStringFieldUpdateOperationsInput | string | null
+    fullAddress?: NullableStringFieldUpdateOperationsInput | string | null
+    village?: NullableStringFieldUpdateOperationsInput | string | null
+    taluk?: NullableStringFieldUpdateOperationsInput | string | null
+    district?: NullableStringFieldUpdateOperationsInput | string | null
+    state?: NullableStringFieldUpdateOperationsInput | string | null
+    country?: NullableStringFieldUpdateOperationsInput | string | null
+    pincode?: NullableStringFieldUpdateOperationsInput | string | null
+    phone?: NullableStringFieldUpdateOperationsInput | string | null
+    website?: NullableStringFieldUpdateOperationsInput | string | null
+    rating?: NullableFloatFieldUpdateOperationsInput | number | null
+    reviewCount?: NullableIntFieldUpdateOperationsInput | number | null
+    openingHours?: NullableJsonNullValueInput | InputJsonValue
+    businessStatus?: NullableStringFieldUpdateOperationsInput | string | null
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    googleReviews?: NullableJsonNullValueInput | InputJsonValue
+    nearbyPlaces?: NullableJsonNullValueInput | InputJsonValue
+    googlePhotos?: NullableJsonNullValueInput | InputJsonValue
+    mapRenderingConfig?: NullableJsonNullValueInput | InputJsonValue
+    extractedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalStartDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
+    festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    reviews?: PlaceReviewUncheckedUpdateManyWithoutPlaceNestedInput
+    photos?: PlacePhotoUncheckedUpdateManyWithoutPlaceNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput
+  }
+
+  export type UserCreateWithoutOwnedItinerariesInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    vehicles?: VehicleCreateNestedManyWithoutUserInput
+    locations?: LocationCreateNestedManyWithoutUserInput
+    routes?: RouteCreateNestedManyWithoutUserInput
+    places?: PlaceCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
+    favorites?: FavoriteCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
+    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutOwnedItinerariesInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    vehicles?: VehicleUncheckedCreateNestedManyWithoutUserInput
+    locations?: LocationUncheckedCreateNestedManyWithoutUserInput
+    routes?: RouteUncheckedCreateNestedManyWithoutUserInput
+    places?: PlaceUncheckedCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewUncheckedCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
@@ -32050,6 +38078,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32064,6 +38093,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
@@ -32077,6 +38109,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32091,6 +38124,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
@@ -32192,6 +38228,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -32206,6 +38243,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
@@ -32219,6 +38259,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -32233,6 +38274,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
@@ -32303,6 +38347,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32317,6 +38362,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
@@ -32330,6 +38378,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32344,6 +38393,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
@@ -32560,6 +38612,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -32574,6 +38627,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
@@ -32587,6 +38643,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -32601,6 +38658,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
@@ -32679,6 +38739,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32693,6 +38754,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
@@ -32706,6 +38770,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32720,6 +38785,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
@@ -32776,6 +38844,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -32790,6 +38859,9 @@ export namespace Prisma {
     favorites?: FavoriteCreateNestedManyWithoutUserInput
     notifications?: NotificationCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
@@ -32803,6 +38875,7 @@ export namespace Prisma {
     googleId?: string | null
     picture?: string | null
     emailVerified?: boolean
+    profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
@@ -32817,6 +38890,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
     notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
@@ -32895,6 +38971,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32909,6 +38986,9 @@ export namespace Prisma {
     favorites?: FavoriteUpdateManyWithoutUserNestedInput
     notifications?: NotificationUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
@@ -32922,6 +39002,7 @@ export namespace Prisma {
     googleId?: NullableStringFieldUpdateOperationsInput | string | null
     picture?: NullableStringFieldUpdateOperationsInput | string | null
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
@@ -32936,6 +39017,9 @@ export namespace Prisma {
     favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
     notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
@@ -33041,6 +39125,8 @@ export namespace Prisma {
     festivalEndDate?: Date | string | null
     festivalRecurrence?: string | null
     festivalNotifiedAt?: Date | string | null
+    claimedById?: string | null
+    claimVerifiedAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -33092,6 +39178,32 @@ export namespace Prisma {
     p256dh: string
     auth: string
     userAgent?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type BusinessClaimCreateManyUserInput = {
+    id?: string
+    placeId: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlaceLabelCreateManyUserInput = {
+    id?: string
+    placeId?: string | null
+    label: string
+    latitude?: number | null
+    longitude?: number | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -33350,11 +39462,15 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlaceReviewUpdateManyWithoutPlaceNestedInput
     photos?: PlacePhotoUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceUncheckedUpdateWithoutUserInput = {
@@ -33400,11 +39516,15 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     reviews?: PlaceReviewUncheckedUpdateManyWithoutPlaceNestedInput
     photos?: PlacePhotoUncheckedUpdateManyWithoutPlaceNestedInput
     favorites?: FavoriteUncheckedUpdateManyWithoutPlaceNestedInput
+    claims?: BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput
+    labels?: PlaceLabelUncheckedUpdateManyWithoutPlaceNestedInput
   }
 
   export type PlaceUncheckedUpdateManyWithoutUserInput = {
@@ -33450,6 +39570,8 @@ export namespace Prisma {
     festivalEndDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     festivalRecurrence?: NullableStringFieldUpdateOperationsInput | string | null
     festivalNotifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    claimedById?: NullableStringFieldUpdateOperationsInput | string | null
+    claimVerifiedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -33603,6 +39725,84 @@ export namespace Prisma {
     p256dh?: StringFieldUpdateOperationsInput | string
     auth?: StringFieldUpdateOperationsInput | string
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    place?: PlaceUpdateOneRequiredWithoutClaimsNestedInput
+  }
+
+  export type BusinessClaimUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    placeId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    placeId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlaceLabelUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    place?: PlaceUpdateOneWithoutLabelsNestedInput
+  }
+
+  export type PlaceLabelUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    placeId?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlaceLabelUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    placeId?: NullableStringFieldUpdateOperationsInput | string | null
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -33870,6 +40070,32 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
+  export type BusinessClaimCreateManyPlaceInput = {
+    id?: string
+    userId: string
+    userName?: string | null
+    contactEmail?: string | null
+    contactPhone?: string | null
+    role?: string
+    message?: string | null
+    status?: string
+    reviewNote?: string | null
+    reviewedById?: string | null
+    reviewedAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type PlaceLabelCreateManyPlaceInput = {
+    id?: string
+    userId: string
+    label: string
+    latitude?: number | null
+    longitude?: number | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
   export type PlaceReviewUpdateWithoutPlaceInput = {
     id?: StringFieldUpdateOperationsInput | string
     userName?: NullableStringFieldUpdateOperationsInput | string | null
@@ -33959,6 +40185,84 @@ export namespace Prisma {
     longitude?: FloatFieldUpdateOperationsInput | number
     category?: NullableStringFieldUpdateOperationsInput | string | null
     address?: NullableJsonNullValueInput | InputJsonValue
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimUpdateWithoutPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutBusinessClaimsNestedInput
+  }
+
+  export type BusinessClaimUncheckedUpdateWithoutPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type BusinessClaimUncheckedUpdateManyWithoutPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    userName?: NullableStringFieldUpdateOperationsInput | string | null
+    contactEmail?: NullableStringFieldUpdateOperationsInput | string | null
+    contactPhone?: NullableStringFieldUpdateOperationsInput | string | null
+    role?: StringFieldUpdateOperationsInput | string
+    message?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    reviewNote?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedById?: NullableStringFieldUpdateOperationsInput | string | null
+    reviewedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlaceLabelUpdateWithoutPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutPlaceLabelsNestedInput
+  }
+
+  export type PlaceLabelUncheckedUpdateWithoutPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type PlaceLabelUncheckedUpdateManyWithoutPlaceInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    label?: StringFieldUpdateOperationsInput | string
+    latitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    longitude?: NullableFloatFieldUpdateOperationsInput | number | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -34161,6 +40465,10 @@ export namespace Prisma {
      */
     export type NotificationArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NotificationDefaultArgs<ExtArgs>
     /**
+     * @deprecated Use NotificationPreferenceDefaultArgs instead
+     */
+    export type NotificationPreferenceArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = NotificationPreferenceDefaultArgs<ExtArgs>
+    /**
      * @deprecated Use PushSubscriptionDefaultArgs instead
      */
     export type PushSubscriptionArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PushSubscriptionDefaultArgs<ExtArgs>
@@ -34200,6 +40508,14 @@ export namespace Prisma {
      * @deprecated Use PlacePhotoDefaultArgs instead
      */
     export type PlacePhotoArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlacePhotoDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use BusinessClaimDefaultArgs instead
+     */
+    export type BusinessClaimArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = BusinessClaimDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use PlaceLabelDefaultArgs instead
+     */
+    export type PlaceLabelArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlaceLabelDefaultArgs<ExtArgs>
     /**
      * @deprecated Use PlaceAuditDefaultArgs instead
      */

@@ -91,9 +91,11 @@ const AddPlaceModal = ({
   initialLocationMethod,
   existingPlaces = [],
   excludePlaceId = null,
+  editPlaceId = null,
   onShowDuplicate,
   festivalMode = false,
 }) => {
+  const isEditing = editPlaceId != null
   const [formData, setFormData] = useState({
     placeNameEn: '',
     placeNameLocal: '',
@@ -224,7 +226,11 @@ const AddPlaceModal = ({
         return {
           ...prev,
           placeNameEn: fromMap?.name ?? initialData?.name ?? prev.placeNameEn,
-          placeNameLocal: locChanged ? '' : prev.placeNameLocal,
+          placeNameLocal:
+            fromMap?.placeNameLocal ??
+            fromMap?.place_name_local ??
+            initialData?.placeNameLocal ??
+            (locChanged ? '' : prev.placeNameLocal),
           category: festivalMode ? 'Festival' : (fromMap?.category ?? initialData?.category ?? prev.category),
           latitude: fromMap?.latitude != null ? String(fromMap.latitude) : initialData?.latitude != null ? String(initialData.latitude) : prev.latitude,
           longitude: fromMap?.longitude != null ? String(fromMap.longitude) : initialData?.longitude != null ? String(initialData.longitude) : prev.longitude,
@@ -596,7 +602,7 @@ const AddPlaceModal = ({
             category: categoryToSave,
           },
         })
-      const response = await api.post('/map/places', {
+      const payload = {
         place_name_en: placeNameEn,
         place_name_local: placeNameLocal,
         category: categoryToSave,
@@ -610,9 +616,11 @@ const AddPlaceModal = ({
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
         country: formData.country.trim(),
-        source: 'contribution',
         ...festivalPayload,
-      })
+      }
+      const response = isEditing
+        ? await api.patch(`/map/places/${editPlaceId}`, payload)
+        : await api.post('/map/places', { ...payload, source: 'contribution' })
       setSubmitted(true)
       if (onSaved) {
         onSaved(response.data)
@@ -649,7 +657,7 @@ const AddPlaceModal = ({
       />
       <div className="relative w-full sm:max-w-md h-auto max-h-[85dvh] sm:max-h-[90vh] glass rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/30 overflow-y-auto animate-slide-up sm:animate-fade-in pointer-events-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/30">
-          <h2 className="text-lg font-semibold text-slate-800">{festivalMode ? '🎪 Add Festival / Jatre' : 'Add Place'}</h2>
+          <h2 className="text-lg font-semibold text-slate-800">{festivalMode ? (isEditing ? '🎪 Edit Festival / Jatre' : '🎪 Add Festival / Jatre') : (isEditing ? 'Edit Place' : 'Add Place')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -1009,6 +1017,8 @@ const AddPlaceModal = ({
                   <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   Saving...
                 </span>
+              ) : isEditing ? (
+                'Save Changes'
               ) : (
                 'Add / Save Place'
               )}

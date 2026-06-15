@@ -6,11 +6,15 @@ import {
   snapToRoute,
 } from '../utils/navigationGeo'
 import {
-  buildAnnouncement,
   buildManeuverShort,
-  buildManeuverText,
   maneuverIconKey,
 } from '../utils/navInstructions'
+import {
+  buildAnnouncementL,
+  buildManeuverTextL,
+  navPhrase,
+  startingPhrase,
+} from '../utils/navI18n'
 import { getSpeechController } from '../utils/speech'
 
 /**
@@ -98,10 +102,12 @@ export default function useVoiceNavigation({
   const onRerouteRef = useRef(onReroute)
   const onArriveRef = useRef(onArrive)
   const travelModeRef = useRef(travelMode)
+  const langRef = useRef(language)
   const announceRef = useRef(null)
   onRerouteRef.current = onReroute
   onArriveRef.current = onArrive
   travelModeRef.current = travelMode
+  langRef.current = language
 
   // Keep the speech locale in sync with the app language.
   useEffect(() => {
@@ -134,7 +140,7 @@ export default function useVoiceNavigation({
         return {
           step,
           along: cum[idx],
-          text: buildManeuverText(step),
+          text: buildManeuverTextL(step, language),
           short: buildManeuverShort(step),
           iconKey: maneuverIconKey(step),
         }
@@ -156,7 +162,7 @@ export default function useVoiceNavigation({
     arrivedRef.current = false
     offRouteHitsRef.current = 0
     speech.reset()
-  }, [route, enabled, speech])
+  }, [route, enabled, speech, language])
 
   // Stop speech and clear progress when navigation turns off.
   useEffect(() => {
@@ -170,10 +176,11 @@ export default function useVoiceNavigation({
   }, [enabled, speech])
 
   announceRef.current = (maneuver, phase, distanceToManeuver) => {
-    const text = buildAnnouncement(
+    const text = buildAnnouncementL(
       maneuver.step,
       phase.immediate ? distanceToManeuver : phase.dist,
-      phase.immediate
+      phase.immediate,
+      langRef.current
     )
     speech.speak(text, { priority: phase.immediate })
   }
@@ -218,7 +225,7 @@ export default function useVoiceNavigation({
         const now = Date.now()
         if (now - lastRerouteAtRef.current > REROUTE_COOLDOWN_MS) {
           lastRerouteAtRef.current = now
-          speech.speak('Rerouting.', { priority: true })
+          speech.speak(navPhrase('rerouting', langRef.current), { priority: true })
           onRerouteRef.current?.(currentLocation)
         }
       }
@@ -234,7 +241,7 @@ export default function useVoiceNavigation({
         distanceToManeuver <= profile.arriveMeters)
     if (reachedEnd && !arrivedRef.current) {
       arrivedRef.current = true
-      speech.speak('You have arrived at your destination.', { priority: true })
+      speech.speak(navPhrase('arrived', langRef.current), { priority: true })
       onArriveRef.current?.()
     }
 
@@ -243,8 +250,8 @@ export default function useVoiceNavigation({
       // Initial prompt right after navigation starts.
       if (!startedRef.current) {
         startedRef.current = true
-        const intro = buildAnnouncement(upcoming.step, distanceToManeuver, false)
-        speech.speak(`Starting navigation. ${intro}`, { priority: true })
+        const intro = buildAnnouncementL(upcoming.step, distanceToManeuver, false, langRef.current)
+        speech.speak(startingPhrase(intro, langRef.current), { priority: true })
         // Mark far phases as fired so we don't immediately repeat them.
         phases.forEach((p) => {
           if (!p.immediate && distanceToManeuver <= p.dist) {

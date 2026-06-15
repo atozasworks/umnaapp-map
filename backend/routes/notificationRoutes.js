@@ -6,6 +6,7 @@ import {
   getVapidPublicKey,
   serializeNotification,
   createUserNotification,
+  DEFAULT_NOTIFICATION_PREFERENCE,
 } from '../services/notificationService.js'
 
 const router = express.Router()
@@ -146,6 +147,64 @@ router.delete('/:id', async (req, res) => {
     res.status(500).json({ error: e.message })
   }
 })
+
+const PREF_FIELDS = ['pushEnabled', 'placeApproved', 'placeAdded', 'festival', 'businessClaim']
+
+/** GET /api/notifications/preferences — current user's category preferences */
+router.get('/preferences', async (req, res) => {
+  try {
+    if (!prisma.notificationPreference) {
+      return res.json({ preferences: { ...DEFAULT_NOTIFICATION_PREFERENCE }, defaulted: true })
+    }
+    const row = await prisma.notificationPreference.findUnique({ where: { userId: req.user.id } })
+    const preferences = { ...DEFAULT_NOTIFICATION_PREFERENCE }
+    if (row) for (const k of PREF_FIELDS) preferences[k] = row[k]
+    res.json({ preferences, defaulted: !row })
+  } catch (e) {
+    console.error('notification preferences get', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** PUT /api/notifications/preferences — update category preferences */
+router.put(
+  '/preferences',
+  [
+    body('pushEnabled').optional().isBoolean(),
+    body('placeApproved').optional().isBoolean(),
+    body('placeAdded').optional().isBoolean(),
+    body('festival').optional().isBoolean(),
+    body('businessClaim').optional().isBoolean(),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.notificationPreference) {
+        return res.status(503).json({
+          error: 'Notification preferences unavailable',
+          message: 'Run migration add-notification-preferences.sql, then `npx prisma generate` and restart.',
+        })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const data = {}
+      for (const k of PREF_FIELDS) {
+        if (typeof req.body[k] === 'boolean') data[k] = req.body[k]
+      }
+      const row = await prisma.notificationPreference.upsert({
+        where: { userId: req.user.id },
+        create: { userId: req.user.id, ...data },
+        update: data,
+      })
+      const preferences = {}
+      for (const k of PREF_FIELDS) preferences[k] = row[k]
+      res.json({ preferences })
+    } catch (e) {
+      console.error('notification preferences update', e)
+      res.status(500).json({ error: e.message })
+    }
+  }
+)
 
 /** GET /api/notifications/push/vapid-public-key */
 router.get('/push/vapid-public-key', (req, res) => {

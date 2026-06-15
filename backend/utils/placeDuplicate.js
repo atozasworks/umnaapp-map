@@ -115,25 +115,61 @@ export class PlaceDuplicateIndex {
     }
   }
 
+  static get SELECT() {
+    return {
+      id: true,
+      googlePlaceId: true,
+      latitude: true,
+      longitude: true,
+      placeNameEn: true,
+      name: true,
+      fullAddress: true,
+      village: true,
+      taluk: true,
+      district: true,
+      state: true,
+      country: true,
+      pincode: true,
+    }
+  }
+
   static async load(prisma, options = {}) {
-    const rows = await prisma.place.findMany({
-      select: {
-        id: true,
-        googlePlaceId: true,
-        latitude: true,
-        longitude: true,
-        placeNameEn: true,
-        name: true,
-        fullAddress: true,
-        village: true,
-        taluk: true,
-        district: true,
-        state: true,
-        country: true,
-        pincode: true,
-      },
-    })
+    const rows = await prisma.place.findMany({ select: PlaceDuplicateIndex.SELECT })
     return new PlaceDuplicateIndex(rows, options)
+  }
+
+  /**
+   * Load only places within a bounding box derived from the incoming items
+   * (plus a margin). Used for bulk/extract saves which are geographically
+   * clustered, so we avoid scanning the entire places table. Coordinate and
+   * Google-place-id duplicates are always co-located, so the box is safe for
+   * them; name+address matches outside the box are an acceptable edge case.
+   *
+   * @param {object} prisma
+   * @param {Array} items raw payload items (use lat/lng or latitude/longitude)
+   * @param {object} [options] { excludePlaceId, marginDeg }
+   */
+  static async loadNear(prisma, items = [], options = {}) {
+    const { marginDeg = 0.1, ...indexOptions } = options
+    const lats = []
+    const lngs = []
+    for (const it of items) {
+      const lat = parseFloat(it.lat ?? it.latitude)
+      const lng = parseFloat(it.lng ?? it.longitude)
+      if (Number.isFinite(lat) && Number.isFinite(lng)) {
+        lats.push(lat)
+        lngs.push(lng)
+      }
+    }
+    // No usable coordinates → fall back to the full index (correctness first).
+    if (!lats.length) return PlaceDuplicateIndex.load(prisma, indexOptions)
+
+    const where = {
+      latitude: { gte: Math.min(...lats) - marginDeg, lte: Math.max(...lats) + marginDeg },
+      longitude: { gte: Math.min(...lngs) - marginDeg, lte: Math.max(...lngs) + marginDeg },
+    }
+    const rows = await prisma.place.findMany({ where, select: PlaceDuplicateIndex.SELECT })
+    return new PlaceDuplicateIndex(rows, indexOptions)
   }
 
   check(candidate) {

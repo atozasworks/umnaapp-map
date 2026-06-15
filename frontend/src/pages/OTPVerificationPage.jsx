@@ -105,11 +105,9 @@ const OTPVerificationPage = () => {
     setTimeLeft(600)
 
     try {
-      if (type === 'register') {
-        await api.post('/auth/register', { email })
-      } else {
-        await api.post('/auth/login', { email })
-      }
+      // Dedicated resend endpoint works for both register and login and does
+      // not require name/password, so it preserves the in-progress sign-up.
+      await api.post('/auth/resend-otp', { email, type })
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
     } catch (err) {

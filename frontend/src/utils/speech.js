@@ -15,6 +15,9 @@ const LANG_TO_BCP47 = {
   en: 'en-IN',
   hi: 'hi-IN',
   kn: 'kn-IN',
+  // Tulu has no standard TTS voice; it is written in the Kannada script, so we
+  // use the Kannada voice to read Tulu prompts.
+  tu: 'kn-IN',
   ta: 'ta-IN',
   te: 'te-IN',
   ml: 'ml-IN',

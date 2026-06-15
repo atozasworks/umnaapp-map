@@ -11,6 +11,8 @@ import OTPVerificationPage from './pages/OTPVerificationPage'
 import HomePage from './pages/HomePage'
 import SettingsPage from './pages/SettingsPage'
 import NotificationsPage from './pages/NotificationsPage'
+import MyContributionsPage from './pages/MyContributionsPage'
+import PublicProfilePage from './pages/PublicProfilePage'
 import ProtectedRoute from './components/ProtectedRoute'
 import PwaShell from './components/PwaShell'
 import SplashScreen from './components/SplashScreen'
@@ -92,6 +94,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <NotificationsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-contributions"
+                element={
+                  <ProtectedRoute>
+                    <MyContributionsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users/:id"
+                element={
+                  <ProtectedRoute>
+                    <PublicProfilePage />
                   </ProtectedRoute>
                 }
               />

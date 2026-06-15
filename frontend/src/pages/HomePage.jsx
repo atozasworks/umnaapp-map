@@ -23,6 +23,7 @@ import ItineraryDetailPanel from '../components/ItineraryDetailPanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
 import NotificationBell from '../components/NotificationBell'
+import MapAssistantChatbot from '../components/MapAssistantChatbot'
 import FeedbackModal from '../components/FeedbackModal'
 import OnboardingTour, { hasSeenOnboarding, markOnboardingSeen } from '../components/OnboardingTour'
 import api from '../services/api'
@@ -124,6 +125,7 @@ const HomePage = () => {
   const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
   const [addFestivalMode, setAddFestivalMode] = useState(false)
   const [addPlaceExcludeId, setAddPlaceExcludeId] = useState(null)
+  const [editPlaceId, setEditPlaceId] = useState(null)
   const [showAddPlaceMethodModal, setShowAddPlaceMethodModal] = useState(false)
   const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
   const [mapLocation, setMapLocation] = useState(null)
@@ -1053,11 +1055,16 @@ const HomePage = () => {
   }, [addPlacePickMode])
 
   const handlePlaceSaved = (place) => {
+    const wasEdit = editPlaceId != null
     setAllPlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
-    showPlaceAddedPopup([place], { variant: isFestivalPlace(place) ? 'festival' : 'manual' })
+    if (wasEdit) {
+      showToast?.('Place updated', 'success')
+    } else {
+      showPlaceAddedPopup([place], { variant: isFestivalPlace(place) ? 'festival' : 'manual' })
+    }
     if (mapRef.current?.flyTo) {
       mapRef.current.flyTo({
         center: [place.longitude, place.latitude],
@@ -1139,12 +1146,20 @@ const HomePage = () => {
   const handlePlaceEdit = (place) => {
     setSelectedPlace(null)
     setAddPlaceExcludeId(place?.id != null ? place.id : null)
+    setEditPlaceId(place?.id != null ? place.id : null)
     setMapLocation({
       name: place.place_name_en || place.name,
+      placeNameLocal: place.place_name_local || place.placeNameLocal || '',
       category: place.category,
       latitude: place.latitude,
       longitude: place.longitude,
       zoomLevel: place.zoomLevel || 15,
+      village: place.village || '',
+      taluk: place.taluk || '',
+      district: place.district || '',
+      state: place.state || '',
+      pincode: place.pincode || '',
+      country: place.country || '',
       mapRenderingConfig: place.mapRenderingConfig || place.map_rendering_config,
     })
     setShowAddPlaceModal(true)
@@ -1715,6 +1730,7 @@ const HomePage = () => {
           setAddPlacePickMode(false)
           setAddPlaceLocationMethod(null)
           setAddPlaceExcludeId(null)
+          setEditPlaceId(null)
           setAddFestivalMode(false)
         }}
         initialData={null}
@@ -1723,6 +1739,7 @@ const HomePage = () => {
         initialLocationMethod={addPlaceLocationMethod}
         existingPlaces={allPlaces}
         excludePlaceId={addPlaceExcludeId}
+        editPlaceId={editPlaceId}
         onShowDuplicate={showDuplicatePopup}
         festivalMode={addFestivalMode}
         onRequestMapPick={() => {
@@ -2596,6 +2613,14 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
+      <MapAssistantChatbot
+        context={
+          currentLocation?.lat != null && currentLocation?.lng != null
+            ? { lat: currentLocation.lat, lng: currentLocation.lng }
+            : null
+        }
+      />
     </div>
   )
 }

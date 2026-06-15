@@ -4,12 +4,14 @@ import {
   register,
   verifyOTP,
   loginWithOTP,
+  resendOTP,
   getCurrentUser,
   updateProfile,
   updateProfilePicture,
   logout,
 } from '../controllers/authController.js'
 import { authenticateToken } from '../middleware/auth.js'
+import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import passport from '../config/passport.js'
 
 const router = express.Router()
@@ -28,9 +30,10 @@ router.post(
   register
 )
 
-// Verify OTP
+// Verify OTP — tighter limit to slow brute-force guessing of the 6-digit code
 router.post(
   '/verify-otp',
+  rateLimitMiddleware('auth:verify', 12, 60),
   [
     body('email').isEmail().normalizeEmail(),
     body('otp').isLength({ min: 6, max: 6 }).withMessage('OTP must be 6 digits'),
@@ -44,6 +47,16 @@ router.post(
   '/login',
   [body('email').isEmail().normalizeEmail()],
   loginWithOTP
+)
+
+// Resend OTP (register or login) — does not require name
+router.post(
+  '/resend-otp',
+  [
+    body('email').isEmail().normalizeEmail(),
+    body('type').optional().isIn(['register', 'login']),
+  ],
+  resendOTP
 )
 
 // Get current user

@@ -65,3 +65,54 @@ export const rateLimitMiddleware = (keyPrefix, maxRequests, windowSeconds) => {
   }
 }
 
+/**
+ * Tiered rate limiter: applies a different cap for authenticated users vs
+ * anonymous clients, keyed by user id (authenticated) or IP (anonymous).
+ * Use for public endpoints that should still reward signed-in users and
+ * throttle abuse — e.g. the support chatbot. Requires optionalAuth to run
+ * first so req.user is populated when a valid token is present.
+ *
+ * @param {string} keyPrefix
+ * @param {object} opts
+ * @param {number} opts.authMax   max requests for authenticated users
+ * @param {number} opts.anonMax   max requests for anonymous clients
+ * @param {number} opts.windowSeconds
+ */
+export const tieredRateLimitMiddleware = (keyPrefix, { authMax, anonMax, windowSeconds }) => {
+  return async (req, res, next) => {
+    if (!redisClient) return next()
+    try {
+      const isAuthed = Boolean(req.user?.id)
+      const identifier = isAuthed ? `u:${req.user.id}` : `ip:${req.ip || 'anonymous'}`
+      const maxRequests = isAuthed ? authMax : anonMax
+      const key = `ratelimit:${keyPrefix}:${identifier}`
+
+      const current = await redisClient.get(key)
+      const count = current ? parseInt(current) : 0
+
+      if (count >= maxRequests) {
+        return res.status(429).json({
+          error: 'Too many requests',
+          message: isAuthed
+            ? `Rate limit exceeded (${maxRequests} per ${windowSeconds}s). Please slow down.`
+            : `Rate limit exceeded (${maxRequests} per ${windowSeconds}s). Sign in for a higher limit.`,
+          retryAfter: windowSeconds,
+        })
+      }
+
+      if (count === 0) {
+        await redisClient.setEx(key, windowSeconds, '1')
+      } else {
+        await redisClient.incr(key)
+      }
+
+      res.setHeader('X-RateLimit-Limit', maxRequests)
+      res.setHeader('X-RateLimit-Remaining', Math.max(0, maxRequests - count - 1))
+      next()
+    } catch (error) {
+      console.error('Tiered rate limit error:', error)
+      next()
+    }
+  }
+}
+

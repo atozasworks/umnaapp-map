@@ -130,6 +130,7 @@ exports.Prisma.UserScalarFieldEnum = {
   googleId: 'googleId',
   picture: 'picture',
   emailVerified: 'emailVerified',
+  profilePublic: 'profilePublic',
   lastGridExtractAt: 'lastGridExtractAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -144,6 +145,18 @@ exports.Prisma.NotificationScalarFieldEnum = {
   data: 'data',
   read: 'read',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.NotificationPreferenceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  pushEnabled: 'pushEnabled',
+  placeApproved: 'placeApproved',
+  placeAdded: 'placeAdded',
+  festival: 'festival',
+  businessClaim: 'businessClaim',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PushSubscriptionScalarFieldEnum = {
@@ -263,6 +276,8 @@ exports.Prisma.PlaceScalarFieldEnum = {
   festivalEndDate: 'festivalEndDate',
   festivalRecurrence: 'festivalRecurrence',
   festivalNotifiedAt: 'festivalNotifiedAt',
+  claimedById: 'claimedById',
+  claimVerifiedAt: 'claimVerifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -299,6 +314,34 @@ exports.Prisma.PlacePhotoScalarFieldEnum = {
   dataUrl: 'dataUrl',
   caption: 'caption',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.BusinessClaimScalarFieldEnum = {
+  id: 'id',
+  placeId: 'placeId',
+  userId: 'userId',
+  userName: 'userName',
+  contactEmail: 'contactEmail',
+  contactPhone: 'contactPhone',
+  role: 'role',
+  message: 'message',
+  status: 'status',
+  reviewNote: 'reviewNote',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlaceLabelScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  placeId: 'placeId',
+  label: 'label',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PlaceAuditScalarFieldEnum = {
@@ -402,6 +445,7 @@ exports.Prisma.JsonNullValueFilter = {
 exports.Prisma.ModelName = {
   User: 'User',
   Notification: 'Notification',
+  NotificationPreference: 'NotificationPreference',
   PushSubscription: 'PushSubscription',
   OTPVerification: 'OTPVerification',
   Session: 'Session',
@@ -412,6 +456,8 @@ exports.Prisma.ModelName = {
   Favorite: 'Favorite',
   PlaceReview: 'PlaceReview',
   PlacePhoto: 'PlacePhoto',
+  BusinessClaim: 'BusinessClaim',
+  PlaceLabel: 'PlaceLabel',
   PlaceAudit: 'PlaceAudit',
   Itinerary: 'Itinerary',
   ItineraryMember: 'ItineraryMember',
