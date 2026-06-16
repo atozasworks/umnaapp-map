@@ -79,7 +79,7 @@ const REVERSE_URL = process.env.REVERSE_URL || 'https://umnaapp.in/map/reverse'
 const NOMINATIM_URL = process.env.NOMINATIM_URL || ''
 const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
 /** CORS-safe fallback when umnaapp tile host is down or returns HTML errors. */
-const CARTO_TILE_FALLBACK = 'https://a.basemaps.cartocdn.com/light_all'
+const CARTO_TILE_FALLBACK = 'https://a.basemaps.cartocdn.com/rastertiles/voyager'
 
 const isValidPngBuffer = (buf) =>
   Buffer.isBuffer(buf) &&

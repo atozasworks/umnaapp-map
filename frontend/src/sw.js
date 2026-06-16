@@ -53,6 +53,28 @@ registerRoute(
   })
 )
 
+registerRoute(
+  /\/api\/map\/tiles\//i,
+  new CacheFirst({
+    cacheName: 'map-tiles-api',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  })
+)
+
+registerRoute(
+  /^https:\/\/umnaapp\.in\/tiles\//i,
+  new CacheFirst({
+    cacheName: 'umnaapp-tiles',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 7 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  })
+)
+
 // Sensitive endpoints must NEVER be cached (auth tokens, admin, user data).
 // Registered before the generic /api/ route so it matches first.
 registerRoute(

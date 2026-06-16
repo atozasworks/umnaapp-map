@@ -94,9 +94,12 @@ const BASEMAP_LABEL_LAYER_ID = 'basemap-label-overlay-layer'
 const SATELLITE_TILES = ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']
 const TERRAIN_TILES = ['https://tile.opentopomap.org/{z}/{x}/{y}.png']
 const LABEL_OVERLAY_TILES = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
-/** Always-on CORS-enabled fallback so the map never stays blank if the configured tile host dies. */
-const CARTO_STREET_TILE_URL = 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
-/** Same-origin proxy — serves umnaapp.in map data without CORS issues. */
+/** India OSM tiles — same source as umnaapp.in/map (image 2 style). CORS: *. */
+const UMNAAPP_STREET_TILE_URL = 'https://umnaapp.in/tiles/{z}/{x}/{y}.png'
+/** Detailed OSM-style fallback when India tile host is unreachable. */
+const STREET_TILE_FALLBACK_URL =
+  'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+/** Same-origin proxy when explicitly configured in env. */
 const PROXY_STREET_TILE_URL = '/api/map/tiles/{z}/{x}/{y}.png'
 const BASEMAP_STORAGE_KEY = 'umnaapp_basemap'
 
@@ -107,18 +110,100 @@ const RASTER_TILE_PAINT = {
   'raster-opacity': 1,
 }
 
+const sampleTileUrl = (template) =>
+  template.replace('{z}', '5').replace('{x}', '23').replace('{y}', '14')
+
+const isPngBuffer = (buf) => {
+  if (!buf || buf.byteLength < 8) return false
+  const u8 = new Uint8Array(buf)
+  return u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47
+}
+
+/** Proxy/HTML 200 responses do not fire MapLibre tile errors — verify PNG before use. */
+const verifyTileEndpoint = async (template) => {
+  try {
+    const res = await fetch(sampleTileUrl(template))
+    if (!res.ok) return false
+    const ct = (res.headers.get('content-type') || '').toLowerCase()
+    if (ct.includes('image')) return true
+    return isPngBuffer(await res.arrayBuffer())
+  } catch {
+    return false
+  }
+}
+
+const reloadRasterTileSource = (map, tileUrl) => {
+  const src = map.getSource('raster-tiles')
+  if (!src || typeof src.setTiles !== 'function') return false
+  src.setTiles([tileUrl])
+  const cache = map.style?.sourceCaches?.['raster-tiles']
+  if (cache) {
+    cache.clearTiles()
+    if (typeof cache.reload === 'function') cache.reload()
+    else cache.update(map.transform)
+  }
+  map.triggerRepaint()
+  return true
+}
+
+const applyStreetTileUrl = (map, streetUrlRef, tileUrl, { reason = 'switching tile source' } = {}) => {
+  if (!map || streetUrlRef.current === tileUrl) return false
+  if (!reloadRasterTileSource(map, tileUrl)) return false
+  streetUrlRef.current = tileUrl
+  console.warn(`[map] ${reason}: ${tileUrl}`)
+  return true
+}
+
 const resolveStreetTileUrl = () => {
   const env = String(import.meta.env.VITE_TILESERVER_URL || '').trim()
-  let url = CARTO_STREET_TILE_URL
+  let url = UMNAAPP_STREET_TILE_URL
   if (env.includes('{z}') && env.includes('{x}') && env.includes('{y}')) {
     url = env
   } else if (env) {
     url = `${env.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
   }
-  if (url.includes('umnaapp.in') || url.startsWith('/api/map/tiles')) {
+  if (url.startsWith('/api/map/tiles')) {
     return PROXY_STREET_TILE_URL
   }
   return url
+}
+
+const recoverStreetTiles = async (map, streetUrlRef, getFallbackApplied, setFallbackApplied) => {
+  if (getFallbackApplied() || !streetUrlRef.current) return
+
+  const current = streetUrlRef.current
+  const currentOk = await verifyTileEndpoint(current)
+  if (currentOk) return
+
+  if (current.startsWith('/api/map/tiles') || current.startsWith('/map-tiles')) {
+    const directOk = await verifyTileEndpoint(UMNAAPP_STREET_TILE_URL)
+    if (directOk) {
+      setFallbackApplied(
+        applyStreetTileUrl(map, streetUrlRef, UMNAAPP_STREET_TILE_URL, {
+          reason: 'Tile proxy failed — using umnaapp.in tiles directly',
+        })
+      )
+      return
+    }
+  }
+
+  if (current !== UMNAAPP_STREET_TILE_URL) {
+    const directOk = await verifyTileEndpoint(UMNAAPP_STREET_TILE_URL)
+    if (directOk) {
+      setFallbackApplied(
+        applyStreetTileUrl(map, streetUrlRef, UMNAAPP_STREET_TILE_URL, {
+          reason: 'Configured tile host failed — using umnaapp.in tiles',
+        })
+      )
+      return
+    }
+  }
+
+  setFallbackApplied(
+    applyStreetTileUrl(map, streetUrlRef, STREET_TILE_FALLBACK_URL, {
+      reason: 'India tile host unreachable — using detailed OSM fallback',
+    })
+  )
 }
 
 const applyRasterTilePaint = (map, layerIds = ['simple-tiles', BASEMAP_LABEL_LAYER_ID]) => {
@@ -154,8 +239,7 @@ const readStoredBasemapMode = () => {
 }
 
 const getBasemapTileUrls = (mode, streetUrl) => {
-  const street =
-    streetUrl || 'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+  const street = streetUrl || UMNAAPP_STREET_TILE_URL
   if (mode === 'satellite') return SATELLITE_TILES
   if (mode === 'terrain') return TERRAIN_TILES
   return [street]
@@ -606,9 +690,7 @@ const MapComponent = forwardRef(({
     }
     const map = mapRef.current
     if (!map) return
-    const streetUrl =
-      streetTilesUrlRef.current ||
-      'https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+    const streetUrl = streetTilesUrlRef.current || UMNAAPP_STREET_TILE_URL
     const apply = () =>
       applyBasemapToMap(map, mode, streetUrl, {
         onRouteLayers: (m) => {
@@ -1110,6 +1192,11 @@ const MapComponent = forwardRef(({
         },
         layers: [
           {
+            id: 'map-background',
+            type: 'background',
+            paint: { 'background-color': '#e8e4df' },
+          },
+          {
             id: 'simple-tiles',
             type: 'raster',
             source: 'raster-tiles',
@@ -1168,6 +1255,19 @@ const MapComponent = forwardRef(({
         onMapReady(map)
       }
       console.log('✅ Map loaded')
+
+      // HTML/502 from a broken tile proxy returns HTTP 200 — MapLibre stays white
+      // without firing tile errors. Probe once and swap to CARTO immediately.
+      if (basemapModeRef.current === 'street' && streetTilesUrlRef.current) {
+        recoverStreetTiles(
+          map,
+          streetTilesUrlRef,
+          () => tileFallbackApplied,
+          (applied) => {
+            tileFallbackApplied = applied
+          }
+        )
+      }
     })
 
     // Only update zoom state when zooming ends — avoids per-frame React re-renders
@@ -1181,7 +1281,7 @@ const MapComponent = forwardRef(({
 
     let tileFailCount = 0
     let tileFallbackApplied = false
-    const TILE_FALLBACK_THRESHOLD = 6
+    const TILE_FALLBACK_THRESHOLD = 2
 
     map.on('error', (e) => {
       const err = e.error
@@ -1199,27 +1299,18 @@ const MapComponent = forwardRef(({
           !tileFallbackApplied &&
           basemapModeRef.current === 'street' &&
           streetTilesUrlRef.current &&
-          !streetTilesUrlRef.current.includes('cartocdn') &&
-          streetTilesUrlRef.current !== CARTO_STREET_TILE_URL
+          streetTilesUrlRef.current !== STREET_TILE_FALLBACK_URL
         ) {
           tileFailCount += 1
           if (tileFailCount >= TILE_FALLBACK_THRESHOLD) {
-            tileFallbackApplied = true
-            streetTilesUrlRef.current = CARTO_STREET_TILE_URL
-            const src = map.getSource('raster-tiles')
-            if (src && typeof src.setTiles === 'function') {
-              src.setTiles([CARTO_STREET_TILE_URL])
-              const cache = map.style?.sourceCaches?.['raster-tiles']
-              if (cache) {
-                cache.clearTiles()
-                if (typeof cache.reload === 'function') cache.reload()
-                else cache.update(map.transform)
+            recoverStreetTiles(
+              map,
+              streetTilesUrlRef,
+              () => tileFallbackApplied,
+              (applied) => {
+                tileFallbackApplied = applied
               }
-              map.triggerRepaint()
-              if (import.meta.env.DEV) {
-                console.warn('[map] Tile host failing — fell back to CARTO tiles')
-              }
-            }
+            )
           }
         }
         return
