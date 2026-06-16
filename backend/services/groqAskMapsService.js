@@ -2,8 +2,19 @@ import axios from 'axios'
 import prisma from '../config/database.js'
 import { placePublicVisibilityOr, enrichPlaceApprovalMeta } from './placeApproval.js'
 import { haversineMeters, radiusKmToDelta } from '../utils/geo.js'
-import { PLACE_CATEGORIES, CATEGORY_ALIASES } from './askMapsConstants.js'
+import {
+  PLACE_CATEGORIES,
+  CATEGORY_ALIASES,
+  CATEGORY_NAME_KEYWORDS,
+} from './askMapsConstants.js'
 import { searchExternalProviders } from './externalPlaceSearch.js'
+import { searchOsmByName } from './osmPlaceQuery.js'
+import {
+  dedupePlaces,
+  mapOsmToAskPlace,
+  mapExternalToAskPlace,
+} from './unifiedPlaceQuery.js'
+import { PLACE_SOURCES } from '../utils/placeSource.js'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
@@ -28,7 +39,8 @@ Rules:
 - category must be one of: ${PLACE_CATEGORIES.join(', ')} or null
 - "near me", "nearby", "around me" → locationType "near_me", filters.nearby true
 - "in Kadaba", "at Bangalore" → locationType "named", locationName the place name
-- "within 2 km", "2km" → radiusKm number
+- "within 2 km", "2km", "2km olagiruva" → radiusKm number
+- "ATM or hotels" → pick the best single category or prefer ATM/Hotel when both appear
 - "best", "top rated" → filters.bestRated true, sortBy "rating"
 - "open now" → filters.openNow true
 - Default radiusKm: 5 for near_me, null for named area (search whole area text)
@@ -55,6 +67,11 @@ const PLACE_SELECT = {
   state: true,
   vicinity: true,
   phone: true,
+  website: true,
+  description: true,
+  googlePhotos: true,
+  googleType: true,
+  googleTypes: true,
   approvalStatus: true,
   approvedAt: true,
   autoApproveAt: true,
@@ -74,49 +91,224 @@ function normalizeCategory(raw) {
   return null
 }
 
-function parseIntentFallback(query) {
-  const q = String(query || '').trim().toLowerCase()
-  let category = null
-  for (const [alias, cat] of Object.entries(CATEGORY_ALIASES)) {
-    if (q.includes(alias)) {
-      category = cat
-      break
-    }
+/** Parse "2 km", "2km", "within 2km olagiruva", etc. from the raw query. */
+function extractRadiusKm(query) {
+  const q = String(query || '').toLowerCase()
+  const patterns = [
+    /(?:within|inside|under|olagiruva|olage|olaga|hattira|hatra|rad)\s+(\d+(?:\.\d+)?)\s*(?:km|kms|kilometer|kilometre|kilometers|kilometres)\b/i,
+    /\b(\d+(?:\.\d+)?)\s*(?:km|kms|kilometer|kilometre|kilometers|kilometres)\b/i,
+  ]
+  for (const re of patterns) {
+    const m = q.match(re)
+    if (m) return Math.min(50, Math.max(0.5, parseFloat(m[1])))
   }
-  if (!category) {
+  return null
+}
+
+/** Detect proximity intent (English + common Kannada romanized terms). */
+function detectNearMe(query) {
+  const q = String(query || '').toLowerCase()
+  if (
+    /\b(near me|nearby|around me|close to me|near here|hattira|hatra|hapattige|samipa|samip|nannadu|nanna hatra|current location|iddaru)\b/.test(
+      q
+    )
+  ) {
+    return true
+  }
+  if (/\b(?:within|inside|under|olagiruva|olage|olaga|olge|hattira)\b/.test(q) && extractRadiusKm(query) != null) {
+    return true
+  }
+  if (/\b\d+(?:\.\d+)?\s*km\s+(?:olage|olagiruva|olaga|olge|radius|rad)\b/.test(q)) {
+    return true
+  }
+  return extractRadiusKm(query) != null
+}
+
+/** Match one or more categories, e.g. "ATM or hotels". */
+function extractCategories(query) {
+  const q = String(query || '').toLowerCase()
+  const segments = q.split(/\s+(?:or|and|\/|,|athava|mathu)\s+/i)
+  const parts = segments.length > 1 ? segments : [q]
+  const cats = new Set()
+  for (const seg of parts) {
+    for (const [alias, cat] of Object.entries(CATEGORY_ALIASES)) {
+      if (new RegExp(`\\b${alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(seg)) {
+        cats.add(cat)
+      }
+    }
     for (const cat of PLACE_CATEGORIES) {
-      if (q.includes(cat.toLowerCase())) {
-        category = cat
-        break
+      if (new RegExp(`\\b${cat.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(seg)) {
+        cats.add(cat)
       }
     }
   }
+  return [...cats]
+}
 
-  const nearMe = /\b(near me|nearby|around me|close to me)\b/.test(q)
+function categoryKeywordsFor(wanted) {
+  const set = new Set([String(wanted).toLowerCase()])
+  for (const [alias, canon] of Object.entries(CATEGORY_ALIASES)) {
+    if (canon === wanted) set.add(alias)
+  }
+  for (const kw of CATEGORY_NAME_KEYWORDS[wanted] || []) {
+    set.add(kw.toLowerCase())
+  }
+  return [...set]
+}
+
+/**
+ * Whole-word match so short keywords don't match inside unrelated words.
+ * Without this, "inn" matches "dinner", "atm" matches "atmosphere", "mart"
+ * matches "smart" — which leaks restaurants/shops into a "hotels" search.
+ */
+function wordBoundaryIncludes(hay, term) {
+  const t = String(term || '').toLowerCase().trim()
+  if (!t) return false
+  const re = new RegExp(`\\b${t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i')
+  return re.test(hay)
+}
+
+/** Does the haystack text match any of the wanted categories (whole-word)? */
+function hayMatchesCategories(hay, cats) {
+  if (!cats.length) return true
+  return cats.some((wanted) => {
+    if (wordBoundaryIncludes(hay, wanted)) return true
+    return categoryKeywordsFor(wanted).some((kw) => wordBoundaryIncludes(hay, kw))
+  })
+}
+
+function buildCategoryFilter(category, categories, { relaxed = false } = {}) {
+  const cats =
+    Array.isArray(categories) && categories.length > 0
+      ? categories
+      : category
+        ? [category]
+        : []
+  if (!cats.length) return null
+
+  if (!relaxed) {
+    return {
+      OR: cats.map((c) => ({ category: { equals: c, mode: 'insensitive' } })),
+    }
+  }
+
+  const orParts = []
+  for (const cat of cats) {
+    orParts.push({ category: { equals: cat, mode: 'insensitive' } })
+    for (const kw of categoryKeywordsFor(cat)) {
+      // Skip very short keywords (inn, atm, gas, bus, gym…) in the SQL prefetch:
+      // `contains` is a substring match, so they would pull in huge amounts of
+      // unrelated rows (dinner, atmosphere…) and crowd out real matches under
+      // the row cap. The whole-word post-filter still catches genuine name hits.
+      if (kw.length < 4) continue
+      orParts.push({ name: { contains: kw, mode: 'insensitive' } })
+      orParts.push({ placeNameEn: { contains: kw, mode: 'insensitive' } })
+      orParts.push({ placeNameLocal: { contains: kw, mode: 'insensitive' } })
+      orParts.push({ vicinity: { contains: kw, mode: 'insensitive' } })
+    }
+  }
+  return { OR: orParts }
+}
+
+function wantedCategories(intent) {
+  if (Array.isArray(intent.categories) && intent.categories.length > 0) return intent.categories
+  if (intent.category) return [intent.category]
+  return []
+}
+
+function placeMatchesCategoryIntent(row, intent) {
+  const cats = wantedCategories(intent)
+  if (!cats.length) return true
+  // The stored category is the authoritative signal; an exact match always wins.
+  const rowCat = String(row.category || '').toLowerCase()
+  if (cats.some((c) => c.toLowerCase() === rowCat)) return true
+  const hay = [
+    row.category,
+    row.name,
+    row.placeNameEn,
+    row.placeNameLocal,
+    row.vicinity,
+    row.googleType,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  return hayMatchesCategories(hay, cats)
+}
+
+const NEAR_ME_LOCATION_NAMES = /^(me|here|my location|current location|nearby|near me|around me)$/i
+
+function enrichIntentFromQuery(intent, query) {
+  const qRadius = extractRadiusKm(query)
+  if (qRadius != null) intent.radiusKm = qRadius
+
+  const cats = extractCategories(query)
+  if (cats.length > 1) {
+    // Multiple categories explicitly named (e.g. "ATM or hotels").
+    intent.categories = cats
+    intent.category = null
+  } else if (cats.length === 1) {
+    // A single category literally present in the query is authoritative — trust
+    // it over a mismatched LLM guess (e.g. query says "hotels" but Groq returned
+    // "Restaurant"). Only keep the LLM category when the query names no category.
+    if (!intent.category || !cats.includes(intent.category)) {
+      intent.category = cats[0]
+    }
+    intent.categories = undefined
+  }
+
+  const near = detectNearMe(query)
+  // Groq sometimes turns "near me" into a named location ("me"/"here"); treat
+  // that as proximity intent so we search around the user, not a phantom place.
+  if (near && (!intent.locationName || NEAR_ME_LOCATION_NAMES.test(intent.locationName.trim()))) {
+    intent.locationName = null
+    if (!intent.locationType || intent.locationType === 'map_center' || intent.locationType === 'named') {
+      intent.locationType = 'near_me'
+    }
+    intent.filters.nearby = true
+  }
+
+  if (intent.radiusKm != null && !intent.locationName && !intent.locationType) {
+    intent.locationType = 'near_me'
+    intent.filters.nearby = true
+  }
+
+  return intent
+}
+
+function parseIntentFallback(query) {
+  const q = String(query || '').trim().toLowerCase()
+  const categories = extractCategories(query)
+  const category = categories.length === 1 ? categories[0] : null
+
+  const nearMe = detectNearMe(query)
   const bestRated = /\b(best|top rated|highest rated)\b/.test(q)
   const openNow = /\bopen now\b/.test(q)
-  const radiusMatch = q.match(/(?:within\s+)?(\d+(?:\.\d+)?)\s*(?:km|kilometer|kilometre)s?\b/)
-  const radiusKm = radiusMatch ? parseFloat(radiusMatch[1]) : nearMe ? 5 : null
+  const radiusKm = extractRadiusKm(query) ?? (nearMe ? 5 : null)
 
   let locationType = null
   let locationName = null
   const inMatch = q.match(/\b(?:in|at|near)\s+([a-z][a-z0-9\s.-]{1,40})/i)
   if (inMatch && !nearMe) {
     locationType = 'named'
-    locationName = inMatch[1].replace(/\s+(open|best|within).*$/i, '').trim()
+    locationName = inMatch[1].replace(/\s+(open|best|within|olagiruva|olage).*$/i, '').trim()
   } else if (nearMe) {
     locationType = 'near_me'
   }
 
+  const catLabel =
+    categories.length > 1 ? categories.join(' or ') : category || 'places'
+
   return {
     category,
+    categories: categories.length > 1 ? categories : undefined,
     locationType,
     locationName,
     radiusKm,
     filters: { nearby: nearMe, bestRated, openNow },
-    sortBy: bestRated ? 'rating' : nearMe ? 'distance' : 'relevance',
+    sortBy: bestRated ? 'rating' : nearMe || radiusKm != null ? 'distance' : 'relevance',
     limit: 25,
-    summary: `Search for ${category || 'places'}${locationName ? ` in ${locationName}` : nearMe ? ' near you' : ''}`,
+    summary: `Search for ${catLabel}${locationName ? ` in ${locationName}` : nearMe || radiusKm != null ? ' near you' : ''}${radiusKm != null ? ` within ${radiusKm} km` : ''}`,
   }
 }
 
@@ -175,7 +367,7 @@ export async function parseIntentWithGroq(query) {
     if (!intent.category) intent.category = normalizeCategory(parsed.category) || parseIntentFallback(query).category
     return intent
   } catch (err) {
-    console.warn('Groq Ask Maps parse failed, using fallback:', err.message)
+    console.warn('PlaceFinder parse failed, using fallback:', err.message)
     return parseIntentFallback(query)
   }
 }
@@ -190,28 +382,153 @@ function isPlaceOpenNow(openingHours, businessStatus) {
 async function geocodeLocationName(name) {
   if (!name) return null
   try {
-    const { rows } = await searchExternalProviders(name, { limit: 5 })
-    const first = rows.find((r) => Number.isFinite(parseFloat(r.lat)))
-    if (!first) return null
-    const lat = parseFloat(first.lat)
-    const lng = parseFloat(first.lon ?? first.lng)
-    return {
-      lat,
-      lng,
-      name: first.display_name || first.displayName || first.name || name,
+    const { rows } = await searchExternalProviders(name, { limit: 20 })
+    const pts = rows
+      .map((r) => ({
+        lat: parseFloat(r.lat),
+        lng: parseFloat(r.lon ?? r.lng),
+        name: r.display_name || r.displayName || r.name || name,
+      }))
+      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
+    if (!pts.length) return null
+
+    // Multiple places can share a name (e.g. "Mangaluru" exists in Koppal,
+    // Shimoga AND the coastal city). Prefer exact-name matches, then pick the
+    // candidate with the most siblings clustered nearby — that is almost always
+    // the prominent town/city the user means.
+    const term = String(name).trim().toLowerCase()
+    const exact = pts.filter((p) => String(p.name).trim().toLowerCase() === term)
+    const candidates = exact.length ? exact : pts
+
+    let best = candidates[0]
+    let bestScore = -1
+    for (const c of candidates) {
+      let score = 0
+      for (const p of pts) {
+        if (haversineMeters(c.lat, c.lng, p.lat, p.lng) <= 25000) score += 1
+      }
+      if (score > bestScore) {
+        bestScore = score
+        best = c
+      }
     }
+    return { lat: best.lat, lng: best.lng, name: best.name }
   } catch {
     return null
   }
 }
 
-function buildExternalSearchQuery(intent, originalQuery) {
+function buildExternalSearchQuery(intent, originalQuery, origin) {
+  const cats = wantedCategories(intent)
+  const label = cats.length === 1 ? cats[0] : cats.length > 1 ? cats.join(' ') : null
+  if (origin && label) {
+    return `${label} ${origin.lat.toFixed(4)},${origin.lng.toFixed(4)}`
+  }
   const parts = []
-  if (intent.category) parts.push(intent.category)
+  if (label) parts.push(label)
   if (intent.locationName) parts.push(intent.locationName)
-  if (intent.filters?.nearby) parts.push('near me')
+  if (intent.filters?.nearby && !origin) parts.push('near me')
   const built = parts.join(' ').trim()
   return built.length >= 2 ? built : String(originalQuery || '').trim()
+}
+
+function externalSearchQueries(intent, query, origin) {
+  const cats = wantedCategories(intent)
+  const labels = cats.length ? cats : ['places']
+  const loc = intent.locationName ? String(intent.locationName).trim() : null
+  const queries = new Set()
+
+  // The external provider (umnaapp.in/search) matches by place NAME only and
+  // ignores lat/lon. So build queries that actually return rows:
+  //   - bare category keywords ("hospital", "clinic", "nursing home") → broad,
+  //     filtered later by distance / location token
+  //   - "<location> <category>" and "<category> <location>" combos
+  //   - the location name itself ("mangalore") → area places, filtered by category
+  for (const label of labels) {
+    queries.add(label)
+    for (const kw of categoryKeywordsFor(label).slice(0, 4)) queries.add(kw)
+    if (loc) {
+      queries.add(`${loc} ${label}`)
+      queries.add(`${label} ${loc}`)
+    }
+  }
+  if (loc) queries.add(loc)
+
+  queries.add(buildExternalSearchQuery(intent, query, origin))
+  const stripped = String(query || '')
+    .replace(/\b\d+(?:\.\d+)?\s*km\b/gi, '')
+    .replace(/\b(?:olage|olagiruva|olaga|iddaru|near me|nearby)\b/gi, '')
+    .trim()
+  if (stripped.length >= 2) queries.add(stripped)
+  return [...queries].filter((q) => q.length >= 2)
+}
+
+/** Does an external row belong to the named location (e.g. "mangalore")? */
+function externalRowMatchesLocation(row, locationName) {
+  const term = String(locationName || '').trim().toLowerCase()
+  if (!term) return true
+  const addr = row.address || {}
+  const hay = [
+    row.display_name,
+    row.displayName,
+    row.name,
+    row.taluk,
+    row.district,
+    row.state,
+    addr.village,
+    addr.town,
+    addr.suburb,
+    addr.county,
+    addr.state_district,
+    addr.city,
+    addr.municipality,
+    addr.state,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  if (hay.includes(term)) return true
+  // "mangalore" vs "Mangaluru taluk" — match on a 5+ char prefix.
+  const prefix = term.slice(0, 6)
+  return prefix.length >= 5 && hay.includes(prefix)
+}
+
+function externalRowMatchesCategory(row, intent) {
+  const cats = wantedCategories(intent)
+  if (!cats.length) return true
+  const hay = [
+    row.display_name,
+    row.displayName,
+    row.name,
+    row.type,
+    row.category,
+    row.class,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  return hayMatchesCategories(hay, cats)
+}
+
+function inferCategoryFromExternalRow(row, fallback = 'Other') {
+  const hay = [
+    row.display_name,
+    row.displayName,
+    row.name,
+    row.type,
+    row.category,
+    row.class,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .toLowerCase()
+  if (/\bhotel|lodge|resort|inn\b/.test(hay)) return 'Hotel'
+  if (/\batm\b/.test(hay)) return 'ATM'
+  if (/\brestaurant|cafe|food\b/.test(hay)) return 'Restaurant'
+  if (/\bhospital|clinic\b/.test(hay)) return 'Hospital'
+  if (/\bpharmacy|chemist\b/.test(hay)) return 'Pharmacy'
+  if (/\btemple|masjid|mosque|church\b/.test(hay)) return 'Temple'
+  return fallback
 }
 
 function mapExternalRowToAskPlace(row, intent, origin) {
@@ -221,12 +538,17 @@ function mapExternalRowToAskPlace(row, intent, origin) {
   const distanceMeters =
     origin != null ? haversineMeters(origin.lat, origin.lng, lat, lng) : null
   const addr = row.address || {}
+  const category =
+    intent.category ||
+    (Array.isArray(intent.categories) && intent.categories.length === 1
+      ? intent.categories[0]
+      : inferCategoryFromExternalRow(row, 'Other'))
   return {
     id: String(row.place_id ?? row.osm_id ?? `ext-${lat.toFixed(5)}-${lng.toFixed(5)}`),
     name: displayName,
     place_name_en: displayName,
     place_name_local: null,
-    category: intent.category || 'Other',
+    category,
     latitude: lat,
     longitude: lng,
     rating: null,
@@ -243,81 +565,154 @@ function coordKey(lat, lng) {
   return `${Number(lat).toFixed(5)}-${Number(lng).toFixed(5)}`
 }
 
-async function supplementWithExternalPlaces(limited, { intent, query, origin, radiusKm }) {
-  const minWanted = Math.min(5, intent.limit)
-  if (limited.length >= minWanted) {
-    return { places: limited, externalCount: 0 }
+function sortAskPlaces(list, { intent, origin }) {
+  const sorted = [...list]
+  if (intent.sortBy === 'rating') {
+    sorted.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  } else if (origin) {
+    sorted.sort((a, b) => (a.distanceMeters ?? 1e12) - (b.distanceMeters ?? 1e12))
   }
+  return sorted
+}
 
-  const searchQ = buildExternalSearchQuery(intent, query)
-  if (searchQ.length < 2) return { places: limited, externalCount: 0 }
+/**
+ * Always query the external (OpenStreetMap / umnaapp.in) geocoders and merge
+ * their results with the DB (umnaapp) places, so PlaceFinder returns combined
+ * results from both sources — not only when the DB list is short.
+ */
+async function mergeWithExternalPlaces(dbPlaces, { intent, query, origin, radiusKm }) {
+  const queries = externalSearchQueries(intent, query, origin)
+  const effectiveRadiusKm = radiusKm ?? (intent.locationName ? 35 : null)
+  const fetchLimit = Math.max(intent.limit, 20)
+  const locationName = intent.locationName ? String(intent.locationName).trim() : null
+  const maxM = origin && effectiveRadiusKm != null ? effectiveRadiusKm * 1000 : null
 
-  const { rows } = await searchExternalProviders(searchQ, { limit: intent.limit })
-  if (!rows.length) return { places: limited, externalCount: 0 }
+  const osmExtras = []
+  const httpExtras = []
 
-  const seen = new Set(limited.map((p) => coordKey(p.latitude, p.longitude)))
-  const extras = []
+  for (const searchQ of queries.length ? queries : [query]) {
+    if (osmExtras.length + httpExtras.length >= fetchLimit) break
 
-  for (const row of rows) {
-    const mapped = mapExternalRowToAskPlace(row, intent, origin)
-    const key = coordKey(mapped.latitude, mapped.longitude)
-    if (seen.has(key)) continue
-    seen.add(key)
+    const [osmRows, { rows: httpRows }] = await Promise.all([
+      searchOsmByName(searchQ, {
+        limit: fetchLimit,
+        lat: origin?.lat,
+        lng: origin?.lng,
+        radiusKm: effectiveRadiusKm,
+      }),
+      searchExternalProviders(searchQ, {
+        limit: fetchLimit,
+        lat: origin?.lat,
+        lng: origin?.lng,
+        radiusKm: effectiveRadiusKm,
+      }),
+    ])
 
-    if (origin && radiusKm != null) {
-      const maxM = radiusKm * 1000
-      if (mapped.distanceMeters != null && mapped.distanceMeters > maxM) continue
+    for (const row of osmRows) {
+      if (!externalRowMatchesCategory({ name: row.name, category: row.category }, intent)) continue
+      const mapped = mapOsmToAskPlace(row, origin, haversineMeters)
+      if (locationName) {
+        const tokenOk = externalRowMatchesLocation({ name: row.name, display_name: row.name }, locationName)
+        const distOk = maxM != null && mapped.distanceMeters != null && mapped.distanceMeters <= maxM
+        if (!tokenOk && !distOk) continue
+      } else if (maxM != null) {
+        if (mapped.distanceMeters == null || mapped.distanceMeters > maxM) continue
+      }
+      osmExtras.push(mapped)
+      if (osmExtras.length >= fetchLimit) break
     }
 
-    if (intent.category && (intent.locationType === 'near_me' || intent.filters?.nearby)) {
-      const cat = intent.category.toLowerCase()
-      const hay = `${mapped.name} ${mapped.category}`.toLowerCase()
-      const aliasHit = Object.entries(CATEGORY_ALIASES).some(
-        ([alias, canon]) => canon === intent.category && hay.includes(alias)
+    for (const row of httpRows) {
+      if (!externalRowMatchesCategory(row, intent)) continue
+      const mapped = mapExternalToAskPlace(
+        { ...row, category: inferCategoryFromExternalRow(row, intent.category || 'Other') },
+        intent,
+        origin,
+        haversineMeters
       )
-      if (!hay.includes(cat) && !aliasHit) continue
+      if (locationName) {
+        const tokenOk = externalRowMatchesLocation(row, locationName)
+        const distOk = maxM != null && mapped.distanceMeters != null && mapped.distanceMeters <= maxM
+        if (!tokenOk && !distOk) continue
+      } else if (maxM != null) {
+        if (mapped.distanceMeters == null || mapped.distanceMeters > maxM) continue
+      }
+      httpExtras.push(mapped)
+      if (httpExtras.length >= fetchLimit) break
     }
-
-    extras.push(mapped)
-    if (limited.length + extras.length >= intent.limit) break
   }
 
-  const merged = [...limited, ...extras].slice(0, intent.limit)
-  return { places: merged, externalCount: extras.length }
+  const merged = dedupePlaces([
+    { places: dbPlaces, priority: 100 },
+    { places: osmExtras, priority: 50 },
+    { places: httpExtras, priority: 30 },
+  ])
+
+  const sorted = sortAskPlaces(merged, { intent, origin }).slice(0, intent.limit)
+  const externalCount = sorted.filter(
+    (p) => p.source === PLACE_SOURCES.EXTERNAL || p.source === PLACE_SOURCES.OSM
+  ).length
+  return { places: sorted, externalCount }
 }
 
 function buildLocationTextFilter(locationName) {
   const term = String(locationName || '').trim()
   if (!term) return null
-  return {
-    OR: [
-      { village: { contains: term, mode: 'insensitive' } },
-      { taluk: { contains: term, mode: 'insensitive' } },
-      { district: { contains: term, mode: 'insensitive' } },
-      { state: { contains: term, mode: 'insensitive' } },
-      { fullAddress: { contains: term, mode: 'insensitive' } },
-      { vicinity: { contains: term, mode: 'insensitive' } },
-      { name: { contains: term, mode: 'insensitive' } },
-      { placeNameEn: { contains: term, mode: 'insensitive' } },
-    ],
+  // Match common spelling variants (e.g. "Mangalore" ↔ "Mangaluru") via a
+  // shared prefix so DB rows stored under either form are found.
+  const terms = new Set([term])
+  if (term.length >= 6) terms.add(term.slice(0, 6))
+  const fields = [
+    'village',
+    'taluk',
+    'district',
+    'state',
+    'fullAddress',
+    'vicinity',
+    'name',
+    'placeNameEn',
+  ]
+  const or = []
+  for (const t of terms) {
+    for (const field of fields) {
+      or.push({ [field]: { contains: t, mode: 'insensitive' } })
+    }
   }
+  return { OR: or }
+}
+
+function firstPhotoUrl(googlePhotos) {
+  if (!Array.isArray(googlePhotos) || !googlePhotos.length) return null
+  const first = googlePhotos[0]
+  if (typeof first === 'string') return first
+  return first?.url ?? null
 }
 
 function serializeAskPlace(p, extra = {}) {
+  const thumb = firstPhotoUrl(p.googlePhotos)
   const base = enrichPlaceApprovalMeta({
     ...p,
     name: p.placeNameEn ?? p.name,
     place_name_en: p.placeNameEn ?? p.name,
     place_name_local: p.placeNameLocal,
+    phone: p.phone ?? null,
+    website: p.website ?? null,
+    description: p.description ?? null,
+    full_address: p.fullAddress ?? null,
+    opening_hours: p.openingHours ?? null,
+    business_status: p.businessStatus ?? null,
+    review_count: p.reviewCount ?? null,
+    google_photos: p.googlePhotos ?? null,
+    thumbnail_url: thumb,
   })
   return { ...base, ...extra }
 }
 
 /**
- * Run Ask Maps: parse query, fetch DB places, return ranked results.
+ * Run PlaceFinder: parse query, fetch DB places, return ranked results.
  */
 export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
-  const intent = await parseIntentWithGroq(query)
+  const intent = enrichIntentFromQuery(await parseIntentWithGroq(query), query)
 
   let origin = null
   let center = null
@@ -346,11 +741,39 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     intent.radiusKm ??
     (intent.locationType === 'near_me' || intent.filters.nearby ? 5 : null)
 
+  if (radiusKm != null && !origin && Number.isFinite(userLat) && Number.isFinite(userLng)) {
+    origin = { lat: userLat, lng: userLng }
+    center = { lat: userLat, lng: userLng, name: 'Your location' }
+  }
+
+  if (radiusKm != null && !origin) {
+    return {
+      interpretation: `${intent.summary} (location required for distance search)`,
+      intent: {
+        category: intent.category,
+        categories: intent.categories,
+        locationType: intent.locationType,
+        locationName: intent.locationName,
+        radiusKm,
+        filters: intent.filters,
+        sortBy: intent.sortBy,
+      },
+      places: [],
+      center,
+      count: 0,
+      aiEnabled: Boolean((process.env.GROQ_API_KEY || '').trim()),
+    }
+  }
+
   const whereParts = [placePublicVisibilityOr(viewerId)]
 
-  if (intent.category) {
-    whereParts.push({ category: { equals: intent.category, mode: 'insensitive' } })
-  }
+  const useRelaxedCategory = Boolean(
+    origin && radiusKm != null && (intent.category || intent.categories?.length)
+  )
+  const categoryFilter = buildCategoryFilter(intent.category, intent.categories, {
+    relaxed: useRelaxedCategory,
+  })
+  if (categoryFilter) whereParts.push(categoryFilter)
 
   if (intent.locationType === 'named' && intent.locationName) {
     const locFilter = buildLocationTextFilter(intent.locationName)
@@ -382,8 +805,26 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     select: PLACE_SELECT,
   })
 
+  // Radius + category: if strict/relaxed query still empty, scan all places in bbox
+  const hasCategoryFilter = Boolean(intent.category || intent.categories?.length)
+  if (rows.length === 0 && hasCategoryFilter && origin && radiusKm != null) {
+    const delta = radiusKmToDelta(radiusKm)
+    rows = await prisma.place.findMany({
+      where: {
+        AND: [
+          placePublicVisibilityOr(viewerId),
+          { latitude: { gte: origin.lat - delta, lte: origin.lat + delta } },
+          { longitude: { gte: origin.lng - delta, lte: origin.lng + delta } },
+        ],
+      },
+      take: 500,
+      select: PLACE_SELECT,
+    })
+    rows = rows.filter((row) => placeMatchesCategoryIntent(row, intent))
+  }
+
   // Named area + category often over-filters (0 rows); retry location-only in DB
-  if (rows.length === 0 && intent.category && intent.locationType === 'named' && intent.locationName) {
+  if (rows.length === 0 && hasCategoryFilter && intent.locationType === 'named' && intent.locationName) {
     const relaxedParts = [placePublicVisibilityOr(viewerId)]
     const locFilter = buildLocationTextFilter(intent.locationName)
     if (locFilter) relaxedParts.push(locFilter)
@@ -401,8 +842,8 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     })
   }
 
-  // Last DB fallback: match words from the user's question
-  if (rows.length === 0 && String(query || '').trim().length >= 2) {
+  // Last DB fallback: match words from the user's question (skip when radius search — avoids far-away matches)
+  if (rows.length === 0 && radiusKm == null && String(query || '').trim().length >= 2) {
     const q = String(query).trim().slice(0, 120)
     rows = await prisma.place.findMany({
       where: {
@@ -433,9 +874,15 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     return { row: p, distanceMeters }
   })
 
+  if (hasCategoryFilter) {
+    places = places.filter(({ row }) => placeMatchesCategoryIntent(row, intent))
+  }
+
   if (origin && radiusKm != null) {
     const maxM = radiusKm * 1000
-    places = places.filter((x) => x.distanceMeters == null || x.distanceMeters <= maxM)
+    places = places.filter(
+      (x) => x.distanceMeters != null && Number.isFinite(x.distanceMeters) && x.distanceMeters <= maxM
+    )
   }
 
   if (intent.filters.openNow) {
@@ -457,35 +904,50 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     places.sort((a, b) => (a.distanceMeters ?? 1e12) - (b.distanceMeters ?? 1e12))
   }
 
-  let limited = places.slice(0, intent.limit).map(({ row, distanceMeters }) =>
-    serializeAskPlace(row, {
-      distanceMeters: distanceMeters != null ? Math.round(distanceMeters) : null,
-    })
-  )
+  // Serialize a generous slice of DB matches so external results can be merged
+  // and re-ranked together; the merge step applies the final intent.limit.
+  const dbPlaces = places
+    .slice(0, Math.max(intent.limit, 50))
+    .map(({ row, distanceMeters }) =>
+      serializeAskPlace(row, {
+        distanceMeters: distanceMeters != null ? Math.round(distanceMeters) : null,
+      })
+    )
 
+  let limited = dbPlaces.slice(0, intent.limit)
   let externalCount = 0
   try {
-    const supplemented = await supplementWithExternalPlaces(limited, {
+    const merged = await mergeWithExternalPlaces(dbPlaces, {
       intent,
       query,
       origin,
       radiusKm,
     })
-    limited = supplemented.places
-    externalCount = supplemented.externalCount
+    limited = merged.places
+    externalCount = merged.externalCount
   } catch (extErr) {
-    console.warn('Ask Maps external supplement failed:', extErr.message)
+    console.warn('PlaceFinder external merge failed:', extErr.message)
   }
 
+  const finalExternalCount = limited.filter(
+    (p) => p.source === PLACE_SOURCES.EXTERNAL || p.source === PLACE_SOURCES.OSM
+  ).length
+  const finalDbCount = limited.length - finalExternalCount
+  externalCount = finalExternalCount
   let interpretation = intent.summary
-  if (externalCount > 0 && limited.length > 0) {
-    interpretation = `${intent.summary} (includes ${externalCount} web result${externalCount === 1 ? '' : 's'})`
+  if (finalExternalCount > 0 && finalDbCount > 0) {
+    interpretation = `${intent.summary} (${finalDbCount} from UmnaApp + ${finalExternalCount} from OpenStreetMap)`
+  } else if (finalExternalCount > 0) {
+    interpretation = `${intent.summary} (${finalExternalCount} from OpenStreetMap)`
+  } else if (finalDbCount > 0) {
+    interpretation = `${intent.summary} (${finalDbCount} from UmnaApp)`
   }
 
   return {
     interpretation,
     intent: {
       category: intent.category,
+      categories: intent.categories,
       locationType: intent.locationType,
       locationName: intent.locationName,
       radiusKm,

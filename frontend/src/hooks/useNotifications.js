@@ -2,24 +2,44 @@ import { useCallback, useEffect, useState } from 'react'
 import api from '../services/api'
 import { useSocket } from '../contexts/SocketContext'
 
-export function useNotifications({ enabled = true } = {}) {
+export function useNotifications({ enabled = true, limit = 50 } = {}) {
   const { socket } = useSocket()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+  const [nextCursor, setNextCursor] = useState(null)
+  const [loadingMore, setLoadingMore] = useState(false)
 
   const fetchNotifications = useCallback(async () => {
     if (!enabled) return
     try {
       setError(null)
-      const { data } = await api.get('/notifications', { params: { limit: 50 } })
+      const { data } = await api.get('/notifications', { params: { limit } })
       setNotifications(data.notifications || [])
       setUnreadCount(data.unreadCount ?? 0)
+      setNextCursor(data.nextCursor ?? null)
     } catch (err) {
       setError(err.response?.data?.error || err.message || 'Failed to load notifications')
     }
-  }, [enabled])
+  }, [enabled, limit])
+
+  const loadMore = useCallback(async () => {
+    if (!enabled || !nextCursor || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const { data } = await api.get('/notifications', { params: { limit, cursor: nextCursor } })
+      setNotifications((prev) => {
+        const seen = new Set(prev.map((n) => n.id))
+        return [...prev, ...(data.notifications || []).filter((n) => !seen.has(n.id))]
+      })
+      setNextCursor(data.nextCursor ?? null)
+    } catch {
+      /* ignore pagination errors */
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [enabled, limit, nextCursor, loadingMore])
 
   useEffect(() => {
     if (!enabled) {
@@ -74,13 +94,33 @@ export function useNotifications({ enabled = true } = {}) {
     setUnreadCount(0)
   }, [])
 
+  const remove = useCallback(async (id) => {
+    const { data } = await api.delete(`/notifications/${id}`)
+    setNotifications((prev) => prev.filter((n) => n.id !== id))
+    if (typeof data?.unreadCount === 'number') {
+      setUnreadCount(data.unreadCount)
+    }
+  }, [])
+
+  const clearAll = useCallback(async () => {
+    await api.delete('/notifications')
+    setNotifications([])
+    setUnreadCount(0)
+    setNextCursor(null)
+  }, [])
+
   return {
     notifications,
     unreadCount,
     loading,
     error,
+    nextCursor,
+    loadingMore,
     markRead,
     markAllRead,
+    remove,
+    clearAll,
+    loadMore,
     refresh: fetchNotifications,
   }
 }

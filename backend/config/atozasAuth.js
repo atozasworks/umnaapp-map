@@ -303,13 +303,17 @@ const atozasAuth = {
       if (!otpRecord) {
         return { success: false, error: 'Invalid or expired OTP' }
       }
-      
-      // Compare OTP (plain text comparison since we store plain OTP in Prisma)
-      if (otpRecord.otp !== otp) {
+
+      // OTPs are stored bcrypt-hashed. Legacy rows may still hold plaintext
+      // (in-flight before this change) — accept those during the transition.
+      const stored = otpRecord.otp || ''
+      const looksHashed = stored.startsWith('$2')
+      const matches = looksHashed ? await compareOtp(otp, stored) : stored === otp
+      if (!matches) {
         return { success: false, error: 'Invalid OTP' }
       }
-      
-      return { success: true }
+
+      return { success: true, otpRecordId: otpRecord.id }
     } catch (error) {
       console.error('Atozas OTP verification error:', error)
       return { success: false, error: error.message }

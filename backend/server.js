@@ -17,11 +17,19 @@ import mapRoutes from './routes/mapRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
+import userRoutes from './routes/userRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
+import itineraryRoutes from './routes/itineraryRoutes.js'
+import { itineraryRoom } from './services/itineraryService.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
+import { validateAdminSecretOrExit } from './middleware/adminAuth.js'
+import { rateLimitMiddleware } from './middleware/rateLimit.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
 import { setIo } from './lib/socketIo.js'
+
+// Fail fast on a weak/guessable ADMIN_SECRET before binding the port.
+validateAdminSecretOrExit()
 
 const defaultOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -57,14 +65,16 @@ app.use(express.urlencoded({ extended: true, limit: '5mb' }))
 app.use(passport.initialize())
 
 // Routes
-app.use('/api/auth', authRoutes)
+app.use('/api/auth', rateLimitMiddleware('auth', 40, 60), authRoutes)
 app.use('/api', atozasAuthRoutes) // Atozas Auth Kit routes (/api/email/send-otp, /api/email/verify-otp, /api/me)
 app.use('/api/test', testRoutes)
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
-app.use('/api/notifications', notificationRoutes)
+app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)
+app.use('/api/users', userRoutes) // Public profiles + My Contributions center
 app.use('/api/feedback', feedbackRoutes)
+app.use('/api/itineraries', itineraryRoutes) // Co-Edited Group Itineraries
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -266,6 +276,38 @@ io.on('connection', async (socket) => {
     } catch (error) {
       console.error('Get vehicles error:', error)
       socket.emit('error', { message: 'Failed to fetch vehicles' })
+    }
+  })
+
+  // Co-Edited Group Itineraries: join a trip room for live collaboration.
+  // Membership is verified before joining so updates only reach trip members.
+  socket.on('itinerary:join', async (data) => {
+    const itineraryId = data?.itineraryId
+    if (!itineraryId) return socket.emit('error', { message: 'Itinerary ID required' })
+    try {
+      const itinerary = await prisma.itinerary.findFirst({
+        where: {
+          id: itineraryId,
+          OR: [{ ownerId: socket.userId }, { members: { some: { userId: socket.userId } } }],
+        },
+        select: { id: true },
+      })
+      if (!itinerary) {
+        return socket.emit('error', { message: 'Itinerary not found or access denied' })
+      }
+      socket.join(itineraryRoom(itineraryId))
+      socket.emit('itinerary:joined', { itineraryId })
+    } catch (err) {
+      console.error('itinerary:join error', err)
+      socket.emit('error', { message: 'Failed to join itinerary room' })
+    }
+  })
+
+  socket.on('itinerary:leave', (data) => {
+    const itineraryId = data?.itineraryId
+    if (itineraryId) {
+      socket.leave(itineraryRoom(itineraryId))
+      socket.emit('itinerary:left', { itineraryId })
     }
   })
 

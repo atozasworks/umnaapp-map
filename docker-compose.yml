@@ -27,10 +27,10 @@ services:
     image: maptiler/tileserver-gl:latest
     container_name: maptest-tileserver
     ports:
-      - "${TILESERVER_PORT:-8080}:80"
+      - "127.0.0.1:${TILESERVER_PORT:-8080}:8080"
     volumes:
-      - ./tiles:/data/tiles:ro
-      - ./tileserver-config.json:/data/config.json:ro
+      - ./tiles:/data:ro
+    command: ["--config", "/data/config.json"]
     networks:
       - maptest-network
     depends_on:
@@ -38,7 +38,7 @@ services:
     environment:
       - TILESERVER_HTTP_HOST=0.0.0.0
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -106,7 +106,7 @@ services:
       - PORT=5000
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-maptest}
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - TILESERVER_URL=http://tileserver:80
+      - TILESERVER_URL=http://tileserver:8080
       - OSRM_URL=http://osrm:5000
       - NOMINATIM_URL=http://nominatim:8080
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}

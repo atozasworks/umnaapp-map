@@ -130,6 +130,7 @@ exports.Prisma.UserScalarFieldEnum = {
   googleId: 'googleId',
   picture: 'picture',
   emailVerified: 'emailVerified',
+  profilePublic: 'profilePublic',
   lastGridExtractAt: 'lastGridExtractAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
@@ -144,6 +145,18 @@ exports.Prisma.NotificationScalarFieldEnum = {
   data: 'data',
   read: 'read',
   createdAt: 'createdAt'
+};
+
+exports.Prisma.NotificationPreferenceScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  pushEnabled: 'pushEnabled',
+  placeApproved: 'placeApproved',
+  placeAdded: 'placeAdded',
+  festival: 'festival',
+  businessClaim: 'businessClaim',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.PushSubscriptionScalarFieldEnum = {
@@ -259,6 +272,12 @@ exports.Prisma.PlaceScalarFieldEnum = {
   googlePhotos: 'googlePhotos',
   mapRenderingConfig: 'mapRenderingConfig',
   extractedAt: 'extractedAt',
+  festivalStartDate: 'festivalStartDate',
+  festivalEndDate: 'festivalEndDate',
+  festivalRecurrence: 'festivalRecurrence',
+  festivalNotifiedAt: 'festivalNotifiedAt',
+  claimedById: 'claimedById',
+  claimVerifiedAt: 'claimVerifiedAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -297,6 +316,105 @@ exports.Prisma.PlacePhotoScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.BusinessClaimScalarFieldEnum = {
+  id: 'id',
+  placeId: 'placeId',
+  userId: 'userId',
+  userName: 'userName',
+  contactEmail: 'contactEmail',
+  contactPhone: 'contactPhone',
+  role: 'role',
+  message: 'message',
+  status: 'status',
+  reviewNote: 'reviewNote',
+  reviewedById: 'reviewedById',
+  reviewedAt: 'reviewedAt',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlaceLabelScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  placeId: 'placeId',
+  label: 'label',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.PlaceAuditScalarFieldEnum = {
+  id: 'id',
+  placeId: 'placeId',
+  action: 'action',
+  actorType: 'actorType',
+  actorId: 'actorId',
+  actorName: 'actorName',
+  changes: 'changes',
+  snapshot: 'snapshot',
+  note: 'note',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItineraryScalarFieldEnum = {
+  id: 'id',
+  title: 'title',
+  description: 'description',
+  ownerId: 'ownerId',
+  shareToken: 'shareToken',
+  coverEmoji: 'coverEmoji',
+  startDate: 'startDate',
+  endDate: 'endDate',
+  autoSort: 'autoSort',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ItineraryMemberScalarFieldEnum = {
+  id: 'id',
+  itineraryId: 'itineraryId',
+  userId: 'userId',
+  role: 'role',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItineraryStopScalarFieldEnum = {
+  id: 'id',
+  itineraryId: 'itineraryId',
+  placeId: 'placeId',
+  name: 'name',
+  category: 'category',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  address: 'address',
+  notes: 'notes',
+  position: 'position',
+  dayIndex: 'dayIndex',
+  addedById: 'addedById',
+  addedByName: 'addedByName',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.ItineraryCommentScalarFieldEnum = {
+  id: 'id',
+  stopId: 'stopId',
+  userId: 'userId',
+  userName: 'userName',
+  body: 'body',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.ItineraryVoteScalarFieldEnum = {
+  id: 'id',
+  stopId: 'stopId',
+  userId: 'userId',
+  value: 'value',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -327,6 +445,7 @@ exports.Prisma.JsonNullValueFilter = {
 exports.Prisma.ModelName = {
   User: 'User',
   Notification: 'Notification',
+  NotificationPreference: 'NotificationPreference',
   PushSubscription: 'PushSubscription',
   OTPVerification: 'OTPVerification',
   Session: 'Session',
@@ -336,7 +455,15 @@ exports.Prisma.ModelName = {
   Place: 'Place',
   Favorite: 'Favorite',
   PlaceReview: 'PlaceReview',
-  PlacePhoto: 'PlacePhoto'
+  PlacePhoto: 'PlacePhoto',
+  BusinessClaim: 'BusinessClaim',
+  PlaceLabel: 'PlaceLabel',
+  PlaceAudit: 'PlaceAudit',
+  Itinerary: 'Itinerary',
+  ItineraryMember: 'ItineraryMember',
+  ItineraryStop: 'ItineraryStop',
+  ItineraryComment: 'ItineraryComment',
+  ItineraryVote: 'ItineraryVote'
 };
 
 /**

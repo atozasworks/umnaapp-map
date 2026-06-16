@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { useTranslate } from '../lib/i18n'
 import api from '../services/api'
-import { formatAddressSubtitle } from '../utils/formatAddress'
+import { formatSearchSuggestion } from '../utils/formatAddress'
 import { parseQueryFromInput } from '../utils/parseSearchQuery'
 
 const SearchBar = ({
@@ -23,7 +23,7 @@ const SearchBar = ({
   const tSearchFailed = useTranslate('Search failed. Try again.')
   const tNoPlacesFound = useTranslate('No places found')
   const tSearchUnavailable = useTranslate('Geocoding service unavailable. Showing only saved places.')
-  const tAskMaps = useTranslate('Ask Maps')
+  const tPlaceFinder = useTranslate('PlaceFinder')
 
   const [query, setQuery] = useState('')
   const [results, setResults] = useState([])
@@ -117,10 +117,11 @@ const SearchBar = ({
   }, [])
 
   const handleSelect = (result) => {
-    setQuery(result.displayName)
+    const { title } = formatSearchSuggestion(result)
+    setQuery(title)
     setShowResults(false)
     if (onSelect) {
-      onSelect({ lat: result.lat, lng: result.lng, name: result.displayName, placeId: result.placeId })
+      onSelect({ lat: result.lat, lng: result.lng, name: title, placeId: result.placeId })
     }
   }
 
@@ -183,14 +184,14 @@ const SearchBar = ({
           )}
         </div>
 
-        {/* Ask Maps — AI search */}
+        {/* PlaceFinder — AI search */}
         {onAskMaps && (
           <button
             type="button"
             onClick={onAskMaps}
             className="flex-shrink-0 p-2.5 sm:p-2 rounded-full hover:bg-violet-100 active:bg-violet-200 transition-colors min-w-[44px] min-h-[44px] sm:min-w-0 sm:min-h-0 flex items-center justify-center"
-            aria-label={tAskMaps}
-            title={tAskMaps}
+            aria-label={tPlaceFinder}
+            title={tPlaceFinder}
           >
             <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -239,10 +240,16 @@ const SearchBar = ({
                   onClick={() => handleSelect(result)}
                   className="flex-1 min-w-0 text-left hover:bg-white/40 active:bg-white/50 transition-colors rounded-lg -m-1 p-1 flex flex-col"
                 >
-                  <div className="font-medium text-slate-700 truncate">{result.displayName}</div>
-                  {result.address && (() => {
-                    const line2 = formatAddressSubtitle(result.address) || result.address.road || result.address.city || result.address.state || result.address.country
-                    return line2 ? <div className="text-xs text-slate-500 truncate mt-0.5">{line2}</div> : null
+                  {(() => {
+                    const { title, subtitle } = formatSearchSuggestion(result)
+                    return (
+                      <>
+                        <div className="font-medium text-slate-700 truncate">{title}</div>
+                        {subtitle ? (
+                          <div className="text-xs text-slate-500 truncate mt-0.5">{subtitle}</div>
+                        ) : null}
+                      </>
+                    )
                   })()}
                 </button>
                 <button

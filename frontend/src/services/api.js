@@ -16,7 +16,7 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`
     }
     // OTP send endpoints - SMTP can be slow, allow 45s
-    const otpUrls = ['/auth/login', '/auth/register', '/email/send-otp']
+    const otpUrls = ['/auth/login', '/auth/register', '/auth/resend-otp', '/email/send-otp']
     if (otpUrls.some((u) => (config.url || '').includes(u))) {
       config.timeout = 45000
     }

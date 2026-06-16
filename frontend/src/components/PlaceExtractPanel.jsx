@@ -28,8 +28,9 @@ import {
   withMapRenderingConfig,
   downloadPlacesExport,
 } from '../utils/mapRenderingConfig'
+import { categoryFieldsFromGooglePlace } from '../utils/googlePlaceCategory'
 import GridExtractCompleteModal from './GridExtractCompleteModal.jsx'
-import { pointInRing, ringBBox } from '../utils/polygonGeo'
+import { pointInRing, ringBBox, ringBBoxAreaKm2 } from '../utils/polygonGeo'
 import {
   AREA_SHAPE_TOOLS,
   areaShapeHint,
@@ -38,6 +39,7 @@ import {
 } from '../utils/areaShapeDrawing'
 
 const GRID_EXTRACT_MAX_PLACES_DEFAULT = 20
+const EXTRACT_MAX_AREA_KM2_DEFAULT = 9
 const AREA_GRID_SIZE_DEFAULT = 3
 
 function formatAddToMapStatus(bulkResult, fallbackCount) {
@@ -49,9 +51,92 @@ function formatAddToMapStatus(bulkResult, fallbackCount) {
   return `Added ${added} place(s) to the map!`
 }
 
+function addToMapSucceeded(bulkResult) {
+  if ((bulkResult?.added ?? 0) > 0) return true
+  return Array.isArray(bulkResult?.places) && bulkResult.places.length > 0
+}
+
 const GRID_OPTIONS = [
   { value: 2, label: 'Low (2×2 grid)' },
 ]
+
+const EXTRACT_METHODS = [
+  {
+    id: 'grid',
+    label: 'Grid',
+    description: 'Load region & scan cells',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4H5a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2V6a2 2 0 00-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 4h-4a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2V6a2 2 0 00-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14H5a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2v-4a2 2 0 00-2-2z" />
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14h-4a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2v-4a2 2 0 00-2-2z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'search',
+    label: 'Search',
+    description: 'Find places by name',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+      </svg>
+    ),
+  },
+  {
+    id: 'area',
+    label: 'Area',
+    description: 'Draw a shape on the map',
+    icon: (
+      <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16M4 5l4 14h8l4-14M4 5l2-2m14 2l-2-2" />
+      </svg>
+    ),
+  },
+]
+
+const GRID_TYPED_PLACE_TYPES = ['establishment', 'locality', 'sublocality', 'neighborhood']
+
+function boundsSearchRadius(bounds) {
+  const center = bounds.getCenter()
+  const ne = bounds.getNorthEast()
+  const lat1 = (center.lat() * Math.PI) / 180
+  const lat2 = (ne.lat() * Math.PI) / 180
+  const dLat = lat2 - lat1
+  const dLng = ((ne.lng() - center.lng()) * Math.PI) / 180
+  const a =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  const meters = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+  return { location: center, radius: Math.min(Math.max(Math.ceil(meters), 200), 50000) }
+}
+
+function formatGridExtractStatus(finalCount, locationString, maxPlaces, cacheHits) {
+  const cacheNote = cacheHits > 0 ? ` · ${cacheHits} cached cell(s)` : ''
+  if (finalCount === 0) {
+    return `No places found in ${locationString}. Try a broader area or zoom in closer.${cacheNote}`
+  }
+  const cappedNote = finalCount >= maxPlaces ? ` (max ${maxPlaces})` : ''
+  return `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'} in ${locationString}${cappedNote}${cacheNote}.`
+}
+
+function buildNearbyExtractDraft(place, placeType, regionContext, map) {
+  const { category, type, types } = categoryFieldsFromGooglePlace(place, placeType)
+  return withMapRenderingConfig(
+    {
+      name: place.name,
+      lat: place.geometry.location.lat(),
+      lng: place.geometry.location.lng(),
+      place_id: place.place_id,
+      category,
+      type,
+      types,
+      ...regionContext,
+      zoomLevel: map?.getZoom?.(),
+    },
+    { map, place, category }
+  )
+}
 
 const RATE_CONFIG = {
   minDelayBetweenCalls: 350,
@@ -63,6 +148,7 @@ const RATE_CONFIG = {
 let _googleMapsApiKey = null
 let _placesQuotaConfig = null
 let _gridExtractMaxPlaces = GRID_EXTRACT_MAX_PLACES_DEFAULT
+let _extractMaxAreaKm2 = EXTRACT_MAX_AREA_KM2_DEFAULT
 
 async function fetchMapClientConfig() {
   if (_googleMapsApiKey && _placesQuotaConfig) {
@@ -70,16 +156,19 @@ async function fetchMapClientConfig() {
       googleMapsApiKey: _googleMapsApiKey,
       placesQuota: _placesQuotaConfig,
       gridExtractMaxPlaces: _gridExtractMaxPlaces,
+      extractMaxAreaKm2: _extractMaxAreaKm2,
     }
   }
   const { data } = await api.get('/map/config')
   _googleMapsApiKey = data.googleMapsApiKey || ''
   _placesQuotaConfig = mergePlacesQuotaConfig(data.placesQuota)
   _gridExtractMaxPlaces = data.gridExtract?.maxPlaces ?? GRID_EXTRACT_MAX_PLACES_DEFAULT
+  _extractMaxAreaKm2 = data.gridExtract?.maxAreaKm2 ?? EXTRACT_MAX_AREA_KM2_DEFAULT
   return {
     googleMapsApiKey: _googleMapsApiKey,
     placesQuota: _placesQuotaConfig,
     gridExtractMaxPlaces: _gridExtractMaxPlaces,
+    extractMaxAreaKm2: _extractMaxAreaKm2,
   }
 }
 
@@ -163,6 +252,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const [selectAll, setSelectAll] = useState(true)
   const [exportFormat, setExportFormat] = useState('json')
   const [gridExtractMaxPlaces, setGridExtractMaxPlaces] = useState(GRID_EXTRACT_MAX_PLACES_DEFAULT)
+  const [extractMaxAreaKm2, setExtractMaxAreaKm2] = useState(EXTRACT_MAX_AREA_KM2_DEFAULT)
   const [gridExtractStatus, setGridExtractStatus] = useState({
     loading: true,
     canExtract: true,
@@ -170,6 +260,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   })
   const [gridExtractCompleteOpen, setGridExtractCompleteOpen] = useState(false)
   const [gridExtractCompleteCount, setGridExtractCompleteCount] = useState(0)
+  const [gridExtractSlotReleased, setGridExtractSlotReleased] = useState(false)
 
   // Search-based extraction states
   const [searchQuery, setSearchQuery] = useState('')
@@ -272,6 +363,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     try {
       const { data } = await api.get('/map/grid-extract/status')
       setGridExtractMaxPlaces(data.maxPlaces ?? GRID_EXTRACT_MAX_PLACES_DEFAULT)
+      setExtractMaxAreaKm2(data.maxAreaKm2 ?? EXTRACT_MAX_AREA_KM2_DEFAULT)
       setGridExtractStatus({
         loading: false,
         canExtract: data.canExtract !== false,
@@ -284,22 +376,28 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   }, [user?.id])
 
   useEffect(() => {
-    if (!isOpen || extractionMethod !== 'grid') return
+    if (!isOpen) return
     fetchGridExtractStatus()
-  }, [isOpen, extractionMethod, fetchGridExtractStatus])
+  }, [isOpen, fetchGridExtractStatus])
 
-  const gridExtractBlocked =
-    extractionMethod === 'grid' &&
-    (!user?.id || gridExtractStatus.requiresLogin || gridExtractStatus.usedToday || !gridExtractStatus.canExtract)
+  const extractDailyBlocked =
+    !user?.id ||
+    gridExtractStatus.requiresLogin ||
+    gridExtractStatus.usedToday ||
+    !gridExtractStatus.canExtract
+
+  const gridExtractBlocked = extractionMethod === 'grid' && extractDailyBlocked
+  const areaExtractBlocked = extractionMethod === 'area' && extractDailyBlocked
 
   // Load Google Maps + quota config
   useEffect(() => {
     if (!isOpen) return
     let cancelled = false
     fetchMapClientConfig()
-      .then(({ placesQuota, gridExtractMaxPlaces: maxFromConfig }) => {
+      .then(({ placesQuota, gridExtractMaxPlaces: maxFromConfig, extractMaxAreaKm2: maxArea }) => {
         if (cancelled) return
         if (maxFromConfig) setGridExtractMaxPlaces(maxFromConfig)
+        if (maxArea) setExtractMaxAreaKm2(maxArea)
         quotaToolkitRef.current = createPlacesQuotaToolkit(placesQuota, user?.id || 'anonymous')
         rateConfigRef.current = {
           ...RATE_CONFIG,
@@ -325,9 +423,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     return subscribeGoogleApiQuota(setGoogleQuotaStatus)
   }, [isOpen])
 
-  // Init map when loaded
+  // Init grid map when loaded
   useEffect(() => {
-    if (!mapsLoaded || !mapContainerRef.current || mapInstanceRef.current) return
+    if (!mapsLoaded || !isOpen || !mapContainerRef.current || mapInstanceRef.current) return
     const map = new window.google.maps.Map(mapContainerRef.current, {
       center: { lat: 20.5, lng: 78.5 },
       zoom: 4,
@@ -344,7 +442,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       onZoomChange: (z) => setMapZoom(z),
       onIdle: ({ zoom }) => setMapZoom(zoom),
     })
-  }, [mapsLoaded])
+  }, [mapsLoaded, isOpen])
 
   useEffect(() => {
     return () => {
@@ -353,7 +451,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
   }, [])
 
-  // Reflow map when the dialog flex layout gives the container a real size
+  // Reflow grid map when the dialog flex layout gives the container a real size
   useEffect(() => {
     if (!mapsLoaded || !isOpen || !mapInstanceRef.current || !mapContainerRef.current) return
     const map = mapInstanceRef.current
@@ -643,13 +741,25 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   }, [])
 
   const setAreaShapeFromRing = useCallback((ring, overlay) => {
+    const areaKm2 = ringBBoxAreaKm2(ring)
+    if (areaKm2 > extractMaxAreaKm2) {
+      overlay?.setMap?.(null)
+      setAreaShapeReady(false)
+      setAreaStatus(
+        `Selected area is too large (${areaKm2.toFixed(1)} km²). Maximum allowed is ${extractMaxAreaKm2} km² — draw a smaller shape.`
+      )
+      return
+    }
     areaShapeOverlayRef.current?.setMap(null)
     areaShapeOverlayRef.current = overlay
     areaRingRef.current = ring
     setAreaShapeReady(true)
     setAreaPolygonVertices(ring.length > 1 ? ring.length - 1 : ring.length)
     finalizeAreaDrawing()
-  }, [finalizeAreaDrawing])
+    setAreaStatus(
+      `Shape ready (~${areaKm2.toFixed(1)} km²). Tap Extract places to find POIs inside the area.`
+    )
+  }, [finalizeAreaDrawing, extractMaxAreaKm2])
 
   const generateGridFromRing = useCallback((ring, size, map) => {
     const { minLng, maxLng, minLat, maxLat } = ringBBox(ring)
@@ -790,6 +900,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
     if (areaIsExtracting) return
 
+    const areaKm2 = ringBBoxAreaKm2(ring)
+    if (areaKm2 > extractMaxAreaKm2) {
+      setAreaStatus(
+        `Selected area is too large (${areaKm2.toFixed(1)} km²). Maximum is ${extractMaxAreaKm2} km² — draw a smaller shape.`
+      )
+      return
+    }
+
     const map = areaMapInstanceRef.current
     const service = areaServiceRef.current
     const minZoom = quotaToolkitRef.current?.config.minZoomForNearbySearch ?? 14
@@ -799,6 +917,32 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
     if (!canUseGoogleApi()) {
       setAreaStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+      return
+    }
+    if (!user?.id) {
+      setAreaStatus('Please log in to use place extract.')
+      return
+    }
+    if (extractDailyBlocked) {
+      setAreaStatus('You have already used place extract today. You can extract again tomorrow.')
+      return
+    }
+
+    let extractSlotConsumed = false
+    try {
+      const { data } = await api.post('/map/grid-extract/consume')
+      extractSlotConsumed = true
+      if (data.maxPlaces) setGridExtractMaxPlaces(data.maxPlaces)
+      if (data.maxAreaKm2) setExtractMaxAreaKm2(data.maxAreaKm2)
+      setGridExtractStatus({ loading: false, canExtract: false, usedToday: true, requiresLogin: false })
+    } catch (err) {
+      const msg = err.response?.data?.message
+      if (err.response?.status === 429) {
+        setAreaStatus(msg || 'You have already used place extract today. Try again tomorrow.')
+        setGridExtractStatus({ loading: false, canExtract: false, usedToday: true, requiresLogin: false })
+        return
+      }
+      setAreaStatus('Could not start place extract. Please try again.')
       return
     }
 
@@ -811,12 +955,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     areaMarkersRef.current.forEach((m) => m.setMap(null))
     areaMarkersRef.current = []
     stopRequestedRef.current = false
+    setGridExtractSlotReleased(false)
     setAreaIsExtracting(true)
     setAreaProgress(0)
 
     const grid = generateGridFromRing(ring, areaGridSize, map)
-    const placeTypes = ['establishment', 'locality', 'sublocality', 'neighborhood']
-
     for (let cellIdx = 0; cellIdx < grid.length; cellIdx++) {
       if (stopRequestedRef.current) break
       if (areaPlacesArrayRef.current.length >= maxPlaces) {
@@ -837,7 +980,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         areaGridRectsRef.current[cellIdx].setOptions({ fillColor: '#00FF00', fillOpacity: 0.3 })
       }
 
-      for (const placeType of placeTypes) {
+      const countBeforeCell = areaPlacesArrayRef.current.length
+
+      for (const placeType of GRID_TYPED_PLACE_TYPES) {
         if (stopRequestedRef.current) break
         if (areaPlacesArrayRef.current.length >= maxPlaces) {
           stopRequestedRef.current = true
@@ -865,23 +1010,17 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             const lng = place.geometry.location.lng()
             if (!pointInRing(lng, lat, ring)) return
             const name = place.name
-            const pid = place.place_id
-            const draft = withMapRenderingConfig(
+            const draft = buildNearbyExtractDraft(
+              place,
+              placeType,
               {
-                name,
-                lat,
-                lng,
-                place_id: pid,
-                type: place.types?.[0] || placeType,
-                types: place.types,
                 village: areaLocationRef.current.village,
                 district: areaLocationRef.current.district,
                 taluk: areaLocationRef.current.taluk,
                 state: areaLocationRef.current.state,
                 country: areaLocationRef.current.country,
-                zoomLevel: map?.getZoom?.(),
               },
-              { map, place }
+              map
             )
             const exists =
               isDuplicateInSession(areaPlacesArrayRef.current, draft) ||
@@ -892,7 +1031,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               const marker = new window.google.maps.Marker({
                 position: place.geometry.location,
                 map,
-                title: name,
+                title: place.name,
               })
               areaMarkersRef.current.push(marker)
             }
@@ -904,6 +1043,54 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               newPlaces.forEach((p) => next.add(p.name))
               return next
             })
+          }
+        }
+      }
+
+      if (!stopRequestedRef.current && areaPlacesArrayRef.current.length === countBeforeCell) {
+        const untyped = await executeOptimizedNearbySearch({ bounds: grid[cellIdx] }, { map, service })
+        if (untyped?.status !== SKIP_STATUS.QUOTA_EXCEEDED && untyped?.status !== SKIP_STATUS.ZOOM_TOO_LOW) {
+          if (untyped?.results && untyped.status === window.google.maps.places.PlacesServiceStatus.OK) {
+            const newPlaces = []
+            untyped.results.forEach((place) => {
+              if (areaPlacesArrayRef.current.length >= maxPlaces) return
+              const lat = place.geometry.location.lat()
+              const lng = place.geometry.location.lng()
+              if (!pointInRing(lng, lat, ring)) return
+              const draft = buildNearbyExtractDraft(
+                place,
+                'establishment',
+                {
+                  village: areaLocationRef.current.village,
+                  district: areaLocationRef.current.district,
+                  taluk: areaLocationRef.current.taluk,
+                  state: areaLocationRef.current.state,
+                  country: areaLocationRef.current.country,
+                },
+                map
+              )
+              const exists =
+                isDuplicateInSession(areaPlacesArrayRef.current, draft) ||
+                findDuplicateInList(mapPlaces, draft).duplicate
+              if (!exists) {
+                areaPlacesArrayRef.current.push(draft)
+                newPlaces.push(draft)
+                const marker = new window.google.maps.Marker({
+                  position: place.geometry.location,
+                  map,
+                  title: place.name,
+                })
+                areaMarkersRef.current.push(marker)
+              }
+            })
+            if (newPlaces.length > 0) {
+              setAreaExtractedPlaces([...areaPlacesArrayRef.current])
+              setAreaSelectedPlaces((prev) => {
+                const next = new Set(prev)
+                newPlaces.forEach((p) => next.add(p.name))
+                return next
+              })
+            }
           }
         }
       }
@@ -920,8 +1107,29 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     const locNote = getAreaLocationString()
     const cappedNote = finalCount >= maxPlaces ? ` (max ${maxPlaces})` : ''
     setAreaStatus(
-      `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'}${locNote ? ` in ${locNote}` : ' inside the shape'}${cappedNote}.`
+      finalCount === 0
+        ? `No places found${locNote ? ` in ${locNote}` : ' inside the shape'}. Try a larger shape or zoom in closer.`
+        : `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'}${locNote ? ` in ${locNote}` : ' inside the shape'}${cappedNote}.`
     )
+
+    let slotReleased = false
+    if (extractSlotConsumed && finalCount === 0) {
+      try {
+        const { data } = await api.post('/map/grid-extract/release')
+        if (data.released) {
+          slotReleased = true
+          setGridExtractStatus({ loading: false, canExtract: true, usedToday: false, requiresLogin: false })
+        }
+      } catch {
+        /* keep used-today if release fails */
+      }
+    }
+
+    if (extractSlotConsumed) {
+      setGridExtractSlotReleased(slotReleased)
+      setGridExtractCompleteCount(finalCount)
+      setGridExtractCompleteOpen(true)
+    }
   }, [
     areaIsExtracting,
     areaGridSize,
@@ -930,6 +1138,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     mapPlaces,
     syncQuotaUi,
     gridExtractMaxPlaces,
+    extractMaxAreaKm2,
+    extractDailyBlocked,
+    user?.id,
   ])
 
   const stopAreaExtraction = useCallback(() => {
@@ -993,6 +1204,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       )
       const bulkResult = await onAddToMap(withZoom)
       setAreaStatus(formatAddToMapStatus(bulkResult, withZoom.length))
+      if (addToMapSucceeded(bulkResult)) onClose()
     } catch (err) {
       if (err.response?.status === 409) {
         onShowDuplicate?.(
@@ -1012,7 +1224,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setAddingToMap(false)
     }
-  }, [areaExtractedPlaces, areaSelectedPlaces, onAddToMap, enqueueApiCall, onShowDuplicate, syncQuotaUi])
+  }, [areaExtractedPlaces, areaSelectedPlaces, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, syncQuotaUi])
 
   // --- Extraction ---
   const extractPlaces = useCallback(async () => {
@@ -1036,11 +1248,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       return
     }
     if (!user?.id) {
-      setStatus('Please log in to use grid extract.')
+      setStatus('Please log in to use place extract.')
       return
     }
     if (gridExtractBlocked) {
-      setStatus('You have already used grid extract today. You can extract again tomorrow.')
+      setStatus('You have already used place extract today. You can extract again tomorrow.')
       return
     }
 
@@ -1053,11 +1265,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } catch (err) {
       const msg = err.response?.data?.message
       if (err.response?.status === 429) {
-        setStatus(msg || 'You have already used grid extract today. Try again tomorrow.')
+        setStatus(msg || 'You have already used place extract today. Try again tomorrow.')
         setGridExtractStatus({ loading: false, canExtract: false, usedToday: true, requiresLogin: false })
         return
       }
-      setStatus('Could not start grid extract. Please try again.')
+      setStatus('Could not start place extract. Please try again.')
       return
     }
 
@@ -1087,11 +1299,68 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       skipped: 0,
     })
     stopRequestedRef.current = false
+    setGridExtractSlotReleased(false)
     setIsExtracting(true)
     setProgress(0)
 
     const grid = generateGrid(extractionBounds)
-    const placeTypes = ['establishment', 'locality', 'sublocality', 'neighborhood']
+
+    const ingestNearbyResults = (result, placeType) => {
+      if (!result?.results || result.status !== window.google.maps.places.PlacesServiceStatus.OK) {
+        return
+      }
+      const newPlaces = []
+      result.results.forEach((place) => {
+        if (placesArrayRef.current.length >= maxPlaces) return
+        const draft = buildNearbyExtractDraft(
+          place,
+          placeType,
+          {
+            village: currentLocationRef.current.village,
+            district: currentLocationRef.current.district,
+            taluk: currentLocationRef.current.taluk,
+            state: currentLocationRef.current.state,
+            country: currentLocationRef.current.country,
+          },
+          mapInstanceRef.current
+        )
+        const exists =
+          isDuplicateInSession(placesArrayRef.current, draft) ||
+          findDuplicateInList(mapPlaces, draft).duplicate
+        if (!exists) {
+          placesArrayRef.current.push(draft)
+          newPlaces.push(draft)
+          const marker = new window.google.maps.Marker({
+            position: place.geometry.location,
+            map: mapInstanceRef.current,
+            title: place.name,
+          })
+          markersRef.current.push(marker)
+        }
+      })
+      if (newPlaces.length > 0) {
+        setExtractedPlaces([...placesArrayRef.current])
+        setSelectedPlaces((prev) => {
+          const next = new Set(prev)
+          newPlaces.forEach((p) => next.add(p.name))
+          return next
+        })
+      }
+    }
+
+    const handleNearbyGuard = (result) => {
+      if (result?.status === SKIP_STATUS.QUOTA_EXCEEDED) {
+        setStatus(result.message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
+        stopRequestedRef.current = true
+        return false
+      }
+      if (result?.status === SKIP_STATUS.ZOOM_TOO_LOW) {
+        setStatus(`Zoom in to level ${minZoom}+ to extract places in this view.`)
+        stopRequestedRef.current = true
+        return false
+      }
+      return true
+    }
 
     for (let cellIdx = 0; cellIdx < grid.length; cellIdx++) {
       if (stopRequestedRef.current) break
@@ -1100,6 +1369,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         break
       }
 
+      const countBeforeCell = placesArrayRef.current.length
       const pct = Math.floor((cellIdx / grid.length) * 100)
       setProgress(pct)
       setStatus(
@@ -1114,72 +1384,29 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         gridRectsRef.current[cellIdx].setOptions({ fillColor: '#00FF00', fillOpacity: 0.3 })
       }
 
-      for (const placeType of placeTypes) {
+      for (const placeType of GRID_TYPED_PLACE_TYPES) {
         if (stopRequestedRef.current) break
         if (placesArrayRef.current.length >= maxPlaces) {
           stopRequestedRef.current = true
           break
         }
         const result = await executeOptimizedNearbySearch({ bounds: grid[cellIdx], type: placeType })
-        if (result?.status === SKIP_STATUS.QUOTA_EXCEEDED) {
-          setStatus(result.message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
-          stopRequestedRef.current = true
-          break
-        }
-        if (result?.status === SKIP_STATUS.ZOOM_TOO_LOW) {
-          setStatus(`Zoom in to level ${minZoom}+ to extract places in this view.`)
-          stopRequestedRef.current = true
-          break
-        }
-        if (result?.results && result.status === window.google.maps.places.PlacesServiceStatus.OK) {
-          const newPlaces = []
-          result.results.forEach((place) => {
-            if (placesArrayRef.current.length >= maxPlaces) return
-            const name = place.name
-            const lat = place.geometry.location.lat()
-            const lng = place.geometry.location.lng()
-            const pid = place.place_id
-            const draft = withMapRenderingConfig(
-              {
-                name,
-                lat,
-                lng,
-                place_id: pid,
-                type: place.types?.[0] || placeType,
-                types: place.types,
-                village: currentLocationRef.current.village,
-                district: currentLocationRef.current.district,
-                taluk: currentLocationRef.current.taluk,
-                state: currentLocationRef.current.state,
-                country: currentLocationRef.current.country,
-                zoomLevel: mapInstanceRef.current?.getZoom?.(),
-              },
-              { map: mapInstanceRef.current, place }
-            )
-            const exists =
-              isDuplicateInSession(placesArrayRef.current, draft) ||
-              findDuplicateInList(mapPlaces, draft).duplicate
-            if (!exists) {
-              placesArrayRef.current.push(draft)
-              newPlaces.push(draft)
+        if (!handleNearbyGuard(result)) break
+        ingestNearbyResults(result, placeType)
+      }
 
-              const marker = new window.google.maps.Marker({
-                position: place.geometry.location,
-                map: mapInstanceRef.current,
-                title: name,
-              })
-              markersRef.current.push(marker)
-            }
-          })
-          if (newPlaces.length > 0) {
-            setExtractedPlaces([...placesArrayRef.current])
-            // Auto-select new places
-            setSelectedPlaces((prev) => {
-              const next = new Set(prev)
-              newPlaces.forEach((p) => next.add(p.name))
-              return next
-            })
-          }
+      // Fallback: rural areas often return ZERO_RESULTS for typed bounds search
+      if (!stopRequestedRef.current && placesArrayRef.current.length === countBeforeCell) {
+        const untyped = await executeOptimizedNearbySearch({ bounds: grid[cellIdx] })
+        if (handleNearbyGuard(untyped)) {
+          ingestNearbyResults(untyped, 'establishment')
+        }
+      }
+      if (!stopRequestedRef.current && placesArrayRef.current.length === countBeforeCell) {
+        const { location, radius } = boundsSearchRadius(grid[cellIdx])
+        const radiusResult = await executeOptimizedNearbySearch({ location, radius })
+        if (handleNearbyGuard(radiusResult)) {
+          ingestNearbyResults(radiusResult, 'establishment')
         }
       }
 
@@ -1193,15 +1420,31 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     setProgress(100)
     syncQuotaUi()
     const finalCount = placesArrayRef.current.length
-    const cacheNote =
-      statsRef.current.boundsCacheHits > 0
-        ? ` · ${statsRef.current.boundsCacheHits} cached cell(s)`
-        : ''
-    const cappedNote = finalCount >= maxPlaces ? ` (max ${maxPlaces})` : ''
+    const locationString = getLocationString()
     setStatus(
-      `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'} in ${getLocationString()}${cappedNote}${cacheNote}.`
+      formatGridExtractStatus(
+        finalCount,
+        locationString,
+        maxPlaces,
+        statsRef.current.boundsCacheHits
+      )
     )
+
+    let slotReleased = false
+    if (gridSlotConsumed && finalCount === 0) {
+      try {
+        const { data } = await api.post('/map/grid-extract/release')
+        if (data.released) {
+          slotReleased = true
+          setGridExtractStatus({ loading: false, canExtract: true, usedToday: false, requiresLogin: false })
+        }
+      } catch {
+        /* keep used-today state if release fails */
+      }
+    }
+
     if (gridSlotConsumed) {
+      setGridExtractSlotReleased(slotReleased)
       setGridExtractCompleteCount(finalCount)
       setGridExtractCompleteOpen(true)
     }
@@ -1280,6 +1523,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       )
       const bulkResult = await onAddToMap(withZoom)
       setStatus(formatAddToMapStatus(bulkResult, withZoom.length))
+      if (addToMapSucceeded(bulkResult)) onClose()
     } catch (err) {
       if (err.response?.status === 409) {
         onShowDuplicate?.(
@@ -1299,7 +1543,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setAddingToMap(false)
     }
-  }, [extractedPlaces, selectedPlaces, onAddToMap, enqueueApiCall, onShowDuplicate, extractionMethod, syncQuotaUi])
+  }, [extractedPlaces, selectedPlaces, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, extractionMethod, syncQuotaUi])
 
   const getExportPlaces = useCallback(() => {
     if (extractionMethod === 'search') {
@@ -1409,9 +1653,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     e.target.value = ''
   }, [selectedPlaces, mapPlaces])
 
-  // Initialize search map when switching to search method
+  // Initialize search map when panel opens
   useEffect(() => {
-    if (extractionMethod !== 'search' || !mapsLoaded || !searchMapContainerRef.current) return
+    if (!mapsLoaded || !isOpen || !searchMapContainerRef.current) return
     if (searchMapInstanceRef.current) return
 
     const searchMap = new window.google.maps.Map(searchMapContainerRef.current, {
@@ -1433,11 +1677,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       onIdle: syncSearchBounds,
     })
     return () => cleanupIdle()
-  }, [extractionMethod, mapsLoaded])
+  }, [mapsLoaded, isOpen])
 
-  // Initialize area map when switching to area method
+  // Initialize area map when panel opens
   useEffect(() => {
-    if (extractionMethod !== 'area' || !mapsLoaded || !areaMapContainerRef.current) return
+    if (!mapsLoaded || !isOpen || !areaMapContainerRef.current) return
     if (areaMapInstanceRef.current) return
 
     const areaMap = new window.google.maps.Map(areaMapContainerRef.current, {
@@ -1456,12 +1700,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       onIdle: ({ zoom }) => setAreaMapZoom(zoom),
     })
     return () => areaMapIdleCleanupRef.current?.()
-  }, [extractionMethod, mapsLoaded])
+  }, [mapsLoaded, isOpen])
 
   // Reflow area map on resize
   useEffect(() => {
     if (!mapsLoaded || !isOpen || !areaMapInstanceRef.current || !areaMapContainerRef.current) return
-    if (extractionMethod !== 'area') return
     const map = areaMapInstanceRef.current
     const el = areaMapContainerRef.current
     const trigger = () => {
@@ -1472,6 +1715,34 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     ro.observe(el)
     return () => ro.disconnect()
   }, [mapsLoaded, isOpen, extractionMethod])
+
+  // Reflow search map on resize
+  useEffect(() => {
+    if (!mapsLoaded || !isOpen || !searchMapInstanceRef.current || !searchMapContainerRef.current) return
+    const map = searchMapInstanceRef.current
+    const el = searchMapContainerRef.current
+    const trigger = () => {
+      if (window.google?.maps?.event) window.google.maps.event.trigger(map, 'resize')
+    }
+    trigger()
+    const ro = new ResizeObserver(() => trigger())
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [mapsLoaded, isOpen, extractionMethod])
+
+  // Reflow all maps when switching extract method
+  useEffect(() => {
+    if (!mapsLoaded || !isOpen) return
+    const trigger = (map) => {
+      if (map && window.google?.maps?.event) window.google.maps.event.trigger(map, 'resize')
+    }
+    const id = requestAnimationFrame(() => {
+      trigger(mapInstanceRef.current)
+      trigger(searchMapInstanceRef.current)
+      trigger(areaMapInstanceRef.current)
+    })
+    return () => cancelAnimationFrame(id)
+  }, [extractionMethod, mapsLoaded, isOpen])
 
   // Attach area drawing listeners when tool or mode changes
   useEffect(() => {
@@ -1767,7 +2038,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       )
       const bulkResult = await onAddToMap(payload)
       setSearchStatus(formatAddToMapStatus(bulkResult, payload.length))
-      // Clear after successful add
+      if (addToMapSucceeded(bulkResult)) {
+        onClose()
+        return
+      }
       setTimeout(() => {
         setSearchQuery('')
         setSearchResults([])
@@ -1775,7 +2049,6 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         setSearchSuggestions([])
         setSearchStatus('Enter a search query')
         setSearchSuggestOpen(false)
-        // Clear markers
         searchMarkersRef.current.forEach((m) => m.setMap(null))
         searchMarkersRef.current = []
       }, 1500)
@@ -1784,7 +2057,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setAddingToMap(false)
     }
-  }, [searchResults, selectedSearchPlaces, onAddToMap])
+  }, [searchResults, selectedSearchPlaces, onAddToMap, onClose])
 
   const toggleSearchPlace = useCallback((name) => {
     setSelectedSearchPlaces((prev) => {
@@ -1817,7 +2090,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         role="dialog"
         aria-modal="true"
         aria-labelledby="place-extract-title"
-        className="relative pointer-events-auto flex w-full max-w-6xl flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl max-h-[min(100dvh,100svh)] sm:h-[min(94dvh,960px)] sm:max-h-[min(94dvh,960px)] min-h-0 animate-sheet-up sm:animate-fade-in"
+        className="relative pointer-events-auto flex w-full max-w-[min(1480px,98vw)] flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl max-h-[min(100dvh,100svh)] sm:h-[min(92dvh,920px)] sm:max-h-[min(92dvh,920px)] min-h-0 animate-sheet-up sm:animate-fade-in"
       >
         {/* Mobile drag affordance */}
         <div className="flex shrink-0 justify-center pt-2 pb-1 sm:hidden" aria-hidden>
@@ -1879,20 +2152,20 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           </div>
         )}
 
-        {extractionMethod === 'grid' && !gridExtractStatus.loading && gridExtractStatus.requiresLogin && (
+        {!gridExtractStatus.loading && gridExtractStatus.requiresLogin && (
           <div role="alert" className="shrink-0 border-b border-slate-200 bg-slate-50 px-3 py-2.5 sm:px-4">
             <p className="text-xs font-semibold text-slate-800">Log in required</p>
             <p className="mt-0.5 text-[11px] leading-snug text-slate-600">
-              Sign in to use grid extract (max {gridExtractMaxPlaces} places, once per day).
+              Sign in to use place extract (max {gridExtractMaxPlaces} places, once per day).
             </p>
           </div>
         )}
 
-        {extractionMethod === 'grid' && !gridExtractStatus.loading && gridExtractStatus.usedToday && (
+        {!gridExtractStatus.loading && gridExtractStatus.usedToday && (
           <div role="status" className="shrink-0 border-b border-blue-200 bg-blue-50 px-3 py-2.5 sm:px-4">
-            <p className="text-xs font-semibold text-blue-900">Today&apos;s grid extract used</p>
+            <p className="text-xs font-semibold text-blue-900">Today&apos;s extract already used</p>
             <p className="mt-0.5 text-[11px] leading-snug text-blue-800">
-              You can run grid extract again tomorrow (max {gridExtractMaxPlaces} places per run).
+              One extract per day per user (grid or area). You can extract again tomorrow.
             </p>
           </div>
         )}
@@ -1906,68 +2179,6 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           </div>
         )}
 
-        {/* Method tabs — segmented control */}
-        <div className="shrink-0 border-b border-slate-200/80 bg-slate-50 px-3 py-2.5 sm:px-4">
-          <div className="flex gap-1 rounded-xl bg-slate-200/60 p-1">
-            <button
-              type="button"
-              onClick={() => setExtractionMethod('grid')}
-              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-semibold transition-all sm:min-h-0 sm:py-2 ${
-                extractionMethod === 'grid'
-                  ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/80'
-                  : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4H5a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2V6a2 2 0 00-2-2z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 4h-4a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2V6a2 2 0 00-2-2z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 14H5a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2v-4a2 2 0 00-2-2z" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14h-4a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2v-4a2 2 0 00-2-2z" />
-              </svg>
-              <span className="truncate">Grid</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setExtractionMethod('search')}
-              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-semibold transition-all sm:min-h-0 sm:py-2 ${
-                extractionMethod === 'search'
-                  ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/80'
-                  : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-              <span className="truncate">Search</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setExtractionMethod('area')}
-              className={`flex min-h-[44px] flex-1 items-center justify-center gap-2 rounded-lg px-2 py-2.5 text-sm font-semibold transition-all sm:min-h-0 sm:py-2 ${
-                extractionMethod === 'area'
-                  ? 'bg-white text-primary-700 shadow-sm ring-1 ring-slate-200/80'
-                  : 'text-slate-600 hover:text-slate-800'
-              }`}
-            >
-              <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16M4 5l4 14h8l4-14M4 5l2-2m14 2l-2-2" />
-              </svg>
-              <span className="truncate">Area</span>
-            </button>
-          </div>
-          {((extractionMethod === 'grid' && extractedPlaces.length > 0) ||
-            (extractionMethod === 'search' && searchResults.length > 0) ||
-            (extractionMethod === 'area' && areaExtractedPlaces.length > 0)) && (
-            <p className="mt-2 text-center text-xs font-medium text-primary-600 sm:hidden">
-              {extractionMethod === 'grid'
-                ? `${extractedPlaces.length} places found`
-                : extractionMethod === 'search'
-                  ? `${searchResults.length} in list`
-                  : `${areaExtractedPlaces.length} places found`}
-            </p>
-          )}
-        </div>
-
         {mapsError ? (
           <div className="flex min-h-0 flex-1 flex-col items-center justify-center p-6 sm:p-10">
             <div className="max-w-sm text-center">
@@ -1980,15 +2191,70 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             </div>
           </div>
         ) : (
-          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain lg:overflow-hidden lg:flex-row">
+          <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
+            {/* Left sidebar — method picker + controls + results */}
+            <aside className="order-2 flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-slate-200/80 bg-white md:order-1 md:w-[min(400px,38%)] md:max-w-[420px] md:border-b-0 md:border-r lg:w-[420px] max-h-[46vh] md:max-h-full">
+              {/* Extract method — label + 3 options in one horizontal row */}
+              <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-3 py-2.5 sm:px-4">
+                <div className="flex items-center gap-2">
+                  <p className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Extract method
+                  </p>
+                  <nav className="flex min-w-0 flex-1 gap-1" aria-label="Extract method">
+                    {EXTRACT_METHODS.map((method) => {
+                      const active = extractionMethod === method.id
+                      const count =
+                        method.id === 'grid'
+                          ? extractedPlaces.length
+                          : method.id === 'search'
+                            ? searchResults.length
+                            : areaExtractedPlaces.length
+                      return (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => setExtractionMethod(method.id)}
+                          title={method.description}
+                          className={`flex min-h-[36px] min-w-0 flex-1 items-center justify-center gap-1 rounded-lg px-1.5 py-1.5 text-center transition-all sm:gap-1.5 sm:px-2 ${
+                            active
+                              ? 'bg-primary-600 text-white shadow-sm shadow-primary-600/20 ring-1 ring-primary-500/30'
+                              : 'bg-white text-slate-700 ring-1 ring-slate-200/90 hover:bg-slate-50 hover:ring-slate-300'
+                          }`}
+                        >
+                          <span
+                            className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md sm:h-7 sm:w-7 ${
+                              active ? 'bg-white/15 text-white' : 'bg-slate-100 text-primary-600'
+                            }`}
+                          >
+                            {method.icon}
+                          </span>
+                          <span className="min-w-0 truncate text-[11px] font-semibold leading-tight sm:text-xs">
+                            {method.label}
+                          </span>
+                          {count > 0 && (
+                            <span
+                              className={`shrink-0 rounded-full px-1 py-px text-[9px] font-bold leading-none sm:text-[10px] ${
+                                active ? 'bg-white/25 text-white' : 'bg-primary-100 text-primary-700'
+                              }`}
+                            >
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      )
+                    })}
+                  </nav>
+                </div>
+              </div>
+
+              {/* Method-specific panel (scrollable) */}
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
             {/* ============== GRID SELECTION METHOD ============== */}
             {extractionMethod === 'grid' && (
-              <>
-                {/* Main column: controls + map */}
-                <div className="flex min-h-0 min-w-0 shrink-0 flex-col lg:flex-1 lg:basis-0 lg:overflow-hidden">
-                  {/* Controls — compact so the map keeps most of the column height */}
-                  <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
-                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div className="min-h-0 max-h-[42%] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
+                  <div className="p-3 sm:p-3.5">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
                         type="text"
@@ -2032,7 +2298,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       />
                     </div>
                     <p className="mt-1 text-[10px] text-slate-500 sm:text-[11px]">
-                      Grid: max {gridExtractMaxPlaces} places per run · once per day per user
+                      Max {gridExtractMaxPlaces} places · once per day · area up to {extractMaxAreaKm2} km²
                     </p>
                     <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <button
@@ -2108,7 +2374,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                   </div>
 
                   {/* Status + Progress */}
-                  <div className="shrink-0 border-b border-slate-100 bg-white px-2 py-1.5 sm:px-2.5">
+                  <div className="border-b border-slate-100 bg-white px-3 py-2 sm:px-3.5">
                     <div className="flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                       <span className="min-w-0 sm:truncate">{status}</span>
                       <span className="shrink-0 text-[10px] text-slate-400 sm:text-[11px]">
@@ -2129,15 +2395,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       </div>
                     )}
                   </div>
-
-                  {/* Google Map — fixed height on mobile, fills remaining on lg */}
-                  <div className="relative h-[280px] sm:h-[320px] w-full shrink-0 lg:h-auto lg:min-h-[300px] lg:flex-1 lg:shrink">
-                    <div ref={mapContainerRef} className="absolute inset-0 bg-slate-100" />
                   </div>
-                </div>
 
-                {/* Places list */}
-                <div className="flex max-h-[50vh] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
+                {/* Places list — pinned below controls, always visible */}
+                <div className="flex min-h-[180px] min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(15,23,42,0.04)]">
                   <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
@@ -2183,7 +2444,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                               <p className="truncate text-sm font-medium text-slate-900">{place.name}</p>
                               <p className="mt-0.5 font-mono text-[11px] text-slate-400">
                                 {place.lat.toFixed(5)}, {place.lng.toFixed(5)}
-                                {place.type && <span className="ml-1 text-slate-400">· {place.type}</span>}
+                                {place.category && (
+                                  <span className="ml-1 text-slate-500">· {place.category}</span>
+                                )}
                               </p>
                             </div>
                           </li>
@@ -2194,14 +2457,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
                   {extractedPlaces.length > 0 && (
                     <div
-                      className="shrink-0 border-t border-slate-100 bg-white p-3 sm:p-4"
+                      className="shrink-0 border-t border-slate-200 bg-gradient-to-r from-primary-50 to-cyan-50 p-3 sm:p-4"
                       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
                     >
                       <button
                         type="button"
                         onClick={handleAddToMap}
                         disabled={selectedPlaces.size === 0 || addingToMap || googleApiBlocked}
-                        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-md transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-cyan-600 px-3 text-sm font-bold text-white shadow-lg transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {addingToMap ? (
                           <>
@@ -2223,19 +2486,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )}
 
             {/* ============== SEARCH-BASED METHOD ============== */}
             {extractionMethod === 'search' && (
-              <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-hidden lg:flex-row">
-                {/* Map */}
-                <div className="order-2 flex min-h-0 min-w-0 shrink-0 flex-col lg:flex-1 lg:order-1">
-                  <div ref={searchMapContainerRef} className="h-[240px] sm:h-[300px] bg-slate-100 lg:h-auto lg:min-h-0 lg:flex-1" />
-                </div>
-
-                {/* Search panel */}
-                <div className="order-1 flex max-h-[55vh] min-h-0 w-full shrink-0 flex-col border-b border-slate-200 bg-white lg:order-2 lg:max-h-none lg:w-96 lg:flex-shrink-0 lg:border-b-0 lg:border-l">
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                   <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-3 sm:p-4">
                     <h3 className="mb-2 text-sm font-semibold text-slate-800">Search places</h3>
                     <div ref={searchBarContainerRef} className="relative z-30">
@@ -2398,16 +2654,15 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       </button>
                     </div>
                   )}
-                </div>
               </div>
             )}
 
             {/* ============== AREA-BASED METHOD ============== */}
             {extractionMethod === 'area' && (
-              <>
-                <div className="flex min-h-0 min-w-0 shrink-0 flex-col lg:flex-1 lg:basis-0 lg:overflow-hidden">
-                  <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-2 sm:p-2.5">
-                    <p className="mb-1.5 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
+              <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <div className="min-h-0 max-h-[42%] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
+                  <div className="p-3 sm:p-3.5">
+                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
                         type="text"
@@ -2451,7 +2706,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       />
                     </div>
                     <p className="mt-1 text-[10px] text-slate-500 sm:text-[11px]">
-                      Choose a shape tool, draw on the map · max {gridExtractMaxPlaces} places per run
+                      Draw a shape on the map (max {extractMaxAreaKm2} km²) · max {gridExtractMaxPlaces} places · once per day
                     </p>
                     <div className="mt-2 flex items-center gap-2">
                       <label className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Shape tool</label>
@@ -2507,15 +2762,20 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       >
                         <option value={2}>2×2 grid</option>
                         <option value={3}>3×3 grid</option>
-                        <option value={4}>4×4 grid</option>
                       </select>
                       {!areaIsExtracting ? (
                         <button
                           type="button"
                           onClick={extractAreaPlaces}
-                          disabled={googleApiBlocked || !areaShapeReady}
+                          disabled={googleApiBlocked || !areaShapeReady || areaExtractBlocked || gridExtractStatus.loading}
                           className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-                          title={!areaShapeReady ? 'Draw a shape on the map first' : undefined}
+                          title={
+                            areaExtractBlocked
+                              ? 'You already used place extract today'
+                              : !areaShapeReady
+                                ? 'Draw a shape on the map first'
+                                : undefined
+                          }
                         >
                           Extract places
                         </button>
@@ -2548,7 +2808,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     </div>
                   </div>
 
-                  <div className="shrink-0 border-b border-slate-100 bg-white px-2 py-1.5 sm:px-2.5">
+                  {/* Status + Progress */}
+                  <div className="border-b border-slate-100 bg-white px-3 py-2 sm:px-3.5">
                     <div className="flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                       <span className="min-w-0 sm:truncate">{areaStatus}</span>
                       <span className="shrink-0 text-[10px] text-slate-400 sm:text-[11px]">
@@ -2570,13 +2831,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       </div>
                     )}
                   </div>
-
-                  <div className="relative h-[280px] sm:h-[320px] w-full shrink-0 lg:h-auto lg:min-h-[300px] lg:flex-1 lg:shrink">
-                    <div ref={areaMapContainerRef} className="absolute inset-0 bg-slate-100" />
                   </div>
-                </div>
 
-                <div className="flex max-h-[50vh] min-h-0 w-full shrink-0 flex-col border-t border-slate-200 bg-white lg:max-h-full lg:w-80 lg:flex-shrink-0 lg:overflow-hidden lg:border-l lg:border-t-0 xl:w-96">
+                <div className="flex min-h-[180px] min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(15,23,42,0.04)]">
                   <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
@@ -2622,7 +2879,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                               <p className="truncate text-sm font-medium text-slate-900">{place.name}</p>
                               <p className="mt-0.5 font-mono text-[11px] text-slate-400">
                                 {place.lat.toFixed(5)}, {place.lng.toFixed(5)}
-                                {place.type && <span className="ml-1 text-slate-400">· {place.type}</span>}
+                                {place.category && (
+                                  <span className="ml-1 text-slate-500">· {place.category}</span>
+                                )}
                               </p>
                             </div>
                           </li>
@@ -2633,14 +2892,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
                   {areaExtractedPlaces.length > 0 && (
                     <div
-                      className="shrink-0 border-t border-slate-100 bg-white p-3 sm:p-4"
+                      className="shrink-0 border-t border-slate-200 bg-gradient-to-r from-primary-50 to-cyan-50 p-3 sm:p-4"
                       style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
                     >
                       <button
                         type="button"
                         onClick={handleAreaAddToMap}
                         disabled={areaSelectedPlaces.size === 0 || addingToMap || googleApiBlocked}
-                        className="flex h-10 w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-primary-600 to-cyan-600 px-3 text-xs font-bold text-white shadow-md transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
+                        className="flex min-h-[44px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary-600 to-cyan-600 px-3 text-sm font-bold text-white shadow-lg transition hover:from-primary-700 hover:to-cyan-700 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {addingToMap ? (
                           <>
@@ -2662,8 +2921,34 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     </div>
                   )}
                 </div>
-              </>
+              </div>
             )}
+              </div>
+            </aside>
+
+            {/* Right — full-height map preview */}
+            <div className="relative order-1 min-h-[min(42vh,360px)] flex-1 min-w-0 bg-slate-200 md:order-2 md:min-h-0">
+              <div
+                ref={mapContainerRef}
+                className={`absolute inset-0 bg-slate-100 ${extractionMethod !== 'grid' ? 'invisible pointer-events-none' : ''}`}
+                aria-hidden={extractionMethod !== 'grid'}
+              />
+              <div
+                ref={searchMapContainerRef}
+                className={`absolute inset-0 bg-slate-100 ${extractionMethod !== 'search' ? 'invisible pointer-events-none' : ''}`}
+                aria-hidden={extractionMethod !== 'search'}
+              />
+              <div
+                ref={areaMapContainerRef}
+                className={`absolute inset-0 bg-slate-100 ${extractionMethod !== 'area' ? 'invisible pointer-events-none' : ''}`}
+                aria-hidden={extractionMethod !== 'area'}
+              />
+              {extractionMethod === 'area' && !areaShapeReady && (
+                <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 rounded-xl bg-slate-900/75 px-4 py-2.5 text-center text-xs font-medium text-white backdrop-blur-sm sm:left-auto sm:right-4 sm:max-w-xs sm:text-left">
+                  {areaShapeHint(areaDrawTool)}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>
@@ -2673,6 +2958,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         onClose={() => setGridExtractCompleteOpen(false)}
         placeCount={gridExtractCompleteCount}
         maxPlaces={gridExtractMaxPlaces}
+        slotReleased={gridExtractSlotReleased}
       />
     </div>
   )

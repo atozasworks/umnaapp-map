@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import api from '../services/api'
 import { PLACE_CATEGORIES } from './AddPlaceModal'
+import { CATEGORY_NAME_KEYWORDS, resolvePlaceCategory } from '../utils/googlePlaceCategory'
 import {
   pointInRing,
   closeRing,
@@ -10,12 +11,8 @@ import {
   squareFromCorners,
   decimateRingMeters,
 } from '../utils/polygonGeo'
-import { whenStyleReady } from '../utils/mapWhenStyleReady'
+import { applyAreaExploreFeature } from '../utils/areaExploreMapLayers'
 import TranslatedLabel from './TranslatedLabel'
-
-const AREA_SOURCE = 'area-explore-draw-src'
-const AREA_FILL = 'area-explore-draw-fill'
-const AREA_LINE = 'area-explore-draw-line'
 
 const CATEGORY_MARKER = {
   Restaurant: '#EF4444',
@@ -66,43 +63,6 @@ function haversineLikeMeters(a, b) {
   return Math.sqrt(dx * dx + dy * dy)
 }
 
-function ensureAreaLayers(map) {
-  if (map.getSource(AREA_SOURCE)) return
-  map.addSource(AREA_SOURCE, {
-    type: 'geojson',
-    data: { type: 'FeatureCollection', features: [] },
-  })
-  map.addLayer({
-    id: AREA_FILL,
-    type: 'fill',
-    source: AREA_SOURCE,
-    filter: ['match', ['geometry-type'], ['Polygon', 'MultiPolygon'], true, false],
-    paint: {
-      'fill-color': '#4F46E5',
-      'fill-opacity': 0.14,
-    },
-  })
-  map.addLayer({
-    id: AREA_LINE,
-    type: 'line',
-    source: AREA_SOURCE,
-    paint: {
-      'line-color': '#4338CA',
-      'line-width': 2,
-      'line-dasharray': [2, 1],
-    },
-  })
-}
-
-function setAreaFeature(map, feature) {
-  const src = map.getSource(AREA_SOURCE)
-  if (!src) return
-  src.setData({
-    type: 'FeatureCollection',
-    features: feature ? [feature] : [],
-  })
-}
-
 function screenDist(map, a, b) {
   const pa = map.project(a)
   const pb = map.project(b)
@@ -112,17 +72,23 @@ function screenDist(map, a, b) {
 /**
  * @param {object} props
  * @param {import('react').RefObject<any>} props.mapRef
+ * @param {number} [props.mapReadyTick] bump when MapLibre finishes initial load
  * @param {boolean} props.isOpen
  * @param {() => void} props.onClose
  * @param {(active: boolean) => void} props.onInteractionChange
+ * @param {(feature: object | null) => void} props.onShapeChange
+ * @param {(place: object) => void} [props.onPlaceSelect]
  * @param {(places: object[], count: number) => void} props.onPlacesFound
  * @param {() => void} props.onClearPlaces
  */
 export default function PolygonExplorePanel({
   mapRef,
+  mapReadyTick = 0,
   isOpen,
   onClose,
   onInteractionChange,
+  onShapeChange,
+  onPlaceSelect,
   onPlacesFound,
   onClearPlaces,
 }) {
@@ -137,6 +103,10 @@ export default function PolygonExplorePanel({
   const [loadingPlaces, setLoadingPlaces] = useState(false)
   const [editMode, setEditMode] = useState(false)
   const [areaPlaceCount, setAreaPlaceCount] = useState(null)
+  const [areaPlacesList, setAreaPlacesList] = useState([])
+  const [isMobileViewport, setIsMobileViewport] = useState(() =>
+    typeof window !== 'undefined' ? window.innerWidth < 640 : false
+  )
 
   const phaseRef = useRef('idle')
   const toolRef = useRef('polygon')
@@ -146,6 +116,31 @@ export default function PolygonExplorePanel({
   const rafRef = useRef(null)
   const vertexMarkersRef = useRef([])
   const lastPointerRef = useRef(null)
+  const completedFeatureRef = useRef(null)
+  const onShapeChangeRef = useRef(onShapeChange)
+  onShapeChangeRef.current = onShapeChange
+
+  const emitShapeChange = useCallback((feature) => {
+    // Draw directly on the map for instant feedback (no React round-trip lag
+    // while dragging), then sync parent state so the shape persists across
+    // basemap / style changes.
+    const map = mapRef.current?.getMap?.()
+    if (map) applyAreaExploreFeature(map, feature ?? null)
+    onShapeChangeRef.current?.(feature ?? null)
+  }, [mapRef])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) return undefined
+    const mq = window.matchMedia('(max-width: 639px)')
+    const onChange = (e) => setIsMobileViewport(e.matches)
+    setIsMobileViewport(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    completedFeatureRef.current = completedFeature
+  }, [completedFeature])
 
   useEffect(() => {
     toolRef.current = shapeTool
@@ -194,6 +189,11 @@ export default function PolygonExplorePanel({
     (map) => {
       if (!map) return
       try {
+        map.getCanvas().style.cursor = ''
+      } catch {
+        /* ignore */
+      }
+      try {
         if (map.dragPan?.isEnabled?.() === false) map.dragPan.enable()
       } catch {
         /* ignore */
@@ -222,14 +222,14 @@ export default function PolygonExplorePanel({
         properties: {},
         geometry: { type: 'Polygon', coordinates: [ring] },
       }
-      setAreaFeature(map, feature)
+      emitShapeChange(feature)
       setCompletedFeature(feature)
       setShowCategories(true)
       setDrawPhase('idle')
       phaseRef.current = 'idle'
       teardownDrawing(map)
     },
-    [teardownDrawing]
+    [teardownDrawing, emitShapeChange]
   )
 
   const onClearPlacesRef = useRef(onClearPlaces)
@@ -242,6 +242,7 @@ export default function PolygonExplorePanel({
     setSelectedCategory(null)
     setEditMode(false)
     setAreaPlaceCount(null)
+    setAreaPlacesList([])
     setDrawPhase('idle')
     phaseRef.current = 'idle'
     pointsRef.current = []
@@ -249,19 +250,19 @@ export default function PolygonExplorePanel({
     freehandRef.current = []
     lastPointerRef.current = null
     clearVertexMarkers()
+    emitShapeChange(null)
     if (map) {
-      setAreaFeature(map, null)
       teardownDrawing(map)
     }
     onClearPlacesRef.current?.()
-  }, [mapRef, clearVertexMarkers, teardownDrawing])
+  }, [mapRef, clearVertexMarkers, teardownDrawing, emitShapeChange])
 
   useEffect(
     () => () => {
       const map = mapRef.current?.getMap?.()
       clearVertexMarkers()
+      emitShapeChange(null)
       if (map) {
-        setAreaFeature(map, null)
         teardownDrawing(map)
       }
       onClearPlacesRef.current?.()
@@ -300,30 +301,21 @@ export default function PolygonExplorePanel({
             properties: {},
             geometry: { type: 'Polygon', coordinates: [closed] },
           }
-          setAreaFeature(map, feature)
+          emitShapeChange(feature)
           setCompletedFeature(feature)
           setAreaPlaceCount(null)
+          setAreaPlacesList([])
         })
         vertexMarkersRef.current.push(marker)
       })
     },
-    [clearVertexMarkers]
+    [clearVertexMarkers, emitShapeChange]
   )
 
   useEffect(() => {
-    if (!isOpen || !mapRef.current?.getMap?.()) return undefined
-    const map = mapRef.current.getMap()
-    let disposed = false
-    const dispose = whenStyleReady(map, () => {
-      if (disposed) return
-      ensureAreaLayers(map)
-      if (completedFeature) setAreaFeature(map, completedFeature)
-    })
-    return () => {
-      disposed = true
-      dispose()
-    }
-  }, [isOpen, mapRef, completedFeature])
+    if (!isOpen || !completedFeature) return
+    emitShapeChange(completedFeature)
+  }, [isOpen, completedFeature, emitShapeChange])
 
   useEffect(() => {
     if (!isOpen || !completedFeature || !editMode) {
@@ -338,7 +330,7 @@ export default function PolygonExplorePanel({
   }, [isOpen, completedFeature, editMode, mapRef, rebuildVertexHandles, clearVertexMarkers])
 
   useEffect(() => {
-    if (!isOpen) return undefined
+    if (!isOpen || mapReadyTick === 0) return undefined
 
     const map = mapRef.current?.getMap?.()
     if (!map) return undefined
@@ -363,7 +355,7 @@ export default function PolygonExplorePanel({
       }
       pts.push([lng, lat])
       const lineCoords = pts.length > 1 ? [...pts, pts[0]] : pts
-      setAreaFeature(map, {
+      emitShapeChange({
         type: 'Feature',
         properties: {},
         geometry: { type: 'LineString', coordinates: lineCoords },
@@ -379,7 +371,7 @@ export default function PolygonExplorePanel({
           : rectangleFromCorners(a, [end.lng, end.lat])
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       rafRef.current = requestAnimationFrame(() => {
-        setAreaFeature(map, f)
+        emitShapeChange(f)
       })
     }
 
@@ -391,7 +383,7 @@ export default function PolygonExplorePanel({
       const f = circlePolygon(a[0], a[1], distM)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
       rafRef.current = requestAnimationFrame(() => {
-        setAreaFeature(map, f)
+        emitShapeChange(f)
       })
     }
 
@@ -401,6 +393,9 @@ export default function PolygonExplorePanel({
       if (ph !== 'drawing') return
       if (t === 'polygon') return
       if (e.originalEvent?.target?.closest?.('.maplibregl-marker')) return
+      if (e.originalEvent?.type?.startsWith?.('touch')) {
+        e.originalEvent.preventDefault()
+      }
       lastPointerRef.current = e.lngLat
       if (t === 'freehand') {
         freehandRef.current = [[e.lngLat.lng, e.lngLat.lat]]
@@ -416,6 +411,9 @@ export default function PolygonExplorePanel({
       const t = toolRef.current
       const ph = phaseRef.current
       if (ph !== 'drawing') return
+      if (t !== 'polygon' && e.originalEvent?.type?.startsWith?.('touch')) {
+        e.originalEvent.preventDefault()
+      }
       lastPointerRef.current = e.lngLat
       if (t === 'rectangle' || t === 'square') {
         if (!startRef.current) return
@@ -428,7 +426,7 @@ export default function PolygonExplorePanel({
         const next = [e.lngLat.lng, e.lngLat.lat]
         if (screenDist(map, last, next) < 6) return
         freehandRef.current.push(next)
-        setAreaFeature(map, {
+        emitShapeChange({
           type: 'Feature',
           properties: {},
           geometry: { type: 'LineString', coordinates: freehandRef.current },
@@ -441,7 +439,7 @@ export default function PolygonExplorePanel({
       freehandRef.current = []
       map.dragPan.enable()
       if (raw.length < 3) {
-        setAreaFeature(map, null)
+        emitShapeChange(null)
         return
       }
       const decimated = decimateRingMeters(closeRing(raw), 3)
@@ -463,7 +461,8 @@ export default function PolygonExplorePanel({
       const start = startRef.current
       startRef.current = null
       if (!start) return
-      const end = e.lngLat ? [e.lngLat.lng, e.lngLat.lat] : null
+      const ll = e.lngLat || lastPointerRef.current
+      const end = ll ? [ll.lng, ll.lat] : null
       if (!end) return
       const f =
         t === 'square'
@@ -471,7 +470,7 @@ export default function PolygonExplorePanel({
           : t === 'circle'
             ? circlePolygon(start[0], start[1], Math.max(8, haversineLikeMeters(start, end)))
             : rectangleFromCorners(start, end)
-      setAreaFeature(map, f)
+      emitShapeChange(f)
       setCompletedFeature(f)
       setShowCategories(true)
       setDrawPhase('idle')
@@ -490,7 +489,7 @@ export default function PolygonExplorePanel({
         pointsRef.current = []
         freehandRef.current = []
         startRef.current = null
-        setAreaFeature(map, null)
+        emitShapeChange(null)
         setDrawPhase('idle')
         phaseRef.current = 'idle'
         teardownDrawing(map)
@@ -501,7 +500,11 @@ export default function PolygonExplorePanel({
     map.on('mousedown', onDown)
     map.on('mousemove', onMove)
     map.on('mouseup', onUp)
+    map.on('touchstart', onDown)
+    map.on('touchmove', onMove)
+    map.on('touchend', onUp)
     document.addEventListener('mouseup', onDocUp)
+    document.addEventListener('touchend', onDocUp)
     window.addEventListener('keydown', onKey)
 
     return () => {
@@ -509,19 +512,20 @@ export default function PolygonExplorePanel({
       map.off('mousedown', onDown)
       map.off('mousemove', onMove)
       map.off('mouseup', onUp)
+      map.off('touchstart', onDown)
+      map.off('touchmove', onMove)
+      map.off('touchend', onUp)
       document.removeEventListener('mouseup', onDocUp)
+      document.removeEventListener('touchend', onDocUp)
       window.removeEventListener('keydown', onKey)
       if (rafRef.current) cancelAnimationFrame(rafRef.current)
     }
-  }, [isOpen, mapRef, applyPolygonFromOpenRing, teardownDrawing])
+  }, [isOpen, mapReadyTick, mapRef, applyPolygonFromOpenRing, teardownDrawing, emitShapeChange])
 
   const startDrawing = useCallback(() => {
     const map = mapRef.current?.getMap?.()
     if (!map) return
-    whenStyleReady(map, () => {
-      ensureAreaLayers(map)
-      setAreaFeature(map, null)
-    })
+    emitShapeChange(null)
     pointsRef.current = []
     startRef.current = null
     freehandRef.current = []
@@ -530,19 +534,96 @@ export default function PolygonExplorePanel({
     setCompletedFeature(null)
     setEditMode(false)
     setAreaPlaceCount(null)
+    setAreaPlacesList([])
     onClearPlaces()
     setDrawPhase('drawing')
     phaseRef.current = 'drawing'
     onInteractionChange(true)
+    map.getCanvas().style.cursor = 'crosshair'
     map.doubleClickZoom?.disable()
-  }, [mapRef, onClearPlaces, onInteractionChange])
+  }, [mapRef, onClearPlaces, onInteractionChange, emitShapeChange])
+
+  useEffect(() => {
+    if (drawPhase !== 'drawing') return undefined
+    const map = mapRef.current?.getMap?.()
+    if (!map) return undefined
+    return () => {
+      map.getCanvas().style.cursor = ''
+    }
+  }, [drawPhase, mapRef])
+
+  const cancelDrawing = useCallback(() => {
+    const map = mapRef.current?.getMap?.()
+    pointsRef.current = []
+    freehandRef.current = []
+    startRef.current = null
+    lastPointerRef.current = null
+    emitShapeChange(null)
+    setDrawPhase('idle')
+    phaseRef.current = 'idle'
+    if (map) teardownDrawing(map)
+  }, [mapRef, emitShapeChange, teardownDrawing])
+
+  const finishPolygon = useCallback(() => {
+    const map = mapRef.current?.getMap?.()
+    if (map && pointsRef.current.length >= 3) {
+      applyPolygonFromOpenRing(map, pointsRef.current)
+    }
+  }, [mapRef, applyPolygonFromOpenRing])
+
+  // On phones the panel becomes a bottom sheet, so a shape drawn near the lower
+  // edge would hide behind it. Nudge the camera so the completed shape sits in
+  // the visible area above the sheet.
+  const fitMapToFeatureMobile = useCallback((map, feature) => {
+    if (!map || !feature || typeof window === 'undefined' || window.innerWidth >= 640) return
+    const ring = feature.geometry?.coordinates?.[0]
+    if (!ring?.length) return
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for (const [x, y] of ring) {
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+    if (!Number.isFinite(minX)) return
+    const sheet = Math.min(window.innerHeight * 0.68, 480)
+    try {
+      map.fitBounds(
+        [
+          [minX, minY],
+          [maxX, maxY],
+        ],
+        {
+          padding: { top: 110, bottom: Math.round(sheet) + 24, left: 36, right: 36 },
+          maxZoom: 17,
+          duration: 500,
+        }
+      )
+    } catch {
+      /* fitBounds can throw on degenerate bounds */
+    }
+  }, [])
+
+  // When a shape is freshly completed (category picker appears), keep it visible
+  // above the mobile bottom sheet. Keyed on showCategories so edit-mode vertex
+  // drags (which leave showCategories true) don't keep re-centering the map.
+  useEffect(() => {
+    if (!showCategories || !isMobileViewport) return
+    const map = mapRef.current?.getMap?.()
+    if (map) fitMapToFeatureMobile(map, completedFeatureRef.current)
+  }, [showCategories, isMobileViewport, mapRef, fitMapToFeatureMobile])
 
   const fetchForCategory = useCallback(
     async (category) => {
       if (!completedFeature?.geometry?.coordinates?.[0]) return
       const ring = completedFeature.geometry.coordinates[0]
+      const closed = closeRing(ring)
       setLoadingPlaces(true)
       setSelectedCategory(category)
+      setAreaPlacesList([])
       try {
         const { data } = await api.post('/map/places/in-polygon', {
           polygon: completedFeature.geometry,
@@ -561,26 +642,42 @@ export default function PolygonExplorePanel({
         }))
 
         const { lng: clng, lat: clat } = centroidOfRing(ring)
-        const q = `${category} near ${clat.toFixed(4)},${clng.toFixed(4)}`
+        const keywords = CATEGORY_NAME_KEYWORDS[category] || []
+        const searchQueries = [
+          ...new Set([
+            category,
+            ...keywords.slice(0, 4),
+            `${category} near ${clat.toFixed(4)},${clng.toFixed(4)}`,
+          ]),
+        ]
+
         let apiMarkers = []
-        try {
-          const { data: s } = await api.get('/map/search-simple', { params: { q } })
-          const raw = Array.isArray(s.results) ? s.results : []
-          const closed = closeRing(ring)
-          apiMarkers = raw
-            .filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng))
-            .filter((r) => pointInRing(r.lng, r.lat, closed))
-            .map((r, i) => ({
-              placeId: r.placeId || `ext-${i}-${r.lat}`,
-              displayName: r.displayName || r.name,
-              lat: r.lat,
-              lng: r.lng,
-              markerColor: CATEGORY_MARKER[category] || '#EA4335',
-              address: r.address,
-              _fromDb: false,
-            }))
-        } catch {
-          /* optional enrichment */
+        for (const q of searchQueries) {
+          try {
+            const { data: s } = await api.get('/map/search-simple', { params: { q } })
+            const raw = Array.isArray(s.results) ? s.results : []
+            for (const r of raw) {
+              if (!Number.isFinite(r.lat) || !Number.isFinite(r.lng)) continue
+              if (!pointInRing(r.lng, r.lat, closed)) continue
+              const resolved = resolvePlaceCategory({
+                name: r.displayName || r.name,
+                category: r.address?.county,
+              })
+              if (resolved !== category) continue
+              apiMarkers.push({
+                placeId: r.placeId || `ext-${r.lat}-${r.lng}`,
+                displayName: r.displayName || r.name,
+                lat: r.lat,
+                lng: r.lng,
+                markerColor: CATEGORY_MARKER[category] || '#EA4335',
+                address: r.address,
+                _fromDb: Boolean(r.isDbPlace),
+                category,
+              })
+            }
+          } catch {
+            /* optional enrichment per query */
+          }
         }
 
         const seen = new Set()
@@ -592,11 +689,19 @@ export default function PolygonExplorePanel({
           merged.push(m)
         }
 
+        merged.sort((a, b) =>
+          String(a.displayName || '').localeCompare(String(b.displayName || ''), undefined, {
+            sensitivity: 'base',
+          })
+        )
+
         setAreaPlaceCount(merged.length)
+        setAreaPlacesList(merged)
         onPlacesFound(merged, merged.length)
       } catch (err) {
         console.error(err)
         setAreaPlaceCount(0)
+        setAreaPlacesList([])
         onPlacesFound([], 0)
       } finally {
         setLoadingPlaces(false)
@@ -607,23 +712,96 @@ export default function PolygonExplorePanel({
 
   if (!visible && !isOpen) return null
 
-  const panelMotion = entered && !isExiting
-    ? { transform: 'translateX(0)', opacity: 1 }
-    : { transform: 'translateX(calc(-100% - 0.75rem))', opacity: 0 }
+  const drawHint = {
+    polygon: 'Tap corners on the map; tap the first point or use Finish to close.',
+    rectangle: 'Drag a corner to the opposite corner.',
+    square: 'Drag to set a square area.',
+    circle: 'Drag from the center outward for the radius.',
+    freehand: 'Hold and drag to draw; release to close the area.',
+  }
+
+  // Mobile: while drawing, collapse to a slim bottom bar so the whole map is
+  // free to draw on and the drawn shape stays visible (it would otherwise sit
+  // behind the full panel).
+  if (isMobileViewport && drawPhase === 'drawing') {
+    return (
+      <div
+        className="absolute inset-x-0 bottom-0 z-[28] pointer-events-none"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="mx-2 mb-2 rounded-2xl glass border border-white/40 shadow-xl pointer-events-auto px-3 py-2.5">
+          <div className="flex items-start gap-2">
+            <span className="mt-1 flex h-2 w-2 shrink-0 animate-pulse rounded-full bg-primary-600" aria-hidden />
+            <p className="flex-1 text-[11px] leading-snug text-slate-700">
+              {drawHint[shapeTool]}
+            </p>
+          </div>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={cancelDrawing}
+              className="flex-1 rounded-xl border border-slate-200 bg-white/90 px-3 py-2 text-xs font-semibold text-slate-700 active:scale-95 touch-manipulation"
+            >
+              Cancel
+            </button>
+            {shapeTool === 'polygon' && (
+              <button
+                type="button"
+                onClick={finishPolygon}
+                className="flex-1 rounded-xl bg-primary-600 px-3 py-2 text-xs font-semibold text-white shadow active:scale-95 touch-manipulation"
+              >
+                Finish shape
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const enteredOpen = entered && !isExiting
+  const panelMotion = isMobileViewport
+    ? enteredOpen
+      ? { transform: 'translateY(0)', opacity: 1 }
+      : { transform: 'translateY(calc(100% + 1rem))', opacity: 1 }
+    : enteredOpen
+      ? { transform: 'translateX(0)', opacity: 1 }
+      : { transform: 'translateX(calc(-100% - 0.75rem))', opacity: 0 }
+
+  const containerClass = isMobileViewport
+    ? 'absolute z-[28] inset-x-0 bottom-0 w-full flex flex-col glass rounded-t-2xl border border-white/40 shadow-xl overflow-hidden pointer-events-auto'
+    : 'absolute z-[28] w-[min(100vw-0.5rem,18rem)] max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom))] flex flex-col glass rounded-r-2xl border border-white/40 shadow-xl overflow-hidden pointer-events-auto'
+
+  const containerStyle = isMobileViewport
+    ? {
+        left: 0,
+        right: 0,
+        bottom: 0,
+        maxHeight: 'min(68dvh, 30rem)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        ...panelMotion,
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }
+    : {
+        top: 'calc(env(safe-area-inset-top) + 3.75rem)',
+        left: 0,
+        ...panelMotion,
+        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.4, 0, 0.2, 1)',
+      }
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-labelledby="area-explore-title"
-      className="absolute z-[28] w-[min(100vw-0.5rem,18rem)] max-h-[calc(100vh-5.5rem-env(safe-area-inset-bottom))] flex flex-col glass rounded-r-2xl border border-white/40 shadow-xl overflow-hidden pointer-events-auto"
-      style={{
-        top: 'calc(env(safe-area-inset-top) + 3.75rem)',
-        left: 0,
-        ...panelMotion,
-        transition: 'transform 280ms cubic-bezier(0.4, 0, 0.2, 1), opacity 280ms cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
+      className={containerClass}
+      style={containerStyle}
     >
+      {isMobileViewport && (
+        <div className="flex shrink-0 justify-center pt-2 pb-0.5" aria-hidden>
+          <div className="h-1 w-10 rounded-full bg-slate-300/90" />
+        </div>
+      )}
       <div className="relative shrink-0 border-b border-white/40 bg-white/50 px-3 py-2.5 pr-12">
         <h2 id="area-explore-title" className="text-sm font-bold text-slate-800 pr-1">Area explore</h2>
         <p className="text-[11px] text-slate-600 mt-0.5 leading-snug pr-1">
@@ -716,8 +894,9 @@ export default function PolygonExplorePanel({
                 setSelectedCategory(null)
                 setEditMode(false)
                 setAreaPlaceCount(null)
+                setAreaPlacesList([])
                 clearVertexMarkers()
-                if (map) setAreaFeature(map, null)
+                if (map) emitShapeChange(null)
                 onClearPlaces()
               }}
               className="text-[11px] font-semibold rounded-lg px-2 py-1 border border-red-200 text-red-700 bg-white hover:bg-red-50"
@@ -739,6 +918,47 @@ export default function PolygonExplorePanel({
               </p>
             )}
             {loadingPlaces && <p className="text-xs text-slate-500 py-2">Loading places…</p>}
+            {!loadingPlaces && selectedCategory && areaPlaceCount === 0 && (
+              <p className="text-xs text-slate-500 mb-2">
+                No {selectedCategory} places found in this area. Try another category or draw a larger shape.
+              </p>
+            )}
+            {areaPlacesList.length > 0 && (
+              <ul className="mb-2 max-h-44 overflow-y-auto rounded-lg border border-slate-200/90 bg-white/90 divide-y divide-slate-100">
+                {areaPlacesList.map((place) => {
+                  const key = place.placeId || `${place.lat}-${place.lng}`
+                  return (
+                    <li key={key}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onPlaceSelect?.({
+                            id: place.placeId,
+                            placeId: place.placeId,
+                            displayName: place.displayName,
+                            name: place.displayName,
+                            latitude: place.lat,
+                            longitude: place.lng,
+                            lat: place.lat,
+                            lng: place.lng,
+                            category: place.category || selectedCategory,
+                            _fromDb: place._fromDb,
+                          })
+                        }}
+                        className="w-full text-left px-2.5 py-2 hover:bg-primary-50/80 active:bg-primary-100/80 transition-colors touch-manipulation"
+                      >
+                        <span className="block text-xs font-semibold text-slate-800 truncate">
+                          {place.displayName}
+                        </span>
+                        {place._fromDb && (
+                          <span className="block text-[10px] text-slate-500 mt-0.5">Saved place</span>
+                        )}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
             <div className="flex flex-wrap gap-1 max-h-40 overflow-y-auto pr-0.5">
               {PLACE_CATEGORIES.map((cat) => {
                 const active = selectedCategory === cat

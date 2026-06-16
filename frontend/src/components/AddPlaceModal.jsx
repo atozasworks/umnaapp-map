@@ -2,7 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../services/api'
 import { addressFromParts, findDuplicateInList } from '../utils/placeDuplicate'
 import { extractMapRenderingConfig } from '../utils/mapRenderingConfig'
-import { sanitizePlaceName } from '../utils/formatAddress'
+import { sanitizePlaceName, parseOsmAddressFields } from '../utils/formatAddress'
 
 export const PLACE_CATEGORIES = [
   'Restaurant',
@@ -51,6 +51,7 @@ const CATEGORY_ICONS = {
   Cinema: '🎬',
   Gym: '💪',
   Salon: '💇',
+  Festival: '🎪',
   Other: '📍',
 }
 
@@ -83,12 +84,18 @@ const AddPlaceModal = ({
   mapLocation,
   currentLocation,
   onRequestMapPick,
+  onUseCurrentLocation,
+  useCurrentLocationLoading = false,
+  locationDetailsLoading = false,
   onSaved,
   initialLocationMethod,
   existingPlaces = [],
   excludePlaceId = null,
+  editPlaceId = null,
   onShowDuplicate,
+  festivalMode = false,
 }) => {
+  const isEditing = editPlaceId != null
   const [formData, setFormData] = useState({
     placeNameEn: '',
     placeNameLocal: '',
@@ -97,6 +104,9 @@ const AddPlaceModal = ({
     latitude: '',
     longitude: '',
     zoomLevel: '15',
+    festivalStartDate: '',
+    festivalEndDate: '',
+    festivalRecurrence: 'yearly',
     ...EMPTY_ADDRESS_FIELDS,
   })
   const [fetchingAddress, setFetchingAddress] = useState(false)
@@ -116,17 +126,19 @@ const AddPlaceModal = ({
   const addressRequestIdRef = useRef(0)
   const addressCacheRef = useRef(new Map())
 
-  /** Extract display address fields from Nominatim address object */
-  const extractAddressFields = (addr) => {
-    if (!addr || typeof addr !== 'object') return null
-    return {
-      village: addr.village || addr.town || addr.city || addr.hamlet || '',
-      district: addr.county || addr.state_district || addr.district || '',
-      state: addr.state || '',
-      pincode: addr.postcode || '',
-      country: addr.country || '',
-      taluk: addr.taluk || addr.tehsil || addr.subdistrict || addr.municipality || '',
+  /** Extract display address fields from reverse-geocode payload */
+  const extractAddressFields = (addr, displayName = '', addressFields = null) => {
+    if (addressFields && typeof addressFields === 'object') {
+      return {
+        village: addressFields.village || '',
+        taluk: addressFields.taluk || '',
+        district: addressFields.district || '',
+        state: addressFields.state || '',
+        pincode: addressFields.pincode || '',
+        country: addressFields.country || '',
+      }
     }
+    return parseOsmAddressFields(addr, displayName)
   }
 
   /** Fetch address from lat/lng via reverse geocode API */
@@ -152,7 +164,10 @@ const AddPlaceModal = ({
       }
       // data.address is the Nominatim address object
       const addr = data?.address
-      const fields = addr && typeof addr === 'object' ? extractAddressFields(addr) : EMPTY_ADDRESS_FIELDS
+      const fields =
+        addr && typeof addr === 'object'
+          ? extractAddressFields(addr, data?.displayName, data?.addressFields)
+          : EMPTY_ADDRESS_FIELDS
       console.log('[AddPlaceModal] Reverse geocode API response', { lat: latNum, lng: lngNum, fields, data })
       addressCacheRef.current.set(cacheKey, fields)
       if (requestId === addressRequestIdRef.current) {
@@ -211,36 +226,69 @@ const AddPlaceModal = ({
         return {
           ...prev,
           placeNameEn: fromMap?.name ?? initialData?.name ?? prev.placeNameEn,
-          placeNameLocal: locChanged ? '' : prev.placeNameLocal,
-          category: fromMap?.category ?? initialData?.category ?? prev.category,
+          placeNameLocal:
+            fromMap?.placeNameLocal ??
+            fromMap?.place_name_local ??
+            initialData?.placeNameLocal ??
+            (locChanged ? '' : prev.placeNameLocal),
+          category: festivalMode ? 'Festival' : (fromMap?.category ?? initialData?.category ?? prev.category),
           latitude: fromMap?.latitude != null ? String(fromMap.latitude) : initialData?.latitude != null ? String(initialData.latitude) : prev.latitude,
           longitude: fromMap?.longitude != null ? String(fromMap.longitude) : initialData?.longitude != null ? String(initialData.longitude) : prev.longitude,
           zoomLevel: fromMap?.zoomLevel != null ? String(fromMap.zoomLevel) : initialData?.zoomLevel != null ? String(initialData.zoomLevel) : prev.zoomLevel ?? '15',
-          village: fromMap?.village ?? initialData?.village ?? prev.village,
-          taluk: fromMap?.taluk ?? initialData?.taluk ?? prev.taluk,
-          district: fromMap?.district ?? initialData?.district ?? prev.district,
-          state: fromMap?.state ?? initialData?.state ?? prev.state,
-          pincode: fromMap?.pincode ?? initialData?.pincode ?? prev.pincode,
-          country: fromMap?.country ?? initialData?.country ?? prev.country,
+          village:
+            fromMap?.addressFields?.village ??
+            fromMap?.village ??
+            initialData?.village ??
+            prev.village,
+          taluk:
+            fromMap?.addressFields?.taluk ??
+            fromMap?.taluk ??
+            initialData?.taluk ??
+            prev.taluk,
+          district:
+            fromMap?.addressFields?.district ??
+            fromMap?.district ??
+            initialData?.district ??
+            prev.district,
+          state:
+            fromMap?.addressFields?.state ??
+            fromMap?.state ??
+            initialData?.state ??
+            prev.state,
+          pincode:
+            fromMap?.addressFields?.pincode ??
+            fromMap?.pincode ??
+            initialData?.pincode ??
+            prev.pincode,
+          country:
+            fromMap?.addressFields?.country ??
+            fromMap?.country ??
+            initialData?.country ??
+            prev.country,
         }
       })
 
-      // Always fetch address from coordinates to ensure fields are populated
-      if (hasMapLocation) {
-        // Try to use pre-fetched address first for instant display
-        const addr = fromMap?.address
-        if (addr && typeof addr === 'object' && Object.keys(addr).length > 0) {
-          const fields = extractAddressFields(addr)
-          if (fields && (fields.village || fields.district || fields.state || fields.pincode)) {
+      // Fetch address from coordinates unless parent is already loading details
+      if (hasMapLocation && !locationDetailsLoading) {
+        const prefill =
+          fromMap?.addressFields ||
+          (fromMap?.address && typeof fromMap.address === 'object'
+            ? extractAddressFields(fromMap.address, fromMap?.name, fromMap?.addressFields)
+            : null)
+        if (prefill && (prefill.village || prefill.taluk || prefill.district || prefill.state || prefill.pincode)) {
+          setFormData((prev) => ({ ...prev, ...prefill }))
+        } else if (fromMap?.address && typeof fromMap.address === 'object' && Object.keys(fromMap.address).length > 0) {
+          const fields = extractAddressFields(fromMap.address, fromMap?.name, fromMap?.addressFields)
+          if (fields && (fields.village || fields.taluk || fields.district || fields.state || fields.pincode)) {
             setFormData((prev) => ({ ...prev, ...fields }))
           } else {
-            // Pre-fetched address had no useful fields, fetch fresh
             fetchAddressFromCoords(fromMap.latitude, fromMap.longitude)
           }
         } else {
-          // No pre-fetched address, fetch from API
           fetchAddressFromCoords(fromMap.latitude, fromMap.longitude)
         }
+        setLocationMethod('map-or-current')
+      } else if (hasMapLocation) {
         setLocationMethod('map-or-current')
       } else {
         setFormData((prev) => ({ ...prev, ...EMPTY_ADDRESS_FIELDS }))
@@ -254,7 +302,7 @@ const AddPlaceModal = ({
       setSubmitted(false)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, mapLocation, initialData, initialLocationMethod, fetchAddressFromCoords])
+  }, [isOpen, mapLocation, initialData, initialLocationMethod, locationDetailsLoading, fetchAddressFromCoords, festivalMode])
 
   useEffect(() => {
     return () => {
@@ -382,6 +430,12 @@ const AddPlaceModal = ({
   }
 
   const handleUseCurrentLocation = () => {
+    if (onUseCurrentLocation) {
+      setError(null)
+      setCoordError(null)
+      onUseCurrentLocation()
+      return
+    }
     if (!currentLocation || currentLocation.lat == null || currentLocation.lng == null) {
       setError('Current location unavailable. Please enable GPS or click on the map.')
       return
@@ -394,6 +448,8 @@ const AddPlaceModal = ({
     setCoordError(null)
     fetchAddressFromCoords(lat, lng)
   }
+
+  const addressLoading = fetchingAddress || locationDetailsLoading
 
   const handleRequestMapPick = () => {
     if (onRequestMapPick) onRequestMapPick()
@@ -507,9 +563,32 @@ const AddPlaceModal = ({
       return
     }
 
-    const categoryToSave = formData.category === 'Other' && formData.customCategory.trim()
-      ? formData.customCategory.trim()
-      : formData.category
+    const categoryToSave = festivalMode
+      ? 'Festival'
+      : formData.category === 'Other' && formData.customCategory.trim()
+        ? formData.customCategory.trim()
+        : formData.category
+
+    const isFestival = festivalMode
+    let festivalPayload = {}
+    if (isFestival) {
+      if (!formData.festivalStartDate) {
+        setError('Festival start date is required.')
+        setSaving(false)
+        return
+      }
+      const endDate = formData.festivalEndDate || formData.festivalStartDate
+      if (endDate < formData.festivalStartDate) {
+        setError('Festival end date cannot be before the start date.')
+        setSaving(false)
+        return
+      }
+      festivalPayload = {
+        festival_start_date: new Date(`${formData.festivalStartDate}T00:00:00`).toISOString(),
+        festival_end_date: new Date(`${endDate}T23:59:59`).toISOString(),
+        festival_recurrence: formData.festivalRecurrence === 'none' ? 'none' : 'yearly',
+      }
+    }
 
     try {
       const mapRenderingConfig =
@@ -523,7 +602,7 @@ const AddPlaceModal = ({
             category: categoryToSave,
           },
         })
-      const response = await api.post('/map/places', {
+      const payload = {
         place_name_en: placeNameEn,
         place_name_local: placeNameLocal,
         category: categoryToSave,
@@ -537,8 +616,11 @@ const AddPlaceModal = ({
         state: formData.state.trim(),
         pincode: formData.pincode.trim(),
         country: formData.country.trim(),
-        source: 'contribution',
-      })
+        ...festivalPayload,
+      }
+      const response = isEditing
+        ? await api.patch(`/map/places/${editPlaceId}`, payload)
+        : await api.post('/map/places', { ...payload, source: 'contribution' })
       setSubmitted(true)
       if (onSaved) {
         onSaved(response.data)
@@ -575,7 +657,7 @@ const AddPlaceModal = ({
       />
       <div className="relative w-full sm:max-w-md h-auto max-h-[85dvh] sm:max-h-[90vh] glass rounded-t-2xl sm:rounded-2xl shadow-2xl border border-white/30 overflow-y-auto animate-slide-up sm:animate-fade-in pointer-events-auto">
         <div className="flex items-center justify-between px-6 py-4 border-b border-white/30">
-          <h2 className="text-lg font-semibold text-slate-800">Add Place</h2>
+          <h2 className="text-lg font-semibold text-slate-800">{festivalMode ? (isEditing ? '🎪 Edit Festival / Jatre' : '🎪 Add Festival / Jatre') : (isEditing ? 'Edit Place' : 'Add Place')}</h2>
           <button
             type="button"
             onClick={onClose}
@@ -590,7 +672,9 @@ const AddPlaceModal = ({
 
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
           <p className="text-sm text-slate-600">
-            Fill Place Name (English) and Category. Local language name auto-translates from map location.
+            {festivalMode
+              ? 'Add a festival or jatre. Set its location and dates — the marker shows on the map only during the festival window.'
+              : 'Fill Place Name (English) and Category. Local language name auto-translates from map location.'}
           </p>
 
           {/* Location Method Selection */}
@@ -638,12 +722,24 @@ const AddPlaceModal = ({
                 <button
                   type="button"
                   onClick={handleUseCurrentLocation}
-                  disabled={!currentLocation}
-                  className="px-3 py-1.5 text-sm rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={useCurrentLocationLoading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 transition-colors disabled:opacity-50 disabled:cursor-wait"
                 >
-                  Use current location
+                  {useCurrentLocationLoading && (
+                    <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-500 border-t-transparent" />
+                  )}
+                  {useCurrentLocationLoading ? 'Getting location…' : 'Use current location'}
                 </button>
               </div>
+            )}
+
+            {locationMethod === 'map-or-current' && (formData.latitude || formData.longitude) && (
+              <p className="text-[11px] text-slate-500 font-mono pt-0.5">
+                {formData.latitude && formData.longitude
+                  ? `${parseFloat(formData.latitude).toFixed(6)}, ${parseFloat(formData.longitude).toFixed(6)}`
+                  : ''}
+                {addressLoading ? ' · loading address…' : ''}
+              </p>
             )}
 
             {/* Option 2: Manual Coordinates */}
@@ -716,6 +812,7 @@ const AddPlaceModal = ({
             )}
           </div>
 
+          {!festivalMode && (
           <div>
             <label htmlFor="place-category" className="block text-sm font-medium text-slate-700 mb-1">
               Category
@@ -734,8 +831,9 @@ const AddPlaceModal = ({
               ))}
             </select>
           </div>
+          )}
 
-          {formData.category === 'Other' && (
+          {!festivalMode && formData.category === 'Other' && (
             <div>
               <label htmlFor="place-custom-category" className="block text-sm font-medium text-slate-700 mb-1">
                 Custom Category (enter your own)
@@ -752,12 +850,72 @@ const AddPlaceModal = ({
             </div>
           )}
 
+          {festivalMode && (
+            <div className="space-y-3 rounded-xl border border-fuchsia-200 bg-fuchsia-50/60 p-3">
+              <p className="text-sm font-medium text-fuchsia-800 flex items-center gap-1.5">
+                <span aria-hidden>🎪</span> Festival dates
+              </p>
+              <p className="text-xs text-fuchsia-700/80">
+                This marker only appears on the map during the festival window. Set when it
+                runs; yearly festivals show a countdown to the next occurrence.
+              </p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="festival-start" className="block text-sm font-medium text-slate-700 mb-1">
+                    Start date
+                  </label>
+                  <input
+                    id="festival-start"
+                    name="festivalStartDate"
+                    type="date"
+                    value={formData.festivalStartDate}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="festival-end" className="block text-sm font-medium text-slate-700 mb-1">
+                    End date
+                  </label>
+                  <input
+                    id="festival-end"
+                    name="festivalEndDate"
+                    type="date"
+                    value={formData.festivalEndDate}
+                    min={formData.festivalStartDate || undefined}
+                    onChange={handleChange}
+                    className="input-field"
+                  />
+                </div>
+              </div>
+              <div>
+                <label htmlFor="festival-recurrence" className="block text-sm font-medium text-slate-700 mb-1">
+                  Repeats
+                </label>
+                <select
+                  id="festival-recurrence"
+                  name="festivalRecurrence"
+                  value={formData.festivalRecurrence}
+                  onChange={handleChange}
+                  className="input-field"
+                >
+                  <option value="yearly">Every year (same dates)</option>
+                  <option value="none">One-time only</option>
+                </select>
+                <p className="mt-1 text-xs text-slate-500">
+                  Many jatres follow the lunar calendar and shift each year — update the dates
+                  yearly if needed.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* Address detail fields - show once we have location or data */}
-          {(formData.latitude || formData.longitude || fetchingAddress || hasAddressDetails) ? (
+          {(formData.latitude || formData.longitude || addressLoading || hasAddressDetails) ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-medium text-slate-700">Location Details</p>
-                {fetchingAddress && (
+                {addressLoading && (
                   <span className="flex items-center gap-1 text-xs text-slate-400">
                     <span className="animate-spin rounded-full h-3 w-3 border-2 border-primary-500 border-t-transparent" />
                     Fetching address...
@@ -772,8 +930,8 @@ const AddPlaceModal = ({
                     name="village"
                     value={formData.village}
                     onChange={handleChange}
-                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
-                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                    placeholder={addressLoading ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${addressLoading ? 'animate-pulse' : ''}`}
                   />
                 </div>
                 <div>
@@ -783,8 +941,8 @@ const AddPlaceModal = ({
                     name="taluk"
                     value={formData.taluk}
                     onChange={handleChange}
-                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
-                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                    placeholder={addressLoading ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${addressLoading ? 'animate-pulse' : ''}`}
                   />
                 </div>
                 <div>
@@ -794,8 +952,8 @@ const AddPlaceModal = ({
                     name="district"
                     value={formData.district}
                     onChange={handleChange}
-                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
-                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                    placeholder={addressLoading ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${addressLoading ? 'animate-pulse' : ''}`}
                   />
                 </div>
                 <div>
@@ -805,8 +963,8 @@ const AddPlaceModal = ({
                     name="state"
                     value={formData.state}
                     onChange={handleChange}
-                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
-                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                    placeholder={addressLoading ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${addressLoading ? 'animate-pulse' : ''}`}
                   />
                 </div>
                 <div>
@@ -816,8 +974,8 @@ const AddPlaceModal = ({
                     name="pincode"
                     value={formData.pincode}
                     onChange={handleChange}
-                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
-                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                    placeholder={addressLoading ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${addressLoading ? 'animate-pulse' : ''}`}
                   />
                 </div>
                 <div>
@@ -827,8 +985,8 @@ const AddPlaceModal = ({
                     name="country"
                     value={formData.country}
                     onChange={handleChange}
-                    placeholder={fetchingAddress ? 'Loading...' : 'Auto-filled from selected location'}
-                    className={`input-field ${fetchingAddress ? 'animate-pulse' : ''}`}
+                    placeholder={addressLoading ? 'Loading...' : 'Auto-filled from selected location'}
+                    className={`input-field ${addressLoading ? 'animate-pulse' : ''}`}
                   />
                 </div>
               </div>
@@ -859,6 +1017,8 @@ const AddPlaceModal = ({
                   <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent" />
                   Saving...
                 </span>
+              ) : isEditing ? (
+                'Save Changes'
               ) : (
                 'Add / Save Place'
               )}

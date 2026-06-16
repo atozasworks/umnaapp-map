@@ -1,6 +1,8 @@
 /** Normalize incoming place body (extract / bulk / admin edit) into Prisma data fields. */
 
 import { normalizeMapRenderingConfig } from './mapRenderingConfig.js'
+import { resolvePlaceCategory } from './googlePlaceCategory.js'
+import { buildFestivalFields, festivalStatus, isFestivalPlace } from './festival.js'
 
 function str(v, max = 2000) {
   if (v == null) return null
@@ -124,8 +126,6 @@ export function buildPlaceDetailFields(item, regionDefaults = {}, { forUpdate = 
   let extractedAt
   if (item.extracted_at != null || item.extractedAt != null) {
     extractedAt = new Date(item.extracted_at ?? item.extractedAt)
-  } else if (!forUpdate) {
-    extractedAt = new Date()
   }
 
   const typesRaw = item.types ?? item.google_types ?? item.googleTypes
@@ -141,6 +141,7 @@ export function buildPlaceDetailFields(item, regionDefaults = {}, { forUpdate = 
 
   return {
     mapRenderingConfig,
+    ...buildFestivalFields(item),
     googlePlaceId: str(item.place_id ?? item.placeId ?? item.google_place_id ?? item.googlePlaceId, 255),
     googleType: str(item.type ?? item.google_type ?? item.googleType ?? googleTypes?.[0], 100),
     googleTypes: googleTypes?.length ? googleTypes : null,
@@ -170,12 +171,21 @@ export function buildPlaceDetailFields(item, regionDefaults = {}, { forUpdate = 
 /** API response shape for admin / detail views. */
 export function serializePlace(p) {
   if (!p) return null
+  const name = p.placeNameEn ?? p.name
+  const category = resolvePlaceCategory({
+    category: p.category,
+    type: p.googleType,
+    types: p.googleTypes,
+    googleTypes: p.googleTypes,
+    googleType: p.googleType,
+    name,
+  })
   return {
     id: p.id,
-    name: p.placeNameEn ?? p.name,
-    place_name_en: p.placeNameEn ?? p.name,
+    name,
+    place_name_en: name,
     place_name_local: p.placeNameLocal,
-    category: p.category,
+    category,
     latitude: p.latitude,
     longitude: p.longitude,
     zoomLevel: p.zoomLevel,
@@ -211,6 +221,13 @@ export function serializePlace(p) {
     map_rendering_config: p.mapRenderingConfig,
     mapRenderingConfig: p.mapRenderingConfig,
     extracted_at: p.extractedAt,
+    festival_start_date: p.festivalStartDate ?? null,
+    festivalStartDate: p.festivalStartDate ?? null,
+    festival_end_date: p.festivalEndDate ?? null,
+    festivalEndDate: p.festivalEndDate ?? null,
+    festival_recurrence: p.festivalRecurrence ?? null,
+    festivalRecurrence: p.festivalRecurrence ?? null,
+    festival: isFestivalPlace(p) ? festivalStatus(p) : null,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   }
@@ -256,6 +273,9 @@ export const PLACE_DETAIL_SELECT = {
   googlePhotos: true,
   mapRenderingConfig: true,
   extractedAt: true,
+  festivalStartDate: true,
+  festivalEndDate: true,
+  festivalRecurrence: true,
   createdAt: true,
   updatedAt: true,
 }

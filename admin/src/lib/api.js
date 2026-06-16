@@ -135,3 +135,30 @@ export async function bulkPlaceAction(ids, action) {
   const { data } = await api.post('/admin/places/bulk-action', { ids, action })
   return data
 }
+
+export async function fetchPlaceHistory(id) {
+  const { data } = await api.get(`/admin/places/${encodeURIComponent(id)}/history`)
+  return data
+}
+
+export async function restorePlaceVersion(id, auditId) {
+  const { data } = await api.post(
+    `/admin/places/${encodeURIComponent(id)}/restore/${encodeURIComponent(auditId)}`
+  )
+  return data
+}
+
+export async function fetchBusinessClaims(status = 'pending') {
+  const { data } = await api.get('/admin/claims', { params: { status } })
+  return data
+}
+
+export async function approveBusinessClaim(id, note) {
+  const { data } = await api.post(`/admin/claims/${encodeURIComponent(id)}/approve`, { note })
+  return data
+}
+
+export async function rejectBusinessClaim(id, note) {
+  const { data } = await api.post(`/admin/claims/${encodeURIComponent(id)}/reject`, { note })
+  return data
+}

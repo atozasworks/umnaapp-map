@@ -1,5 +1,16 @@
-const AddPlaceMethodModal = ({ isOpen, onClose, onSelectMapPick, onSelectManualCoords, currentLocation, onUseCurrentLocation }) => {
+const AddPlaceMethodModal = ({
+  isOpen,
+  onClose,
+  onSelectMapPick,
+  onSelectManualCoords,
+  currentLocation,
+  onUseCurrentLocation,
+  useCurrentLocationLoading = false,
+}) => {
   if (!isOpen) return null
+
+  const hasCachedCoords =
+    currentLocation?.lat != null && currentLocation?.lng != null
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
@@ -52,27 +63,39 @@ const AddPlaceMethodModal = ({ isOpen, onClose, onSelectMapPick, onSelectManualC
           </button>
 
           {/* Use current location shortcut */}
-          {currentLocation?.lat != null && currentLocation?.lng != null && (
-            <button
-              onClick={onUseCurrentLocation}
-              className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-slate-50 hover:bg-slate-100 active:bg-slate-200 border border-slate-200 transition-colors text-left"
-            >
-              <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+          <button
+            type="button"
+            onClick={onUseCurrentLocation}
+            disabled={useCurrentLocationLoading}
+            className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg bg-emerald-50 hover:bg-emerald-100/80 active:bg-emerald-100 border border-emerald-200/80 transition-colors text-left disabled:opacity-70 disabled:cursor-wait"
+          >
+            <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0">
+              {useCurrentLocationLoading ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-emerald-600 border-t-transparent" />
+              ) : (
                 <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 11c1.657 0 3-1.343 3-3S13.657 5 12 5 9 6.343 9 8s1.343 3 3 3zm0 0c-4.418 0-8 1.79-8 4v1h16v-1c0-2.21-3.582-4-8-4z" />
                 </svg>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-medium text-slate-700">Use my current location</p>
-                <p className="text-[11px] text-slate-400 truncate">
-                  {currentLocation.lat.toFixed(5)}, {currentLocation.lng.toFixed(5)}
-                </p>
-              </div>
-              <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-slate-800">
+                {useCurrentLocationLoading ? 'Getting your location…' : 'Use my current location'}
+              </p>
+              <p className="text-[11px] text-slate-500 mt-0.5 leading-relaxed">
+                {useCurrentLocationLoading
+                  ? 'Detecting GPS and loading address details'
+                  : hasCachedCoords
+                    ? `${currentLocation.lat.toFixed(5)}, ${currentLocation.lng.toFixed(5)} — tap to refresh and add`
+                    : 'Detect your GPS position and pre-fill the place form'}
+              </p>
+            </div>
+            {!useCurrentLocationLoading && (
+              <svg className="w-4 h-4 text-emerald-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
-            </button>
-          )}
+            )}
+          </button>
 
           {/* Option 2: Manual lat/lng */}
           <button

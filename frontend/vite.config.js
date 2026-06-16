@@ -95,6 +95,7 @@ export default defineConfig({
         target: 'http://localhost:5000',
         ws: true,
       },
+      // Dev proxy → umnaapp.in India OSM tiles (same as umnaapp.in/map).
       '/map-tiles': {
         target: 'https://umnaapp.in',
         changeOrigin: true,

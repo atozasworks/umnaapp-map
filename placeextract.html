@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Comprehensive Place Extractor</title>
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAaY-GbdPh3b5zO7Flg0u2Dnz9r1zr753U&libraries=places,geocoding"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -711,7 +710,64 @@
             document.getElementById("status").textContent = message;
         }
         
-        window.onload = initMap;
+        // ===== BOOTSTRAP: load Google Maps using the key served by the backend (.env) =====
+        // The API key is NEVER hardcoded here. It is fetched at runtime from
+        // GET /api/map/config (which returns process.env.GOOGLE_MAPS_API_KEY).
+        function resolveApiBase() {
+            // Override order: ?api= query param > localStorage('apiBase') > same origin > localhost dev
+            var params = new URLSearchParams(window.location.search);
+            var override = params.get('api') || localStorage.getItem('apiBase');
+            var base = (override || '').trim();
+            if (!base) {
+                base = (window.location.protocol === 'http:' || window.location.protocol === 'https:')
+                    ? window.location.origin
+                    : 'http://localhost:5000';
+            }
+            base = base.replace(/\/+$/, '');
+            return base.endsWith('/api') ? base : base + '/api';
+        }
+
+        function loadGoogleMaps() {
+            var apiBase = resolveApiBase();
+            var token = localStorage.getItem('token') || '';
+            var headers = token ? { Authorization: 'Bearer ' + token } : {};
+
+            updateStatus('Loading Google Maps configuration from server...');
+
+            fetch(apiBase + '/map/config', { headers: headers })
+                .then(function(res) {
+                    if (!res.ok) {
+                        throw new Error('Config request failed (HTTP ' + res.status + ').' +
+                            (res.status === 401 ? ' Please log in to the app first (token missing/expired).' : ''));
+                    }
+                    return res.json();
+                })
+                .then(function(data) {
+                    var key = (data && data.googleMapsApiKey) ? data.googleMapsApiKey : '';
+                    if (!key) {
+                        throw new Error('GOOGLE_MAPS_API_KEY is not configured on the server.');
+                    }
+                    var script = document.createElement('script');
+                    script.src = 'https://maps.googleapis.com/maps/api/js?key=' +
+                        encodeURIComponent(key) + '&libraries=places,geocoding';
+                    script.async = true;
+                    script.defer = true;
+                    script.onload = function() {
+                        initMap();
+                        updateStatus('Please enter a country to begin');
+                    };
+                    script.onerror = function() {
+                        updateStatus('❌ Failed to load Google Maps API.');
+                    };
+                    document.head.appendChild(script);
+                })
+                .catch(function(err) {
+                    updateStatus('❌ ' + err.message);
+                    console.error('Google Maps bootstrap failed:', err);
+                });
+        }
+
+        window.onload = loadGoogleMaps;
     </script>
 </body>
 </html>

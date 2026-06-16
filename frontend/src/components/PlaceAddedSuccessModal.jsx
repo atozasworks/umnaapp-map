@@ -34,15 +34,22 @@ export default function PlaceAddedSuccessModal({
   const list = Array.isArray(places) ? places.filter((p) => p?.name) : []
   const count = countProp ?? list.length ?? 1
   const isBulk = count > 1
-  const title = isBulk ? `${count} places added!` : 'Place added!'
+  const isFestival = variant === 'festival'
+  const title = isFestival
+    ? 'Festival date added!'
+    : isBulk
+      ? `${count} places added!`
+      : 'Place added!'
   const thanksLine = 'Thanks for your contribution!'
 
   const variantHint =
-    variant === 'extract'
-      ? 'Extracted places are saved and will appear on the map after approval.'
-      : variant === 'saved'
-        ? 'Saved to your places. Visible to you until approved, then everyone on the map.'
-        : 'Your new place is submitted. Only you can see it on the map until it is approved (auto after 10 days).'
+    variant === 'festival'
+      ? 'Festival dates saved. The marker shows on the map during the festival window, and everyone gets a reminder when it starts.'
+      : variant === 'extract'
+        ? 'Extracted places are saved and visible only to you until approved (auto after 1 day).'
+        : variant === 'saved'
+          ? 'Saved to your places. Visible to you until approved, then everyone on the map.'
+          : 'Your new place is submitted. Only you can see it on the map until it is approved (auto after 5 days).'
 
   return (
     <div

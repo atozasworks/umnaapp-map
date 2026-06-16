@@ -3,7 +3,7 @@
 
 import { precacheAndRoute, cleanupOutdatedCaches, createHandlerBoundToURL } from 'workbox-precaching'
 import { NavigationRoute, registerRoute } from 'workbox-routing'
-import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies'
+import { CacheFirst, NetworkFirst, NetworkOnly, StaleWhileRevalidate } from 'workbox-strategies'
 import { ExpirationPlugin } from 'workbox-expiration'
 import { CacheableResponsePlugin } from 'workbox-cacheable-response'
 import { clientsClaim } from 'workbox-core'
@@ -51,6 +51,35 @@ registerRoute(
       new CacheableResponsePlugin({ statuses: [0, 200] }),
     ],
   })
+)
+
+registerRoute(
+  /\/api\/map\/tiles\//i,
+  new CacheFirst({
+    cacheName: 'map-tiles-api',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 200, maxAgeSeconds: 60 * 60 * 24 * 7 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  })
+)
+
+registerRoute(
+  /^https:\/\/umnaapp\.in\/tiles\//i,
+  new CacheFirst({
+    cacheName: 'umnaapp-tiles',
+    plugins: [
+      new ExpirationPlugin({ maxEntries: 300, maxAgeSeconds: 60 * 60 * 24 * 7 }),
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+    ],
+  })
+)
+
+// Sensitive endpoints must NEVER be cached (auth tokens, admin, user data).
+// Registered before the generic /api/ route so it matches first.
+registerRoute(
+  /\/api\/(auth|admin|user|me|email)(\/|$)/i,
+  new NetworkOnly()
 )
 
 registerRoute(

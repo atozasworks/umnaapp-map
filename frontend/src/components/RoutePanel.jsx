@@ -9,6 +9,7 @@ import {
   buildRouteRequestFromStops,
 } from '../utils/routeHelpers'
 import { highlightQuerySegments, splitPlaceSuggestion } from '../utils/gmapsSearchHighlight'
+import { getSpeechController } from '../utils/speech'
 
 const GmapsPinIcon = () => (
   <svg className="gmaps-suggestion-pin" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
@@ -355,8 +356,9 @@ const StepIcon = ({ modifier }) => {
   return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5m0 0l-4 4m4-4l4 4" /></svg>
 }
 
-const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, initialEndPlace, initialStartPlace }) => {
+const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, onStartNavigation, initialEndPlace, initialStartPlace }) => {
   const tDirections = useTranslate('Directions')
+  const tStart = useTranslate('Start')
   const tGetDirections = useTranslate('Get Directions')
   const tCalculating = useTranslate('Calculating...')
   const tClear = useTranslate('Clear')
@@ -402,16 +404,38 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   )
 
   const [startPlace, setStartPlace] = useState(() => initialStartPlace || null)
-  const [endPlace, setEndPlace] = useState(() => initialEndPlace || null)
+  const [destinations, setDestinations] = useState(() => [
+    { id: 1, place: initialEndPlace || null },
+  ])
 
   useEffect(() => {
     if (initialStartPlace) setStartPlace(initialStartPlace)
   }, [initialStartPlace])
 
   useEffect(() => {
-    if (initialEndPlace) setEndPlace(initialEndPlace)
+    if (initialEndPlace) {
+      setDestinations((prev) => {
+        const next = [...prev]
+        if (next.length === 0) return [{ id: nextWpId.current++, place: initialEndPlace }]
+        next[next.length - 1] = { ...next[next.length - 1], place: initialEndPlace }
+        return next
+      })
+    }
   }, [initialEndPlace])
-  const [waypoints, setWaypoints] = useState([])
+
+  const waypoints = useMemo(() => destinations.slice(0, -1), [destinations])
+  const endPlace = useMemo(
+    () => destinations[destinations.length - 1]?.place ?? null,
+    [destinations]
+  )
+
+  const setEndPlace = useCallback((place) => {
+    setDestinations((prev) => {
+      const next = [...prev]
+      next[next.length - 1] = { ...next[next.length - 1], place }
+      return next
+    })
+  }, [])
   const [travelMode, setTravelMode] = useState('driving')
   const [isCalculating, setIsCalculating] = useState(false)
   const [routeData, setRouteData] = useState(null)
@@ -425,7 +449,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const [isMobileViewport, setIsMobileViewport] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth < 640 : false
   )
-  const nextWpId = useRef(1)
+  const nextWpId = useRef(2)
   const autoCalcTimerRef = useRef(null)
   const skipNextAutoCalcRef = useRef(false)
   const [activeSearch, setActiveSearch] = useState(null)
@@ -666,11 +690,11 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     triggerRouteRecalcRef.current = recalcWithStops
   }, [recalcWithStops])
 
-  const routeDragStateRef = useRef({ startPlace, endPlace, waypoints })
+  const routeDragStateRef = useRef({ startPlace, destinations })
 
   useEffect(() => {
-    routeDragStateRef.current = { startPlace, endPlace, waypoints }
-  }, [startPlace, endPlace, waypoints])
+    routeDragStateRef.current = { startPlace, destinations }
+  }, [startPlace, destinations])
 
   const resolveDraggedPlaceName = useCallback(async (lat, lng) => {
     try {
@@ -682,7 +706,9 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   }, [])
 
   const applyDraggedStop = useCallback((index, lat, lng) => {
-    const { startPlace: start, endPlace: end, waypoints: wps } = routeDragStateRef.current
+    const { startPlace: start, destinations: dests } = routeDragStateRef.current
+    const wps = dests.slice(0, -1)
+    const end = dests[dests.length - 1]?.place ?? null
     const place = { lat, lng, name: '…' }
     const slots = [{ kind: 'start' }]
     wps.forEach((w) => {
@@ -701,10 +727,12 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       setEndPlace(place)
       return getResolvedRouteStops(start, wps, place)
     }
-    const nextWps = wps.map((w) => (w.id === slot.id ? { ...w, place } : w))
-    setWaypoints(nextWps)
-    return getResolvedRouteStops(start, nextWps, end)
-  }, [])
+    const nextDests = dests.map((d) => (d.id === slot.id ? { ...d, place } : d))
+    setDestinations(nextDests)
+    const nextWps = nextDests.slice(0, -1)
+    const nextEnd = nextDests[nextDests.length - 1]?.place ?? null
+    return getResolvedRouteStops(start, nextWps, nextEnd)
+  }, [setEndPlace])
 
   const handleRouteStopDragEnd = useCallback(
     async ({ index, lat, lng, total }) => {
@@ -729,16 +757,15 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       } else if (index === total - 1) {
         setEndPlace(named)
       } else {
-        const { startPlace: start, endPlace: end } = routeDragStateRef.current
-        setWaypoints((prev) => {
+        setDestinations((prev) => {
           const slots = [{ kind: 'start' }]
-          prev.forEach((w) => {
+          prev.slice(0, -1).forEach((w) => {
             if (w.place) slots.push({ kind: 'wp', id: w.id })
           })
           slots.push({ kind: 'end' })
           const slot = slots[index]
           if (slot?.kind !== 'wp') return prev
-          return prev.map((w) => (w.id === slot.id ? { ...w, place: named } : w))
+          return prev.map((d) => (d.id === slot.id ? { ...d, place: named } : d))
         })
       }
     },
@@ -879,29 +906,45 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     setError(null)
   }
 
+  const handleStartNavigation = () => {
+    if (!routeData || !onStartNavigation) return
+    // Unlock TTS inside this tap so spoken prompts work on mobile browsers.
+    getSpeechController().unlock()
+    onStartNavigation({
+      route: routeData,
+      travelMode,
+      destinationName: endPlace?.name || '',
+      destination: endPlace,
+      stops: resolvedRouteStops,
+    })
+  }
+
   const handleSwap = () => {
-    const temp = startPlace
-    setStartPlace(endPlace)
-    setEndPlace(temp)
-    // Reverse waypoints order too
-    setWaypoints((prev) => [...prev].reverse())
+    const lastPlace = destinations[destinations.length - 1]?.place ?? null
+    const reversedMiddle = [...destinations.slice(0, -1)].reverse()
+    const lastId = destinations[destinations.length - 1].id
+    setStartPlace(lastPlace)
+    setDestinations([...reversedMiddle, { id: lastId, place: startPlace }])
   }
 
-  const addWaypoint = () => {
-    if (waypoints.length >= 8) return // max 8 stops
-    setWaypoints((prev) => [...prev, { id: nextWpId.current++, place: null }])
+  const addDestination = () => {
+    if (destinations.length >= 9) return // max 8 intermediate + 1 final destination
+    setDestinations((prev) => [...prev, { id: nextWpId.current++, place: null }])
   }
 
-  const removeWaypoint = (wpId) => {
-    setWaypoints((prev) => prev.filter((w) => w.id !== wpId))
+  const removeDestination = (destId) => {
+    setDestinations((prev) => {
+      if (prev.length <= 1) return [{ ...prev[0], place: null }]
+      return prev.filter((d) => d.id !== destId)
+    })
   }
 
-  const updateWaypoint = (wpId, place) => {
-    setWaypoints((prev) => prev.map((w) => (w.id === wpId ? { ...w, place } : w)))
+  const updateDestination = (destId, place) => {
+    setDestinations((prev) => prev.map((d) => (d.id === destId ? { ...d, place } : d)))
   }
 
-  const moveWaypoint = (index, direction) => {
-    setWaypoints((prev) => {
+  const moveDestination = (index, direction) => {
+    setDestinations((prev) => {
       const arr = [...prev]
       const target = index + direction
       if (target < 0 || target >= arr.length) return arr
@@ -928,8 +971,12 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   // Build ordered list of all stops for display
   const allStops = [
     { key: 'start', type: 'start', place: startPlace },
-    ...waypoints.map((w) => ({ key: `wp-${w.id}`, type: 'waypoint', wpId: w.id, place: w.place })),
-    { key: 'end', type: 'end', place: endPlace },
+    ...destinations.map((d, idx) => ({
+      key: `dest-${d.id}`,
+      type: idx === destinations.length - 1 ? 'end' : 'waypoint',
+      destId: d.id,
+      place: d.place,
+    })),
   ]
 
   const modeEta = (modeId) => {
@@ -949,46 +996,32 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         getResolvedRouteStops(place, waypoints, endPlace)
       ),
       clear: () => setStartPlace(null),
-      placeholder: tYourLocation,
+      placeholder: tChooseStart,
       getStopsAfterSelect: (place) => getResolvedRouteStops(place, waypoints, endPlace),
     },
-    ...waypoints.map((w, idx) => ({
-      key: `wp-${w.id}`,
-      kind: 'waypoint',
-      wpId: w.id,
-      wpIndex: idx,
-      place: w.place,
-      rawSetPlace: (p) => updateWaypoint(w.id, p),
-      setPlace: selectPlaceAndRecalc(
-        (p) => updateWaypoint(w.id, p),
-        (place) =>
-          getResolvedRouteStops(
-            startPlace,
-            waypoints.map((wp) => (wp.id === w.id ? { ...wp, place } : wp)),
-            endPlace
-          )
-      ),
-      clear: () => updateWaypoint(w.id, null),
-      placeholder: `${tAddStopPrefix} ${idx + 1}`,
-      getStopsAfterSelect: (place) =>
-        getResolvedRouteStops(
-          startPlace,
-          waypoints.map((wp) => (wp.id === w.id ? { ...wp, place } : wp)),
-          endPlace
+    ...destinations.map((d, idx) => {
+      const isLast = idx === destinations.length - 1
+      const nextDests = (place) =>
+        destinations.map((dest) => (dest.id === d.id ? { ...dest, place } : dest))
+      const nextWaypoints = (place) => nextDests(place).slice(0, -1)
+      const nextEnd = (place) => nextDests(place)[nextDests(place).length - 1]?.place ?? null
+      return {
+        key: `dest-${d.id}`,
+        kind: isLast ? 'end' : 'waypoint',
+        destId: d.id,
+        destIndex: idx,
+        place: d.place,
+        rawSetPlace: (p) => updateDestination(d.id, p),
+        setPlace: selectPlaceAndRecalc(
+          (p) => updateDestination(d.id, p),
+          (place) => getResolvedRouteStops(startPlace, nextWaypoints(place), nextEnd(place))
         ),
-    })),
-    {
-      key: 'end',
-      kind: 'end',
-      place: endPlace,
-      rawSetPlace: setEndPlace,
-      setPlace: selectPlaceAndRecalc(setEndPlace, (place) =>
-        getResolvedRouteStops(startPlace, waypoints, place)
-      ),
-      clear: () => setEndPlace(null),
-      placeholder: tChooseDestination,
-      getStopsAfterSelect: (place) => getResolvedRouteStops(startPlace, waypoints, place),
-    },
+        clear: () => updateDestination(d.id, null),
+        placeholder: isLast ? tChooseDestination : `${tAddStopPrefix} ${idx + 1}`,
+        getStopsAfterSelect: (place) =>
+          getResolvedRouteStops(startPlace, nextWaypoints(place), nextEnd(place)),
+      }
+    }),
   ]
 
   return (
@@ -1040,15 +1073,27 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
             className="flex shrink-0 gap-2 border-t border-slate-100 px-4 py-3"
             style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
           >
+            {onStartNavigation && (
+              <button
+                type="button"
+                onClick={handleStartNavigation}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1a73e8] px-4 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-[#1765cc]"
+              >
+                <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M3.5 2.5l17 9.5-17 9.5 2.5-9.5z" />
+                </svg>
+                {tStart}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setMobileSheetCollapsed(false)}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md"
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-slate-100 px-4 py-2.5 text-sm font-semibold text-slate-700"
             >
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
               </svg>
-              Route details
+              Steps
             </button>
             <button
               type="button"
@@ -1128,17 +1173,17 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                 />
                 {row.kind === 'waypoint' && (
                   <div className="absolute right-1 top-1/2 -translate-y-1/2 flex items-center gap-0.5">
-                    {row.wpIndex > 0 && (
-                      <button type="button" onClick={() => moveWaypoint(row.wpIndex, -1)} className="p-1 text-[#5f6368]" title={tMoveUp}>
+                    {row.destIndex > 0 && (
+                      <button type="button" onClick={() => moveDestination(row.destIndex, -1)} className="p-1 text-[#5f6368]" title={tMoveUp}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" /></svg>
                       </button>
                     )}
-                    {row.wpIndex < waypoints.length - 1 && (
-                      <button type="button" onClick={() => moveWaypoint(row.wpIndex, 1)} className="p-1 text-[#5f6368]" title={tMoveDown}>
+                    {row.destIndex < destinations.length - 1 && (
+                      <button type="button" onClick={() => moveDestination(row.destIndex, 1)} className="p-1 text-[#5f6368]" title={tMoveDown}>
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
                       </button>
                     )}
-                    <button type="button" onClick={() => removeWaypoint(row.wpId)} className="p-1 text-[#5f6368] hover:text-[#d93025]" title={tRemoveStop}>
+                    <button type="button" onClick={() => removeDestination(row.destId)} className="p-1 text-[#5f6368] hover:text-[#d93025]" title={tRemoveStop}>
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                     </button>
                   </div>
@@ -1180,8 +1225,8 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
 
         <button
           type="button"
-          onClick={addWaypoint}
-          disabled={waypoints.length >= 8 || activeSearch?.openPanel}
+          onClick={addDestination}
+          disabled={destinations.length >= 9 || activeSearch?.openPanel}
           className="gmaps-add-dest"
           style={activeSearch?.openPanel ? { visibility: 'hidden', height: 0, margin: 0, padding: 0 } : undefined}
         >
@@ -1363,11 +1408,23 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       </div>
 
       {routeData && (
-        <div className="px-4 py-2 border-t border-[#e8eaed] flex-shrink-0">
+        <div className="px-4 py-2 border-t border-[#e8eaed] flex-shrink-0 flex items-center gap-2">
+          {onStartNavigation && (
+            <button
+              type="button"
+              onClick={handleStartNavigation}
+              className="flex flex-1 items-center justify-center gap-2 rounded-full bg-[#1a73e8] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[#1765cc]"
+            >
+              <svg className="h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M3.5 2.5l17 9.5-17 9.5 2.5-9.5z" />
+              </svg>
+              {tStart}
+            </button>
+          )}
           <button
             type="button"
             onClick={handleClear}
-            className="w-full py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] rounded-lg transition-colors"
+            className={`py-2 text-sm font-medium text-[#5f6368] hover:bg-[#f1f3f4] rounded-lg transition-colors ${onStartNavigation ? 'px-4' : 'w-full'}`}
           >
             {tClear}
           </button>

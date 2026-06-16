@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>UMNAAPP MAP</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <meta name="theme-color" content="#0284c7"/>
+  <meta name="description" content="Explore India on UMNAAPP — open map powered by OpenStreetMap."/>
+  <link rel="stylesheet" href="leaflet.css"/>
+  <script src="leaflet.js"></script>
+  <style>
+    :root {
+      --map-bg: #e8eef2;
+      --control-bg: #fff;
+      --control-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+      --accent: #0284c7;
+    }
+
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--map-bg);
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    #map {
+      height: 100%;
+      width: 100%;
+      background: var(--map-bg);
+    }
+
+    /* Smooth tile appearance */
+    .leaflet-tile {
+      image-rendering: auto;
+      transition: opacity 0.15s ease-out;
+    }
+    .leaflet-tile-loaded {
+      opacity: 1 !important;
+    }
+
+    /* Clean zoom controls — top-right like Google Maps */
+    .leaflet-top.leaflet-left {
+      top: auto;
+      left: auto;
+      right: 12px;
+      bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+    }
+    .leaflet-control-zoom {
+      border: none !important;
+      box-shadow: var(--control-shadow);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .leaflet-control-zoom a {
+      width: 40px !important;
+      height: 40px !important;
+      line-height: 40px !important;
+      font-size: 20px !important;
+      color: #334155 !important;
+      background: var(--control-bg) !important;
+      border-bottom: 1px solid #e2e8f0 !important;
+    }
+    .leaflet-control-zoom a:last-child {
+      border-bottom: none !important;
+    }
+    .leaflet-control-zoom a:hover {
+      background: #f8fafc !important;
+      color: var(--accent) !important;
+    }
+
+    /* Minimal attribution */
+    .leaflet-control-attribution {
+      background: rgba(255, 255, 255, 0.82) !important;
+      backdrop-filter: blur(6px);
+      border-radius: 6px 0 0 0;
+      padding: 2px 8px !important;
+      font-size: 10px !important;
+      color: #64748b !important;
+      margin: 0 !important;
+    }
+    .leaflet-control-attribution a {
+      color: #475569 !important;
+    }
+
+    /* Loading overlay */
+    #map-loader {
+      position: fixed;
+      inset: 0;
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      background: var(--map-bg);
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+      pointer-events: none;
+    }
+    #map-loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+    .loader-spinner {
+      width: 36px;
+      height: 36px;
+      border: 3px solid #cbd5e1;
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    .loader-text {
+      font: 500 14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      color: #475569;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* My location FAB */
+    #locate-btn {
+      position: fixed;
+      right: 12px;
+      bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+      z-index: 900;
+      width: 44px;
+      height: 44px;
+      border: none;
+      border-radius: 50%;
+      background: var(--control-bg);
+      box-shadow: var(--control-shadow);
+      color: #334155;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #locate-btn:hover {
+      color: var(--accent);
+      background: #f8fafc;
+    }
+    #locate-btn:active {
+      transform: scale(0.96);
+    }
+    #locate-btn svg {
+      width: 22px;
+      height: 22px;
+    }
+    #locate-btn.loading svg {
+      opacity: 0.4;
+    }
+  </style>
+</head>
+<body>
+
+<div id="map-loader" aria-live="polite">
+  <div class="loader-spinner" aria-hidden="true"></div>
+  <p class="loader-text">Loading map…</p>
+</div>
+
+<div id="map" role="application" aria-label="Interactive map of India"></div>
+
+<button id="locate-btn" type="button" title="My location" aria-label="Go to my location">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+    <circle cx="12" cy="12" r="3"/>
+    <path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>
+  </svg>
+</button>
+
+<script>
+(function () {
+  'use strict';
+
+  var INDIA_BOUNDS = L.latLngBounds(
+    L.latLng(6.0, 68.0),
+    L.latLng(37.0, 97.0)
+  );
+
+  /* Retry slow renderd tiles instead of showing grey gaps */
+  var UmnaTileLayer = L.TileLayer.extend({
+    createTile: function (coords, done) {
+      var tile = document.createElement('img');
+      tile.alt = '';
+      tile.decoding = 'async';
+      tile.setAttribute('role', 'presentation');
+
+      if (this.options.crossOrigin) {
+        tile.crossOrigin = '';
+      }
+
+      var url = this.getTileUrl(coords);
+      var attempts = 0;
+      var maxAttempts = 5;
+      var self = this;
+
+      function tryLoad() {
+        tile.onload = function () {
+          if (self.options.className) {
+            L.DomUtil.addClass(tile, self.options.className);
+          }
+          done(null, tile);
+        };
+        tile.onerror = function () {
+          attempts += 1;
+          if (attempts < maxAttempts) {
+            setTimeout(tryLoad, 600 * attempts);
+          } else {
+            done(new Error('Tile load failed'), tile);
+          }
+        };
+        tile.src = url;
+      }
+
+      tryLoad();
+      return tile;
+    }
+  });
+
+  var map = L.map('map', {
+    zoomControl: false,
+    preferCanvas: true,
+    inertia: true,
+    inertiaDeceleration: 2800,
+    inertiaMaxSpeed: 1400,
+    zoomAnimation: true,
+    fadeAnimation: true,
+    markerZoomAnimation: true,
+    zoomSnap: 1,
+    zoomDelta: 1,
+    wheelDebounceTime: 35,
+    wheelPxPerZoomLevel: 100,
+    minZoom: 3,
+    maxZoom: 19,
+    maxBounds: INDIA_BOUNDS,
+    maxBoundsViscosity: 0.85
+  });
+
+  L.control.zoom({ position: 'topleft' }).addTo(map);
+
+  L.tileLayer.umna = function (url, options) {
+    return new UmnaTileLayer(url, options);
+  };
+
+  var tileLayer = L.tileLayer.umna('/tiles/{z}/{x}/{y}.png', {
+    minZoom: 3,
+    maxZoom: 19,
+    tileSize: 256,
+    detectRetina: true,
+    crossOrigin: true,
+    keepBuffer: 8,
+    updateWhenIdle: false,
+    updateWhenZooming: false,
+    noWrap: true,
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &middot; UMNAAPP'
+  }).addTo(map);
+
+  var loader = document.getElementById('map-loader');
+  var tilesSeen = 0;
+
+  tileLayer.on('tileload', function () {
+    tilesSeen += 1;
+    if (tilesSeen >= 2) {
+      loader.classList.add('hidden');
+    }
+  });
+
+  tileLayer.on('load', function () {
+    loader.classList.add('hidden');
+  });
+
+  map.fitBounds(INDIA_BOUNDS, { padding: [24, 24], animate: false });
+
+  setTimeout(function () {
+    loader.classList.add('hidden');
+  }, 12000);
+
+  /* My location — only when user taps (no auto jump on load) */
+  var locateBtn = document.getElementById('locate-btn');
+  var locationLayer = L.layerGroup().addTo(map);
+  var locating = false;
+
+  function showLocation(lat, lng, accuracy) {
+    locationLayer.clearLayers();
+    L.circle([lat, lng], {
+      radius: accuracy,
+      color: '#136AEC',
+      fillColor: '#136AEC',
+      fillOpacity: 0.12,
+      weight: 2
+    }).addTo(locationLayer);
+    L.circleMarker([lat, lng], {
+      radius: 7,
+      color: '#fff',
+      fillColor: '#136AEC',
+      fillOpacity: 1,
+      weight: 3
+    }).addTo(locationLayer);
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { duration: 0.8 });
+  }
+
+  locateBtn.addEventListener('click', function () {
+    if (locating || !navigator.geolocation) return;
+    locating = true;
+    locateBtn.classList.add('loading');
+    navigator.geolocation.getCurrentPosition(
+      function (pos) {
+        showLocation(pos.coords.latitude, pos.coords.longitude, pos.coords.accuracy);
+        locating = false;
+        locateBtn.classList.remove('loading');
+      },
+      function () {
+        locating = false;
+        locateBtn.classList.remove('loading');
+      },
+      { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+    );
+  });
+
+  window.addEventListener('resize', function () {
+    map.invalidateSize({ animate: false });
+  });
+})();
+</script>
+</body>
+</html>

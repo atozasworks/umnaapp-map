@@ -7,6 +7,8 @@ import {
   approvePlace,
   rejectPlace,
   bulkPlaceAction,
+  fetchPlaceHistory,
+  restorePlaceVersion,
 } from '../lib/api'
 
 function fmtDate(iso) {
@@ -16,6 +18,14 @@ function fmtDate(iso) {
   } catch {
     return iso
   }
+}
+
+/** ISO timestamp → yyyy-mm-dd for <input type="date">. */
+function toDateInput(iso) {
+  if (!iso) return ''
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return ''
+  return d.toISOString().slice(0, 10)
 }
 
 function osmEmbedUrl(lat, lng) {
@@ -60,6 +70,191 @@ function formatOpeningHours(hours) {
   return lines.length ? lines : null
 }
 
+const AUDIT_FIELD_LABELS = {
+  placeNameEn: 'Name',
+  placeNameLocal: 'Local name',
+  category: 'Category',
+  latitude: 'Latitude',
+  longitude: 'Longitude',
+  zoomLevel: 'Zoom level',
+  approvalStatus: 'Approval status',
+  source: 'Source',
+  description: 'Description',
+  phone: 'Phone',
+  website: 'Website',
+  fullAddress: 'Full address',
+  vicinity: 'Vicinity',
+  village: 'Village',
+  taluk: 'Taluk',
+  district: 'District',
+  state: 'State',
+  country: 'Country',
+  pincode: 'Pincode',
+  rating: 'Rating',
+  reviewCount: 'Review count',
+  businessStatus: 'Business status',
+  googleMapsUrl: 'Google Maps URL',
+  festivalStartDate: 'Festival start',
+  festivalEndDate: 'Festival end',
+  festivalRecurrence: 'Festival recurrence',
+}
+
+const AUDIT_ACTION_META = {
+  created: { label: 'Place added', icon: '✨', cls: 'bg-emerald-500/20 text-emerald-300' },
+  updated: { label: 'Place edited', icon: '✏️', cls: 'bg-blue-500/20 text-blue-300' },
+  approved: { label: 'Approved', icon: '✅', cls: 'bg-emerald-500/20 text-emerald-300' },
+  rejected: { label: 'Rejected', icon: '🚫', cls: 'bg-red-500/20 text-red-300' },
+  deleted: { label: 'Deleted', icon: '🗑️', cls: 'bg-red-500/20 text-red-300' },
+  restored: { label: 'Version restored', icon: '♻️', cls: 'bg-violet-500/20 text-violet-300' },
+}
+
+function fmtAuditVal(v) {
+  if (v === null || v === undefined || v === '') return '—'
+  const s = String(v)
+  return s.length > 140 ? `${s.slice(0, 140)}…` : s
+}
+
+function auditChangeRows(changes) {
+  if (!changes || typeof changes !== 'object') return []
+  return Object.entries(changes)
+    .filter(([k]) => k in AUDIT_FIELD_LABELS)
+    .map(([k, val]) => {
+      const isDiff = val && typeof val === 'object' && ('old' in val || 'new' in val)
+      return {
+        key: k,
+        label: AUDIT_FIELD_LABELS[k] || k,
+        old: isDiff ? val.old : undefined,
+        new: isDiff ? val.new : val,
+        isDiff,
+      }
+    })
+}
+
+function PlaceHistorySection({ placeId, onRestored }) {
+  const [history, setHistory] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [err, setErr] = useState('')
+  const [restoringId, setRestoringId] = useState(null)
+  const [openId, setOpenId] = useState(null)
+
+  const loadHistory = useCallback(async () => {
+    if (!placeId) return
+    setLoading(true)
+    setErr('')
+    try {
+      const { history: rows } = await fetchPlaceHistory(placeId)
+      setHistory(Array.isArray(rows) ? rows : [])
+    } catch (e) {
+      setErr(e.response?.data?.error || e.message)
+    } finally {
+      setLoading(false)
+    }
+  }, [placeId])
+
+  useEffect(() => {
+    loadHistory()
+  }, [loadHistory])
+
+  async function handleRestore(auditId) {
+    if (!window.confirm('Restore this version? Current values will be overwritten and recorded in history.')) return
+    setRestoringId(auditId)
+    setErr('')
+    try {
+      await restorePlaceVersion(placeId, auditId)
+      await loadHistory()
+      onRestored?.()
+    } catch (e) {
+      setErr(e.response?.data?.error || e.message)
+    } finally {
+      setRestoringId(null)
+    }
+  }
+
+  return (
+    <section>
+      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-admin-muted">
+        Provenance &amp; audit trail
+      </h3>
+      {err && (
+        <div className="mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-200">
+          {err}
+        </div>
+      )}
+      {loading ? (
+        <p className="text-xs text-admin-muted">Loading history…</p>
+      ) : history.length === 0 ? (
+        <p className="text-xs text-admin-muted">No recorded history yet.</p>
+      ) : (
+        <ul className="space-y-2">
+          {history.map((entry) => {
+            const meta = AUDIT_ACTION_META[entry.action] || { label: entry.action, icon: '•', cls: 'bg-admin-850 text-slate-300' }
+            const rows = auditChangeRows(entry.changes)
+            const canRestore =
+              entry.snapshot &&
+              typeof entry.snapshot === 'object' &&
+              (entry.action === 'created' || entry.action === 'updated' || entry.action === 'restored')
+            const open = openId === entry.id
+            return (
+              <li key={entry.id} className="rounded-lg border border-admin-border bg-admin-850/40 p-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${meta.cls}`}>
+                      {meta.icon} {meta.label}
+                    </span>
+                    <span className="text-xs text-slate-300">{entry.actorName || 'Unknown'}</span>
+                    <span className="text-[10px] uppercase tracking-wide text-admin-muted">{entry.actorType}</span>
+                  </div>
+                  <span className="text-[11px] text-admin-muted">{fmtDate(entry.createdAt)}</span>
+                </div>
+                {entry.note && <p className="mt-1 text-[11px] italic text-admin-muted">{entry.note}</p>}
+                <div className="mt-1.5 flex items-center gap-3">
+                  {rows.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setOpenId(open ? null : entry.id)}
+                      className="text-[11px] font-medium text-cyan-400 hover:underline"
+                    >
+                      {open ? 'Hide details' : `View ${rows.length} field${rows.length !== 1 ? 's' : ''}`}
+                    </button>
+                  )}
+                  {canRestore && (
+                    <button
+                      type="button"
+                      disabled={restoringId === entry.id}
+                      onClick={() => handleRestore(entry.id)}
+                      className="text-[11px] font-medium text-violet-300 hover:underline disabled:opacity-50"
+                    >
+                      {restoringId === entry.id ? 'Restoring…' : 'Restore this version'}
+                    </button>
+                  )}
+                </div>
+                {open && rows.length > 0 && (
+                  <div className="mt-2 space-y-1.5">
+                    {rows.map((row) => (
+                      <div key={row.key} className="rounded-md border border-admin-border bg-admin-900/60 px-2.5 py-1.5">
+                        <p className="text-[10px] font-semibold uppercase tracking-wide text-admin-muted">{row.label}</p>
+                        {row.isDiff ? (
+                          <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs">
+                            <span className="text-red-300 line-through">{fmtAuditVal(row.old)}</span>
+                            <span className="text-slate-500">→</span>
+                            <span className="text-emerald-300">{fmtAuditVal(row.new)}</span>
+                          </div>
+                        ) : (
+                          <p className="mt-0.5 text-xs text-slate-200">{fmtAuditVal(row.new)}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </section>
+  )
+}
+
 function PlaceDetailPanel({ placeId, onClose, onUpdated }) {
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -89,6 +284,9 @@ function PlaceDetailPanel({ placeId, onClose, onUpdated }) {
         state: place.state || '',
         country: place.country || '',
         pincode: place.pincode || '',
+        festival_start_date: toDateInput(place.festival_start_date),
+        festival_end_date: toDateInput(place.festival_end_date),
+        festival_recurrence: place.festival_recurrence || 'yearly',
       })
     } catch (e) {
       setErr(e.response?.data?.error || e.message)
@@ -105,7 +303,18 @@ function PlaceDetailPanel({ placeId, onClose, onUpdated }) {
     setBusy(true)
     setErr('')
     try {
-      await updatePlace(placeId, form)
+      const payload = { ...form }
+      // Convert festival date inputs (yyyy-mm-dd) to full ISO timestamps.
+      if (form.category === 'Festival') {
+        payload.festival_start_date = form.festival_start_date
+          ? new Date(`${form.festival_start_date}T00:00:00`).toISOString()
+          : null
+        payload.festival_end_date = (form.festival_end_date || form.festival_start_date)
+          ? new Date(`${form.festival_end_date || form.festival_start_date}T23:59:59`).toISOString()
+          : null
+        payload.festival_recurrence = form.festival_recurrence === 'none' ? 'none' : 'yearly'
+      }
+      await updatePlace(placeId, payload)
       setEdit(false)
       await load()
       onUpdated?.()
@@ -226,6 +435,43 @@ function PlaceDetailPanel({ placeId, onClose, onUpdated }) {
                       onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
                     />
                   </label>
+                  {form.category === 'Festival' && (
+                    <div className="space-y-3 rounded-lg border border-fuchsia-500/30 bg-fuchsia-500/5 p-3">
+                      <p className="text-xs font-semibold text-fuchsia-300">🎪 Festival window</p>
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="block text-xs text-admin-muted">
+                          Start date
+                          <input
+                            type="date"
+                            className="mt-1 w-full rounded-lg border border-admin-border bg-admin-900 px-3 py-2 text-sm text-white"
+                            value={form.festival_start_date || ''}
+                            onChange={(e) => setForm((f) => ({ ...f, festival_start_date: e.target.value }))}
+                          />
+                        </label>
+                        <label className="block text-xs text-admin-muted">
+                          End date
+                          <input
+                            type="date"
+                            className="mt-1 w-full rounded-lg border border-admin-border bg-admin-900 px-3 py-2 text-sm text-white"
+                            value={form.festival_end_date || ''}
+                            min={form.festival_start_date || undefined}
+                            onChange={(e) => setForm((f) => ({ ...f, festival_end_date: e.target.value }))}
+                          />
+                        </label>
+                      </div>
+                      <label className="block text-xs text-admin-muted">
+                        Repeats
+                        <select
+                          className="mt-1 w-full rounded-lg border border-admin-border bg-admin-900 px-3 py-2 text-sm text-white"
+                          value={form.festival_recurrence || 'yearly'}
+                          onChange={(e) => setForm((f) => ({ ...f, festival_recurrence: e.target.value }))}
+                        >
+                          <option value="yearly">Every year (same dates)</option>
+                          <option value="none">One-time only</option>
+                        </select>
+                      </label>
+                    </div>
+                  )}
                   <div className="flex gap-2">
                     <button
                       type="button"
@@ -288,6 +534,28 @@ function PlaceDetailPanel({ placeId, onClose, onUpdated }) {
                     </dl>
                   </section>
 
+                  {(p.category === 'Festival' || p.festival_start_date) && (
+                    <section>
+                      <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-fuchsia-300">
+                        🎪 Festival window
+                      </h3>
+                      <dl className="space-y-3">
+                        <DetailRow label="Start">{fmtDate(p.festival_start_date)}</DetailRow>
+                        <DetailRow label="End">{fmtDate(p.festival_end_date)}</DetailRow>
+                        <DetailRow label="Repeats">
+                          {p.festival_recurrence === 'yearly' ? 'Every year' : p.festival_recurrence === 'none' ? 'One-time only' : null}
+                        </DetailRow>
+                        {p.festival && (
+                          <DetailRow label="Next / status">
+                            {p.festival.active
+                              ? `Live now · ${p.festival.daysUntilEnd} day(s) left`
+                              : `Starts in ${p.festival.daysUntilStart} day(s)`}
+                          </DetailRow>
+                        )}
+                      </dl>
+                    </section>
+                  )}
+
                   <section>
                     <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-admin-muted">
                       Contact & links
@@ -345,8 +613,14 @@ function PlaceDetailPanel({ placeId, onClose, onUpdated }) {
                     </h3>
                     <dl className="space-y-3">
                       <DetailRow label="Approval">{p.approvalStatus}</DetailRow>
+                      {p.approvalStatus === 'pending' && p.pendingDaysRemaining != null ? (
+                        <DetailRow label="Days until auto-approve">
+                          {p.pendingDaysRemaining} {p.pendingDaysRemaining === 1 ? 'day' : 'days'}
+                          {p.autoApproveDays != null ? ` (${p.autoApproveDays}-day period)` : ''}
+                        </DetailRow>
+                      ) : null}
                       <DetailRow label="Approved at">{fmtDate(p.approvedAt)}</DetailRow>
-                      <DetailRow label="Auto-approve at">{fmtDate(p.auto_approve_at)}</DetailRow>
+                      <DetailRow label="Auto-approve at">{fmtDate(p.autoApproveAt || p.auto_approve_at)}</DetailRow>
                       <DetailRow label="Contributor">
                         {p.user_name || '—'} {p.user_email ? `(${p.user_email})` : ''}
                       </DetailRow>
@@ -440,6 +714,8 @@ function PlaceDetailPanel({ placeId, onClose, onUpdated }) {
                   loading="lazy"
                 />
               </section>
+
+              <PlaceHistorySection placeId={placeId} onRestored={() => { load(); onUpdated?.() }} />
             </div>
           )}
         </div>
@@ -712,6 +988,7 @@ export default function ExtractedPlaces() {
                 <th className="px-3 py-3 font-medium">Phone</th>
                 <th className="px-3 py-3 font-medium">Rating</th>
                 <th className="px-3 py-3 font-medium">Status</th>
+                <th className="px-3 py-3 font-medium">Days left</th>
                 <th className="px-3 py-3 font-medium">Extracted</th>
               </tr>
             </thead>
@@ -761,6 +1038,15 @@ export default function ExtractedPlaces() {
                     >
                       {p.approvalStatus}
                     </span>
+                  </td>
+                  <td className="px-3 py-3 text-admin-muted">
+                    {p.approvalStatus === 'pending' && p.pendingDaysRemaining != null ? (
+                      <span className={p.pendingDaysRemaining <= 1 ? 'text-amber-300' : ''}>
+                        {p.pendingDaysRemaining} {p.pendingDaysRemaining === 1 ? 'day' : 'days'}
+                      </span>
+                    ) : (
+                      '—'
+                    )}
                   </td>
                   <td className="whitespace-nowrap px-3 py-3 text-admin-muted">
                     {fmtDate(p.extracted_at || p.createdAt)}

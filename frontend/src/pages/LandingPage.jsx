@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLogo from '../components/AppLogo'
 import LandingInstallPopup from '../components/LandingInstallPopup'
+import MapAssistantChatbot from '../components/MapAssistantChatbot'
 import { useAuth } from '../contexts/AuthContext'
 
 const features = [
@@ -562,6 +563,8 @@ const LandingPage = () => {
       </footer>
 
       <LandingInstallPopup />
+
+      <MapAssistantChatbot />
 
       <style>{`
         @keyframes dash {

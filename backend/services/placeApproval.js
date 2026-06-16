@@ -1,31 +1,89 @@
 import prisma from '../config/database.js'
-import { onPlacesAutoApproved } from './notificationService.js'
+import { onPlacesAutoApproved, notifyFestivalsStartingToday } from './notificationService.js'
+import { getFestivalRecurrence, getFestivalEnd } from '../utils/festival.js'
+import {
+  recordPlaceAuditAsync,
+  systemActor,
+  PLACE_AUDIT_ACTIONS,
+} from './placeAudit.js'
+import { PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
+export function getExtractedAutoApproveDays() {
+  const n = parseInt(process.env.PLACE_AUTO_APPROVE_DAYS_EXTRACTED, 10)
+  return Number.isFinite(n) && n > 0 ? n : 1
+}
+
+export function getManualAutoApproveDays() {
+  const n = parseInt(process.env.PLACE_AUTO_APPROVE_DAYS_MANUAL, 10)
+  if (Number.isFinite(n) && n > 0) return n
+  const legacy = parseInt(process.env.PLACE_AUTO_APPROVE_DAYS, 10)
+  return Number.isFinite(legacy) && legacy > 0 ? legacy : 5
+}
+
+/** @deprecated Use getAutoApprovePeriods() or getAutoApproveDaysForPlace() */
 export function getAutoApproveDays() {
-  const n = parseInt(process.env.PLACE_AUTO_APPROVE_DAYS, 10)
-  return Number.isFinite(n) && n > 0 ? n : 10
+  return getManualAutoApproveDays()
 }
 
-export function getAutoApproveMs() {
-  return getAutoApproveDays() * DAY_MS
+export function getAutoApprovePeriods() {
+  return {
+    extracted: getExtractedAutoApproveDays(),
+    manual: getManualAutoApproveDays(),
+  }
 }
 
-export function autoApproveCutoffDate() {
-  return new Date(Date.now() - getAutoApproveMs())
+export function isExtractedPlace(place) {
+  if (!place) return false
+  const at = place.extractedAt ?? place.extracted_at
+  if (at == null) return false
+  const d = new Date(at)
+  return !Number.isNaN(d.getTime())
 }
 
-export function pendingAutoApproveAt(createdAt) {
-  return new Date(new Date(createdAt).getTime() + getAutoApproveMs())
+export function getPlaceAddKind(place) {
+  return isExtractedPlace(place) ? 'extracted' : 'manual'
+}
+
+export function getAutoApproveDaysForPlace(place) {
+  return getPlaceAddKind(place) === 'extracted'
+    ? getExtractedAutoApproveDays()
+    : getManualAutoApproveDays()
+}
+
+export function getAutoApproveMsForPlace(place) {
+  return getAutoApproveDaysForPlace(place) * DAY_MS
+}
+
+export function pendingAutoApproveAt(createdAt, placeOrKind = 'manual') {
+  const kind =
+    typeof placeOrKind === 'string'
+      ? placeOrKind
+      : getPlaceAddKind(placeOrKind)
+  const days =
+    kind === 'extracted' ? getExtractedAutoApproveDays() : getManualAutoApproveDays()
+  return new Date(new Date(createdAt).getTime() + days * DAY_MS)
+}
+
+export function resolveAutoApproveAt(place) {
+  if (!place) return null
+  const raw = place.autoApproveAt ?? place.auto_approve_at
+  if (raw != null) {
+    const d = new Date(raw)
+    if (!Number.isNaN(d.getTime())) return d
+  }
+  const createdAt = place.createdAt
+  if (!createdAt) return null
+  return pendingAutoApproveAt(createdAt, place)
 }
 
 /** Fields set when a place is created (extracted or manually added). */
-export function initialApprovalFields(createdAt = new Date()) {
+export function initialApprovalFields(createdAt = new Date(), { kind = 'manual' } = {}) {
   return {
     approvalStatus: 'pending',
     approvedAt: null,
-    autoApproveAt: pendingAutoApproveAt(createdAt),
+    autoApproveAt: pendingAutoApproveAt(createdAt, kind),
   }
 }
 
@@ -36,24 +94,40 @@ export function pendingDaysRemaining(autoApproveAt) {
   return Math.ceil(ms / DAY_MS)
 }
 
-export async function autoApproveExpiredPendingPlaces() {
+// In-process throttle so high-traffic read paths that still call this never
+// trigger more than one DB sweep per window. The 15-minute scheduler passes
+// { force: true } to always run.
+let lastAutoApproveRun = 0
+const AUTO_APPROVE_THROTTLE_MS = 60 * 1000
+
+export async function autoApproveExpiredPendingPlaces({ force = false } = {}) {
   if (!prisma.place) return { count: 0 }
   const now = new Date()
-  const cutoff = autoApproveCutoffDate()
+  if (!force && now.getTime() - lastAutoApproveRun < AUTO_APPROVE_THROTTLE_MS) {
+    return { count: 0, throttled: true }
+  }
+  lastAutoApproveRun = now.getTime()
   try {
-    const toApprove = await prisma.place.findMany({
-      where: {
-        approvalStatus: 'pending',
-        OR: [
-          { autoApproveAt: { lte: now } },
-          { autoApproveAt: null, createdAt: { lte: cutoff } },
-        ],
-      },
+    // Primary: rows with an explicit due date — uses the autoApproveAt index
+    // instead of scanning every pending row.
+    const due = await prisma.place.findMany({
+      where: { approvalStatus: 'pending', autoApproveAt: { lte: now } },
       select: { id: true },
     })
-    if (!toApprove.length) return { count: 0 }
+    const ids = due.map((p) => p.id)
 
-    const ids = toApprove.map((p) => p.id)
+    // Legacy fallback: pending rows created before autoApproveAt was stored.
+    // This set shrinks to zero over time as new rows always set autoApproveAt.
+    const legacy = await prisma.place.findMany({
+      where: { approvalStatus: 'pending', autoApproveAt: null },
+      select: { id: true, createdAt: true, extractedAt: true },
+    })
+    for (const p of legacy) {
+      const at = resolveAutoApproveAt(p)
+      if (at && at.getTime() <= now.getTime()) ids.push(p.id)
+    }
+    if (!ids.length) return { count: 0 }
+
     const result = await prisma.place.updateMany({
       where: { id: { in: ids } },
       data: {
@@ -63,11 +137,67 @@ export async function autoApproveExpiredPendingPlaces() {
       },
     })
     if (result.count > 0) {
+      for (const id of ids) {
+        recordPlaceAuditAsync({
+          placeId: id,
+          action: PLACE_AUDIT_ACTIONS.APPROVED,
+          actor: systemActor('Auto-approval'),
+          changesOverride: { approvalStatus: { old: 'pending', new: 'approved' } },
+          note: 'Auto-approved after review window elapsed',
+        })
+      }
       onPlacesAutoApproved(ids).catch(() => {})
     }
     return { count: result.count }
   } catch (e) {
     console.warn('autoApproveExpiredPendingPlaces:', e.message)
+    return { count: 0 }
+  }
+}
+
+/**
+ * Auto-remove festival / jatre markers once they are over.
+ * One-time festivals are deleted after their end date passes. Yearly festivals
+ * roll forward to next year's occurrence (never expire), so they are kept.
+ */
+let lastFestivalCleanupRun = 0
+const FESTIVAL_CLEANUP_THROTTLE_MS = 60 * 1000
+
+export async function removeExpiredFestivals({ force = false } = {}) {
+  if (!prisma.place) return { count: 0 }
+  const now = new Date()
+  if (!force && now.getTime() - lastFestivalCleanupRun < FESTIVAL_CLEANUP_THROTTLE_MS) {
+    return { count: 0, throttled: true }
+  }
+  lastFestivalCleanupRun = now.getTime()
+  try {
+    const candidates = await prisma.place.findMany({
+      where: {
+        OR: [{ category: 'Festival' }, { festivalStartDate: { not: null } }],
+      },
+      select: PLACE_DETAIL_SELECT,
+    })
+    const expired = candidates.filter((p) => {
+      if (getFestivalRecurrence(p) === 'yearly') return false // recurs → keep
+      const end = getFestivalEnd(p)
+      return end && end.getTime() < now.getTime()
+    })
+    const expiredIds = expired.map((p) => p.id)
+    if (!expiredIds.length) return { count: 0 }
+
+    const result = await prisma.place.deleteMany({ where: { id: { in: expiredIds } } })
+    for (const p of expired) {
+      recordPlaceAuditAsync({
+        placeId: p.id,
+        action: PLACE_AUDIT_ACTIONS.DELETED,
+        actor: systemActor('Festival cleanup'),
+        before: p,
+        note: 'Auto-removed after festival window ended',
+      })
+    }
+    return { count: result.count }
+  } catch (e) {
+    console.warn('removeExpiredFestivals:', e.message)
     return { count: 0 }
   }
 }
@@ -101,39 +231,51 @@ export function isPlaceVisibleToUser(place, viewerUserId) {
 export function enrichPlaceApprovalMeta(place) {
   if (!place) return place
   const st = place.approvalStatus ?? 'approved'
+  const addKind = getPlaceAddKind(place)
+  const autoApproveDays = getAutoApproveDaysForPlace(place)
   const out = {
     ...place,
     approvalStatus: st,
     approvedAt: place.approvedAt ?? null,
-    autoApproveAt: place.autoApproveAt ?? null,
+    placeAddKind: addKind,
+    autoApproveDays,
   }
   if (st === 'pending') {
-    const autoAt =
-      place.autoApproveAt != null
-        ? new Date(place.autoApproveAt)
-        : place.createdAt
-          ? pendingAutoApproveAt(place.createdAt)
-          : null
+    const autoAt = resolveAutoApproveAt(place)
     if (autoAt) {
       out.autoApproveAt = autoAt.toISOString()
+      out.auto_approve_at = autoAt.toISOString()
       out.pendingDaysRemaining = pendingDaysRemaining(autoAt)
     }
+  } else {
+    const raw = place.autoApproveAt ?? place.auto_approve_at
+    out.autoApproveAt = raw ?? null
+    out.auto_approve_at = raw ?? null
   }
   return out
 }
 
 export function startPlaceApprovalScheduler() {
-  const HOUR = 60 * 60 * 1000
-  autoApproveExpiredPendingPlaces()
-    .then(({ count }) => {
-      if (count > 0) console.log(`Place approval: auto-approved ${count} pending place(s)`)
-    })
-    .catch(() => {})
-  setInterval(() => {
-    autoApproveExpiredPendingPlaces()
+  // Auto-approval / festival maintenance runs on a fixed schedule (every 15
+  // minutes) instead of during search / place-detail / list requests.
+  const FIFTEEN_MIN = 15 * 60 * 1000
+  const runMaintenance = () => {
+    autoApproveExpiredPendingPlaces({ force: true })
       .then(({ count }) => {
         if (count > 0) console.log(`Place approval: auto-approved ${count} pending place(s)`)
       })
       .catch(() => {})
-  }, HOUR)
+    notifyFestivalsStartingToday()
+      .then(({ count }) => {
+        if (count > 0) console.log(`Festivals: broadcast start notification for ${count} festival(s)`)
+      })
+      .catch(() => {})
+    removeExpiredFestivals({ force: true })
+      .then(({ count }) => {
+        if (count > 0) console.log(`Festivals: auto-removed ${count} expired festival(s)`)
+      })
+      .catch(() => {})
+  }
+  runMaintenance()
+  setInterval(runMaintenance, FIFTEEN_MIN)
 }

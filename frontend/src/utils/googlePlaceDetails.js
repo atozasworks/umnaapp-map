@@ -1,4 +1,5 @@
 import { extractMapRenderingConfig, withMapRenderingConfig } from './mapRenderingConfig'
+import { resolvePlaceCategory, pickPrimaryGoogleType } from './googlePlaceCategory'
 import {
   assertGoogleApiAvailable,
   recordGoogleApiUse,
@@ -77,14 +78,19 @@ export function mapGoogleDetailsToPayload(details, regionContext = {}, zoomLevel
   const lat = details.geometry?.location?.lat?.() ?? details.geometry?.location?.lat
   const lng = details.geometry?.location?.lng?.() ?? details.geometry?.location?.lng
 
+  const types = details.types || null
+  const category = resolvePlaceCategory({ types, name: details.name })
+  const primaryType = pickPrimaryGoogleType(types)
+
   const base = {
     name: details.name,
     lat,
     lng,
     zoomLevel,
     place_id: details.place_id,
-    type: details.types?.[0] || null,
-    types: details.types || null,
+    category,
+    type: primaryType,
+    types,
     vicinity: details.vicinity || null,
     address: details.formatted_address,
     address_components: details.address_components,
@@ -117,6 +123,7 @@ export function mapGoogleDetailsToPayload(details, regionContext = {}, zoomLevel
     map: mapContext.map,
     place: base,
     details,
+    category,
   })
 
   return {

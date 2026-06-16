@@ -64,6 +64,15 @@ export function haversineMeters(a, b) {
   return 2 * R * Math.asin(Math.min(1, Math.sqrt(h)))
 }
 
+/** Bounding-box area of a GeoJSON ring in km² (approximate). */
+export function ringBBoxAreaKm2(ring) {
+  const bb = ringBBox(ring)
+  if (!Number.isFinite(bb.minLat)) return 0
+  const widthM = haversineMeters([bb.minLng, bb.minLat], [bb.maxLng, bb.minLat])
+  const heightM = haversineMeters([bb.minLng, bb.minLat], [bb.minLng, bb.maxLat])
+  return (widthM * heightM) / 1e6
+}
+
 export function circlePolygon(centerLng, centerLat, radiusM, points = 64) {
   const coordinates = []
   const latRad = (centerLat * Math.PI) / 180

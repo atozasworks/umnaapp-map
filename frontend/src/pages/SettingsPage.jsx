@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useTranslate } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
 import AppLogo from '../components/AppLogo'
+import NotificationSettings from '../components/NotificationSettings'
 
 const MAX_AVATAR_SIZE = 200
 
@@ -106,6 +107,13 @@ const SettingsPage = () => {
   const handleLogout = () => {
     logout()
     window.location.href = '/'
+  }
+
+  const handleTogglePublicProfile = async () => {
+    const next = !(user?.profilePublic !== false)
+    const result = await updateProfile({ profilePublic: next })
+    if (result.success) showToast(next ? 'Profile is now public' : 'Profile is now private')
+    else showToast(result.error || 'Failed to update', 'error')
   }
 
   const formatDate = (dateStr) => {
@@ -250,6 +258,27 @@ const SettingsPage = () => {
           )}
         </div>
 
+        {/* Public profile toggle */}
+        <div className="border-t border-slate-200 px-6 py-4 flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-slate-800">Public profile</p>
+            <p className="text-xs text-slate-500 mt-0.5">Let others see your contributions, reviews and badges.</p>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={user?.profilePublic !== false}
+            onClick={handleTogglePublicProfile}
+            className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors ${
+              user?.profilePublic !== false ? 'bg-primary-600' : 'bg-slate-300'
+            }`}
+          >
+            <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              user?.profilePublic !== false ? 'translate-x-6' : 'translate-x-1'
+            }`} />
+          </button>
+        </div>
+
         {/* Logout */}
         <div className="border-t border-slate-200 px-6 py-4">
           <button
@@ -263,6 +292,23 @@ const SettingsPage = () => {
           </button>
         </div>
       </div>
+    </div>
+  )
+
+  const renderNotificationsSection = () => (
+    <div className="animate-fade-in">
+      <button
+        onClick={() => setActiveSection(null)}
+        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 mb-5 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        {tBack}
+      </button>
+
+      <h2 className="text-lg font-bold text-slate-800 mb-6">Notifications</h2>
+      <NotificationSettings onToast={showToast} />
     </div>
   )
 
@@ -386,6 +432,44 @@ const SettingsPage = () => {
         </svg>
       </button>
 
+      {/* My Contributions */}
+      <button
+        onClick={() => navigate('/my-contributions')}
+        className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 hover:shadow-md transition-all group"
+      >
+        <div className="w-10 h-10 rounded-xl bg-violet-50 flex items-center justify-center flex-shrink-0 group-hover:bg-violet-100 transition-colors">
+          <svg className="w-5 h-5 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+          </svg>
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold text-slate-800">My Contributions</p>
+          <p className="text-xs text-slate-500 mt-0.5">Places, reviews, photos, favorites & stats</p>
+        </div>
+        <svg className="w-4 h-4 text-slate-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
+      {/* Notifications */}
+      <button
+        onClick={() => setActiveSection('notifications')}
+        className="w-full flex items-center gap-4 px-4 py-4 bg-white rounded-2xl shadow-sm border border-slate-200 hover:border-primary-200 hover:shadow-md transition-all group"
+      >
+        <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center flex-shrink-0 group-hover:bg-sky-100 transition-colors">
+          <svg className="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+          </svg>
+        </div>
+        <div className="flex-1 text-left">
+          <p className="text-sm font-semibold text-slate-800">Notifications</p>
+          <p className="text-xs text-slate-500 mt-0.5">Push alerts & category preferences</p>
+        </div>
+        <svg className="w-4 h-4 text-slate-400 group-hover:text-primary-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+        </svg>
+      </button>
+
       {/* Privacy Policy */}
       <button
         onClick={() => setActiveSection('privacy')}
@@ -451,6 +535,7 @@ const SettingsPage = () => {
       {/* Content */}
       <main className="max-w-lg mx-auto px-4 py-5 pb-20">
         {activeSection === 'account' && renderAccountSection()}
+        {activeSection === 'notifications' && renderNotificationsSection()}
         {activeSection === 'privacy' && renderPrivacyPolicy()}
         {activeSection === 'terms' && renderTermsConditions()}
         {!activeSection && renderMainMenu()}

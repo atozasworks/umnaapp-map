@@ -17,6 +17,11 @@ export const AuthProvider = ({ children }) => {
   const [token, setToken] = useState(localStorage.getItem('token'))
 
   const logout = useCallback(() => {
+    // Revoke the server-side session (delete the session row) before clearing
+    // local state. Best-effort — never blocks the UI sign-out.
+    if (localStorage.getItem('token')) {
+      api.post('/auth/logout').catch(() => {})
+    }
     setToken(null)
     setUser(null)
     localStorage.removeItem('token')

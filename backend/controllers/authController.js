@@ -1,6 +1,6 @@
 import prisma from '../config/database.js'
 import { isPlaceDeleteAdmin } from '../utils/placeOwnership.js'
-import atozasAuth from '../config/atozasAuth.js'
+import atozasAuth, { hashOtp } from '../config/atozasAuth.js'
 import { generateToken, createSession } from '../utils/jwt.js'
 import bcrypt from 'bcryptjs'
 import { validationResult } from 'express-validator'
@@ -58,11 +58,11 @@ export const register = async (req, res) => {
         })
       }
 
-      // Store OTP in database for verification
+      // Store OTP hashed (never plaintext).
       await prisma.oTPVerification.create({
         data: {
           email,
-          otp: otpResult.otp,
+          otp: await hashOtp(otpResult.otp),
           type: 'register',
           expiresAt: otpResult.expiresAt,
           userId: user.id,
@@ -86,6 +86,47 @@ export const register = async (req, res) => {
   }
 }
 
+/**
+ * Resend an OTP for an in-progress register or login flow. Unlike /register
+ * this does not require the name field — the user row already exists from the
+ * initial request — which fixes the resend-OTP failure on the register screen.
+ */
+export const resendOTP = async (req, res) => {
+  try {
+    const { email } = req.body
+    const type = req.body.type === 'login' ? 'login' : 'register'
+    if (!email) return res.status(400).json({ error: 'Email is required' })
+
+    const user = await prisma.user.findUnique({ where: { email } })
+    if (!user) {
+      return res.status(404).json({ error: 'No pending sign-up found. Please register again.' })
+    }
+
+    const otpResult = await atozasAuth.generateOTP(email, { type, userId: user.id })
+    if (!otpResult.success) {
+      return res.status(500).json({
+        error: 'Failed to send OTP email',
+        details: process.env.NODE_ENV === 'development' ? otpResult.error : undefined,
+      })
+    }
+
+    await prisma.oTPVerification.create({
+      data: {
+        email,
+        otp: await hashOtp(otpResult.otp),
+        type,
+        expiresAt: otpResult.expiresAt,
+        userId: user.id,
+      },
+    })
+
+    res.json({ message: 'OTP resent to your email', email })
+  } catch (error) {
+    console.error('Resend OTP error:', error)
+    res.status(500).json({ error: 'Failed to resend OTP' })
+  }
+}
+
 export const verifyOTP = async (req, res) => {
   try {
     const { email, otp, type } = req.body
@@ -99,11 +140,12 @@ export const verifyOTP = async (req, res) => {
       return res.status(400).json({ error: verifyResult.error || 'Invalid or expired OTP' })
     }
 
-    // Find OTP record in database
+    // Find the latest unverified record to mark as used. We look up by
+    // email/type (NOT by raw otp) because OTPs are stored hashed; validity was
+    // already confirmed by atozasAuth.verifyOTP above.
     const otpRecord = await prisma.oTPVerification.findFirst({
       where: {
         email,
-        otp,
         type: type || 'register',
         verified: false,
       },
@@ -172,11 +214,11 @@ export const loginWithOTP = async (req, res) => {
         })
       }
 
-      // Store OTP in database for verification
+      // Store OTP hashed (never plaintext).
       await prisma.oTPVerification.create({
         data: {
           email,
-          otp: otpResult.otp,
+          otp: await hashOtp(otpResult.otp),
           type: 'login',
           expiresAt: otpResult.expiresAt,
           userId: user.id,
@@ -210,6 +252,7 @@ export const getCurrentUser = async (req, res) => {
         email: true,
         picture: true,
         emailVerified: true,
+        profilePublic: true,
         createdAt: true,
       },
     })
@@ -230,20 +273,31 @@ export const getCurrentUser = async (req, res) => {
 
 export const updateProfile = async (req, res) => {
   try {
-    const { name } = req.body
-    if (!name || typeof name !== 'string' || name.trim().length < 2) {
-      return res.status(400).json({ error: 'Name must be at least 2 characters' })
+    const { name, profilePublic } = req.body
+    const data = {}
+    if (name !== undefined) {
+      if (typeof name !== 'string' || name.trim().length < 2) {
+        return res.status(400).json({ error: 'Name must be at least 2 characters' })
+      }
+      data.name = name.trim()
+    }
+    if (profilePublic !== undefined) {
+      data.profilePublic = Boolean(profilePublic)
+    }
+    if (Object.keys(data).length === 0) {
+      return res.status(400).json({ error: 'Nothing to update' })
     }
 
     const updated = await prisma.user.update({
       where: { id: req.user.id },
-      data: { name: name.trim() },
+      data,
       select: {
         id: true,
         name: true,
         email: true,
         picture: true,
         emailVerified: true,
+        profilePublic: true,
         createdAt: true,
       },
     })

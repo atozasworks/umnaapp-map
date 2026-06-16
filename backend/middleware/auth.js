@@ -44,3 +44,30 @@ export const authenticateToken = async (req, res, next) => {
   }
 }
 
+/**
+ * Optional authentication: if a valid bearer token + active session is present,
+ * attaches req.user / req.session. Otherwise continues anonymously WITHOUT
+ * rejecting the request. Used by public endpoints (e.g. the support chatbot)
+ * that should still recognize signed-in users for higher rate limits.
+ */
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+    if (!token) return next()
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET)
+    const session = await prisma.session.findFirst({
+      where: { token, userId: decoded.userId, expiresAt: { gt: new Date() } },
+      include: { user: true },
+    })
+    if (session) {
+      req.user = session.user
+      req.session = session
+    }
+  } catch {
+    // Ignore invalid/expired tokens for optional auth — treat as anonymous.
+  }
+  return next()
+}
+

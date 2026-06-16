@@ -623,6 +623,22 @@
   }
 }
 
+/* MapLibre canvas — fill container; avoids white band when zooming in flex layouts */
+.maplibregl-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  font-family: inherit;
+}
+.maplibregl-canvas {
+  width: 100% !important;
+  height: 100% !important;
+  outline: none;
+  image-rendering: auto;
+  -webkit-font-smoothing: antialiased;
+}
+
 /* Saved-place map labels — Google Maps style (text only, white halo) */
 .user-place-marker {
   will-change: opacity;
