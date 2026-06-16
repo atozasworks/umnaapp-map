@@ -46,6 +46,15 @@ import {
   normalizeSearchRowAddress,
   searchExternalProviders,
 } from '../services/externalPlaceSearch.js'
+import {
+  unifiedTextSearch,
+  unifiedMapPlaces,
+  unifiedNearby,
+  unifiedInPolygon,
+  unifiedPlaceById,
+  isOsmPlaceId,
+} from '../services/unifiedPlaceQuery.js'
+import { isPersistedSource } from '../utils/placeSource.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
 import { buildNormalizedAddressFields } from '../utils/osmAddress.js'
 import {
@@ -576,91 +585,28 @@ router.get(
     const parsed = new URL(req.originalUrl, `http://${req.get('host') || 'localhost'}`)
     const params = Object.fromEntries(parsed.searchParams)
     const q = (params.q || '').trim()
+    const viewerId = req.user.id
 
-    // 1) Database search (user-added places) — runs independently so the
-    //    user always sees their own saved places even when the upstream
-    //    geocoder is down.
-    let dbResults = []
-    if (prisma.place && q.length >= 2) {
-      try {
-        // Auto-approval runs on the 15-minute scheduler, not during search.
-        const viewerId = req.user.id
-        const dbPlaces = await prisma.place.findMany({
-          where: {
-            AND: [
-              placePublicVisibilityOr(viewerId),
-              {
-                OR: [
-                  { name: { contains: q, mode: 'insensitive' } },
-                  { placeNameEn: { contains: q, mode: 'insensitive' } },
-                  { placeNameLocal: { contains: q, mode: 'insensitive' } },
-                  { category: { contains: q, mode: 'insensitive' } },
-                ],
-              },
-            ],
-          },
-          take: 15,
-          orderBy: { createdAt: 'desc' },
-          select: { id: true, name: true, placeNameEn: true, placeNameLocal: true, category: true, latitude: true, longitude: true, userId: true, userName: true, source: true },
-        })
-        dbResults = dbPlaces.map((p) => ({
-          placeId: p.id,
-          displayName: p.placeNameEn ?? p.name,
-          lat: p.latitude,
-          lng: p.longitude,
-          address: p.category ? { county: p.category } : null,
-          isDbPlace: true,
-        }))
-      } catch (dbErr) {
-        console.warn('DB places search failed:', dbErr.message)
-      }
-    }
+    const lat = params.lat != null ? parseFloat(params.lat) : null
+    const lng = params.lng != null ? parseFloat(params.lng) : null
+    const radiusKm = params.radiusKm != null ? parseFloat(params.radiusKm) : null
 
-    // 2) Upstream geocoders — try primary then fall back to alternatives.
-    //    Isolated from DB results so a dead upstream never blanks out
-    //    user-saved places.
-    let apiResults = []
-    let usedProvider = null
-    let upstreamError = null
-    const { provider, rows, error } = await searchExternalProviders(q, { limit: 10 })
-    if (provider) {
-      usedProvider = provider
-      apiResults = rows.map((r, i) => {
-        const n = normalizeSearchRowAddress(r)
-        return {
-          placeId: n.place_id ?? n.id ?? n.osm_id ?? `api-${n.lat}-${n.lon ?? n.lng}-${i}`,
-          displayName: n.display_name ?? n.name ?? n.formatted ?? '',
-          lat: parseFloat(n.lat) || 0,
-          lng: parseFloat(n.lon ?? n.lng) || 0,
-          address: n.address ?? null,
-          source: n._provider || null,
-        }
-      })
-    } else if (error) {
-      upstreamError = `${error.provider}: ${error.reason}`
-    }
-
-    // Merge: DB places first (user's own), then API results, dedupe by coords
-    const seen = new Set()
-    const merged = []
-    for (const r of [...dbResults, ...apiResults]) {
-      const key = `${r.lat.toFixed(5)}-${r.lng.toFixed(5)}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        merged.push(r)
-      }
-    }
+    const { results, providers, counts, upstreamError } = await unifiedTextSearch(q, {
+      viewerId,
+      limit: 15,
+      lat: Number.isFinite(lat) ? lat : undefined,
+      lng: Number.isFinite(lng) ? lng : undefined,
+      radiusKm: Number.isFinite(radiusKm) ? radiusKm : undefined,
+    })
 
     console.log(
-      `[search-simple] q="${q}" → DB places: ${dbResults.length}, ` +
-        `geocoder (${usedProvider || 'none'}): ${apiResults.length}, ` +
-        `merged total: ${merged.length}` +
-        (upstreamError ? ` | upstream error: ${upstreamError}` : '')
+      `[search-simple] q="${q}" → local: ${counts.db}, osm-db: ${counts.osm}, ` +
+        `http: ${counts.external}, merged: ${counts.merged}` +
+        (providers.length ? ` | providers: ${providers.join('+')}` : '') +
+        (upstreamError ? ` | upstream error: ${upstreamError.provider}: ${upstreamError.reason}` : '')
     )
 
-    // Only surface an error when we have absolutely nothing to show AND
-    // the upstream failed. Otherwise return 200 with whatever we have.
-    if (merged.length === 0 && upstreamError) {
+    if (results.length === 0 && upstreamError) {
       return res.status(200).json({
         query: q,
         results: [],
@@ -672,9 +618,9 @@ router.get(
 
     res.json({
       query: q,
-      results: merged,
-      count: merged.length,
-      ...(usedProvider ? { provider: usedProvider } : {}),
+      results,
+      count: results.length,
+      ...(providers.length ? { provider: providers.join('+'), providers } : {}),
       ...(upstreamError ? { upstreamUnavailable: true } : {}),
     })
   }
@@ -999,6 +945,7 @@ router.get(
     query('maxLat').optional().isFloat({ min: -90, max: 90 }),
     query('minLng').optional().isFloat({ min: -180, max: 180 }),
     query('maxLng').optional().isFloat({ min: -180, max: 180 }),
+    query('includeOsm').optional().isIn(['true', 'false', '1', '0']),
   ],
   async (req, res) => {
     try {
@@ -1023,60 +970,25 @@ router.get(
         .map((category) => category.trim())
         .filter(Boolean)
 
-      const categoryFilter =
-        selectedCategories.length > 0 ? { category: { in: selectedCategories } } : {}
-
-      // Optional viewport (bounding-box) filtering so the client can load only
-      // places in view instead of everything. Omitted params = no bbox filter.
-      const bboxFilter = {}
       const minLat = req.query.minLat != null ? parseFloat(req.query.minLat) : null
       const maxLat = req.query.maxLat != null ? parseFloat(req.query.maxLat) : null
       const minLng = req.query.minLng != null ? parseFloat(req.query.minLng) : null
       const maxLng = req.query.maxLng != null ? parseFloat(req.query.maxLng) : null
-      if (minLat != null && maxLat != null) bboxFilter.latitude = { gte: minLat, lte: maxLat }
-      if (minLng != null && maxLng != null) bboxFilter.longitude = { gte: minLng, lte: maxLng }
 
       const limit = req.query.limit != null ? parseInt(req.query.limit, 10) : 5000
       const offset = req.query.offset != null ? parseInt(req.query.offset, 10) : 0
+      const includeOsm = req.query.includeOsm !== 'false' && req.query.includeOsm !== '0'
 
-      const visibilityWhere = {
-        AND: [placePublicVisibilityOr(viewerId), categoryFilter, bboxFilter],
-      }
-
-      const places = await prisma.place.findMany({
-        where: visibilityWhere,
-        orderBy: { createdAt: 'desc' },
-        take: limit,
-        skip: offset,
-        select: {
-          id: true,
-          name: true,
-          placeNameEn: true,
-          placeNameLocal: true,
-          category: true,
-          latitude: true,
-          longitude: true,
-          zoomLevel: true,
-          mapRenderingConfig: true,
-          source: true,
-          userId: true,
-          userName: true,
-          userEmail: true,
-          createdAt: true,
-          approvalStatus: true,
-          approvedAt: true,
-          autoApproveAt: true,
-          festivalStartDate: true,
-          festivalEndDate: true,
-          festivalRecurrence: true,
-        },
-      })
-
-      const categoryCounts = await prisma.place.groupBy({
-        by: ['category'],
-        where: placePublicVisibilityOr(viewerId),
-        _count: { category: true },
-        orderBy: { category: 'asc' },
+      const { places, availableCategories, counts } = await unifiedMapPlaces({
+        viewerId,
+        categories: selectedCategories,
+        minLat,
+        maxLat,
+        minLng,
+        maxLng,
+        limit,
+        offset,
+        includeOsm,
       })
 
       const normalized = places.map((p) =>
@@ -1092,19 +1004,22 @@ router.get(
           festival_end_date: p.festivalEndDate ?? null,
           festival_recurrence: p.festivalRecurrence ?? null,
           festival: isFestivalPlace(p) ? festivalStatus(p) : null,
+          isPersisted: p.isPersisted ?? true,
+          isDbPlace: p.isDbPlace ?? Boolean(p.userId || isPersistedSource(p.source)),
         })
       )
       res.json({
         places: normalized,
         selectedCategories,
-        // Pagination metadata (additive — existing clients ignore these).
         limit,
         offset,
         returned: normalized.length,
-        availableCategories: categoryCounts.map((item) => ({
-          category: item.category,
-          count: item._count.category,
-        })),
+        availableCategories,
+        sources: {
+          localDb: counts.db,
+          osmDb: counts.osm,
+          merged: counts.merged,
+        },
       })
     } catch (error) {
       console.error('List places error:', error)
@@ -1286,10 +1201,9 @@ router.post(
       const categoryRaw = String(req.body.category || '').trim()
       const viewerId = req.user.id
 
-      // Prefer PostGIS ST_Contains (GiST-indexed) over bbox + JS point-in-ring.
-      let inside = await findInPolygonPostgis({ ring, viewerId, limit: 2500 })
+      let dbInside = await findInPolygonPostgis({ ring, viewerId, limit: 2500 })
 
-      if (!inside) {
+      if (!dbInside) {
         const lats = ring.map((c) => c[1])
         const lngs = ring.map((c) => c[0])
         const minLat = Math.min(...lats)
@@ -1328,11 +1242,19 @@ router.post(
           },
         })
 
-        inside = candidates.filter((p) => pointInRing(p.longitude, p.latitude, ring))
+        dbInside = candidates.filter((p) => pointInRing(p.longitude, p.latitude, ring))
       }
+
+      const inside = await unifiedInPolygon({
+        ring,
+        viewerId,
+        category: categoryRaw || null,
+        findInPolygonPostgis: async () => dbInside,
+      })
 
       const categoryMatched = categoryRaw
         ? inside.filter((p) => {
+            if (p.source === 'osm') return String(p.category) === categoryRaw
             const resolved = resolvePlaceCategory({
               category: p.category,
               type: p.googleType,
@@ -1756,6 +1678,19 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
+      if (isOsmPlaceId(id)) {
+        const osmPlace = await unifiedPlaceById(id)
+        if (!osmPlace) return res.status(404).json({ error: 'Place not found' })
+        return res.json(
+          attachApprovalMeta({
+            ...osmPlace,
+            name: osmPlace.placeNameEn ?? osmPlace.name,
+            place_name_en: osmPlace.placeNameEn ?? osmPlace.name,
+            isPersisted: false,
+            _isDbPlace: false,
+          })
+        )
+      }
       // Auto-approval runs on the 15-minute scheduler, not during place detail.
       const place = await prisma.place.findUnique({
         where: { id },
@@ -1814,6 +1749,29 @@ router.get(
   async (req, res) => {
     try {
       const { id } = req.params
+
+      if (isOsmPlaceId(id)) {
+        const osmPlace = await unifiedPlaceById(id)
+        if (!osmPlace) return res.status(404).json({ error: 'Place not found' })
+        const nearby = await unifiedNearby({
+          lat: osmPlace.latitude,
+          lng: osmPlace.longitude,
+          radiusMeters: 2000,
+          excludeId: id,
+          limit: 8,
+          findNearbyPostgis,
+          placePublicVisibilityOrFn: placePublicVisibilityOr,
+          viewerId: req.user.id,
+        })
+        return res.json(
+          nearby.map((p) => ({
+            ...p,
+            name: p.placeNameEn ?? p.name,
+            place_name_en: p.placeNameEn ?? p.name,
+          }))
+        )
+      }
+
       // Auto-approval runs on the 15-minute scheduler, not during place detail.
       const place = await prisma.place.findUnique({
         where: { id },
@@ -1824,38 +1782,16 @@ router.get(
         return res.status(404).json({ error: 'Place not found' })
       }
 
-      // Prefer PostGIS: true radius + nearest ordering via the GiST index.
-      const spatial = await findNearbyPostgis({
+      const nearby = await unifiedNearby({
         lat: place.latitude,
         lng: place.longitude,
         radiusMeters: 2000,
         excludeId: id,
         limit: 8,
+        findNearbyPostgis,
+        placePublicVisibilityOrFn: placePublicVisibilityOr,
         viewerId: req.user.id,
       })
-
-      let nearby
-      if (spatial) {
-        nearby = spatial
-      } else {
-        // Fallback: bounding-box (~2km) + recency ordering.
-        const delta = 0.018
-        nearby = await prisma.place.findMany({
-          where: {
-            AND: [
-              placePublicVisibilityOr(req.user.id),
-              {
-                id: { not: id },
-                latitude: { gte: place.latitude - delta, lte: place.latitude + delta },
-                longitude: { gte: place.longitude - delta, lte: place.longitude + delta },
-              },
-            ],
-          },
-          take: 8,
-          orderBy: { createdAt: 'desc' },
-          select: { id: true, name: true, placeNameEn: true, category: true, latitude: true, longitude: true, userId: true, userName: true },
-        })
-      }
       res.json(nearby.map((p) => ({ ...p, name: p.placeNameEn ?? p.name, place_name_en: p.placeNameEn ?? p.name })))
     } catch (error) {
       res.status(500).json({ error: 'Failed to fetch nearby places', message: error.message })

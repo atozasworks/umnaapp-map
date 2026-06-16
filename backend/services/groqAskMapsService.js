@@ -8,6 +8,13 @@ import {
   CATEGORY_NAME_KEYWORDS,
 } from './askMapsConstants.js'
 import { searchExternalProviders } from './externalPlaceSearch.js'
+import { searchOsmByName } from './osmPlaceQuery.js'
+import {
+  dedupePlaces,
+  mapOsmToAskPlace,
+  mapExternalToAskPlace,
+} from './unifiedPlaceQuery.js'
+import { PLACE_SOURCES } from '../utils/placeSource.js'
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions'
 const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.3-70b-versatile'
@@ -575,60 +582,77 @@ function sortAskPlaces(list, { intent, origin }) {
  */
 async function mergeWithExternalPlaces(dbPlaces, { intent, query, origin, radiusKm }) {
   const queries = externalSearchQueries(intent, query, origin)
-  if (!queries.length) {
-    return {
-      places: sortAskPlaces(dbPlaces, { intent, origin }).slice(0, intent.limit),
-      externalCount: 0,
-    }
-  }
-
-  const seen = new Set(dbPlaces.map((p) => coordKey(p.latitude, p.longitude)))
-  const extras = []
-  const locationName = intent.locationName ? String(intent.locationName).trim() : null
-  // Distance bound: explicit radius, else a generous default around a named
-  // area so far-away same-name matches (e.g. "Hospital" in another state)
-  // are excluded once we have coordinates to compare against.
-  const effectiveRadiusKm = radiusKm ?? (locationName && origin ? 35 : null)
-  const maxM = origin && effectiveRadiusKm != null ? effectiveRadiusKm * 1000 : null
-  // Fetch enough external rows to be meaningful even when the DB already has
-  // many places; the final slice still respects intent.limit.
+  const effectiveRadiusKm = radiusKm ?? (intent.locationName ? 35 : null)
   const fetchLimit = Math.max(intent.limit, 20)
+  const locationName = intent.locationName ? String(intent.locationName).trim() : null
+  const maxM = origin && effectiveRadiusKm != null ? effectiveRadiusKm * 1000 : null
 
-  for (const searchQ of queries) {
-    if (extras.length >= fetchLimit) break
-    const { rows } = await searchExternalProviders(searchQ, {
-      limit: fetchLimit,
-      lat: origin?.lat,
-      lng: origin?.lng,
-      radiusKm: effectiveRadiusKm,
-    })
-    for (const row of rows) {
-      if (!externalRowMatchesCategory(row, intent)) continue
+  const osmExtras = []
+  const httpExtras = []
 
-      const mapped = mapExternalRowToAskPlace(row, intent, origin)
-      const key = coordKey(mapped.latitude, mapped.longitude)
-      if (seen.has(key)) continue
+  for (const searchQ of queries.length ? queries : [query]) {
+    if (osmExtras.length + httpExtras.length >= fetchLimit) break
 
-      // Named-location query: keep rows that match the place by name/address
-      // token OR fall within the distance bound. (The provider's geocode is
-      // imprecise, so the location token is the primary signal.)
+    const [osmRows, { rows: httpRows }] = await Promise.all([
+      searchOsmByName(searchQ, {
+        limit: fetchLimit,
+        lat: origin?.lat,
+        lng: origin?.lng,
+        radiusKm: effectiveRadiusKm,
+      }),
+      searchExternalProviders(searchQ, {
+        limit: fetchLimit,
+        lat: origin?.lat,
+        lng: origin?.lng,
+        radiusKm: effectiveRadiusKm,
+      }),
+    ])
+
+    for (const row of osmRows) {
+      if (!externalRowMatchesCategory({ name: row.name, category: row.category }, intent)) continue
+      const mapped = mapOsmToAskPlace(row, origin, haversineMeters)
       if (locationName) {
-        const tokenOk = externalRowMatchesLocation(row, locationName)
-        const distOk =
-          maxM != null && mapped.distanceMeters != null && mapped.distanceMeters <= maxM
+        const tokenOk = externalRowMatchesLocation({ name: row.name, display_name: row.name }, locationName)
+        const distOk = maxM != null && mapped.distanceMeters != null && mapped.distanceMeters <= maxM
         if (!tokenOk && !distOk) continue
       } else if (maxM != null) {
         if (mapped.distanceMeters == null || mapped.distanceMeters > maxM) continue
       }
+      osmExtras.push(mapped)
+      if (osmExtras.length >= fetchLimit) break
+    }
 
-      seen.add(key)
-      extras.push(mapped)
-      if (extras.length >= fetchLimit) break
+    for (const row of httpRows) {
+      if (!externalRowMatchesCategory(row, intent)) continue
+      const mapped = mapExternalToAskPlace(
+        { ...row, category: inferCategoryFromExternalRow(row, intent.category || 'Other') },
+        intent,
+        origin,
+        haversineMeters
+      )
+      if (locationName) {
+        const tokenOk = externalRowMatchesLocation(row, locationName)
+        const distOk = maxM != null && mapped.distanceMeters != null && mapped.distanceMeters <= maxM
+        if (!tokenOk && !distOk) continue
+      } else if (maxM != null) {
+        if (mapped.distanceMeters == null || mapped.distanceMeters > maxM) continue
+      }
+      httpExtras.push(mapped)
+      if (httpExtras.length >= fetchLimit) break
     }
   }
 
-  const merged = sortAskPlaces([...dbPlaces, ...extras], { intent, origin }).slice(0, intent.limit)
-  return { places: merged, externalCount: extras.length }
+  const merged = dedupePlaces([
+    { places: dbPlaces, priority: 100 },
+    { places: osmExtras, priority: 50 },
+    { places: httpExtras, priority: 30 },
+  ])
+
+  const sorted = sortAskPlaces(merged, { intent, origin }).slice(0, intent.limit)
+  const externalCount = sorted.filter(
+    (p) => p.source === PLACE_SOURCES.EXTERNAL || p.source === PLACE_SOURCES.OSM
+  ).length
+  return { places: sorted, externalCount }
 }
 
 function buildLocationTextFilter(locationName) {
@@ -905,7 +929,9 @@ export async function runAskMapsQuery({ query, userLat, userLng, viewerId }) {
     console.warn('PlaceFinder external merge failed:', extErr.message)
   }
 
-  const finalExternalCount = limited.filter((p) => p.source === 'external').length
+  const finalExternalCount = limited.filter(
+    (p) => p.source === PLACE_SOURCES.EXTERNAL || p.source === PLACE_SOURCES.OSM
+  ).length
   const finalDbCount = limited.length - finalExternalCount
   externalCount = finalExternalCount
   let interpretation = intent.summary

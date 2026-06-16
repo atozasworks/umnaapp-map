@@ -108,6 +108,10 @@ const buildCategoryOptions = (placesList) => {
   return [...prioritized, ...extras]
 }
 
+const isPersistedPlaceId = (id) => id && /^[0-9a-f-]{36}$/.test(String(id))
+const isUnifiedPlaceId = (id) =>
+  isPersistedPlaceId(id) || /^osm-(node|way|relation)-/.test(String(id || ''))
+
 
 const HomePage = () => {
   const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
@@ -130,6 +134,8 @@ const HomePage = () => {
   const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
   const [mapLocation, setMapLocation] = useState(null)
   const [allPlaces, setAllPlaces] = useState([])
+  const [dbPlaces, setDbPlaces] = useState([])
+  const osmRefreshTimerRef = useRef(null)
   const [visiblePlaces, setVisiblePlaces] = useState([])
   const [favorites, setFavorites] = useState([])
   const [availableCategories, setAvailableCategories] = useState([])
@@ -319,14 +325,60 @@ const HomePage = () => {
     setAvailableCategories(buildCategoryOptions(allPlaces))
   }, [allPlaces])
 
-  const refreshPlacesFromDb = useCallback(async () => {
+  const refreshPlacesFromDb = useCallback(async (bounds = null) => {
     try {
-      const { data } = await api.get('/map/places')
-      setAllPlaces(Array.isArray(data.places) ? data.places : [])
+      const params = { includeOsm: 'true' }
+      if (bounds) {
+        params.minLat = bounds.getSouth()
+        params.maxLat = bounds.getNorth()
+        params.minLng = bounds.getWest()
+        params.maxLng = bounds.getEast()
+        params.limit = 5000
+      }
+      const { data } = await api.get('/map/places', { params })
+      const places = Array.isArray(data.places) ? data.places : []
+      if (bounds) {
+        setAllPlaces(places)
+      } else {
+        setDbPlaces(places)
+        setAllPlaces((prev) => {
+          const osmOnly = prev.filter((p) => p.source === 'osm' || String(p.id || '').startsWith('osm-'))
+          const seen = new Set()
+          const merged = []
+          for (const p of [...places, ...osmOnly]) {
+            const key = p.id || `${Number(p.latitude).toFixed(5)}-${Number(p.longitude).toFixed(5)}`
+            if (seen.has(key)) continue
+            seen.add(key)
+            merged.push(p)
+          }
+          return merged
+        })
+      }
+      if (Array.isArray(data.availableCategories) && data.availableCategories.length > 0) {
+        setAvailableCategories(data.availableCategories)
+      }
     } catch (err) {
       console.error('Failed to fetch places:', err)
     }
   }, [])
+
+  const scheduleOsmViewportRefresh = useCallback(
+    (map) => {
+      if (!map?.getBounds) return
+      if (osmRefreshTimerRef.current) clearTimeout(osmRefreshTimerRef.current)
+      osmRefreshTimerRef.current = setTimeout(() => {
+        const zoom = map.getZoom?.() ?? 0
+        if (zoom < 13) {
+          setAllPlaces((prev) =>
+            prev.filter((p) => p.source !== 'osm' && !String(p.id || '').startsWith('osm-'))
+          )
+          return
+        }
+        refreshPlacesFromDb(map.getBounds())
+      }, 400)
+    },
+    [refreshPlacesFromDb]
+  )
 
   const refreshFavoritesFromDb = useCallback(async () => {
     try {
@@ -347,6 +399,7 @@ const HomePage = () => {
   useEffect(() => {
     if (!isAuthenticated) {
       setAllPlaces([])
+      setDbPlaces([])
       setFavorites([])
       return
     }
@@ -354,13 +407,21 @@ const HomePage = () => {
     refreshFavoritesFromDb()
   }, [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb])
 
-  const handleMapReady = useCallback(() => {
-    setMapReadyTick((t) => t + 1)
-    if (isAuthenticated) {
-      refreshPlacesFromDb()
-      refreshFavoritesFromDb()
-    }
-  }, [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb])
+  const handleMapReady = useCallback(
+    (map) => {
+      setMapReadyTick((t) => t + 1)
+      if (isAuthenticated) {
+        refreshPlacesFromDb()
+        refreshFavoritesFromDb()
+      }
+      if (map?.on) {
+        const onMove = () => scheduleOsmViewportRefresh(map)
+        map.on('moveend', onMove)
+        scheduleOsmViewportRefresh(map)
+      }
+    },
+    [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb, scheduleOsmViewportRefresh]
+  )
 
   // Derive map markers from allPlaces only so newly added places always appear once categories align
   // (avoids overwriting visiblePlaces after bulk add / extract).
@@ -410,7 +471,7 @@ const HomePage = () => {
     async (place, { fly = true } = {}) => {
       if (!place) return
       closeMapContextMenu()
-      const isDb = (id) => id && /^[0-9a-f-]{36}$/.test(String(id))
+      const isDb = isPersistedPlaceId
       const apply = (p) => {
         const id = p?.id ?? p?.placeId
         setSelectedPlace({
@@ -428,11 +489,11 @@ const HomePage = () => {
       }
       apply(place)
       const placeId = place.id ?? place.placeId
-      if (!isDb(placeId)) return
+      if (!isUnifiedPlaceId(placeId)) return
       const cached = allPlaces.find((p) => String(p.id) === String(placeId))
       if (cached) apply(cached)
       try {
-        const { data } = await api.get(`/map/places/${placeId}`)
+        const { data } = await api.get(`/map/places/${encodeURIComponent(placeId)}`)
         apply(data)
       } catch {
         /* keep cached / marker data */
@@ -1056,7 +1117,9 @@ const HomePage = () => {
 
   const handlePlaceSaved = (place) => {
     const wasEdit = editPlaceId != null
-    setAllPlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
+    const upsert = (prev) => [place, ...prev.filter((item) => item.id !== place.id)]
+    setDbPlaces(upsert)
+    setAllPlaces(upsert)
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
@@ -1349,7 +1412,9 @@ const HomePage = () => {
   const handleAddExtractedPlaces = async (selected) => {
     const { data } = await api.post('/map/places/bulk', { places: selected })
     if (data.places?.length > 0) {
-      setAllPlaces((prev) => [...data.places, ...prev])
+      const prepend = (prev) => [...data.places, ...prev]
+      setDbPlaces(prepend)
+      setAllPlaces(prepend)
       const matchingPlaces = data.places.filter((place) => placeMatchesCategories(place, selectedCategories))
       if (matchingPlaces.length > 0) {
         setVisiblePlaces((prev) => [...matchingPlaces, ...prev])
@@ -1418,7 +1483,9 @@ const HomePage = () => {
     setDeletingPlaceId(placeId)
     try {
       await api.delete(`/map/places/${placeId}`)
-      setAllPlaces((prev) => prev.filter((p) => p.id !== placeId))
+      const remove = (prev) => prev.filter((p) => p.id !== placeId)
+      setDbPlaces(remove)
+      setAllPlaces(remove)
       setVisiblePlaces((prev) => prev.filter((p) => p.id !== placeId))
       setSelectedPlace((prev) => (prev?.id === placeId ? null : prev))
       showToast('Place deleted successfully.', 'success')
