@@ -168,6 +168,48 @@ export function buildPlaceDetailFields(item, regionDefaults = {}, { forUpdate = 
   }
 }
 
+/** API response shape for OSM planet_osm_* place detail views. */
+export function serializeOsmPlace(p) {
+  if (!p) return null
+  const name = p.placeNameEn ?? p.place_name_en ?? p.name
+  const photos = Array.isArray(p.osmPhotos)
+    ? p.osmPhotos
+    : Array.isArray(p.osm_photos)
+      ? p.osm_photos
+      : []
+  return {
+    id: p.id,
+    name,
+    place_name_en: name,
+    place_name_local: p.placeNameLocal ?? p.place_name_local ?? null,
+    category: p.category || 'Other',
+    latitude: p.latitude,
+    longitude: p.longitude,
+    zoomLevel: p.zoomLevel ?? 16,
+    source: p.source || 'osm',
+    osmId: p.osmId ?? null,
+    osmType: p.osmType ?? null,
+    osmTag: p.osmTag ?? null,
+    full_address: p.fullAddress ?? p.full_address ?? null,
+    village: p.village ?? null,
+    taluk: p.taluk ?? null,
+    district: p.district ?? null,
+    state: p.state ?? null,
+    country: p.country ?? null,
+    pincode: p.pincode ?? null,
+    vicinity: p.vicinity ?? null,
+    phone: p.phone ?? null,
+    website: p.website ?? null,
+    description: p.description ?? null,
+    opening_hours: p.openingHours ?? p.opening_hours ?? null,
+    osm_photos: photos,
+    google_photos: photos.map((url) => (typeof url === 'string' ? { url } : url)),
+    isPersisted: false,
+    isDbPlace: false,
+    _isDbPlace: false,
+  }
+}
+
 /** API response shape for admin / detail views. */
 export function serializePlace(p) {
   if (!p) return null

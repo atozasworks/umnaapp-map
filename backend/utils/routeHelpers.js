@@ -79,6 +79,22 @@ export function deduplicateRoutes(routes) {
   return unique
 }
 
+/** Build a short "via …" summary from OSRM step names (major roads only). */
+export function extractRouteSummary(route) {
+  const steps = route?.steps
+  if (!Array.isArray(steps) || steps.length === 0) return null
+
+  const skip = /^(unnamed|road|street|lane|path|track|service)$/i
+  const names = []
+  for (const step of steps) {
+    const name = (step.name || '').trim()
+    if (!name || skip.test(name) || names.includes(name)) continue
+    names.push(name)
+    if (names.length >= 3) break
+  }
+  return names.length ? names.join(' · ') : null
+}
+
 export function annotateRoutes(routes) {
   if (!routes.length) return []
 
@@ -93,12 +109,15 @@ export function annotateRoutes(routes) {
 
   return sorted.map((route, index) => {
     const routeTags = []
+    if (index === 0) routeTags.push('recommended')
     if ((route.duration ?? Infinity) <= minDuration) routeTags.push('fastest')
     if ((route.distance ?? Infinity) <= minDistance) routeTags.push('shortest')
+    const summary = extractRouteSummary(route)
     return {
       ...route,
       routeIndex: index,
       routeTags,
+      ...(summary ? { routeSummary: summary } : {}),
     }
   })
 }
@@ -128,12 +147,36 @@ export function coordPairDistanceMeters(startLat, startLng, endLat, endLng) {
  */
 export function buildDirectRoute(startLat, startLng, endLat, endLng, profile = 'driving') {
   const distance = coordPairDistanceMeters(startLat, startLng, endLat, endLng)
-  const walkSpeed = 1.4
-  const driveSpeed = 13.9
-  const cycleSpeed = 4.2
-  const speed =
-    profile === 'walking' ? walkSpeed : profile === 'cycling' ? cycleSpeed : driveSpeed
-  const duration = Math.max(30, Math.round(distance / speed))
+  const speeds = {
+    walking: 1.25,
+    cycling: 4.17,
+    two_wheeler: 10.5,
+    bus: 4.72,
+    train: 13.89,
+    driving: 8.33,
+  }
+  const speed = speeds[profile] ?? speeds.driving
+  let duration = Math.max(30, Math.round(distance / speed))
+  if (profile === 'bus') {
+    duration += Math.min(900, Math.round(240 + distance / 650))
+  } else if (profile === 'train') {
+    duration += 14 * 60
+    const railDistance = Math.round(distance * 1.32)
+    return {
+      distance: railDistance,
+      duration: Math.max(30, Math.round(railDistance / speed + 14 * 60)),
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [startLng, startLat],
+          [endLng, endLat],
+        ],
+      },
+      legs: [{ distance: railDistance, duration: Math.max(30, Math.round(railDistance / speed + 14 * 60)) }],
+      steps: [],
+      fallback: true,
+    }
+  }
 
   return {
     distance: Math.round(distance),

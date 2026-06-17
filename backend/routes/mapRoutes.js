@@ -27,6 +27,7 @@ import {
 import {
   buildPlaceDetailFields,
   serializePlace,
+  serializeOsmPlace,
   PLACE_DETAIL_SELECT,
   sanitizePlaceName,
 } from '../utils/placePayload.js'
@@ -52,6 +53,7 @@ import {
   unifiedNearby,
   unifiedInPolygon,
   unifiedPlaceById,
+  unifiedPickAtPoint,
   isOsmPlaceId,
 } from '../services/unifiedPlaceQuery.js'
 import { isPersistedSource } from '../utils/placeSource.js'
@@ -71,6 +73,14 @@ import {
   hasMultipleRoutes,
   buildDirectRoute,
 } from '../utils/routeHelpers.js'
+import {
+  osrmProfileFor,
+  osrmProfileCandidates,
+  buildTrainRoute,
+  applyTravelModeToRoutes,
+  routeNeedsPedestrianOrCycleRefetch,
+  pickPrimaryRoute,
+} from '../utils/travelModeRouting.js'
 
 const router = express.Router()
 
@@ -227,7 +237,10 @@ router.get(
   [
     query('start').isString().withMessage('Start coordinates required (lat,lng)'),
     query('end').isString().withMessage('End coordinates required (lat,lng)'),
-    query('profile').optional().isIn(['driving', 'walking', 'cycling', 'bus']).withMessage('Invalid profile'),
+    query('profile')
+      .optional()
+      .isIn(['driving', 'walking', 'cycling', 'bus', 'two_wheeler', 'train'])
+      .withMessage('Invalid profile'),
   ],
   async (req, res) => {
     try {
@@ -239,8 +252,7 @@ router.get(
       const { start, end, profile = 'driving', waypoints, alternatives } = req.query
       const wantAlternatives = alternatives === 'true'
 
-      // Map bus to driving for routing engines (bus uses driving roads with duration adjustment)
-      const routingProfile = profile === 'bus' ? 'driving' : profile
+      const osrmProfile = osrmProfileFor(profile)
 
       // Validate coordinates (frontend sends lat,lng)
       const startCoords = start.split(',').map(Number)
@@ -248,6 +260,26 @@ router.get(
 
       if (startCoords.length !== 2 || endCoords.length !== 2) {
         return res.status(400).json({ error: 'Invalid coordinate format' })
+      }
+
+      const parsedWaypoints = waypoints
+        ? waypoints.split(';').map((wp) => {
+            const [lat, lng] = wp.split(',').map(Number)
+            return { lat, lng }
+          })
+        : []
+
+      let routeData = null
+
+      if (profile === 'train') {
+        routeData = buildTrainRoute(
+          startCoords[0],
+          startCoords[1],
+          endCoords[0],
+          endCoords[1],
+          parsedWaypoints
+        )
+        console.log('🗺️  Route estimated for train (no OSRM transit graph)')
       }
 
       // Build coordinates string: lon,lat;lon,lat (UMNAAPP format)
@@ -260,8 +292,6 @@ router.get(
         coordinatesStr += `;${waypointCoords.join(';')}`
       }
       coordinatesStr += `;${endCoords[1]},${endCoords[0]}`
-
-      let routeData = null
 
       const parseOsrmRoute = (r) => {
         if (!r?.geometry?.coordinates?.length) return null
@@ -276,38 +306,51 @@ router.get(
 
       /** Fetch from OSRM-style API: /route/v1/{profile}/{coords} */
       const tryOsrm = async (baseUrl, requestAlternatives = wantAlternatives) => {
-        const url = `${baseUrl.replace(/\/+$/, '')}/route/v1/${routingProfile}/${coordinatesStr}`
-        const params = { overview: 'full', geometries: 'geojson', steps: 'true' }
-        if (requestAlternatives) params.alternatives = 'true'
+        const candidates = osrmProfileCandidates(profile)
+        let lastError = null
 
-        const fetchRoutes = async (p) => {
-          const res = await axios.get(url, { params: p, timeout: 10000 })
-          const contentType = String(res.headers?.['content-type'] || '')
-          if (contentType.includes('text/html') || typeof res.data === 'string') {
-            throw new Error('Not an OSRM API (HTML response)')
+        for (const candidateProfile of candidates) {
+          const url = `${baseUrl.replace(/\/+$/, '')}/route/v1/${candidateProfile}/${coordinatesStr}`
+          const params = { overview: 'full', geometries: 'geojson', steps: 'true' }
+          if (requestAlternatives) params.alternatives = 'true'
+
+          const fetchRoutes = async (p) => {
+            const res = await axios.get(url, { params: p, timeout: 10000 })
+            const contentType = String(res.headers?.['content-type'] || '')
+            if (contentType.includes('text/html') || typeof res.data === 'string') {
+              throw new Error('Not an OSRM API (HTML response)')
+            }
+            if (res.data?.code && res.data.code !== 'Ok') {
+              throw new Error(res.data.message || res.data.code)
+            }
+            return res.data?.routes || []
           }
-          if (res.data?.code && res.data.code !== 'Ok') {
-            throw new Error(res.data.message || res.data.code)
+
+          try {
+            let routes = []
+            try {
+              routes = await fetchRoutes(params)
+            } catch (altErr) {
+              if (requestAlternatives) {
+                routes = await fetchRoutes({ overview: 'full', geometries: 'geojson', steps: 'true' })
+              } else {
+                throw altErr
+              }
+            }
+
+            if (wantAlternatives && routes.length > 0) {
+              const parsed = routes.map(parseOsrmRoute).filter(Boolean).slice(0, 3)
+              if (parsed.length) return parsed
+            }
+            const parsed = parseOsrmRoute(routes[0])
+            if (parsed) return wantAlternatives ? [parsed] : parsed
+          } catch (err) {
+            lastError = err
           }
-          return res.data?.routes || []
         }
 
-        let routes = []
-        try {
-          routes = await fetchRoutes(params)
-        } catch (altErr) {
-          if (requestAlternatives) {
-            routes = await fetchRoutes({ overview: 'full', geometries: 'geojson', steps: 'true' })
-          } else {
-            throw altErr
-          }
-        }
-
-        if (wantAlternatives && routes.length > 0) {
-          return routes.map(parseOsrmRoute).filter(Boolean).slice(0, 3)
-        }
-        const parsed = parseOsrmRoute(routes[0])
-        return parsed ? (wantAlternatives ? [parsed] : parsed) : null
+        if (lastError) throw lastError
+        return null
       }
 
       const parseUmnaappRoute = (route, geom) => {
@@ -324,7 +367,8 @@ router.get(
 
       /** Fetch from umnaapp-style API: /map/route/{profile}/{coords} */
       const tryUmnaapp = async () => {
-        const url = `${ROUTE_BASE_URL}/${routingProfile}/${coordinatesStr}`
+        const umnaProfile = osrmProfile || 'driving'
+        const url = `${ROUTE_BASE_URL}/${umnaProfile}/${coordinatesStr}`
         for (const geom of ['geojson', 'polyline']) {
           try {
             const params = { overview: 'full', geometries: geom, steps: 'true' }
@@ -351,11 +395,23 @@ router.get(
       }
 
       // 1) umnaapp.in standard OSRM — https://umnaapp.in/route/v1/{profile}/{coords}
-      try {
-        routeData = await tryOsrm(ROUTE_SERVICE_URL)
-        if (routeData) console.log('🗺️  Route from umnaapp.in/route')
-      } catch (e) {
-        console.warn('Route umnaapp.in/route failed:', e.message)
+      if (!routeData) {
+        try {
+          routeData = await tryOsrm(ROUTE_SERVICE_URL)
+          if (routeData) console.log('🗺️  Route from umnaapp.in/route')
+        } catch (e) {
+          console.warn('Route umnaapp.in/route failed:', e.message)
+        }
+      }
+
+      // umnaapp often accepts walk/cycle profiles but returns driving speeds — refetch from public OSRM
+      if (
+        routeData &&
+        (profile === 'walking' || profile === 'cycling') &&
+        routeNeedsPedestrianOrCycleRefetch(pickPrimaryRoute(routeData), profile)
+      ) {
+        console.warn(`Route umnaapp ${profile} looks like driving — trying public OSRM`)
+        routeData = null
       }
 
       const needsMoreAlternatives = wantAlternatives && !hasMultipleRoutes(routeData)
@@ -426,27 +482,14 @@ router.get(
           startCoords[1],
           endCoords[0],
           endCoords[1],
-          routingProfile
+          profile
         )
         routeData = wantAlternatives ? [fallback] : fallback
         primaryRoute = fallback
         console.warn('Route services unavailable — using direct fallback path')
       }
 
-      const finalRoutes = toRouteArray(routeData)
-
-      // Profile-based duration adjustments
-      const adjustBusDuration = (rd) => {
-        if (profile === 'bus' && rd.duration) {
-          rd.duration = Math.round(rd.duration * 1.4)
-          if (rd.legs) {
-            rd.legs = rd.legs.map((leg) => ({ ...leg, duration: Math.round(leg.duration * 1.4) }))
-          }
-        }
-        return rd
-      }
-
-      finalRoutes.forEach(adjustBusDuration)
+      const finalRoutes = applyTravelModeToRoutes(toRouteArray(routeData), profile)
       routeData = wantAlternatives ? finalRoutes : finalRoutes[0]
       primaryRoute = finalRoutes[0]
 
@@ -1411,6 +1454,67 @@ router.post(
 )
 
 /**
+ * @route GET /api/map/places/pick
+ * @desc Resolve the best place at a map click (user DB place or OSM feature)
+ * @access Private
+ */
+router.get(
+  '/places/pick',
+  authenticateToken,
+  rateLimitMiddleware('places:pick', 120, 60),
+  [
+    query('lat').isFloat({ min: -90, max: 90 }),
+    query('lng').isFloat({ min: -180, max: 180 }),
+    query('radiusMeters').optional().isInt({ min: 100, max: 8000 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+      const lat = parseFloat(req.query.lat)
+      const lng = parseFloat(req.query.lng)
+      const radiusMeters = req.query.radiusMeters != null
+        ? parseInt(req.query.radiusMeters, 10)
+        : 2500
+
+      const picked = await unifiedPickAtPoint({
+        lat,
+        lng,
+        radiusMeters,
+        viewerId: req.user.id,
+        findNearbyPostgis,
+        placePublicVisibilityOrFn: placePublicVisibilityOr,
+      })
+
+      if (!picked) {
+        return res.status(404).json({ error: 'No place found at this location' })
+      }
+
+      if (isOsmPlaceId(picked.id)) {
+        const detailed = await unifiedPlaceById(picked.id)
+        return res.json({
+          place: attachApprovalMeta(serializeOsmPlace(detailed || picked)),
+        })
+      }
+
+      if (picked.isDbPlace || picked.isPersisted || isPersistedSource(picked.source)) {
+        return res.json({
+          place: attachApprovalMeta(serializePlace(picked)),
+        })
+      }
+
+      return res.json({
+        place: attachApprovalMeta(serializeOsmPlace(picked)),
+      })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to pick place', message: error.message })
+    }
+  }
+)
+
+/**
  * @route DELETE /api/map/places/:id
  * @desc Delete a place owned by the current user
  * @access Private
@@ -1681,15 +1785,7 @@ router.get(
       if (isOsmPlaceId(id)) {
         const osmPlace = await unifiedPlaceById(id)
         if (!osmPlace) return res.status(404).json({ error: 'Place not found' })
-        return res.json(
-          attachApprovalMeta({
-            ...osmPlace,
-            name: osmPlace.placeNameEn ?? osmPlace.name,
-            place_name_en: osmPlace.placeNameEn ?? osmPlace.name,
-            isPersisted: false,
-            _isDbPlace: false,
-          })
-        )
+        return res.json(attachApprovalMeta(serializeOsmPlace(osmPlace)))
       }
       // Auto-approval runs on the 15-minute scheduler, not during place detail.
       const place = await prisma.place.findUnique({
@@ -1751,7 +1847,14 @@ router.get(
       const { id } = req.params
 
       if (isOsmPlaceId(id)) {
-        const osmPlace = await unifiedPlaceById(id)
+        let osmPlace = await unifiedPlaceById(id)
+        if (!osmPlace) {
+          const qLat = parseFloat(req.query.lat)
+          const qLng = parseFloat(req.query.lng)
+          if (Number.isFinite(qLat) && Number.isFinite(qLng)) {
+            osmPlace = { id, latitude: qLat, longitude: qLng }
+          }
+        }
         if (!osmPlace) return res.status(404).json({ error: 'Place not found' })
         const nearby = await unifiedNearby({
           lat: osmPlace.latitude,

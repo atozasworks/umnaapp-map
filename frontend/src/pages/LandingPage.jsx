@@ -5,6 +5,7 @@ import AppLogo from '../components/AppLogo'
 import LandingInstallPopup from '../components/LandingInstallPopup'
 import MapAssistantChatbot from '../components/MapAssistantChatbot'
 import { useAuth } from '../contexts/AuthContext'
+import { GITHUB_REPO_URL, devSetupSteps, prerequisites } from '../constants/openSource'
 
 const features = [
   {
@@ -498,6 +499,85 @@ const LandingPage = () => {
           </div>
         </section>
 
+        {/* Open source */}
+        <section className="relative px-4 sm:px-6 lg:px-8 py-20 sm:py-28 bg-slate-900 text-white overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[100%] h-[50%] bg-[radial-gradient(ellipse_at_top,rgba(56,189,248,0.12),transparent_60%)]" aria-hidden />
+          <div className="relative max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-start">
+              <div>
+                <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 bg-emerald-500/10 px-4 py-2 text-xs font-bold uppercase tracking-widest text-emerald-300 mb-6">
+                  <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                  </svg>
+                  Open source · MIT License
+                </span>
+
+                <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight mb-4">
+                  Run UMNAAPP on your own machine
+                </h2>
+                <p className="text-slate-400 text-lg leading-relaxed mb-8">
+                  UMNAAPP is a free, open-source project. Clone the repo from GitHub, set up your environment,
+                  and run the full stack locally — React frontend, Node.js backend, PostgreSQL, and real-time map sync.
+                </p>
+
+                <div className="flex flex-col sm:flex-row gap-4 mb-8">
+                  <a
+                    href={GITHUB_REPO_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2.5 rounded-2xl bg-white text-slate-900 font-bold px-8 py-4 shadow-xl hover:scale-[1.02] hover:shadow-white/20 transition-all"
+                  >
+                    <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                    </svg>
+                    Go to GitHub
+                    <svg className="w-4 h-4 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                  </a>
+                </div>
+
+                <div className="rounded-2xl border border-white/10 bg-white/5 backdrop-blur-sm p-5">
+                  <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-3">Prerequisites</p>
+                  <ul className="grid sm:grid-cols-2 gap-2 text-sm text-slate-300">
+                    {prerequisites.map((item) => (
+                      <li key={item} className="flex items-center gap-2">
+                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 flex-shrink-0" />
+                        {item}
+                      </li>
+                    ))}
+                  </ul>
+                  <p className="text-xs text-slate-500 mt-4 pt-4 border-t border-white/10">
+                    Prefer Docker? Run <code className="text-cyan-300 bg-slate-800/80 px-1.5 py-0.5 rounded">docker-compose up -d</code> after cloning.
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                {devSetupSteps.map((step, i) => (
+                  <div
+                    key={step.title}
+                    className="rounded-2xl border border-white/10 bg-slate-800/60 backdrop-blur-sm overflow-hidden"
+                  >
+                    <div className="flex items-center gap-3 px-5 py-3.5 border-b border-white/10 bg-slate-800/80">
+                      <span className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-gradient-to-br from-primary-500 to-cyan-400 text-xs font-bold text-white">
+                        {String(i + 1).padStart(2, '0')}
+                      </span>
+                      <h3 className="text-sm font-semibold text-white">{step.title}</h3>
+                    </div>
+                    <pre className="px-5 py-4 text-xs sm:text-sm text-cyan-200 font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">
+                      {step.code}
+                    </pre>
+                    {step.note && (
+                      <p className="px-5 pb-4 text-xs text-slate-400">{step.note}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* CTA */}
         <section className="px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28 bg-white">
           <div className="max-w-6xl mx-auto">
@@ -550,13 +630,24 @@ const LandingPage = () => {
             <p className="text-sm text-slate-500 order-3 sm:order-none">
               &copy; {new Date().getFullYear()} UMNAAPP. All rights reserved.
             </p>
-            <div className="flex gap-8 text-sm font-medium">
+            <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm font-medium">
               <Link to="/login" className="text-slate-600 hover:text-primary-600 transition-colors">
                 Sign in
               </Link>
               <Link to="/register" className="text-primary-600 hover:text-primary-700 transition-colors">
                 Register
               </Link>
+              <a
+                href={GITHUB_REPO_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 text-slate-600 hover:text-primary-600 transition-colors"
+              >
+                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                </svg>
+                GitHub
+              </a>
             </div>
           </div>
         </div>

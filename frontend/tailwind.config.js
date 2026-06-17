@@ -7,6 +7,8 @@ export default {
   safelist: [
     // OTPVerificationPage & auth pages - ensure same styles in production as localhost
     'card', 'btn-primary', 'input-field', 'glass',
+    'auth-page', 'auth-card', 'auth-input', 'auth-submit-btn', 'auth-otp-input',
+    'animate-slide-up', 'animate-pulse-glow', 'animate-float', 'animate-float-delayed',
     'min-h-screen', 'flex', 'items-center', 'justify-center', 'px-4', 'py-12',
     'w-full', 'max-w-md', 'text-center', 'mb-8', 'mb-4', 'mb-2', 'mt-2',
     'text-4xl', 'text-2xl', 'text-sm', 'font-bold', 'font-semibold',

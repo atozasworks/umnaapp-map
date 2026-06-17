@@ -9,7 +9,7 @@ import ApprovalStatusBadge from './ApprovalStatusBadge'
 import { canDeletePlace, isPlaceOwner } from '../utils/placeOwnership'
 import {
   formatPlaceAddressLine,
-  getGooglePhotoUrls,
+  getPlacePhotoUrls,
   getGoogleReviewsList,
   getStoredRating,
   getStoredReviewCount,
@@ -17,6 +17,7 @@ import {
 } from '../utils/placeDisplay'
 import { displayCategoryForPlace } from '../utils/googlePlaceCategory'
 import { isFestivalPlace, festivalStatus, festivalCountdownLabel, formatFestivalWindow } from '../utils/festival'
+import { isOsmPlace, isPersistedPlaceId } from '../utils/placeSource'
 
 const CATEGORY_ICONS = {
   Restaurant: '🍽️', Hospital: '🏥', Hotel: '🏨', Parking: '🅿️', Shop: '🛍️',
@@ -151,7 +152,9 @@ export default function PlaceDetailPanel({
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [heroIndex, setHeroIndex] = useState(0)
 
-  const isDbPlace = place?._isDbPlace !== false && /^[0-9a-f-]{36}$/.test(place?.id || '')
+  const isDbPlace = isPersistedPlaceId(place?.id) && place?._isDbPlace !== false
+  const placeIsOsm = isOsmPlace(place)
+  const hasUnifiedDetail = isDbPlace || placeIsOsm
 
   useEffect(() => { const t = setTimeout(() => setEntered(true), 16); return () => clearTimeout(t) }, [])
 
@@ -196,18 +199,6 @@ export default function PlaceDetailPanel({
         .catch(() => setPhotos([]))
         .finally(() => setPhotosLoading(false))
 
-      api.get(`/map/places/${place.id}/nearby`)
-        .then(({ data }) => {
-          const list = Array.isArray(data) ? data : []
-          if (list.length > 0) {
-            setNearby(list)
-          } else {
-            setNearby(getCachedNearbyPlaces(place))
-          }
-        })
-        .catch(() => setNearby(getCachedNearbyPlaces(place)))
-        .finally(() => setNearbyLoading(false))
-
       if (currentUser) {
         api.get(`/map/places/${place.id}/label`)
           .then(({ data }) => {
@@ -226,10 +217,30 @@ export default function PlaceDetailPanel({
     } else {
       setReviewsLoading(false)
       setPhotosLoading(false)
+    }
+
+    if (hasUnifiedDetail) {
+      const nearbyParams = {}
+      if (place.latitude != null && place.longitude != null) {
+        nearbyParams.lat = place.latitude
+        nearbyParams.lng = place.longitude
+      }
+      api.get(`/map/places/${encodeURIComponent(place.id)}/nearby`, { params: nearbyParams })
+        .then(({ data }) => {
+          const list = Array.isArray(data) ? data : []
+          if (list.length > 0) {
+            setNearby(list)
+          } else {
+            setNearby(getCachedNearbyPlaces(place))
+          }
+        })
+        .catch(() => setNearby(getCachedNearbyPlaces(place)))
+        .finally(() => setNearbyLoading(false))
+    } else {
       setNearbyLoading(false)
       setNearby(getCachedNearbyPlaces(place))
     }
-  }, [place?.id])
+  }, [place?.id, isDbPlace, hasUnifiedDetail, currentUser])
 
   useEffect(() => {
     if (!place) return
@@ -268,6 +279,9 @@ export default function PlaceDetailPanel({
     || null
   const openingHours = place.opening_hours ?? place.openingHours
   const weekdayHours = Array.isArray(openingHours?.weekday_text) ? openingHours.weekday_text : []
+  const hasOpenNow = typeof openingHours?.open_now === 'boolean'
+  const showHoursSection = weekdayHours.length > 0
+  const showStatusToggle = hasOpenNow || (isDbPlace && !showHoursSection)
   const description = place.description ? String(place.description).trim() : ''
   const phone = place.phone ? String(place.phone).trim() : ''
   const website = place.website ? String(place.website).trim() : ''
@@ -278,9 +292,9 @@ export default function PlaceDetailPanel({
   const displayReviewCount = reviews.length || storedReviewCount || googleReviews.length
 
   const heroPhotos = useMemo(() => {
-    const google = getGooglePhotoUrls(place)
+    const external = getPlacePhotoUrls(place)
     const user = photos.map((p) => p.dataUrl).filter(Boolean)
-    return [...google, ...user]
+    return [...external, ...user]
   }, [place, photos])
 
   const heroPhoto = heroPhotos[heroIndex] || heroPhotos[0] || null
@@ -538,7 +552,12 @@ export default function PlaceDetailPanel({
                 {icon}<span className="ml-1"><TranslatedLabel text={category} /></span>
               </span>
               {isOwner && <span className="text-xs text-slate-400">· Added by you</span>}
-              {!isOwner && contributorName && <span className="text-xs text-slate-400">· Added by {contributorName}</span>}
+              {!isOwner && placeIsOsm && (
+                <span className="text-xs text-slate-400">· OpenStreetMap</span>
+              )}
+              {!isOwner && !placeIsOsm && contributorName && (
+                <span className="text-xs text-slate-400">· Added by {contributorName}</span>
+              )}
               {(isOwner || currentUser?.isPlaceDeleteAdmin) && place.approvalStatus && place.approvalStatus !== 'approved' && (
                 <ApprovalStatusBadge status={place.approvalStatus} />
               )}
@@ -628,31 +647,62 @@ export default function PlaceDetailPanel({
           {/* ── OVERVIEW TAB ── */}
           {activeTab === 'overview' && (
             <div>
-              {/* Status */}
-              <div className="border-b border-slate-100">
-                <button
-                  onClick={() => (weekdayHours.length ? setHoursExpanded((e) => !e) : setBusinessOpen((b) => !b))}
-                  className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
-                >
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${businessOpen ? 'bg-green-500' : 'bg-orange-400'}`} />
-                  <div className="flex-1">
-                    <span className={`text-sm font-semibold ${businessOpen ? 'text-green-700' : 'text-orange-600'}`}>
-                      {businessOpen ? 'Open' : 'Closed'}
-                    </span>
-                    <p className="text-xs text-slate-400 mt-0.5">
-                      {weekdayHours.length ? (hoursExpanded ? 'Hide hours' : 'See opening hours') : 'Tap to toggle status'}
-                    </p>
-                  </div>
-                  <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                </button>
-                {hoursExpanded && weekdayHours.length > 0 && (
-                  <div className="px-5 pb-3 -mt-1 space-y-1">
-                    {weekdayHours.map((line) => (
-                      <p key={line} className="text-xs text-slate-600">{line}</p>
-                    ))}
-                  </div>
-                )}
-              </div>
+              {/* Status / opening hours */}
+              {showStatusToggle && (
+                <div className="border-b border-slate-100">
+                  <button
+                    onClick={() => (weekdayHours.length ? setHoursExpanded((e) => !e) : setBusinessOpen((b) => !b))}
+                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${businessOpen ? 'bg-green-500' : 'bg-orange-400'}`} />
+                    <div className="flex-1">
+                      <span className={`text-sm font-semibold ${businessOpen ? 'text-green-700' : 'text-orange-600'}`}>
+                        {businessOpen ? 'Open' : 'Closed'}
+                      </span>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {weekdayHours.length ? (hoursExpanded ? 'Hide hours' : 'See opening hours') : 'Tap to toggle status'}
+                      </p>
+                    </div>
+                    {weekdayHours.length > 0 && (
+                      <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    )}
+                  </button>
+                  {hoursExpanded && weekdayHours.length > 0 && (
+                    <div className="px-5 pb-3 -mt-1 space-y-1">
+                      {weekdayHours.map((line) => (
+                        <p key={line} className="text-xs text-slate-600">{line}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              {!showStatusToggle && showHoursSection && (
+                <div className="border-b border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setHoursExpanded((e) => !e)}
+                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-slate-700">Opening hours</span>
+                      <p className="text-xs text-slate-400 mt-0.5">
+                        {hoursExpanded ? 'Hide hours' : 'See opening hours'}
+                      </p>
+                    </div>
+                    <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                  </button>
+                  {hoursExpanded && (
+                    <div className="px-5 pb-3 -mt-1 space-y-1">
+                      {weekdayHours.map((line) => (
+                        <p key={line} className="text-xs text-slate-600">{line}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Description */}
               {description && (
@@ -734,7 +784,7 @@ export default function PlaceDetailPanel({
               </div>
 
               {/* Contributor */}
-              {!isOwner && (place.user_name || place.userName) && (
+              {!isOwner && !placeIsOsm && (place.user_name || place.userName) && (
                 <div className="px-5 py-3 border-b border-slate-100 flex items-center gap-3">
                   <button
                     type="button"
@@ -754,7 +804,8 @@ export default function PlaceDetailPanel({
                 </div>
               )}
 
-              {/* Manage */}
+              {/* Manage — user-added places only */}
+              {isDbPlace && (
               <div className="border-b border-slate-100">
                 <div className="px-5 pt-3 pb-1">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Manage</p>
@@ -820,6 +871,7 @@ export default function PlaceDetailPanel({
                   </button>
                 )}
               </div>
+              )}
 
               {/* Nearby */}
               {(nearbyLoading || nearby.length > 0) && (
