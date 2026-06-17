@@ -22,6 +22,8 @@ import {
 import {
   findDuplicateInList,
   isDuplicateInSession,
+  isPlaceOnMap,
+  mergePlacesForDuplicateCheck,
   DUPLICATE_MESSAGES,
 } from '../utils/placeDuplicate'
 import {
@@ -112,13 +114,16 @@ function boundsSearchRadius(bounds) {
   return { location: center, radius: Math.min(Math.max(Math.ceil(meters), 200), 50000) }
 }
 
-function formatGridExtractStatus(finalCount, locationString, maxPlaces, cacheHits) {
+function formatGridExtractStatus(finalCount, locationString, maxPlaces, cacheHits, skippedExisting = 0) {
   const cacheNote = cacheHits > 0 ? ` · ${cacheHits} cached cell(s)` : ''
+  const skippedNote = skippedExisting > 0 ? ` — ${skippedExisting} already on map skipped` : ''
   if (finalCount === 0) {
-    return `No places found in ${locationString}. Try a broader area or zoom in closer.${cacheNote}`
+    return skippedExisting > 0
+      ? `No new places found${skippedNote}.`
+      : `No places found in ${locationString}. Try a broader area or zoom in closer.${cacheNote}`
   }
   const cappedNote = finalCount >= maxPlaces ? ` (max ${maxPlaces})` : ''
-  return `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'} in ${locationString}${cappedNote}${cacheNote}.`
+  return `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'} in ${locationString}${cappedNote}${skippedNote}${cacheNote}.`
 }
 
 function buildNearbyExtractDraft(place, placeType, regionContext, map) {
@@ -137,6 +142,17 @@ function buildNearbyExtractDraft(place, placeType, regionContext, map) {
     },
     { map, place, category }
   )
+}
+
+function boundsFromLatLngBounds(bounds) {
+  const ne = bounds.getNorthEast()
+  const sw = bounds.getSouthWest()
+  return {
+    minLat: sw.lat(),
+    maxLat: ne.lat(),
+    minLng: sw.lng(),
+    maxLng: ne.lng(),
+  }
 }
 
 const RATE_CONFIG = {
@@ -322,6 +338,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   const boundsRef = useRef({ region: null })
   const placesArrayRef = useRef([])
+  const existingPlacesRef = useRef(mapPlaces)
+  const mapPlacesRef = useRef(mapPlaces)
   const currentLocationRef = useRef({ country: '', state: '', district: '', taluk: '', village: '' })
 
   const quotaToolkitRef = useRef(null)
@@ -354,6 +372,39 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       boundsCacheHits: toolkit.boundsCache.hits,
       detailsCacheHits: toolkit.detailsCache.hits,
     })
+  }, [])
+
+  useEffect(() => {
+    mapPlacesRef.current = mapPlaces
+    existingPlacesRef.current = mergePlacesForDuplicateCheck(mapPlaces)
+  }, [mapPlaces])
+
+  useEffect(() => {
+    if (!isOpen) return
+    existingPlacesRef.current = mergePlacesForDuplicateCheck(mapPlacesRef.current)
+  }, [isOpen])
+
+  const loadExistingPlacesForExtract = useCallback(async (bbox) => {
+    const { minLat, maxLat, minLng, maxLng } = bbox || {}
+    if (![minLat, maxLat, minLng, maxLng].every(Number.isFinite)) {
+      existingPlacesRef.current = mergePlacesForDuplicateCheck(mapPlacesRef.current)
+      return 0
+    }
+    try {
+      const { data } = await api.get('/map/places', {
+        params: { minLat, maxLat, minLng, maxLng, limit: 5000, includeOsm: 'true' },
+      })
+      const fetched = Array.isArray(data.places) ? data.places : []
+      existingPlacesRef.current = mergePlacesForDuplicateCheck(mapPlacesRef.current, fetched)
+      return fetched.length
+    } catch {
+      existingPlacesRef.current = mergePlacesForDuplicateCheck(mapPlacesRef.current)
+      return 0
+    }
+  }, [])
+
+  const isAlreadyOnMap = useCallback((candidate) => {
+    return isPlaceOnMap(existingPlacesRef.current, candidate)
   }, [])
 
   const fetchGridExtractStatus = useCallback(async () => {
@@ -960,6 +1011,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     setAreaIsExtracting(true)
     setAreaProgress(0)
 
+    const bbox = ringBBox(ring)
+    await loadExistingPlacesForExtract(bbox)
+
+    let skippedExisting = 0
     const grid = generateGridFromRing(ring, areaGridSize, map)
     for (let cellIdx = 0; cellIdx < grid.length; cellIdx++) {
       if (stopRequestedRef.current) break
@@ -1023,19 +1078,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               },
               map
             )
-            const exists =
-              isDuplicateInSession(areaPlacesArrayRef.current, draft) ||
-              findDuplicateInList(mapPlaces, draft).duplicate
-            if (!exists) {
-              areaPlacesArrayRef.current.push(draft)
-              newPlaces.push(draft)
-              const marker = new window.google.maps.Marker({
-                position: place.geometry.location,
-                map,
-                title: place.name,
-              })
-              areaMarkersRef.current.push(marker)
+            if (isDuplicateInSession(areaPlacesArrayRef.current, draft)) return
+            if (isAlreadyOnMap(draft)) {
+              skippedExisting++
+              return
             }
+            areaPlacesArrayRef.current.push(draft)
+            newPlaces.push(draft)
+            const marker = new window.google.maps.Marker({
+              position: place.geometry.location,
+              map,
+              title: place.name,
+            })
+            areaMarkersRef.current.push(marker)
           })
           if (newPlaces.length > 0) {
             setAreaExtractedPlaces([...areaPlacesArrayRef.current])
@@ -1070,19 +1125,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                 },
                 map
               )
-              const exists =
-                isDuplicateInSession(areaPlacesArrayRef.current, draft) ||
-                findDuplicateInList(mapPlaces, draft).duplicate
-              if (!exists) {
-                areaPlacesArrayRef.current.push(draft)
-                newPlaces.push(draft)
-                const marker = new window.google.maps.Marker({
-                  position: place.geometry.location,
-                  map,
-                  title: place.name,
-                })
-                areaMarkersRef.current.push(marker)
+              if (isDuplicateInSession(areaPlacesArrayRef.current, draft)) return
+              if (isAlreadyOnMap(draft)) {
+                skippedExisting++
+                return
               }
+              areaPlacesArrayRef.current.push(draft)
+              newPlaces.push(draft)
+              const marker = new window.google.maps.Marker({
+                position: place.geometry.location,
+                map,
+                title: place.name,
+              })
+              areaMarkersRef.current.push(marker)
             })
             if (newPlaces.length > 0) {
               setAreaExtractedPlaces([...areaPlacesArrayRef.current])
@@ -1107,10 +1162,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     const finalCount = areaPlacesArrayRef.current.length
     const locNote = getAreaLocationString()
     const cappedNote = finalCount >= maxPlaces ? ` (max ${maxPlaces})` : ''
+    const skippedNote =
+      skippedExisting > 0 ? ` — ${skippedExisting} already on map skipped` : ''
     setAreaStatus(
       finalCount === 0
-        ? `No places found${locNote ? ` in ${locNote}` : ' inside the shape'}. Try a larger shape or zoom in closer.`
-        : `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'}${locNote ? ` in ${locNote}` : ' inside the shape'}${cappedNote}.`
+        ? skippedExisting > 0
+          ? `No new places found${skippedNote}.`
+          : `No places found${locNote ? ` in ${locNote}` : ' inside the shape'}. Try a larger shape or zoom in closer.`
+        : `Extraction complete. Found ${finalCount} place${finalCount === 1 ? '' : 's'}${locNote ? ` in ${locNote}` : ' inside the shape'}${cappedNote}${skippedNote}.`
     )
 
     let slotReleased = false
@@ -1136,7 +1195,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     areaGridSize,
     generateGridFromRing,
     executeOptimizedNearbySearch,
-    mapPlaces,
+    loadExistingPlacesForExtract,
+    isAlreadyOnMap,
     syncQuotaUi,
     gridExtractMaxPlaces,
     extractMaxAreaKm2,
@@ -1154,22 +1214,27 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     if (areaSelectAll) {
       setAreaSelectedPlaces(new Set())
     } else {
-      setAreaSelectedPlaces(new Set(areaExtractedPlaces.map((p) => p.name)))
+      const selectable = areaExtractedPlaces.filter((p) => !isAlreadyOnMap(p))
+      setAreaSelectedPlaces(new Set(selectable.map((p) => p.name)))
     }
     setAreaSelectAll(!areaSelectAll)
-  }, [areaSelectAll, areaExtractedPlaces])
+  }, [areaSelectAll, areaExtractedPlaces, isAlreadyOnMap])
 
   const toggleAreaPlace = useCallback((name) => {
+    const place = areaExtractedPlaces.find((p) => p.name === name)
+    if (place && isAlreadyOnMap(place)) return
     setAreaSelectedPlaces((prev) => {
       const next = new Set(prev)
       if (next.has(name)) next.delete(name)
       else next.add(name)
       return next
     })
-  }, [])
+  }, [areaExtractedPlaces, isAlreadyOnMap])
 
   const handleAreaAddToMap = useCallback(async () => {
-    const selected = areaExtractedPlaces.filter((p) => areaSelectedPlaces.has(p.name))
+    const selected = areaExtractedPlaces.filter(
+      (p) => areaSelectedPlaces.has(p.name) && !isAlreadyOnMap(p)
+    )
     if (selected.length === 0) {
       setAreaStatus('No places selected. Select places to add.')
       return
@@ -1225,7 +1290,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setAddingToMap(false)
     }
-  }, [areaExtractedPlaces, areaSelectedPlaces, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, syncQuotaUi])
+  }, [areaExtractedPlaces, areaSelectedPlaces, isAlreadyOnMap, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, syncQuotaUi])
 
   // --- Extraction ---
   const extractPlaces = useCallback(async () => {
@@ -1304,6 +1369,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     setIsExtracting(true)
     setProgress(0)
 
+    await loadExistingPlacesForExtract(boundsFromLatLngBounds(extractionBounds))
+
+    let skippedExisting = 0
     const grid = generateGrid(extractionBounds)
 
     const ingestNearbyResults = (result, placeType) => {
@@ -1325,19 +1393,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           },
           mapInstanceRef.current
         )
-        const exists =
-          isDuplicateInSession(placesArrayRef.current, draft) ||
-          findDuplicateInList(mapPlaces, draft).duplicate
-        if (!exists) {
-          placesArrayRef.current.push(draft)
-          newPlaces.push(draft)
-          const marker = new window.google.maps.Marker({
-            position: place.geometry.location,
-            map: mapInstanceRef.current,
-            title: place.name,
-          })
-          markersRef.current.push(marker)
+        if (isDuplicateInSession(placesArrayRef.current, draft)) return
+        if (isAlreadyOnMap(draft)) {
+          skippedExisting++
+          return
         }
+        placesArrayRef.current.push(draft)
+        newPlaces.push(draft)
+        const marker = new window.google.maps.Marker({
+          position: place.geometry.location,
+          map: mapInstanceRef.current,
+          title: place.name,
+        })
+        markersRef.current.push(marker)
       })
       if (newPlaces.length > 0) {
         setExtractedPlaces([...placesArrayRef.current])
@@ -1427,7 +1495,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         finalCount,
         locationString,
         maxPlaces,
-        statsRef.current.boundsCacheHits
+        statsRef.current.boundsCacheHits,
+        skippedExisting
       )
     )
 
@@ -1453,7 +1522,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     generateGrid,
     executeOptimizedNearbySearch,
     isExtracting,
-    mapPlaces,
+    loadExistingPlacesForExtract,
+    isAlreadyOnMap,
     syncQuotaUi,
     user?.id,
     gridExtractBlocked,
@@ -1471,23 +1541,28 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     if (selectAll) {
       setSelectedPlaces(new Set())
     } else {
-      setSelectedPlaces(new Set(extractedPlaces.map((p) => p.name)))
+      const selectable = extractedPlaces.filter((p) => !isAlreadyOnMap(p))
+      setSelectedPlaces(new Set(selectable.map((p) => p.name)))
     }
     setSelectAll(!selectAll)
-  }, [selectAll, extractedPlaces])
+  }, [selectAll, extractedPlaces, isAlreadyOnMap])
 
   const togglePlace = useCallback((name) => {
+    const place = extractedPlaces.find((p) => p.name === name)
+    if (place && isAlreadyOnMap(place)) return
     setSelectedPlaces((prev) => {
       const next = new Set(prev)
       if (next.has(name)) next.delete(name)
       else next.add(name)
       return next
     })
-  }, [])
+  }, [extractedPlaces, isAlreadyOnMap])
 
   // --- Add to map ---
   const handleAddToMap = useCallback(async () => {
-    const selected = extractedPlaces.filter((p) => selectedPlaces.has(p.name))
+    const selected = extractedPlaces.filter(
+      (p) => selectedPlaces.has(p.name) && !isAlreadyOnMap(p)
+    )
     if (selected.length === 0) {
       setStatus('No places selected. Select places to add.')
       return
@@ -1544,7 +1619,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setAddingToMap(false)
     }
-  }, [extractedPlaces, selectedPlaces, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, extractionMethod, syncQuotaUi])
+  }, [extractedPlaces, selectedPlaces, isAlreadyOnMap, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, extractionMethod, syncQuotaUi])
 
   const getExportPlaces = useCallback(() => {
     if (extractionMethod === 'search') {
@@ -1639,7 +1714,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         const newPlaces = normalized.filter(
           (p) =>
             !isDuplicateInSession(placesArrayRef.current, p) &&
-            !findDuplicateInList(mapPlaces, p).duplicate
+            !isAlreadyOnMap(p)
         )
         placesArrayRef.current = [...placesArrayRef.current, ...newPlaces]
         setExtractedPlaces([...placesArrayRef.current])
@@ -1652,7 +1727,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     }
     reader.readAsText(file)
     e.target.value = ''
-  }, [selectedPlaces, mapPlaces])
+  }, [selectedPlaces, isAlreadyOnMap])
 
   // Initialize search map when panel opens
   useEffect(() => {
@@ -1926,10 +2001,21 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           placeId: details.place_id,
         }
 
+        const lat = processedPlace.lat
+        const lng = processedPlace.lng
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
+          await loadExistingPlacesForExtract({
+            minLat: lat - 0.01,
+            maxLat: lat + 0.01,
+            minLng: lng - 0.01,
+            maxLng: lng + 0.01,
+          })
+        }
+
         const inList = searchResultsRef.current.some(
           (p) => (p.placeId || p.place_id) === (processedPlace.placeId || processedPlace.place_id)
         )
-        const dbDup = findDuplicateInList(mapPlaces, processedPlace)
+        const dbDup = findDuplicateInList(existingPlacesRef.current, processedPlace)
         if (inList || dbDup.duplicate) {
           onShowDuplicate?.(dbDup, processedPlace.name)
           setSearchStatus(dbDup.message || 'Place already on the map')
@@ -1964,7 +2050,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         setIsSearching(false)
       }
     },
-    [addSearchMarker, enqueueApiCall, mapPlaces, onShowDuplicate, syncQuotaUi]
+    [addSearchMarker, enqueueApiCall, loadExistingPlacesForExtract, onShowDuplicate, syncQuotaUi]
   )
 
   // --- Update marker appearance based on selection ---
@@ -2019,7 +2105,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   }, [searchResults, addSearchMarker])
 
   const handleSearchAddToMap = useCallback(async () => {
-    const selected = searchResults.filter((p) => selectedSearchPlaces.has(p.name))
+    const selected = searchResults.filter(
+      (p) => selectedSearchPlaces.has(p.name) && !isAlreadyOnMap(p)
+    )
     if (selected.length === 0) {
       setSearchStatus('No places selected. Select places to add.')
       return
@@ -2058,16 +2146,18 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     } finally {
       setAddingToMap(false)
     }
-  }, [searchResults, selectedSearchPlaces, onAddToMap, onClose])
+  }, [searchResults, selectedSearchPlaces, isAlreadyOnMap, onAddToMap, onClose])
 
   const toggleSearchPlace = useCallback((name) => {
+    const place = searchResults.find((p) => p.name === name)
+    if (place && isAlreadyOnMap(place)) return
     setSelectedSearchPlaces((prev) => {
       const next = new Set(prev)
       if (next.has(name)) next.delete(name)
       else next.add(name)
       return next
     })
-  }, [])
+  }, [searchResults, isAlreadyOnMap])
 
   if (!isOpen) return null
 
