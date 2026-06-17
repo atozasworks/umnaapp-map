@@ -2705,7 +2705,6 @@ const MapComponent = forwardRef(({
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
     calculateRoute: async (start, end, waypoints = [], profile = 'driving', routeOptions = {}) => {
-      const backendProfile = profile === 'two_wheeler' ? 'driving' : profile
       const requestAlternatives = routeOptions.alternatives === true && waypoints.length === 0
       const drawOpts = { ...routeOptions, fallbackEndpoints: { start, end } }
 
@@ -2715,7 +2714,7 @@ const MapComponent = forwardRef(({
       const params = {
         start: `${start.lat},${start.lng}`,
         end: `${end.lat},${end.lng}`,
-        profile: backendProfile,
+        profile,
       }
       if (waypoints.length > 0) {
         params.waypoints = waypoints.map((wp) => `${wp.lat},${wp.lng}`).join(';')
@@ -2754,14 +2753,6 @@ const MapComponent = forwardRef(({
         }
         setRoute(fallbackRoute)
         return { route: fallbackRoute, alternatives: null }
-      }
-
-      if (profile === 'two_wheeler') {
-        allRoutes = allRoutes.map((r) => ({
-          ...r,
-          duration: r.duration ? Math.round(r.duration * 0.75) : r.duration,
-          legs: r.legs?.map((l) => ({ ...l, duration: Math.round(l.duration * 0.75) })),
-        }))
       }
 
       if (requestAlternatives && allRoutes.length > 1) {

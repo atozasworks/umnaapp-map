@@ -335,6 +335,9 @@ const TRAVEL_MODES = [
   { id: 'bus', label: 'Bus', color: '#0EA5E9', dashArray: [4, 4], icon: (
     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 21v-2M17 21v-2M7 17h.01M17 17h.01"/></svg>
   )},
+  { id: 'train', label: 'Train', color: '#B45309', dashArray: [4, 4], icon: (
+    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="3" width="16" height="14" rx="2"/><path d="M4 11h16"/><path d="M8 21l-2-2M16 21l2-2"/><circle cx="8" cy="17" r="1"/><circle cx="16" cy="17" r="1"/></svg>
+  )},
 ]
 
 const MODE_ROUTE_OPTIONS = Object.fromEntries(
@@ -377,8 +380,9 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const tWalk = useTranslate('Walk')
   const tCycle = useTranslate('Cycle')
   const tBus = useTranslate('Bus')
-  const tBusHint = useTranslate(
-    'Bus times are estimated. Actual public transport schedules and stops may vary by city.'
+  const tTrain = useTranslate('Train')
+  const tTransitHint = useTranslate(
+    'Public transport times are estimated from live schedules. Actual departures and stops may vary by city.'
   )
   const tSwap = useTranslate('Swap')
   const tReverseRoute = useTranslate('Reverse route')
@@ -404,8 +408,9 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       walking: tWalk,
       cycling: tCycle,
       bus: tBus,
+      train: tTrain,
     }),
-    [tCar, tBike, tWalk, tCycle, tBus]
+    [tCar, tBike, tWalk, tCycle, tBus, tTrain]
   )
 
   const [startPlace, setStartPlace] = useState(() => initialStartPlace || null)
@@ -894,13 +899,10 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         const params = {
           start: `${start.lat},${start.lng}`,
           end: `${end.lat},${end.lng}`,
-          profile: mode === 'two_wheeler' ? 'driving' : mode,
+          profile: mode,
         }
         if (wp.length > 0) params.waypoints = wp.map((w) => `${w.lat},${w.lng}`).join(';')
         const { data } = await api.get('/map/route', { params })
-        if (mode === 'two_wheeler' && data.duration) {
-          data.duration = Math.round(data.duration * 0.75)
-        }
         modesResult[mode] = data
       } catch {
         // ignore failed modes
@@ -1469,8 +1471,8 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           </div>
         )}
 
-        {travelMode === 'bus' && routeData && (
-          <p className="mx-4 mt-2 text-xs text-[#5f6368] leading-snug">{tBusHint}</p>
+        {(travelMode === 'bus' || travelMode === 'train') && routeData && (
+          <p className="mx-4 mt-2 text-xs text-[#5f6368] leading-snug">{tTransitHint}</p>
         )}
       </div>
 

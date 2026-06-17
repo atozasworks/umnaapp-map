@@ -147,12 +147,36 @@ export function coordPairDistanceMeters(startLat, startLng, endLat, endLng) {
  */
 export function buildDirectRoute(startLat, startLng, endLat, endLng, profile = 'driving') {
   const distance = coordPairDistanceMeters(startLat, startLng, endLat, endLng)
-  const walkSpeed = 1.4
-  const driveSpeed = 13.9
-  const cycleSpeed = 4.2
-  const speed =
-    profile === 'walking' ? walkSpeed : profile === 'cycling' ? cycleSpeed : driveSpeed
-  const duration = Math.max(30, Math.round(distance / speed))
+  const speeds = {
+    walking: 1.25,
+    cycling: 4.17,
+    two_wheeler: 10.5,
+    bus: 4.72,
+    train: 13.89,
+    driving: 8.33,
+  }
+  const speed = speeds[profile] ?? speeds.driving
+  let duration = Math.max(30, Math.round(distance / speed))
+  if (profile === 'bus') {
+    duration += Math.min(900, Math.round(240 + distance / 650))
+  } else if (profile === 'train') {
+    duration += 14 * 60
+    const railDistance = Math.round(distance * 1.32)
+    return {
+      distance: railDistance,
+      duration: Math.max(30, Math.round(railDistance / speed + 14 * 60)),
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [startLng, startLat],
+          [endLng, endLat],
+        ],
+      },
+      legs: [{ distance: railDistance, duration: Math.max(30, Math.round(railDistance / speed + 14 * 60)) }],
+      steps: [],
+      fallback: true,
+    }
+  }
 
   return {
     distance: Math.round(distance),

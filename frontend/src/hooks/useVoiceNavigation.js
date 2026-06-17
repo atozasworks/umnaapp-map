@@ -33,6 +33,11 @@ const MODE_PROFILES = {
     offRouteMeters: 60,
     arriveMeters: 35,
   },
+  train: {
+    phases: [800, 400, 150, { dist: 45, immediate: true }],
+    offRouteMeters: 60,
+    arriveMeters: 35,
+  },
   two_wheeler: {
     phases: [600, 300, 120, { dist: 40, immediate: true }],
     offRouteMeters: 45,
