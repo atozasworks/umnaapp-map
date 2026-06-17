@@ -59,9 +59,33 @@ function coordsMatch(aLat, aLng, bLat, bLng) {
   return Math.abs(aLat - bLat) < COORD_EPS && Math.abs(aLng - bLng) < COORD_EPS
 }
 
+export function mergePlacesForDuplicateCheck(...lists) {
+  const seen = new Set()
+  const merged = []
+  for (const list of lists) {
+    if (!Array.isArray(list)) continue
+    for (const p of list) {
+      const lat = p.latitude ?? p.lat
+      const lng = p.longitude ?? p.lng
+      const key = p.id
+        ? `id:${p.id}`
+        : `coord:${Number(lat).toFixed(5)}-${Number(lng).toFixed(5)}`
+      if (seen.has(key)) continue
+      seen.add(key)
+      merged.push(p)
+    }
+  }
+  return merged
+}
+
+export function isPlaceOnMap(existingPlaces, candidate, options) {
+  return findDuplicateInList(existingPlaces, candidate, options).duplicate
+}
+
 function dbRowCandidate(p) {
   const address =
     p.full_address ||
+    p.fullAddress ||
     addressFromParts({
       village: p.village,
       taluk: p.taluk,
