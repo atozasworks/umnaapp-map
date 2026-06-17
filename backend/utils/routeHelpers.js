@@ -79,6 +79,22 @@ export function deduplicateRoutes(routes) {
   return unique
 }
 
+/** Build a short "via …" summary from OSRM step names (major roads only). */
+export function extractRouteSummary(route) {
+  const steps = route?.steps
+  if (!Array.isArray(steps) || steps.length === 0) return null
+
+  const skip = /^(unnamed|road|street|lane|path|track|service)$/i
+  const names = []
+  for (const step of steps) {
+    const name = (step.name || '').trim()
+    if (!name || skip.test(name) || names.includes(name)) continue
+    names.push(name)
+    if (names.length >= 3) break
+  }
+  return names.length ? names.join(' · ') : null
+}
+
 export function annotateRoutes(routes) {
   if (!routes.length) return []
 
@@ -93,12 +109,15 @@ export function annotateRoutes(routes) {
 
   return sorted.map((route, index) => {
     const routeTags = []
+    if (index === 0) routeTags.push('recommended')
     if ((route.duration ?? Infinity) <= minDuration) routeTags.push('fastest')
     if ((route.distance ?? Infinity) <= minDistance) routeTags.push('shortest')
+    const summary = extractRouteSummary(route)
     return {
       ...route,
       routeIndex: index,
       routeTags,
+      ...(summary ? { routeSummary: summary } : {}),
     }
   })
 }

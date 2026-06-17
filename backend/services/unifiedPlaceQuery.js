@@ -10,6 +10,7 @@ import {
   searchOsmByName,
   searchOsmInBbox,
   findOsmNearby,
+  findOsmAtPoint,
   findOsmInPolygon,
   getOsmPlaceById,
   countOsmCategoriesInBbox,
@@ -23,6 +24,7 @@ import {
   externalSourceId,
   isOsmPlaceId,
 } from '../utils/placeSource.js'
+import { pickFromReverseGeocode, lookupOsmPlaceById } from './placePickService.js'
 
 const PRIORITY = {
   db: 100,
@@ -405,10 +407,48 @@ export async function unifiedInPolygon({ ring, viewerId, category, findInPolygon
   ])
 }
 
+/** Pick the best place at a map click — local DB wins, then OSM polygon/POI. */
+export async function unifiedPickAtPoint({
+  lat,
+  lng,
+  radiusMeters = 2500,
+  viewerId = null,
+  findNearbyPostgis,
+  placePublicVisibilityOrFn,
+} = {}) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+
+  const nearby = await unifiedNearby({
+    lat,
+    lng,
+    radiusMeters: Math.min(radiusMeters, 800),
+    limit: 3,
+    viewerId,
+    findNearbyPostgis,
+    placePublicVisibilityOrFn,
+  })
+  const dbHit = nearby.find((p) => p.isDbPlace || p.isPersisted)
+  if (dbHit) {
+    const dLat = (dbHit.latitude - lat) * 111000
+    const dLng = (dbHit.longitude - lng) * 111000 * Math.cos((lat * Math.PI) / 180)
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng)
+    if (dist <= Math.min(radiusMeters, 600)) return dbHit
+  }
+
+  if (isOsmQueryEnabled()) {
+    const osmHit = await findOsmAtPoint({ lat, lng, radiusMeters })
+    if (osmHit) return osmHit
+  }
+
+  return pickFromReverseGeocode(lat, lng)
+}
+
 /** Resolve place details from local DB or OSM DB. */
 export async function unifiedPlaceById(id, { viewerId, isPlaceVisibleToUser } = {}) {
   if (isOsmPlaceId(id)) {
-    return getOsmPlaceById(id)
+    const fromDb = await getOsmPlaceById(id)
+    if (fromDb) return fromDb
+    return lookupOsmPlaceById(id)
   }
 
   if (!prisma.place) return null

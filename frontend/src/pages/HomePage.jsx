@@ -108,9 +108,7 @@ const buildCategoryOptions = (placesList) => {
   return [...prioritized, ...extras]
 }
 
-const isPersistedPlaceId = (id) => id && /^[0-9a-f-]{36}$/.test(String(id))
-const isUnifiedPlaceId = (id) =>
-  isPersistedPlaceId(id) || /^osm-(node|way|relation)-/.test(String(id || ''))
+import { isPersistedPlaceId, isUnifiedPlaceId } from '../utils/placeSource'
 
 
 const HomePage = () => {
@@ -190,6 +188,7 @@ const HomePage = () => {
   const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
   const menuSettings = useTranslate('Settings')
+  const menuGitHub = useTranslate('Go to GitHub')
   const menuTapPhotoHint = useTranslate('Tap photo to change')
   const navAppTitle = useTranslate('UMNAAPP')
   const navAddPlace = useTranslate('Add Place')
@@ -368,7 +367,7 @@ const HomePage = () => {
       if (osmRefreshTimerRef.current) clearTimeout(osmRefreshTimerRef.current)
       osmRefreshTimerRef.current = setTimeout(() => {
         const zoom = map.getZoom?.() ?? 0
-        if (zoom < 13) {
+        if (zoom < 11) {
           setAllPlaces((prev) =>
             prev.filter((p) => p.source !== 'osm' && !String(p.id || '').startsWith('osm-'))
           )
@@ -1097,6 +1096,31 @@ const HomePage = () => {
     }
   }, [currentLocation, useCurrentLocationLoading, showAddPlaceModal, showToast])
 
+  const mapPlacePickInFlightRef = useRef(false)
+
+  const handleMapPlacePick = useCallback(
+    async ({ latitude, longitude, radiusMeters }) => {
+      if (addPlacePickMode || measureDistanceActive || polygonMapInteraction) return
+      if (mapPlacePickInFlightRef.current) return
+      mapPlacePickInFlightRef.current = true
+      try {
+        const { data } = await api.get('/map/places/pick', {
+          params: { lat: latitude, lng: longitude, radiusMeters },
+        })
+        if (data?.place) {
+          await openPlaceDetail(data.place, { fly: false })
+        }
+      } catch (err) {
+        if (err.response?.status !== 404) {
+          console.warn('Map place pick failed:', err)
+        }
+      } finally {
+        mapPlacePickInFlightRef.current = false
+      }
+    },
+    [addPlacePickMode, measureDistanceActive, polygonMapInteraction, openPlaceDetail]
+  )
+
   const handleMapClickForPlace = useCallback(async (loc) => {
     if (!addPlacePickMode) return
     setAddPlaceLocationMethod('map-or-current')
@@ -1138,7 +1162,7 @@ const HomePage = () => {
   }
 
   const handleSearchSelect = async (location) => {
-    if (location.placeId && /^[0-9a-f-]{36}$/.test(String(location.placeId))) {
+    if (location.placeId && isUnifiedPlaceId(location.placeId)) {
       const cached = allPlaces.find((p) => String(p.id) === String(location.placeId))
       if (cached) {
         await openPlaceDetail(cached)
@@ -1152,6 +1176,7 @@ const HomePage = () => {
           latitude: location.lat,
           longitude: location.lng,
           category: location.category || 'Other',
+          source: String(location.placeId).startsWith('osm-') ? 'osm' : undefined,
         })
         return
       } catch {
@@ -1372,6 +1397,7 @@ const HomePage = () => {
 
   const handleStartNavigation = useCallback((session) => {
     if (!session?.route) return
+    mapRef.current?.clearAlternativeRoutes?.()
     setNavigation(session)
     setShowRoutePanel(false)
     // Re-assert the route polyline on the map so it stays visible once the
@@ -2005,6 +2031,7 @@ const HomePage = () => {
           ref={mapRef}
           onLocationUpdate={handleLocationUpdate}
           onMapClick={handleMapClickForPlace}
+          onMapPlacePick={handleMapPlacePick}
           onMapContextMenu={setMapContextMenu}
           onMapReady={handleMapReady}
           onPlaceClick={openPlaceDetail}
@@ -2303,6 +2330,16 @@ const HomePage = () => {
 
               {/* Section 4: Settings */}
               <div className="border-b border-slate-200 py-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); navigateTo('/open-source') }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path fillRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" clipRule="evenodd" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuGitHub}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => { setShowMenu(false); setShowLanguageModal(true) }}

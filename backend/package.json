@@ -7,7 +7,8 @@
     "start": "node server.js",
     "postinstall": "prisma generate",
     "vapid:generate": "node scripts/generate-vapid-keys.js",
-    "migrate:favorites": "node scripts/migrate-favorites.js"
+    "migrate:favorites": "node scripts/migrate-favorites.js",
+    "migrate:phase7": "node scripts/migrate-phase7-claims-labels.js"
   },
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",

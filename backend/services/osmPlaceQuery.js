@@ -5,6 +5,7 @@
 import { getOsmPool, osmDatabaseAvailable, osmDatabaseConfigured } from '../config/osmDatabase.js'
 import { mapGoogleTypeToCategory } from '../utils/googlePlaceCategory.js'
 import { makeOsmPlaceId, PLACE_SOURCES } from '../utils/placeSource.js'
+import { enrichOsmPlaceFromTags } from '../utils/osmPlaceTags.js'
 
 const OSM_TAG_COLUMNS = [
   'amenity',
@@ -65,6 +66,12 @@ function primaryOsmTag(row) {
 function resolveOsmCategory(row) {
   const tag = primaryOsmTag(row)
   if (!tag) return 'Other'
+  if (tag.key === 'place') {
+    const label = String(tag.value || '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+    if (label && label.toLowerCase() !== 'yes') return label
+  }
   if (tag.key === 'building' && tag.value === 'yes') {
     return mapGoogleTypeToCategory('establishment')
   }
@@ -249,6 +256,97 @@ export async function searchOsmByName(q, { limit = SEARCH_LIMIT, lat, lng, radiu
 }
 
 /**
+ * Best matching named OSM feature at a map click (village inside polygon, then nearest POI).
+ */
+export async function findOsmAtPoint({ lat, lng, radiusMeters = 2500 } = {}) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (!(await osmDatabaseAvailable())) return null
+
+  const pool = await getOsmPool()
+  if (!pool) return null
+
+  const point = `ST_SetSRID(ST_MakePoint($1, $2), 4326)`
+  const cap = 8
+
+  try {
+    const polyContainsSql = `
+      SELECT ${POLYGON_SELECT},
+             0::float AS "distanceMeters",
+             0 AS "pickRank"
+        FROM planet_osm_polygon
+       WHERE name IS NOT NULL AND btrim(name) <> ''
+         AND (${POI_FILTER})
+         AND ST_Contains(way, ${point})
+       ORDER BY ST_Area(way) ASC
+       LIMIT 1
+    `
+    const { rows: insideRows } = await pool.query(polyContainsSql, [lng, lat])
+    if (insideRows.length) {
+      const place = rowToUnifiedPlace(insideRows[0], { osmType: 'way' })
+      if (place) return { ...place, distanceMeters: 0, pickRank: 0 }
+    }
+
+    const pointSql = `
+      SELECT ${POINT_SELECT},
+             ST_Distance(way::geography, ${point}::geography) AS "distanceMeters",
+             1 AS "pickRank"
+        FROM planet_osm_point
+       WHERE name IS NOT NULL AND btrim(name) <> ''
+         AND (${POI_FILTER})
+         AND ST_DWithin(way::geography, ${point}::geography, $3)
+       ORDER BY way <-> ${point}
+       LIMIT $4
+    `
+    const polyNearSql = `
+      SELECT ${POLYGON_SELECT},
+             ST_Distance(ST_PointOnSurface(way)::geography, ${point}::geography) AS "distanceMeters",
+             2 AS "pickRank"
+        FROM planet_osm_polygon
+       WHERE name IS NOT NULL AND btrim(name) <> ''
+         AND (${POI_FILTER})
+         AND ST_DWithin(ST_PointOnSurface(way)::geography, ${point}::geography, $3)
+       ORDER BY ST_PointOnSurface(way)::geography <-> ${point}::geography
+       LIMIT $4
+    `
+
+    const [{ rows: pointRows }, { rows: polyRows }] = await Promise.all([
+      pool.query(pointSql, [lng, lat, radiusMeters, cap]),
+      pool.query(polyNearSql, [lng, lat, radiusMeters, cap]),
+    ])
+
+    const candidates = []
+    for (const r of pointRows) {
+      const place = rowToUnifiedPlace(r, { osmType: 'node' })
+      if (!place) continue
+      candidates.push({
+        ...place,
+        distanceMeters: Math.round(parseFloat(r.distanceMeters) || 0),
+        pickRank: 1,
+      })
+    }
+    for (const r of polyRows) {
+      const place = rowToUnifiedPlace(r, { osmType: 'way' })
+      if (!place) continue
+      candidates.push({
+        ...place,
+        distanceMeters: Math.round(parseFloat(r.distanceMeters) || 0),
+        pickRank: 2,
+      })
+    }
+
+    if (!candidates.length) return null
+    candidates.sort((a, b) => {
+      if (a.pickRank !== b.pickRank) return a.pickRank - b.pickRank
+      return (a.distanceMeters ?? 99999) - (b.distanceMeters ?? 99999)
+    })
+    return candidates[0]
+  } catch (e) {
+    console.warn('[osm-query] pick at point failed:', e.message)
+    return null
+  }
+}
+
+/**
  * Nearest named OSM POIs within radiusMeters.
  */
 export async function findOsmNearby({ lat, lng, radiusMeters = 2000, limit = NEARBY_LIMIT, excludeId = null } = {}) {
@@ -351,14 +449,25 @@ export async function getOsmPlaceById(id) {
 
   const table = osmType === 'node' ? 'planet_osm_point' : 'planet_osm_polygon'
   const select = osmType === 'node' ? POINT_SELECT : POLYGON_SELECT
+  const resolvedType = osmType === 'node' ? 'node' : 'way'
 
   try {
-    const { rows } = await pool.query(
-      `SELECT ${select} FROM ${table} WHERE osm_id = $1 LIMIT 1`,
-      [osmId]
-    )
+    let rows
+    try {
+      ;({ rows } = await pool.query(
+        `SELECT ${select}, tags FROM ${table} WHERE osm_id = $1 LIMIT 1`,
+        [osmId]
+      ))
+    } catch {
+      ;({ rows } = await pool.query(
+        `SELECT ${select} FROM ${table} WHERE osm_id = $1 LIMIT 1`,
+        [osmId]
+      ))
+    }
     if (!rows.length) return null
-    return rowToUnifiedPlace(rows[0], { osmType: osmType === 'node' ? 'node' : 'way' })
+    const base = rowToUnifiedPlace(rows[0], { osmType: resolvedType })
+    if (!base) return null
+    return enrichOsmPlaceFromTags(base, rows[0].tags)
   } catch (e) {
     console.warn('[osm-query] getById failed:', e.message)
     return null

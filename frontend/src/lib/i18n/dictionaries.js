@@ -213,6 +213,8 @@ const UI = {
     'routes available': 'ಮಾರ್ಗಗಳು ಲಭ್ಯ',
     Fastest: 'ಅತ್ಯಂತ ವೇಗ',
     Shortest: 'ಕಡಿಮೆ ದೂರ',
+    Recommended: 'ಶಿಫಾರಸು',
+    via: 'ಮೂಲಕ',
     Route: 'ಮಾರ್ಗ',
     'Alternative routes are only available for direct trips without extra stops.':
       'ಪರ್ಯಾಯ ಮಾರ್ಗಗಳು ಹೆಚ್ಚುವರಿ ನಿಲುಗಡೆಗಳಿಲ್ಲದ ನೇರ ಪ್ರಯಾಣಕ್ಕೆ ಮಾತ್ರ ಲಭ್ಯ.',

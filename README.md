@@ -1,10 +1,11 @@
-# [UMNAAPP (Universal Map & Navigation Advisory App)]
+# UMNAAPP (Universal Map & Navigation Advisory App)
 
-[SHORT DESCRIPTION]
+A modern, open-source map platform for real-time navigation, place search, and spatial data.
 
-[![Build](https://img.shields.io/badge/build-passing-brightgreen)](https://github.com/your-org/your-repo/actions)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/your-org/your-repo/releases)
+[![GitHub](https://img.shields.io/badge/GitHub-atozasworks%2Fumnaapp--map-181717?logo=github)](https://github.com/atozasworks/umnaapp-map)
+
+**Repository:** [https://github.com/atozasworks/umnaapp-map](https://github.com/atozasworks/umnaapp-map)
 
 ## Project Overview
 
@@ -40,13 +41,13 @@ This repository contains a modern, full-stack web platform built with React, Nod
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/your-repo.git
-cd your-repo
+git clone https://github.com/atozasworks/umnaapp-map.git
+cd umnaapp-map
 
 # Install root dependencies
 npm install
 
-# Install frontend and backend dependencies
+# Install frontend, admin, and backend dependencies
 npm run install:all
 ```
 
@@ -182,7 +183,7 @@ Contributions are welcome! Please read the contributing guidelines before submit
 For issues and questions:
 - Check [SETUP_GUIDE.md](./SETUP_GUIDE.md)
 - Review [API_EXAMPLES.md](./API_EXAMPLES.md)
-- Open an issue on GitHub
+- Open an issue on [GitHub](https://github.com/atozasworks/umnaapp-map/issues)
 
 ## Acknowledgments
 

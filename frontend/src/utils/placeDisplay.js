@@ -56,6 +56,26 @@ export function getGooglePhotoUrls(place, max = 8) {
     .slice(0, max)
 }
 
+/** OSM tag photo URLs (image, wikimedia_commons, etc.). */
+export function getOsmPhotoUrls(place, max = 8) {
+  const raw = place?.osm_photos ?? place?.osmPhotos
+  if (!Array.isArray(raw)) return []
+  return raw.filter(Boolean).slice(0, max)
+}
+
+/** All displayable photo URLs for a place (Google + OSM). */
+export function getPlacePhotoUrls(place, max = 8) {
+  const seen = new Set()
+  const out = []
+  for (const url of [...getGooglePhotoUrls(place, max), ...getOsmPhotoUrls(place, max)]) {
+    if (!url || seen.has(url)) continue
+    seen.add(url)
+    out.push(url)
+    if (out.length >= max) break
+  }
+  return out
+}
+
 export function getPlaceThumbnail(place) {
   if (place?.thumbnail_url) return place.thumbnail_url
   const urls = getGooglePhotoUrls(place, 1)

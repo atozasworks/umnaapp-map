@@ -27,6 +27,7 @@ import {
 import {
   buildPlaceDetailFields,
   serializePlace,
+  serializeOsmPlace,
   PLACE_DETAIL_SELECT,
   sanitizePlaceName,
 } from '../utils/placePayload.js'
@@ -52,6 +53,7 @@ import {
   unifiedNearby,
   unifiedInPolygon,
   unifiedPlaceById,
+  unifiedPickAtPoint,
   isOsmPlaceId,
 } from '../services/unifiedPlaceQuery.js'
 import { isPersistedSource } from '../utils/placeSource.js'
@@ -1411,6 +1413,67 @@ router.post(
 )
 
 /**
+ * @route GET /api/map/places/pick
+ * @desc Resolve the best place at a map click (user DB place or OSM feature)
+ * @access Private
+ */
+router.get(
+  '/places/pick',
+  authenticateToken,
+  rateLimitMiddleware('places:pick', 120, 60),
+  [
+    query('lat').isFloat({ min: -90, max: 90 }),
+    query('lng').isFloat({ min: -180, max: 180 }),
+    query('radiusMeters').optional().isInt({ min: 100, max: 8000 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+      const lat = parseFloat(req.query.lat)
+      const lng = parseFloat(req.query.lng)
+      const radiusMeters = req.query.radiusMeters != null
+        ? parseInt(req.query.radiusMeters, 10)
+        : 2500
+
+      const picked = await unifiedPickAtPoint({
+        lat,
+        lng,
+        radiusMeters,
+        viewerId: req.user.id,
+        findNearbyPostgis,
+        placePublicVisibilityOrFn: placePublicVisibilityOr,
+      })
+
+      if (!picked) {
+        return res.status(404).json({ error: 'No place found at this location' })
+      }
+
+      if (isOsmPlaceId(picked.id)) {
+        const detailed = await unifiedPlaceById(picked.id)
+        return res.json({
+          place: attachApprovalMeta(serializeOsmPlace(detailed || picked)),
+        })
+      }
+
+      if (picked.isDbPlace || picked.isPersisted || isPersistedSource(picked.source)) {
+        return res.json({
+          place: attachApprovalMeta(serializePlace(picked)),
+        })
+      }
+
+      return res.json({
+        place: attachApprovalMeta(serializeOsmPlace(picked)),
+      })
+    } catch (error) {
+      res.status(500).json({ error: 'Failed to pick place', message: error.message })
+    }
+  }
+)
+
+/**
  * @route DELETE /api/map/places/:id
  * @desc Delete a place owned by the current user
  * @access Private
@@ -1681,15 +1744,7 @@ router.get(
       if (isOsmPlaceId(id)) {
         const osmPlace = await unifiedPlaceById(id)
         if (!osmPlace) return res.status(404).json({ error: 'Place not found' })
-        return res.json(
-          attachApprovalMeta({
-            ...osmPlace,
-            name: osmPlace.placeNameEn ?? osmPlace.name,
-            place_name_en: osmPlace.placeNameEn ?? osmPlace.name,
-            isPersisted: false,
-            _isDbPlace: false,
-          })
-        )
+        return res.json(attachApprovalMeta(serializeOsmPlace(osmPlace)))
       }
       // Auto-approval runs on the 15-minute scheduler, not during place detail.
       const place = await prisma.place.findUnique({
@@ -1751,7 +1806,14 @@ router.get(
       const { id } = req.params
 
       if (isOsmPlaceId(id)) {
-        const osmPlace = await unifiedPlaceById(id)
+        let osmPlace = await unifiedPlaceById(id)
+        if (!osmPlace) {
+          const qLat = parseFloat(req.query.lat)
+          const qLng = parseFloat(req.query.lng)
+          if (Number.isFinite(qLat) && Number.isFinite(qLng)) {
+            osmPlace = { id, latitude: qLat, longitude: qLng }
+          }
+        }
         if (!osmPlace) return res.status(404).json({ error: 'Place not found' })
         const nearby = await unifiedNearby({
           lat: osmPlace.latitude,

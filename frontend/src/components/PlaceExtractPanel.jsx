@@ -30,6 +30,7 @@ import {
 } from '../utils/mapRenderingConfig'
 import { categoryFieldsFromGooglePlace } from '../utils/googlePlaceCategory'
 import GridExtractCompleteModal from './GridExtractCompleteModal.jsx'
+import PlaceExtractHelpGuide from './PlaceExtractHelpGuide.jsx'
 import { pointInRing, ringBBox, ringBBoxAreaKm2 } from '../utils/polygonGeo'
 import {
   AREA_SHAPE_TOOLS,
@@ -2246,6 +2247,13 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                   </nav>
                 </div>
               </div>
+
+              <PlaceExtractHelpGuide
+                method={extractionMethod}
+                maxPlaces={gridExtractMaxPlaces}
+                maxAreaKm2={extractMaxAreaKm2}
+                requiresLogin={!user?.id}
+              />
 
               {/* Method-specific panel (scrollable) */}
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">

@@ -7,6 +7,9 @@ import {
   getRouteTagLabel,
   getResolvedRouteStops,
   buildRouteRequestFromStops,
+  extractRouteSummary,
+  formatDurationDelta,
+  getEffectiveStartPlace,
 } from '../utils/routeHelpers'
 import { highlightQuerySegments, splitPlaceSuggestion } from '../utils/gmapsSearchHighlight'
 import { getSpeechController } from '../utils/speech'
@@ -387,6 +390,8 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const tRoutesAvailable = useTranslate('routes available')
   const tFastest = useTranslate('Fastest')
   const tShortest = useTranslate('Shortest')
+  const tRecommended = useTranslate('Recommended')
+  const tVia = useTranslate('via')
   const tRouteLabel = useTranslate('Route')
   const tAlternativesDirectOnly = useTranslate(
     'Alternative routes are only available for direct trips without extra stops.'
@@ -477,9 +482,27 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     [startPlace, waypoints, endPlace]
   )
 
+  const effectiveStartPlace = useMemo(
+    () => getEffectiveStartPlace(startPlace, currentLocation, tYourLocation),
+    [startPlace, currentLocation, tYourLocation]
+  )
+
+  const effectiveRouteStops = useMemo(
+    () => getResolvedRouteStops(effectiveStartPlace, waypoints, endPlace),
+    [effectiveStartPlace, waypoints, endPlace]
+  )
+
+  const getCalcStops = useCallback(
+    (start, wps, end) => {
+      const startForCalc = getEffectiveStartPlace(start, currentLocation, tYourLocation)
+      return getResolvedRouteStops(startForCalc, wps, end)
+    },
+    [currentLocation, tYourLocation]
+  )
+
   const resolvedStopsSignature = useMemo(
-    () => resolvedRouteStops.map((p) => `${p.lat},${p.lng}`).join('|'),
-    [resolvedRouteStops]
+    () => effectiveRouteStops.map((p) => `${p.lat},${p.lng}`).join('|'),
+    [effectiveRouteStops]
   )
 
   useEffect(() => {
@@ -511,9 +534,9 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   // Notify parent when stops change so map can show route markers
   useEffect(() => {
     if (onRoutePlacesChange) {
-      onRoutePlacesChange(startPlace, endPlace, resolvedRouteStops)
+      onRoutePlacesChange(effectiveStartPlace, endPlace, effectiveRouteStops)
     }
-  }, [startPlace, endPlace, resolvedRouteStops, onRoutePlacesChange])
+  }, [effectiveStartPlace, endPlace, effectiveRouteStops, onRoutePlacesChange])
 
   useEffect(() => {
     if (!mapRef?.current?.setRouteEditHandler) return
@@ -542,6 +565,8 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     return () => window.clearTimeout(timer)
   }, [routeData, mobileSheetCollapsed, refitRouteOnMap])
 
+  const handleSelectRouteRef = useRef(null)
+
   const handleSelectRoute = useCallback(
     (index) => {
       if (!alternativeRoutes || index === selectedRouteIndex) return
@@ -556,7 +581,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           mapRef.current.setRouteGeometry({ geometry: selected.geometry }, { fitBounds: false, ...routeOpts })
         }
         if (mapRef?.current?.drawAlternativeRoutes) {
-          mapRef.current.drawAlternativeRoutes(alternativeRoutes, index, handleSelectRoute, routeOpts)
+          mapRef.current.drawAlternativeRoutes(alternativeRoutes, index, handleSelectRouteRef.current, routeOpts)
         }
         refitRouteOnMap(mobileSheetCollapsed)
       }
@@ -564,9 +589,13 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     [alternativeRoutes, selectedRouteIndex, travelMode, mapRef, mobileSheetCollapsed, refitRouteOnMap]
   )
 
+  useEffect(() => {
+    handleSelectRouteRef.current = handleSelectRoute
+  }, [handleSelectRoute])
+
   const fetchAlternativesForCurrentTrip = useCallback(
     async (mode) => {
-      const request = buildRouteRequestFromStops(resolvedRouteStops)
+      const request = buildRouteRequestFromStops(effectiveRouteStops)
       if (!request || !mapRef?.current?.calculateRoute) return
       if (request.wp.length > 0) return
 
@@ -583,7 +612,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           setAlternativeRoutes(altRoutes)
           setSelectedRouteIndex(0)
           setRouteData(altRoutes[0])
-          mapRef.current.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRoute, routeOpts)
+          mapRef.current.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRouteRef.current, routeOpts)
         } else {
           setAlternativeRoutes(null)
           mapRef.current.clearAlternativeRoutes?.()
@@ -593,11 +622,11 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         mapRef.current?.clearAlternativeRoutes?.()
       }
     },
-    [resolvedRouteStops, mapRef, handleSelectRoute]
+    [effectiveRouteStops, mapRef]
   )
 
   const handleCalculate = useCallback(async (modeOverride, stopsOverride) => {
-    const stops = stopsOverride ?? resolvedRouteStops
+    const stops = stopsOverride ?? effectiveRouteStops
     const request = buildRouteRequestFromStops(stops)
     if (!request) {
       setError(null)
@@ -618,6 +647,10 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       if (mapRef?.current?.calculateRoute) {
         const padding = getRouteMapPadding(isMobileViewport)
         const requestAlts = wp.length === 0
+
+        // Instant preview line before API responds
+        mapRef.current.previewRoute?.(start, end, { ...routeOpts, padding })
+
         const result = await mapRef.current.calculateRoute(start, end, wp, mode, {
           ...routeOpts,
           alternatives: requestAlts,
@@ -629,18 +662,26 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         setRouteData(primary)
         setIsRouteEdited(false)
 
-        if (primary?.geometry && mapRef.current.setRouteGeometry) {
-          mapRef.current.setRouteGeometry(
+        // Ensure the final route polyline is painted on the map
+        if (primary?.geometry) {
+          mapRef.current.setRouteGeometry?.(
             { geometry: primary.geometry },
-            { fitBounds: false, padding, ...routeOpts }
+            {
+              fitBounds: false,
+              padding,
+              preview: false,
+              fallbackEndpoints: { start, end },
+              ...routeOpts,
+            }
           )
         }
+        mapRef.current.ensureRouteOnTop?.()
 
         window.requestAnimationFrame(() => {
           if (altRoutes && altRoutes.length > 1) {
             setAlternativeRoutes(altRoutes)
             setSelectedRouteIndex(0)
-            mapRef.current?.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRoute, routeOpts)
+            mapRef.current?.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRouteRef.current, routeOpts)
           } else {
             setAlternativeRoutes(null)
             mapRef.current?.clearAlternativeRoutes?.()
@@ -666,12 +707,11 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       setIsCalculating(false)
     }
   }, [
-    resolvedRouteStops,
+    effectiveRouteStops,
     travelMode,
     mapRef,
     isMobileViewport,
     getRouteMapPadding,
-    handleSelectRoute,
     refitRouteOnMap,
     onCalculateRoute,
     tFailedRoute,
@@ -721,18 +761,18 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
 
     if (slot.kind === 'start') {
       setStartPlace(place)
-      return getResolvedRouteStops(place, wps, end)
+      return getCalcStops(place, wps, end)
     }
     if (slot.kind === 'end') {
       setEndPlace(place)
-      return getResolvedRouteStops(start, wps, place)
+      return getCalcStops(start, wps, place)
     }
     const nextDests = dests.map((d) => (d.id === slot.id ? { ...d, place } : d))
     setDestinations(nextDests)
     const nextWps = nextDests.slice(0, -1)
     const nextEnd = nextDests[nextDests.length - 1]?.place ?? null
-    return getResolvedRouteStops(start, nextWps, nextEnd)
-  }, [setEndPlace])
+    return getCalcStops(start, nextWps, nextEnd)
+  }, [setEndPlace, getCalcStops])
 
   const handleRouteStopDragEnd = useCallback(
     async ({ index, lat, lng, total }) => {
@@ -830,9 +870,9 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     [recalcWithStops]
   )
 
-  // Google Maps: auto-update route when any two+ resolved stops change
+  // Auto-update route when stops change (minimal debounce for typing/drag)
   useEffect(() => {
-    if (resolvedRouteStops.length < 2) return undefined
+    if (effectiveRouteStops.length < 2) return undefined
     if (skipNextAutoCalcRef.current) {
       skipNextAutoCalcRef.current = false
       return undefined
@@ -840,11 +880,11 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     if (autoCalcTimerRef.current) clearTimeout(autoCalcTimerRef.current)
     autoCalcTimerRef.current = setTimeout(() => {
       handleCalculate()
-    }, 650)
+    }, 120)
     return () => {
       if (autoCalcTimerRef.current) clearTimeout(autoCalcTimerRef.current)
     }
-  }, [resolvedStopsSignature, handleCalculate, resolvedRouteStops.length])
+  }, [resolvedStopsSignature, handleCalculate, effectiveRouteStops.length])
 
   const fetchAllModes = async (start, end, wp, currentMode, currentRoute) => {
     const modesResult = { [currentMode]: currentRoute }
@@ -886,7 +926,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         mapRef.current.setRouteGeometry(allModesData[mode].geometry, { fitBounds: false, ...routeOpts })
       }
       fetchAlternativesForCurrentTrip(mode)
-    } else if (resolvedRouteStops.length >= 2) {
+    } else if (effectiveRouteStops.length >= 2) {
       handleCalculate(mode)
     }
   }
@@ -993,11 +1033,11 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       place: startPlace,
       rawSetPlace: setStartPlace,
       setPlace: selectPlaceAndRecalc(setStartPlace, (place) =>
-        getResolvedRouteStops(place, waypoints, endPlace)
+        getCalcStops(place, waypoints, endPlace)
       ),
       clear: () => setStartPlace(null),
       placeholder: tChooseStart,
-      getStopsAfterSelect: (place) => getResolvedRouteStops(place, waypoints, endPlace),
+      getStopsAfterSelect: (place) => getCalcStops(place, waypoints, endPlace),
     },
     ...destinations.map((d, idx) => {
       const isLast = idx === destinations.length - 1
@@ -1014,12 +1054,12 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         rawSetPlace: (p) => updateDestination(d.id, p),
         setPlace: selectPlaceAndRecalc(
           (p) => updateDestination(d.id, p),
-          (place) => getResolvedRouteStops(startPlace, nextWaypoints(place), nextEnd(place))
+          (place) => getCalcStops(startPlace, nextWaypoints(place), nextEnd(place))
         ),
         clear: () => updateDestination(d.id, null),
         placeholder: isLast ? tChooseDestination : `${tAddStopPrefix} ${idx + 1}`,
         getStopsAfterSelect: (place) =>
-          getResolvedRouteStops(startPlace, nextWaypoints(place), nextEnd(place)),
+          getCalcStops(startPlace, nextWaypoints(place), nextEnd(place)),
       }
     }),
   ]
@@ -1069,6 +1109,28 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
               </svg>
             </button>
           </div>
+          {alternativeRoutes && alternativeRoutes.length > 1 && (
+            <div className="gmaps-alt-route-scroll shrink-0 border-b border-slate-100 px-3 py-2">
+              {alternativeRoutes.map((altRoute, i) => {
+                const isSelected = i === selectedRouteIndex
+                const modeColor = TRAVEL_MODES.find((m) => m.id === travelMode)?.color || '#136AEC'
+                const baseline = alternativeRoutes[0]?.duration
+                const delta = formatDurationDelta(altRoute.duration, baseline)
+                return (
+                  <button
+                    key={`mobile-alt-${i}`}
+                    type="button"
+                    onClick={() => handleSelectRoute(i)}
+                    className={`gmaps-alt-route-chip${isSelected ? ' gmaps-alt-route-chip--selected' : ''}`}
+                    style={isSelected ? { borderColor: modeColor, color: modeColor } : {}}
+                  >
+                    <span className="gmaps-alt-route-chip-time">{formatDuration(altRoute.duration)}</span>
+                    {delta && <span className="gmaps-alt-route-chip-delta">{delta}</span>}
+                  </button>
+                )
+              })}
+            </div>
+          )}
           <div
             className="flex shrink-0 gap-2 border-t border-slate-100 px-4 py-3"
             style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
@@ -1273,12 +1335,12 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
               const isSelected = i === selectedRouteIndex
               const modeColor = TRAVEL_MODES.find((m) => m.id === travelMode)?.color || '#136AEC'
               const tags = altRoute.routeTags || []
-              const showFastest = tags.includes('fastest') || (
-                !tags.length && altRoute.duration <= Math.min(...alternativeRoutes.map((r) => r.duration))
-              )
-              const showShortest = tags.includes('shortest') || (
-                !tags.length && altRoute.distance <= Math.min(...alternativeRoutes.map((r) => r.distance))
-              )
+              const summary = extractRouteSummary(altRoute)
+              const baseline = alternativeRoutes[0]?.duration
+              const delta = formatDurationDelta(altRoute.duration, baseline)
+              const showRecommended = tags.includes('recommended') || i === 0
+              const showFastest = tags.includes('fastest') && !showRecommended
+              const showShortest = tags.includes('shortest') && !showRecommended && !showFastest
               return (
                 <button
                   key={`alt-${i}-${altRoute.routeIndex ?? i}`}
@@ -1290,31 +1352,36 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                   }`}
                   style={isSelected ? { borderColor: modeColor, backgroundColor: `${modeColor}08` } : {}}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <div
                         className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isSelected ? '' : 'opacity-40'}`}
                         style={{ backgroundColor: isSelected ? modeColor : '#9CA3AF' }}
                       />
-                      <span className="text-[10px] font-semibold text-slate-400 uppercase flex-shrink-0">
-                        {tRouteLabel} {i + 1}
-                      </span>
                       <span
                         className={`text-sm font-bold ${isSelected ? '' : 'text-slate-700'}`}
                         style={isSelected ? { color: modeColor } : {}}
                       >
                         {formatDuration(altRoute.duration)}
                       </span>
+                      {delta && (
+                        <span className="text-[10px] font-medium text-slate-400">{delta}</span>
+                      )}
                       <span className="text-xs text-slate-400">·</span>
                       <span className="text-xs text-slate-500 font-medium truncate">{formatDistance(altRoute.distance)}</span>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
+                      {showRecommended && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#e8f0fe] text-[#1967d2]">
+                          {getRouteTagLabel('recommended', () => tRecommended) || tRecommended}
+                        </span>
+                      )}
                       {showFastest && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-green-100 text-green-700">
                           {getRouteTagLabel('fastest', () => tFastest) || tFastest}
                         </span>
                       )}
-                      {showShortest && !showFastest && (
+                      {showShortest && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
                           {getRouteTagLabel('shortest', () => tShortest) || tShortest}
                         </span>
@@ -1326,9 +1393,9 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                       )}
                     </div>
                   </div>
-                  {isSelected && altRoute.steps?.length > 0 && (
-                    <div className="mt-1.5 text-[10px] text-slate-400 truncate">
-                      via {altRoute.steps.filter((s) => s.name).map((s) => s.name).filter((n, idx, arr) => arr.indexOf(n) === idx).slice(0, 3).join(' → ')}
+                  {summary && (
+                    <div className="mt-1.5 text-[10px] text-slate-400 truncate pl-[18px]">
+                      {tVia} {summary}
                     </div>
                   )}
                 </button>

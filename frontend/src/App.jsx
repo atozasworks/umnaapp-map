@@ -10,6 +10,7 @@ import RegisterPage from './pages/RegisterPage'
 import OTPVerificationPage from './pages/OTPVerificationPage'
 import HomePage from './pages/HomePage'
 import SettingsPage from './pages/SettingsPage'
+import OpenSourcePage from './pages/OpenSourcePage'
 import NotificationsPage from './pages/NotificationsPage'
 import MyContributionsPage from './pages/MyContributionsPage'
 import PublicProfilePage from './pages/PublicProfilePage'
@@ -86,6 +87,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <SettingsPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/open-source"
+                element={
+                  <ProtectedRoute>
+                    <OpenSourcePage />
                   </ProtectedRoute>
                 }
               />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import AppLogo from '../components/AppLogo'
+import AuthLayout, { AuthError } from '../components/auth/AuthLayout'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -8,7 +8,7 @@ const OTPVerificationPage = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [timeLeft, setTimeLeft] = useState(600) // 10 minutes
+  const [timeLeft, setTimeLeft] = useState(600)
   const navigate = useNavigate()
   const location = useLocation()
   const { login } = useAuth()
@@ -44,7 +44,6 @@ const OTPVerificationPage = () => {
     newOtp[index] = value
     setOtp(newOtp)
 
-    // Auto-focus next input
     if (value && index < 5) {
       inputRefs.current[index + 1]?.focus()
     }
@@ -72,7 +71,7 @@ const OTPVerificationPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     const otpString = otp.join('')
-    
+
     if (otpString.length !== 6) {
       setError('Please enter the complete 6-digit OTP')
       return
@@ -105,8 +104,6 @@ const OTPVerificationPage = () => {
     setTimeLeft(600)
 
     try {
-      // Dedicated resend endpoint works for both register and login and does
-      // not require name/password, so it preserves the in-progress sign-up.
       await api.post('/auth/resend-otp', { email, type })
       setOtp(['', '', '', '', '', ''])
       inputRefs.current[0]?.focus()
@@ -128,78 +125,76 @@ const OTPVerificationPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="card">
-          <div className="text-center mb-8">
-            <h1 className="flex items-center justify-center gap-3 mb-3">
-              <AppLogo decorative imgClassName="h-10 w-auto max-h-12 object-contain flex-shrink-0" />
-              <span className="text-3xl font-bold bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
-                UMNAAPP
-              </span>
-            </h1>
-            <h2 className="text-2xl font-semibold text-slate-800">Verify Your Email</h2>
-            <p className="text-slate-600 mt-2">
-              We've sent a 6-digit code to <br />
-              <span className="font-semibold text-slate-800">{email}</span>
-            </p>
-          </div>
+    <AuthLayout
+      title="Verify your email"
+      subtitle={
+        <>
+          Enter the 6-digit code sent to{' '}
+          <span className="text-sky-300 font-medium break-all">{email}</span>
+        </>
+      }
+    >
+      <AuthError message={error} />
 
-          {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 text-red-700 rounded-lg">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex justify-center gap-3">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => (inputRefs.current[index] = el)}
-                  type="text"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={handlePaste}
-                  className="w-14 h-14 text-center text-2xl font-bold border-2 border-slate-300 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-                  autoFocus={index === 0}
-                />
-              ))}
-            </div>
-
-            <div className="text-center">
-              <p className="text-sm text-slate-600">
-                Code expires in: <span className="font-semibold text-primary-600">{formatTime(timeLeft)}</span>
-              </p>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || otp.join('').length !== 6}
-              className="btn-primary w-full disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {loading ? 'Verifying...' : 'Verify OTP'}
-            </button>
-
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={handleResend}
-                disabled={loading || timeLeft > 540}
-                className="text-primary-600 hover:text-primary-700 font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Resend OTP
-              </button>
-            </div>
-          </form>
+      <form onSubmit={handleSubmit} className="auth-form-fields">
+        <div className="auth-otp-grid" role="group" aria-label="One-time password digits">
+          {otp.map((digit, index) => (
+            <input
+              key={index}
+              ref={(el) => (inputRefs.current[index] = el)}
+              type="text"
+              inputMode="numeric"
+              autoComplete={index === 0 ? 'one-time-code' : 'off'}
+              maxLength={1}
+              value={digit}
+              onChange={(e) => handleChange(index, e.target.value)}
+              onKeyDown={(e) => handleKeyDown(index, e)}
+              onPaste={handlePaste}
+              className="auth-otp-input"
+              aria-label={`Digit ${index + 1} of 6`}
+              autoFocus={index === 0}
+            />
+          ))}
         </div>
-      </div>
-    </div>
+
+        <div className="auth-otp-timer">
+          <svg className="w-4 h-4 text-sky-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span>
+            Code expires in{' '}
+            <strong className="text-sky-300">{formatTime(timeLeft)}</strong>
+          </span>
+        </div>
+
+        <button
+          type="submit"
+          disabled={loading || otp.join('').length !== 6}
+          className="auth-submit-btn"
+        >
+          {loading ? (
+            <>
+              <span className="auth-spinner" aria-hidden />
+              Verifying…
+            </>
+          ) : (
+            'Verify & continue'
+          )}
+        </button>
+
+        <div className="text-center">
+          <button
+            type="button"
+            onClick={handleResend}
+            disabled={loading || timeLeft > 540}
+            className="auth-resend-btn"
+          >
+            Didn&apos;t receive the code? Resend
+          </button>
+        </div>
+      </form>
+    </AuthLayout>
   )
 }
 
 export default OTPVerificationPage
-
