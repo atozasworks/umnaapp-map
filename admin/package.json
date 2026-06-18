@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "ci:audit": "npm audit --audit-level=high",
+    "ci:build": "vite build",
+    "ci:check": "npm run ci:audit && npm run ci:build"
   },
   "dependencies": {
     "@react-three/drei": "^9.88.17",

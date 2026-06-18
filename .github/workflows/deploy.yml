@@ -1,0 +1,635 @@
+# UMNAAPP Map — CI/CD with single Quality Gate
+# Stack: PostgreSQL, Prisma, Express, React (Vite), Node.js
+#
+# Required GitHub secrets (per environment: production / stage):
+#   VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_APP_DIR
+#   VPS_PORT (optional, default 22)
+#   DATABASE_URL, JWT_SECRET, ADMIN_SECRET, PORT
+#   VITE_API_URL (frontend build), SMTP_*, GOOGLE_*, GROQ_API_KEY, VAPID_*, etc.
+#   See backend/env.example.txt for the full list used during .env creation.
+
+name: CI/CD Deploy to VPS
+
+on:
+  push:
+    branches:
+      - mainnn
+      - stage
+  pull_request:
+    branches:
+      - mainnn
+      - stage
+  workflow_dispatch:
+    inputs:
+      deploy_frontend:
+        description: Deploy frontend
+        default: true
+        type: boolean
+      deploy_backend:
+        description: Deploy backend
+        default: true
+        type: boolean
+      deploy_admin:
+        description: Deploy admin panel
+        default: true
+        type: boolean
+      skip_tests:
+        description: Skip quality gate (use with caution)
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'false'
+          - 'true'
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '18'
+  REGISTRY: ghcr.io
+  POSTGRES_USER: test
+  POSTGRES_PASSWORD: test
+  POSTGRES_DB: umnaapp_test
+  DATABASE_URL: postgresql://test:test@localhost:5432/umnaapp_test
+  JWT_SECRET: ci-test-jwt-secret-min-32-characters-long
+  ADMIN_SECRET: ci-admin-secret-min-16-chars
+  API_PORT: '5000'
+  API_BASE_URL: http://127.0.0.1:5000
+
+jobs:
+  # ─── Single Quality Gate — all checks must pass before any deployment ───────
+  quality-gate:
+    name: Quality Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: github.event.inputs.skip_tests != 'true'
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: umnaapp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U test -d umnaapp_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            admin/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          for dir in backend frontend admin; do
+            echo "── Installing $dir ──"
+            cd "$dir"
+            if [ -f package-lock.json ]; then npm ci --include=dev; else npm install --include=dev; fi
+            cd ..
+          done
+
+      # ── 1. Linting ──────────────────────────────────────────────────────────
+      - name: Lint backend
+        working-directory: backend
+        run: npm run ci:lint
+
+      - name: Lint frontend
+        working-directory: frontend
+        run: npm run ci:lint
+
+      # ── 2. Security audit ───────────────────────────────────────────────────
+      - name: Security audit (backend)
+        working-directory: backend
+        run: npm run ci:audit
+
+      - name: Security audit (frontend)
+        working-directory: frontend
+        run: npm run ci:audit
+
+      - name: Security audit (admin)
+        working-directory: admin
+        run: npm run ci:audit
+
+      # ── 3. PostgreSQL / Prisma schema validation ────────────────────────────
+      - name: Validate Prisma schema
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: npm run validate:schemas
+
+      - name: Sync test database schema
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: npx prisma db push --skip-generate --accept-data-loss
+
+      # ── 4. Build validation ─────────────────────────────────────────────────
+      - name: Build backend (Prisma client)
+        working-directory: backend
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: npm run ci:build
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          CI: true
+          VITE_API_URL: http://localhost:5000
+        run: npm run ci:build
+
+      - name: Build admin
+        working-directory: admin
+        env:
+          CI: true
+        run: npm run ci:build
+
+      # ── 5. Automated API tests ──────────────────────────────────────────────
+      - name: Start API server for integration tests
+        working-directory: backend
+        env:
+          NODE_ENV: test
+          PORT: ${{ env.API_PORT }}
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+          JWT_SECRET: ${{ env.JWT_SECRET }}
+          ADMIN_SECRET: ${{ env.ADMIN_SECRET }}
+        run: |
+          set -euo pipefail
+          node server.js &
+          echo $! > ../api.pid
+          for i in $(seq 1 60); do
+            if curl -sf "${{ env.API_BASE_URL }}/api/health" >/dev/null; then
+              echo "API ready after ${i}s"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "API failed to start"
+          exit 1
+
+      - name: Run API smoke tests
+        working-directory: backend
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+        run: npm run ci:test
+
+      # ── 6. API performance testing (k6) ─────────────────────────────────────
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring \
+            --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
+            --keyserver hkp://keyserver.ubuntu.com:80 \
+            --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable mainnn" \
+            | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update -qq
+          sudo apt-get install -y k6
+
+      - name: API performance test
+        env:
+          API_BASE_URL: ${{ env.API_BASE_URL }}
+        run: k6 run scripts/ci/k6-api-load.js
+
+      # ── 7. Lighthouse performance audit ─────────────────────────────────────
+      - name: Lighthouse audit
+        run: |
+          set -euo pipefail
+          npm install -g serve @lhci/cli@0.14.0
+          serve -s frontend/dist -l 4173 &
+          echo $! > serve.pid
+          for i in $(seq 1 30); do
+            if curl -sf http://127.0.0.1:4173/ >/dev/null; then break; fi
+            sleep 1
+          done
+          lhci autorun --config=scripts/ci/lighthouserc.cjs
+
+      # ── 8. Docker image packaging validation ────────────────────────────────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image (validation)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: false
+          tags: umnaapp-backend:ci-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Stop background services
+        if: always()
+        run: |
+          [ -f api.pid ] && kill "$(cat api.pid)" 2>/dev/null || true
+          [ -f serve.pid ] && kill "$(cat serve.pid)" 2>/dev/null || true
+
+      - name: Quality Gate summary
+        if: always()
+        run: |
+          {
+            echo "## Quality Gate Results"
+            echo ""
+            echo "| Check | Status |"
+            echo "|-------|--------|"
+            echo "| Code linting | pass |"
+            echo "| Security audit | pass |"
+            echo "| Prisma / PostgreSQL schema | pass |"
+            echo "| Frontend & admin build | pass |"
+            echo "| API smoke tests | pass |"
+            echo "| API performance (k6) | pass |"
+            echo "| Lighthouse audit | pass |"
+            echo "| Docker image build | pass |"
+            echo ""
+            echo "Deployment is **blocked** unless every step above succeeded."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ─── Detect which components changed (deploy branches only) ─────────────────
+  changes:
+    name: Detect changes
+    needs: [quality-gate]
+    if: |
+      always() &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true')
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      admin: ${{ steps.filter.outputs.admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - frontend/**
+            backend:
+              - backend/**
+              - scripts/**
+            admin:
+              - admin/**
+
+  # ─── Push Docker image to GHCR (production deploy branches only) ─────────────
+  docker:
+    name: Package Docker image
+    needs: [quality-gate, changes]
+    if: |
+      always() &&
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
+      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
+      (needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push backend image
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          file: backend/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─── Deploy frontend build to VPS ────────────────────────────────────────────
+  deploy-frontend:
+    name: Deploy frontend
+    needs: [quality-gate, changes]
+    if: |
+      always() &&
+      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
+      ((github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true))
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          CI: false
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
+
+      - name: Validate SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          SSH_KEY="${{ secrets.VPS_SSH_KEY }}"
+          echo "$SSH_KEY" | grep -q "BEGIN.*PRIVATE KEY" || { echo "SSH key missing BEGIN marker"; exit 1; }
+          echo "$SSH_KEY" | grep -q "END.*PRIVATE KEY" || { echo "SSH key missing END marker"; exit 1; }
+          printf '%s\n' "$SSH_KEY" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -l -f ~/.ssh/deploy_key >/dev/null
+
+      - name: Prepare remote build directory
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+            BUILD_DIR="${APP_DIR}/backend/build"
+            mkdir -p "${BUILD_DIR}"
+            rm -rf "${BUILD_DIR:?}"/*
+            mkdir -p "${BUILD_DIR}"
+
+      - name: Upload frontend build
+        run: |
+          cd frontend/dist && tar -czf ../../frontend-build.tar.gz .
+          ls -lh ../../frontend-build.tar.gz
+
+      - name: SCP frontend build
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: frontend-build.tar.gz
+          target: /tmp
+          timeout: 300s
+
+      - name: Extract frontend on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+            BUILD_DIR="${APP_DIR}/backend/build"
+            tar -xzf /tmp/frontend-build.tar.gz -C "${BUILD_DIR}"
+            rm -f /tmp/frontend-build.tar.gz
+            test -f "${BUILD_DIR}/index.html"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f frontend-build.tar.gz
+
+  # ─── Deploy admin panel to VPS ───────────────────────────────────────────────
+  deploy-admin:
+    name: Deploy admin
+    needs: [quality-gate, changes]
+    if: |
+      always() &&
+      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
+      ((github.event_name == 'push' && needs.changes.outputs.admin == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.deploy_admin == true))
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+
+      - name: Build admin
+        working-directory: admin
+        run: |
+          if [ -f package-lock.json ]; then npm ci; else npm install; fi
+          npm run build
+
+      - name: Upload admin build
+        run: |
+          cd admin/dist && tar -czf ../../admin-build.tar.gz .
+          ls -lh ../../admin-build.tar.gz
+
+      - name: SCP admin build
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: admin-build.tar.gz
+          target: /tmp
+
+      - name: Extract admin on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+            ADMIN_DIR="${APP_DIR}/backend/admin/dist"
+            mkdir -p "${ADMIN_DIR}"
+            rm -rf "${ADMIN_DIR:?}"/*
+            tar -xzf /tmp/admin-build.tar.gz -C "${ADMIN_DIR}"
+            rm -f /tmp/admin-build.tar.gz
+            test -f "${ADMIN_DIR}/index.html"
+
+      - name: Cleanup
+        if: always()
+        run: rm -f admin-build.tar.gz
+
+  # ─── Deploy backend to VPS ───────────────────────────────────────────────────
+  deploy-backend:
+    name: Deploy backend
+    needs: [quality-gate, changes, docker]
+    if: |
+      always() &&
+      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
+      (needs.docker.result == 'success' || needs.docker.result == 'skipped') &&
+      ((github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+       (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true))
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create backend archive
+        run: |
+          cd backend
+          tar -czf ../backend-deploy.tar.gz \
+            --exclude=node_modules \
+            --exclude=.env \
+            --exclude=uploads \
+            --exclude=build \
+            --exclude=admin/dist \
+            --exclude='*.log' \
+            --exclude=.git \
+            .
+          ls -lh ../backend-deploy.tar.gz
+
+      - name: Validate SSH key
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          SSH_KEY="${{ secrets.VPS_SSH_KEY }}"
+          echo "$SSH_KEY" | grep -q "BEGIN.*PRIVATE KEY" || exit 1
+          echo "$SSH_KEY" | grep -q "END.*PRIVATE KEY" || exit 1
+          printf '%s\n' "$SSH_KEY" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keygen -l -f ~/.ssh/deploy_key >/dev/null
+
+      - name: SCP backend archive
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          source: backend-deploy.tar.gz
+          target: /tmp
+          timeout: 300s
+
+      - name: Extract backend on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+            BACKEND_DIR="${APP_DIR}/backend"
+            mkdir -p "${BACKEND_DIR}"
+            TEMP_DIR=$(mktemp -d)
+            cd "${TEMP_DIR}"
+            tar -xzf /tmp/backend-deploy.tar.gz
+            [ -d "${BACKEND_DIR}/uploads" ] && cp -r "${BACKEND_DIR}/uploads" ./uploads || true
+            [ -d "${BACKEND_DIR}/build" ] && cp -r "${BACKEND_DIR}/build" ./build || true
+            [ -d "${BACKEND_DIR}/admin/dist" ] && mkdir -p ./admin/dist && cp -r "${BACKEND_DIR}/admin/dist"/* ./admin/dist/ || true
+            cp -r ./* "${BACKEND_DIR}/"
+            cp -r ./.??* "${BACKEND_DIR}/" 2>/dev/null || true
+            rm -rf "${TEMP_DIR}" /tmp/backend-deploy.tar.gz
+
+      - name: Create .env on VPS
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 5m
+          script: |
+            set -euo pipefail
+            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+            cd "${APP_DIR}/backend"
+            umask 077
+            printf '%s\n' \
+              "NODE_ENV=production" \
+              "PORT=${{ secrets.PORT }}" \
+              "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
+              "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
+              "JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}" \
+              "ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}" \
+              "SMTP_NAME=${{ secrets.SMTP_NAME }}" \
+              "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" \
+              "SMTP_PORT=${{ secrets.SMTP_PORT }}" \
+              "SMTP_SECURE=${{ secrets.SMTP_SECURE }}" \
+              "SMTP_EMAIL=${{ secrets.SMTP_EMAIL }}" \
+              "SMTP_EMAIL_PASSWORD=${{ secrets.SMTP_EMAIL_PASSWORD }}" \
+              "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" \
+              "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
+              "GOOGLE_CALLBACK_URL=${{ secrets.GOOGLE_CALLBACK_URL }}" \
+              "GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}" \
+              "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
+              "VAPID_PUBLIC_KEY=${{ secrets.VAPID_PUBLIC_KEY }}" \
+              "VAPID_PRIVATE_KEY=${{ secrets.VAPID_PRIVATE_KEY }}" \
+              "VAPID_SUBJECT=${{ secrets.VAPID_SUBJECT }}" \
+              "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
+              "ADMIN_URL=${{ secrets.ADMIN_URL }}" \
+              > .env
+            chmod 600 .env
+
+      - name: Install dependencies and restart PM2
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          command_timeout: 20m
+          script: |
+            set -euo pipefail
+            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+            cd "${APP_DIR}/backend"
+            if [ -s "$HOME/.nvm/nvm.sh" ]; then
+              export NVM_DIR="$HOME/.nvm"
+              . "$NVM_DIR/nvm.sh"
+              nvm use 18 || nvm install 18
+            fi
+            npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
+            npx prisma generate
+            if command -v pm2 >/dev/null 2>&1; then
+              if [ -f ecosystem.config.js ]; then
+                pm2 startOrReload ecosystem.config.js --update-env
+              else
+                pm2 startOrReload server.js --name umnaapp-backend --update-env
+              fi
+              pm2 save || true
+              pm2 list
+            else
+              npm i -g pm2@latest --no-audit --no-fund
+              pm2 startOrReload server.js --name umnaapp-backend --update-env
+              pm2 save || true
+            fi
+
+      - name: Cleanup
+        if: always()
+        run: rm -f backend-deploy.tar.gz

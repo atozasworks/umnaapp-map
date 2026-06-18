@@ -1,0 +1,14 @@
+node_modules
+npm-debug.log
+.env
+.env.*
+uploads
+build
+dist
+*.log
+.git
+.gitignore
+coverage
+tests
+eslint.config.js
+**/*.test.js
