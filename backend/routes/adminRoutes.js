@@ -15,6 +15,7 @@ import {
   sanitizePlaceName,
 } from '../utils/placePayload.js'
 import { onPlaceApproved } from '../services/notificationService.js'
+import { broadcastPlaceUpsert, broadcastPlaceRemoved, PLACE_EVENTS } from '../lib/placeEvents.js'
 import {
   recordPlaceAudit,
   recordPlaceAuditAsync,
@@ -384,6 +385,15 @@ router.patch(
           console.error('[notify] onPlaceApproved bg error:', err)
         })
       }
+
+      // Public map live-sync
+      if (req.body.approvalStatus === 'approved' && existing.approvalStatus !== 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, place)
+      } else if (place.approvalStatus === 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.UPDATED, place)
+      } else if (existing.approvalStatus === 'approved' && place.approvalStatus !== 'approved') {
+        broadcastPlaceRemoved(place.id)
+      }
       res.json({ place: serializePlace(place) })
     } catch (e) {
       console.error('admin place patch', e)
@@ -407,6 +417,7 @@ router.delete('/places/:id', async (req, res) => {
         before: existing,
         note: 'Deleted by admin',
       })
+      if (existing.approvalStatus === 'approved') broadcastPlaceRemoved(id)
     }
     res.json({ success: true })
   } catch (e) {
@@ -437,6 +448,7 @@ router.patch('/places/:id/reject', async (req, res) => {
       after: place,
       note: 'Rejected by admin',
     })
+    broadcastPlaceRemoved(id)
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
     console.error('admin place reject', e)
@@ -474,6 +486,7 @@ router.post(
             before: p,
             note: 'Deleted by admin (bulk)',
           })
+          if (p.approvalStatus === 'approved') broadcastPlaceRemoved(p.id)
         }
         return res.json({ success: true, affected: result.count })
       }
@@ -499,6 +512,7 @@ router.post(
           onPlaceApproved({ ...p, approvalStatus: 'approved' }, { approvedBy: 'admin' }).catch((err) => {
             console.error('[notify] bulk onPlaceApproved bg error:', err)
           })
+          broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, { ...p, approvalStatus: 'approved' })
         }
         return res.json({ success: true, affected: result.count })
       }
@@ -520,6 +534,7 @@ router.post(
           after: { ...p, approvalStatus: 'rejected' },
           note: 'Rejected by admin (bulk)',
         })
+        if (p.approvalStatus === 'approved') broadcastPlaceRemoved(p.id)
       }
       res.json({ success: true, affected: result.count })
     } catch (e) {
@@ -556,6 +571,7 @@ router.patch('/places/:id/approve', async (req, res) => {
       onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
         console.error('[notify] onPlaceApproved bg error:', err)
       })
+      broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, place)
     }
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {

@@ -3,7 +3,8 @@ import axios from 'axios'
 const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
 const NOMINATIM_URL = (process.env.NOMINATIM_URL || '').trim().replace(/\/+$/, '')
 const UMNAAPP_NOMINATIM_SEARCH = (process.env.UMNAAPP_NOMINATIM_SEARCH || 'https://umnaapp.in/map/nominatim/search').trim().replace(/\/+$/, '')
-const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 60000
+const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 20000
+const SEARCH_SIMPLE_RETRIES = parseInt(process.env.SEARCH_SIMPLE_RETRIES, 10) || 3
 const USE_UMNAAPP_NOMINATIM =
   String(process.env.UMNAAPP_NOMINATIM_ENABLED || '').toLowerCase() === 'true'
 
@@ -80,7 +81,7 @@ export async function searchExternalProviders(q, { limit = 10, lat, lng, radiusK
       url: SEARCH_SIMPLE_URL,
       params: { q, limit },
       validateStatus: (s) => s === 200 || s === 404,
-      retries: 0,
+      retries: SEARCH_SIMPLE_RETRIES,
     },
   ]
 

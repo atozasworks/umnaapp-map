@@ -7,6 +7,7 @@ import {
   PLACE_AUDIT_ACTIONS,
 } from './placeAudit.js'
 import { PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
+import { broadcastPlaceUpsert, PLACE_EVENTS } from '../lib/placeEvents.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -147,6 +148,10 @@ export async function autoApproveExpiredPendingPlaces({ force = false } = {}) {
         })
       }
       onPlacesAutoApproved(ids).catch(() => {})
+      // Public map live-sync: newly auto-approved places become publicly visible.
+      for (const id of ids) {
+        broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, { id }).catch(() => {})
+      }
     }
     return { count: result.count }
   } catch (e) {
@@ -207,6 +212,9 @@ export async function removeExpiredFestivals({ force = false } = {}) {
  * Admin panel uses separate routes (adminAuth), not this filter.
  */
 export function placePublicVisibilityOr(viewerUserId) {
+  if (viewerUserId == null) {
+    return { approvalStatus: 'approved' }
+  }
   return {
     OR: [
       { approvalStatus: 'approved' },

@@ -14,6 +14,7 @@ import authRoutes from './routes/authRoutes.js'
 import atozasAuthRoutes from './routes/atozasAuthRoutes.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
+import publicRoutes from './routes/publicRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
@@ -47,6 +48,37 @@ const io = new Server(httpServer, {
     methods: ['GET', 'POST'],
     credentials: true,
   },
+})
+
+// --- Public Map Platform (no auth, embeddable from any origin) ---
+// Mounted BEFORE the restrictive app-wide CORS so the public, read-only data
+// API can be consumed by external sites, iframes, the SDK, and mobile apps.
+// Private routes (admin/users/notifications/payments/auth) remain protected.
+app.use('/api/public', publicRoutes)
+
+// JavaScript SDK loader: <script src="https://maps.umnaapp.com/sdk.js"></script>
+const sdkFilePath = path.join(__dirname, 'public', 'sdk.js')
+app.get('/sdk.js', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+  res.setHeader('Cache-Control', 'public, max-age=3600')
+  res.sendFile(sdkFilePath, (err) => {
+    if (err) res.status(404).send('// UMNAAPP Maps SDK not found')
+  })
+})
+
+// Allow the public map viewer to be embedded in third-party <iframe>s.
+app.use((req, res, next) => {
+  if (
+    req.path === '/embedded-map' ||
+    req.path.startsWith('/embedded-map') ||
+    req.path === '/map' ||
+    req.path.startsWith('/map/')
+  ) {
+    res.removeHeader('X-Frame-Options')
+    res.setHeader('Content-Security-Policy', 'frame-ancestors *')
+  }
+  next()
 })
 
 // Middleware
@@ -146,6 +178,15 @@ app.get('*', (req, res, next) => {
 })
 
 setIo(io)
+
+// Public, anonymous real-time namespace for embedded/external maps.
+// No auth middleware here (unlike the default namespace) — it only ever
+// receives broadcasts of approved-place changes (no private data).
+const publicMapsNsp = io.of('/public-maps')
+publicMapsNsp.on('connection', (socket) => {
+  socket.emit('connected', { namespace: '/public-maps' })
+  socket.on('ping', () => socket.emit('pong', { timestamp: Date.now() }))
+})
 
 // Socket.io connection handling
 io.use(authenticateSocket)

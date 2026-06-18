@@ -17,6 +17,7 @@ import {
   initialApprovalFields,
 } from '../services/placeApproval.js'
 import { onPlaceCreated, onPlaceApproved } from '../services/notificationService.js'
+import { broadcastPlaceUpsert, broadcastPlaceRemoved, PLACE_EVENTS } from '../lib/placeEvents.js'
 import {
   recordPlaceAuditAsync,
   getPlaceHistory,
@@ -1557,6 +1558,11 @@ router.delete(
         note: req.user?.id === place.userId ? 'Deleted by owner' : 'Deleted by admin',
       })
 
+      // Public map live-sync: drop the marker on embedded/external maps.
+      if (place.approvalStatus === 'approved') {
+        broadcastPlaceRemoved(place.id)
+      }
+
       res.json({ success: true, id: id.trim() })
     } catch (error) {
       console.error('Delete place error:', error)
@@ -1760,6 +1766,16 @@ router.patch(
         onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
           console.error('[notify] onPlaceApproved bg error:', err)
         })
+      }
+
+      // Public map live-sync: approval makes a place publicly visible; an edit to
+      // an already-approved place updates it; rejecting an approved place removes it.
+      if (approvedJustNow) {
+        broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, place)
+      } else if (place.approvalStatus === 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.UPDATED, place)
+      } else if (existing.approvalStatus === 'approved' && place.approvalStatus !== 'approved') {
+        broadcastPlaceRemoved(place.id)
       }
 
       res.json(attachApprovalMeta(serializePlace(place)))

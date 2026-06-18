@@ -5,6 +5,7 @@ import { AuthProvider as AtozasAuthProvider } from './lib/atozas-auth-kit'
 import { AuthProvider } from './contexts/AuthContext'
 import { SocketProvider } from './contexts/SocketContext'
 import LandingPage from './pages/LandingPage'
+import PublicMapPage from './pages/PublicMapPage'
 import LoginPage from './pages/LoginPage'
 import RegisterPage from './pages/RegisterPage'
 import OTPVerificationPage from './pages/OTPVerificationPage'
@@ -26,7 +27,36 @@ function LanguageDocSync({ children }) {
   return children
 }
 
+/**
+ * Public Map Platform detection.
+ *
+ * The login-free map viewer is served when EITHER:
+ *   - the host is the dedicated maps subdomain (e.g. maps.umnaapp.com), or
+ *   - the path is /embedded-map (iframe/SDK target) or /map.
+ *
+ * In these cases we render ONLY the map — completely outside AuthProvider,
+ * SocketProvider, the splash screen, and the app router — so the UMNAAPP login,
+ * register, landing, and home pages are never reachable from the map platform.
+ */
+function isPublicMapRequest() {
+  if (typeof window === 'undefined') return false
+  const host = window.location.hostname || ''
+  const path = window.location.pathname || ''
+  const forcedMapsHost =
+    host.startsWith('maps.') || host === (import.meta.env.VITE_MAPS_HOST || '').toLowerCase()
+  const mapsPath =
+    path === '/embedded-map' ||
+    path.startsWith('/embedded-map') ||
+    path === '/map' ||
+    path.startsWith('/map/')
+  return forcedMapsHost || mapsPath
+}
+
 function App() {
+  if (isPublicMapRequest()) {
+    return <PublicMapPage />
+  }
+
   const authKitApiUrl = getAuthKitApiUrl()
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
   const [showSplash, setShowSplash] = useState(() => {
