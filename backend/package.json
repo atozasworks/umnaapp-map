@@ -8,7 +8,13 @@
     "postinstall": "prisma generate",
     "vapid:generate": "node scripts/generate-vapid-keys.js",
     "migrate:favorites": "node scripts/migrate-favorites.js",
-    "migrate:phase7": "node scripts/migrate-phase7-claims-labels.js"
+    "migrate:phase7": "node scripts/migrate-phase7-claims-labels.js",
+    "ci:lint": "prisma validate && prisma format --check",
+    "ci:audit": "npm audit --audit-level=high",
+    "ci:build": "prisma generate",
+    "ci:test": "node --test tests/smoke.test.mjs",
+    "validate:schemas": "prisma validate && prisma format --check",
+    "ci:check": "npm run ci:lint && npm run ci:audit && npm run ci:build"
   },
   "dependencies": {
     "@mapbox/polyline": "^1.2.1",
