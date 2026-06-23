@@ -462,6 +462,11 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const nextWpId = useRef(2)
   const autoCalcTimerRef = useRef(null)
   const skipNextAutoCalcRef = useRef(false)
+  // Monotonic token so only the most recent route calculation is allowed to
+  // touch the map/state. Without this, a slower/older request can resolve
+  // after a newer one and clobber the map, making the polyline appear only
+  // intermittently.
+  const calcSeqRef = useRef(0)
   const [activeSearch, setActiveSearch] = useState(null)
   const tNoPlacesFound = useTranslate('No places found')
 
@@ -536,12 +541,22 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     [mapRef, getRouteMapPadding, mobileSheetCollapsed]
   )
 
-  // Notify parent when stops change so map can show route markers
+  // Notify parent when stops change so map can show route markers.
+  // The callback is held in a ref so the effect does NOT depend on the
+  // parent's (often inline) function identity — depending on it caused an
+  // infinite render loop ("Maximum update depth exceeded"). We trigger only
+  // when the actual stop coordinates change, via the stable signature.
+  const onRoutePlacesChangeRef = useRef(onRoutePlacesChange)
   useEffect(() => {
-    if (onRoutePlacesChange) {
-      onRoutePlacesChange(effectiveStartPlace, endPlace, effectiveRouteStops)
-    }
-  }, [effectiveStartPlace, endPlace, effectiveRouteStops, onRoutePlacesChange])
+    onRoutePlacesChangeRef.current = onRoutePlacesChange
+  }, [onRoutePlacesChange])
+
+  useEffect(() => {
+    onRoutePlacesChangeRef.current?.(effectiveStartPlace, endPlace, effectiveRouteStops)
+    // effectiveStartPlace/endPlace/effectiveRouteStops are all captured by
+    // resolvedStopsSignature; depend on the signature only to avoid loops.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedStopsSignature])
 
   useEffect(() => {
     if (!mapRef?.current?.setRouteEditHandler) return
@@ -640,6 +655,10 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
 
     const mode = modeOverride || travelMode
     const routeOpts = MODE_ROUTE_OPTIONS[mode] || {}
+    // Claim the latest-request token. Any in-flight older calculation becomes
+    // stale and must not paint or mutate state once this runs.
+    const reqId = ++calcSeqRef.current
+    const isStale = () => reqId !== calcSeqRef.current
     setIsCalculating(true)
     setError(null)
     setShowSteps(false)
@@ -653,14 +672,16 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         const padding = getRouteMapPadding(isMobileViewport)
         const requestAlts = wp.length === 0
 
-        // Instant preview line before API responds
-        mapRef.current.previewRoute?.(start, end, { ...routeOpts, padding })
-
         const result = await mapRef.current.calculateRoute(start, end, wp, mode, {
           ...routeOpts,
           alternatives: requestAlts,
           padding,
         })
+
+        // A newer calculation started while we were awaiting — drop this result
+        // so it can't overwrite the fresher route.
+        if (isStale()) return
+
         const primary = result.route
         const altRoutes = result.alternatives
 
@@ -683,6 +704,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         mapRef.current.ensureRouteOnTop?.()
 
         window.requestAnimationFrame(() => {
+          if (isStale()) return
           if (altRoutes && altRoutes.length > 1) {
             setAlternativeRoutes(altRoutes)
             setSelectedRouteIndex(0)
@@ -694,7 +716,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           mapRef.current?.ensureRouteOnTop?.()
         })
 
-        fetchAllModes(start, end, wp, mode, primary)
+        fetchAllModes(start, end, wp, mode, primary, reqId)
 
         if (isMobileViewport) {
           setMobileSheetCollapsed(true)
@@ -703,13 +725,16 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         }
       } else if (onCalculateRoute) {
         const route = await onCalculateRoute(start, end, wp, mode)
+        if (isStale()) return
         setRouteData(route)
         setIsRouteEdited(false)
       }
     } catch (err) {
-      setError(err.response?.data?.error || err.message || tFailedRoute)
+      if (!isStale()) setError(err.response?.data?.error || err.message || tFailedRoute)
     } finally {
-      setIsCalculating(false)
+      // Only the latest request controls the spinner; a stale request finishing
+      // must not flip it off while a newer one is still running.
+      if (!isStale()) setIsCalculating(false)
     }
   }, [
     effectiveRouteStops,
@@ -891,7 +916,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     }
   }, [resolvedStopsSignature, handleCalculate, effectiveRouteStops.length])
 
-  const fetchAllModes = async (start, end, wp, currentMode, currentRoute) => {
+  const fetchAllModes = async (start, end, wp, currentMode, currentRoute, reqId) => {
     const modesResult = { [currentMode]: currentRoute }
     const otherModes = TRAVEL_MODES.map((m) => m.id).filter((m) => m !== currentMode)
     const promises = otherModes.map(async (mode) => {
@@ -909,10 +934,14 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       }
     })
     await Promise.all(promises)
+    // Skip if a newer calculation has superseded this one.
+    if (reqId != null && reqId !== calcSeqRef.current) return
     setAllModesData(modesResult)
   }
 
   const handleModeChange = (mode) => {
+    // Invalidate any in-flight calculation from the previous mode.
+    calcSeqRef.current += 1
     setTravelMode(mode)
     setShowSteps(false)
     setAlternativeRoutes(null)
@@ -934,6 +963,8 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   }
 
   const handleClear = () => {
+    // Invalidate any in-flight calculation so it can't repaint after clearing.
+    calcSeqRef.current += 1
     skipNextAutoCalcRef.current = true
     if (mapRef?.current?.clearRoute) {
       mapRef.current.clearRoute()

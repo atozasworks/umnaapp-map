@@ -1,7 +1,6 @@
 import express from 'express'
 import { URL } from 'url'
 import axios from 'axios'
-import polyline from '@mapbox/polyline'
 import { body, query, validationResult } from 'express-validator'
 import { authenticateToken, optionalAuth } from '../middleware/auth.js'
 import { cacheMiddleware } from '../middleware/cache.js'
@@ -75,12 +74,10 @@ import {
   buildDirectRoute,
 } from '../utils/routeHelpers.js'
 import {
-  osrmProfileFor,
   osrmProfileCandidates,
   buildTrainRoute,
   applyTravelModeToRoutes,
-  routeNeedsPedestrianOrCycleRefetch,
-  pickPrimaryRoute,
+  applyTrainTimingToRoute,
 } from '../utils/travelModeRouting.js'
 
 const router = express.Router()
@@ -90,9 +87,9 @@ function attachApprovalMeta(p) {
 }
 
 const ROUTE_SERVICE_URL = process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in'
-const ROUTE_BASE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in').replace(/\/+$/, '') + '/map/route'
 const OSRM_URL = (process.env.OSRM_URL || '').trim().replace(/\/+$/, '')
-const OSRM_PUBLIC = 'https://router.project-osrm.org'
+// Public OpenStreetMap routing engine (OSRM) — primary routing source.
+const OSRM_PUBLIC = (process.env.OSRM_PUBLIC_URL || 'https://router.project-osrm.org').trim().replace(/\/+$/, '')
 const SEARCH_URL = process.env.SEARCH_URL || 'https://umnaapp.in/map/nominatim/search?q='
 const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
 const REVERSE_URL = process.env.REVERSE_URL || 'https://umnaapp.in/map/reverse'
@@ -234,7 +231,7 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
 router.get(
   '/route',
   authenticateToken,
-  rateLimitMiddleware('route', 30, 60), // 30 requests per minute
+  rateLimitMiddleware('route', 120, 60), // 120/min — each directions calc fans out to ~6 calls (route + per-mode ETAs)
   [
     query('start').isString().withMessage('Start coordinates required (lat,lng)'),
     query('end').isString().withMessage('End coordinates required (lat,lng)'),
@@ -253,8 +250,6 @@ router.get(
       const { start, end, profile = 'driving', waypoints, alternatives } = req.query
       const wantAlternatives = alternatives === 'true'
 
-      const osrmProfile = osrmProfileFor(profile)
-
       // Validate coordinates (frontend sends lat,lng)
       const startCoords = start.split(',').map(Number)
       const endCoords = end.split(',').map(Number)
@@ -271,17 +266,6 @@ router.get(
         : []
 
       let routeData = null
-
-      if (profile === 'train') {
-        routeData = buildTrainRoute(
-          startCoords[0],
-          startCoords[1],
-          endCoords[0],
-          endCoords[1],
-          parsedWaypoints
-        )
-        console.log('🗺️  Route estimated for train (no OSRM transit graph)')
-      }
 
       // Build coordinates string: lon,lat;lon,lat (UMNAAPP format)
       let coordinatesStr = `${startCoords[1]},${startCoords[0]}` // lng,lat
@@ -354,88 +338,20 @@ router.get(
         return null
       }
 
-      const parseUmnaappRoute = (route, geom) => {
-        if (geom === 'geojson' && route?.geometry?.coordinates?.length > 0) {
-          return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: route.geometry, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
-        }
-        if (geom === 'polyline' && typeof route?.geometry === 'string') {
-          const dec = polyline.decode(route.geometry, 5)
-          const coordinates = dec.map(([lat, lng]) => [lng, lat])
-          return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: { type: 'LineString', coordinates }, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
-        }
-        return null
-      }
-
-      /** Fetch from umnaapp-style API: /map/route/{profile}/{coords} */
-      const tryUmnaapp = async () => {
-        const umnaProfile = osrmProfile || 'driving'
-        const url = `${ROUTE_BASE_URL}/${umnaProfile}/${coordinatesStr}`
-        for (const geom of ['geojson', 'polyline']) {
-          try {
-            const params = { overview: 'full', geometries: geom, steps: 'true' }
-            if (wantAlternatives) params.alternatives = 'true'
-            const res = await axios.get(url, { params, timeout: 10000 })
-            const contentType = String(res.headers?.['content-type'] || '')
-            if (contentType.includes('text/html') || typeof res.data === 'string') {
-              continue
-            }
-            const data = res.data
-            const allRoutes = data.routes || []
-            if (wantAlternatives && allRoutes.length > 0) {
-              const altParsed = allRoutes.map((r) => parseUmnaappRoute(r, geom)).filter(Boolean).slice(0, 3)
-              if (altParsed.length > 0) return altParsed
-            }
-            const route = allRoutes[0] ?? (data.geometry ? { geometry: data.geometry, distance: data.distance, duration: data.duration, legs: data.legs } : null)
-            const singleParsed = parseUmnaappRoute(route, geom)
-            if (singleParsed) return wantAlternatives ? [singleParsed] : singleParsed
-          } catch (e) {
-            if (geom === 'geojson') console.warn('Route umnaapp GeoJSON failed:', e.message)
-          }
-        }
-        return null
-      }
-
-      // 1) umnaapp.in standard OSRM — https://umnaapp.in/route/v1/{profile}/{coords}
+      // 1) Public OpenStreetMap routing (OSRM) — https://router.project-osrm.org
+      //    This is the primary source: real road-following geometry from OSM data.
       if (!routeData) {
         try {
-          routeData = await tryOsrm(ROUTE_SERVICE_URL)
-          if (routeData) console.log('🗺️  Route from umnaapp.in/route')
+          routeData = await tryOsrm(OSRM_PUBLIC)
+          if (routeData) console.log('🗺️  Route from OpenStreetMap (OSRM public)')
         } catch (e) {
-          console.warn('Route umnaapp.in/route failed:', e.message)
+          console.warn('Route OSRM public failed:', e.message)
         }
-      }
-
-      // umnaapp often accepts walk/cycle profiles but returns driving speeds — refetch from public OSRM
-      if (
-        routeData &&
-        (profile === 'walking' || profile === 'cycling') &&
-        routeNeedsPedestrianOrCycleRefetch(pickPrimaryRoute(routeData), profile)
-      ) {
-        console.warn(`Route umnaapp ${profile} looks like driving — trying public OSRM`)
-        routeData = null
       }
 
       const needsMoreAlternatives = wantAlternatives && !hasMultipleRoutes(routeData)
 
-      // 2) Legacy umnaapp /map/route/... (custom wrapper, if deployed)
-      if (!routeData || needsMoreAlternatives) {
-        try {
-          const legacy = await tryUmnaapp()
-          if (legacy) {
-            if (needsMoreAlternatives && hasMultipleRoutes(legacy)) {
-              routeData = legacy
-              console.log('🗺️  Alternative routes from umnaapp /map/route')
-            } else if (!routeData) {
-              routeData = legacy
-              console.log('🗺️  Route from umnaapp /map/route')
-            }
-          }
-        } catch (e) {
-          console.warn('Route umnaapp /map/route failed:', e.message)
-        }
-      }
-
-      // 3) OSRM_URL (Docker/local) — dev fallback or extra alternatives
+      // 2) Self-hosted OSRM (Docker/local), if configured — OSM-based fallback / extra alternatives
       if ((!routeData || needsMoreAlternatives) && OSRM_URL) {
         try {
           const osrmRoutes = await tryOsrm(OSRM_URL)
@@ -453,21 +369,21 @@ router.get(
         }
       }
 
-      // 4) Public OSRM demo
-      if (!routeData || (wantAlternatives && !hasMultipleRoutes(routeData))) {
+      // 3) umnaapp.in OSRM (also OSM-based) — last-resort network fallback only
+      if (!routeData || needsMoreAlternatives) {
         try {
-          const osrmRoutes = await tryOsrm(OSRM_PUBLIC)
-          if (osrmRoutes) {
-            if (wantAlternatives && hasMultipleRoutes(osrmRoutes)) {
-              routeData = osrmRoutes
-              console.log('🗺️  Alternative routes from OSRM public')
+          const umnaOsrm = await tryOsrm(ROUTE_SERVICE_URL)
+          if (umnaOsrm) {
+            if (needsMoreAlternatives && hasMultipleRoutes(umnaOsrm)) {
+              routeData = umnaOsrm
+              console.log('🗺️  Alternative routes from umnaapp.in/route')
             } else if (!routeData) {
-              routeData = osrmRoutes
-              console.log('🗺️  Route from OSRM public')
+              routeData = umnaOsrm
+              console.log('🗺️  Route from umnaapp.in/route')
             }
           }
         } catch (e) {
-          console.warn('Route OSRM public failed:', e.message)
+          console.warn('Route umnaapp.in/route failed:', e.message)
         }
       }
 
@@ -478,19 +394,36 @@ router.get(
 
       let primaryRoute = Array.isArray(routeData) ? routeData[0] : routeData
       if (!primaryRoute?.geometry?.coordinates?.length) {
-        const fallback = buildDirectRoute(
-          startCoords[0],
-          startCoords[1],
-          endCoords[0],
-          endCoords[1],
-          profile
-        )
+        // No road geometry available. For train, keep the multi-stop straight
+        // estimate; for everything else use a direct straight fallback.
+        const fallback =
+          profile === 'train'
+            ? buildTrainRoute(
+                startCoords[0],
+                startCoords[1],
+                endCoords[0],
+                endCoords[1],
+                parsedWaypoints
+              )
+            : buildDirectRoute(
+                startCoords[0],
+                startCoords[1],
+                endCoords[0],
+                endCoords[1],
+                profile
+              )
         routeData = wantAlternatives ? [fallback] : fallback
         primaryRoute = fallback
         console.warn('Route services unavailable — using direct fallback path')
       }
 
-      const finalRoutes = applyTravelModeToRoutes(toRouteArray(routeData), profile)
+      let finalRoutes = applyTravelModeToRoutes(toRouteArray(routeData), profile)
+      if (profile === 'train') {
+        // Keep the real road geometry but re-time it as a train estimate.
+        finalRoutes = finalRoutes.map((r) =>
+          r?.fallback ? r : applyTrainTimingToRoute(r, parsedWaypoints.length)
+        )
+      }
       routeData = wantAlternatives ? finalRoutes : finalRoutes[0]
       primaryRoute = finalRoutes[0]
 

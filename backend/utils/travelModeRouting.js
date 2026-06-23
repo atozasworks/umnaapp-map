@@ -32,12 +32,20 @@ const TRAIN_DISTANCE_FACTOR = 1.32
 const TRAIN_ACCESS_SECONDS = 14 * 60
 const TRAIN_TRANSFER_SECONDS = 6 * 60
 
+// Candidate OSRM profile names per app mode. The public OpenStreetMap OSRM
+// demo (router.project-osrm.org) only serves the car/driving profile, so we
+// always append 'driving'/'car' as a final fallback. That guarantees real
+// road-following geometry for every mode; per-mode duration is then remodelled
+// by adjustRouteForTravelMode().
 const OSRM_PROFILE_ALIASES = {
-  walking: ['walking', 'foot'],
-  cycling: ['cycling', 'bike'],
+  walking: ['walking', 'foot', 'driving', 'car'],
+  cycling: ['cycling', 'bike', 'driving', 'car'],
   driving: ['driving', 'car'],
   two_wheeler: ['driving', 'car'],
   bus: ['driving', 'car'],
+  // Train has no transit graph, but we still fetch a road path so the map
+  // draws a real route line that follows roads instead of a dead-straight line.
+  train: ['driving', 'car'],
 }
 
 export function osrmProfileFor(appProfile) {
@@ -57,6 +65,9 @@ export function osrmProfileFor(appProfile) {
 }
 
 export function osrmProfileCandidates(appProfile) {
+  // Train has no OSRM profile of its own, but we still want road geometry for
+  // the drawn line, so fetch via the driving graph.
+  if (appProfile === 'train') return OSRM_PROFILE_ALIASES.train
   const base = osrmProfileFor(appProfile)
   if (!base) return []
   return OSRM_PROFILE_ALIASES[appProfile] || OSRM_PROFILE_ALIASES[base] || [base]
@@ -176,6 +187,28 @@ export function buildTrainRoute(startLat, startLng, endLat, endLng, waypoints = 
     },
     legs,
     steps: [],
+    estimated: true,
+  }
+}
+
+/**
+ * Re-time a real (road-following) route as a train estimate while keeping its
+ * geometry, so the map shows a route line that follows roads instead of a
+ * dead-straight line. Used when an OSRM road path is available for `train`.
+ */
+export function applyTrainTimingToRoute(route, waypointCount = 0) {
+  if (!route?.geometry?.coordinates?.length) return route
+  const distance = route.distance ?? 0
+  const transfers = Math.max(0, waypointCount) * TRAIN_TRANSFER_SECONDS
+  const duration = TRAIN_ACCESS_SECONDS + transfers + Math.round(distance / MODE_SPEED_MPS.train)
+  const legs = route.legs || []
+  return {
+    ...route,
+    duration,
+    legs: legs.map((leg) => {
+      const frac = distance > 0 ? (leg.distance ?? 0) / distance : 1 / (legs.length || 1)
+      return { ...leg, duration: Math.max(1, Math.round(duration * frac)) }
+    }),
     estimated: true,
   }
 }

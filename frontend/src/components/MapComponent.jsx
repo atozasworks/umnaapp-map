@@ -2363,7 +2363,7 @@ const MapComponent = forwardRef(({
     altRouteSelectCallbackRef.current = onSelectRoute
 
     const run = () => {
-      if (!map.isStyleLoaded()) return
+      // whenStyleReady (below) ensures the style is ready before run() fires.
       clearAlternativeRoutes()
       alternativeRoutesRef.current = altRoutes
       altRouteDrawStateRef.current = { altRoutes, selectedIndex, options }
@@ -2520,16 +2520,23 @@ const MapComponent = forwardRef(({
     }
 
     const run = () => {
-      if (!map.isStyleLoaded()) return
-
+      // whenStyleReady (below) guarantees the style is ready before run() is
+      // invoked, so we can draw immediately here.
       const shouldFitBounds = options.fitBounds !== false
       const isPreview = options.preview === true
       const lineColor = options.color || ROUTE_GOOGLE_BLUE
       const lineDash = isPreview ? [4, 4] : (options.dashArray || null)
-      const existingSource = map.getSource(ROUTE_SOURCE_ID)
+      // Only reuse the existing source if its layers are all still present.
+      // A basemap/style change can drop the layers while leaving the source,
+      // which makes setData() update data that nothing renders (invisible line).
+      const layersIntact =
+        map.getLayer(ROUTE_CASING_LAYER_ID) &&
+        map.getLayer(ROUTE_HIT_LAYER_ID) &&
+        map.getLayer(ROUTE_LAYER_ID)
+      const existingSource = map.getSource(ROUTE_SOURCE_ID) && layersIntact
 
       if (existingSource) {
-        existingSource.setData(feature)
+        map.getSource(ROUTE_SOURCE_ID).setData(feature)
         paintRouteLayers()
       } else {
         removeRouteLayers(map)
@@ -2597,6 +2604,18 @@ const MapComponent = forwardRef(({
         if (routeLayerRef.current) ensureRouteOnTopRef.current(map)
       })
 
+      if (import.meta.env.DEV) {
+        const styleLayers = map.getStyle?.()?.layers || []
+        const routeIdx = styleLayers.findIndex((l) => l.id === ROUTE_LAYER_ID)
+        console.log('[route-debug] applyRouteToMap done', {
+          reusedSource: existingSource,
+          hasRouteLayer: !!map.getLayer(ROUTE_LAYER_ID),
+          routeLayerIndex: routeIdx,
+          totalLayers: styleLayers.length,
+          topLayerId: styleLayers[styleLayers.length - 1]?.id,
+        })
+      }
+
       routeLayerRef.current = true
       routeGeoJsonRef.current = feature
       lastRouteDrawOptionsRef.current = options
@@ -2617,22 +2636,31 @@ const MapComponent = forwardRef(({
       }
     }
 
-    if (map.isStyleLoaded()) {
-      run()
-    } else {
-      whenStyleReady(map, run)
-    }
+    // Always go through whenStyleReady: it runs synchronously when the style
+    // is already loaded, and otherwise polls until it is (instead of waiting
+    // for a style.load event that may never fire during tile loading).
+    whenStyleReady(map, run)
   }, [bindRouteEditListeners, removeRouteLayers])
 
   // Draw route on map
   const drawRoute = useCallback((routeData, options = {}) => {
     const map = mapRef.current
-    if (!map) return
+    if (!map) {
+      if (import.meta.env.DEV) console.warn('[route-debug] drawRoute: no map instance')
+      return
+    }
 
     const feature = toFeatureGeometry(routeData, options.fallbackEndpoints)
     if (!feature) {
       console.warn('[map] Route geometry missing or invalid', routeData)
       return
+    }
+    if (import.meta.env.DEV) {
+      console.log('[route-debug] drawRoute', {
+        preview: options.preview === true,
+        coords: feature.geometry.coordinates.length,
+        styleLoaded: map.isStyleLoaded?.(),
+      })
     }
     applyRouteToMap(feature, options)
   }, [applyRouteToMap, toFeatureGeometry])
@@ -2708,8 +2736,9 @@ const MapComponent = forwardRef(({
       const requestAlternatives = routeOptions.alternatives === true && waypoints.length === 0
       const drawOpts = { ...routeOptions, fallbackEndpoints: { start, end } }
 
-      // Show a preview line immediately while the routing API responds
-      drawRoute(null, { ...drawOpts, preview: true, fitBounds: routeOptions.fitBounds !== false })
+      // Note: no straight-line preview is drawn. We wait for the routing API
+      // and only ever paint the real road-following geometry, so the user
+      // never sees a misleading straight line.
 
       const params = {
         start: `${start.lat},${start.lng}`,
