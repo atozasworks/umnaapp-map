@@ -86,9 +86,10 @@ function attachApprovalMeta(p) {
   return enrichPlaceApprovalMeta(p)
 }
 
-const ROUTE_SERVICE_URL = process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in'
+// Self-hosted umnaapp.in OSRM — primary routing source.
+const ROUTE_SERVICE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in/osrm').trim().replace(/\/+$/, '')
 const OSRM_URL = (process.env.OSRM_URL || '').trim().replace(/\/+$/, '')
-// Public OpenStreetMap routing engine (OSRM) — primary routing source.
+// Public OpenStreetMap routing engine (OSRM) — secondary fallback.
 const OSRM_PUBLIC = (process.env.OSRM_PUBLIC_URL || 'https://router.project-osrm.org').trim().replace(/\/+$/, '')
 const SEARCH_URL = process.env.SEARCH_URL || 'https://umnaapp.in/map/nominatim/search?q='
 const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
@@ -338,14 +339,14 @@ router.get(
         return null
       }
 
-      // 1) Public OpenStreetMap routing (OSRM) — https://router.project-osrm.org
-      //    This is the primary source: real road-following geometry from OSM data.
+      // 1) umnaapp.in OSRM (self-hosted, OSM-based) — primary routing source:
+      //    real road-following geometry from our own OSRM engine.
       if (!routeData) {
         try {
-          routeData = await tryOsrm(OSRM_PUBLIC)
-          if (routeData) console.log('🗺️  Route from OpenStreetMap (OSRM public)')
+          routeData = await tryOsrm(ROUTE_SERVICE_URL)
+          if (routeData) console.log('🗺️  Route from umnaapp.in/osrm (primary)')
         } catch (e) {
-          console.warn('Route OSRM public failed:', e.message)
+          console.warn('Route umnaapp.in/osrm failed:', e.message)
         }
       }
 
@@ -369,21 +370,22 @@ router.get(
         }
       }
 
-      // 3) umnaapp.in OSRM (also OSM-based) — last-resort network fallback only
+      // 3) Public OpenStreetMap routing (OSRM) — https://router.project-osrm.org
+      //    Secondary network fallback when the primary umnaapp.in/osrm engine is down.
       if (!routeData || needsMoreAlternatives) {
         try {
-          const umnaOsrm = await tryOsrm(ROUTE_SERVICE_URL)
-          if (umnaOsrm) {
-            if (needsMoreAlternatives && hasMultipleRoutes(umnaOsrm)) {
-              routeData = umnaOsrm
-              console.log('🗺️  Alternative routes from umnaapp.in/route')
+          const publicOsrm = await tryOsrm(OSRM_PUBLIC)
+          if (publicOsrm) {
+            if (needsMoreAlternatives && hasMultipleRoutes(publicOsrm)) {
+              routeData = publicOsrm
+              console.log('🗺️  Alternative routes from OpenStreetMap (OSRM public)')
             } else if (!routeData) {
-              routeData = umnaOsrm
-              console.log('🗺️  Route from umnaapp.in/route')
+              routeData = publicOsrm
+              console.log('🗺️  Route from OpenStreetMap (OSRM public)')
             }
           }
         } catch (e) {
-          console.warn('Route umnaapp.in/route failed:', e.message)
+          console.warn('Route OSRM public failed:', e.message)
         }
       }
 
