@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { registerSW } from 'virtual:pwa-register'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { isElectron } from '../platform/runtime'
 
 function PwaOfflineBanner() {
   const isOnline = useOnlineStatus()
@@ -50,6 +51,9 @@ export default function PwaShell({ children }) {
   const [needRefresh, setNeedRefresh] = useState(false)
 
   useEffect(() => {
+    // Desktop (Electron) loads from file:// — no service worker. Web & Capacitor
+    // keep the exact same registration as before.
+    if (isElectron()) return
     updateSWRef.current = registerSW({
       immediate: true,
       onNeedRefresh() {

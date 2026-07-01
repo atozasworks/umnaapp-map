@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import AppLogo from './AppLogo'
 import { usePwaInstall } from '../hooks/usePwaInstall'
+import { isNative } from '../platform/runtime'
 
 /** Bottom-right install popup for the landing page. */
 export default function LandingInstallPopup() {
@@ -10,6 +11,8 @@ export default function LandingInstallPopup() {
   const [hint, setHint] = useState('')
   const [installing, setInstalling] = useState(false)
 
+  // No PWA-install prompt inside the packaged Android/Windows apps.
+  if (isNative()) return null
   if (!showPopup) return null
 
   const handleInstall = () => {

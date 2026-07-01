@@ -7,6 +7,44 @@ import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
+/**
+ * Build target switch (ADDITIVE — defaults to the original web build).
+ *   UMNA_TARGET=electron → base './' (file:// assets) + service worker disabled.
+ *   UMNA_TARGET=capacitor → keep base '/' and the PWA/SW (WebView serves from a root).
+ *   unset / anything else → original web/PWA build, byte-for-byte unchanged.
+ */
+const BUILD_TARGET = process.env.UMNA_TARGET || 'web'
+const isElectronBuild = BUILD_TARGET === 'electron'
+
+/**
+ * Dev-only: serve packaged native artifacts at /downloads/* from the repo-root
+ * dist/ (dist/windows/UmnaAppSetup.exe, dist/android/app.apk|app.aab) so the
+ * landing-page "Install App" download buttons work during `npm run dev` without
+ * bundling huge binaries into the web build. In production, host these files and
+ * point VITE_APK_URL / VITE_EXE_URL at them.
+ */
+function serveDownloads() {
+  const repoDist = path.resolve(__dirname, '..', 'dist')
+  return {
+    name: 'umna-serve-downloads',
+    configureServer(server) {
+      server.middlewares.use('/downloads', (req, res, next) => {
+        const fileName = path.basename((req.url || '').split('?')[0])
+        if (!fileName) return next()
+        const candidates = [
+          path.join(repoDist, 'windows', fileName),
+          path.join(repoDist, 'android', fileName),
+        ]
+        const file = candidates.find((f) => fs.existsSync(f))
+        if (!file) return next()
+        res.setHeader('Content-Type', 'application/octet-stream')
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
+        fs.createReadStream(file).pipe(res)
+      })
+    },
+  }
+}
+
 const atozasAuthKitPath = (() => {
   const pkg = 'atozas-react-auth-kit'
   const candidates = [
@@ -17,8 +55,11 @@ const atozasAuthKitPath = (() => {
 })()
 
 export default defineConfig({
+  // Electron loads from file:// so assets must be relative. Web/PWA keeps '/'.
+  base: isElectronBuild ? './' : '/',
   plugins: [
     react(),
+    serveDownloads(),
     VitePWA({
       strategies: 'injectManifest',
       srcDir: 'src',
@@ -62,6 +103,11 @@ export default defineConfig({
       injectManifest: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,webmanifest,json}'],
       },
+      // The generated service worker is only ever registered on web/Capacitor
+      // (see PwaShell). For the Electron build we keep the plugin so the
+      // `virtual:pwa-register` import still resolves, but never register the SW
+      // and self-destroy any stale one under file://.
+      selfDestroying: isElectronBuild,
       devOptions: {
         enabled: true,
         type: 'module',

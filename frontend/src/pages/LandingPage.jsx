@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLogo from '../components/AppLogo'
 import LandingInstallPopup from '../components/LandingInstallPopup'
+import InstallAppSection from '../components/InstallAppSection'
 import MapAssistantChatbot from '../components/MapAssistantChatbot'
 import { useAuth } from '../contexts/AuthContext'
 import { GITHUB_REPO_URL, devSetupSteps, prerequisites } from '../constants/openSource'
@@ -577,6 +578,9 @@ const LandingPage = () => {
             </div>
           </div>
         </section>
+
+        {/* Install App — Download APK / EXE / Install PWA (hidden inside native builds) */}
+        <InstallAppSection />
 
         {/* CTA */}
         <section className="px-4 sm:px-6 lg:px-8 pb-20 sm:pb-28 bg-white">

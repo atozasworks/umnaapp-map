@@ -22,6 +22,8 @@ import {
   throttle,
 } from '../utils/userPlaceLabelLayout'
 import { isPersistedPlaceId } from '../utils/placeSource'
+import { isNative } from '../platform/runtime'
+import { getApiOrigin } from '../utils/apiBase'
 
 const ROUTE_SOURCE_ID = 'route'
 const ROUTE_CASING_LAYER_ID = 'route-casing'
@@ -164,7 +166,12 @@ const resolveStreetTileUrl = () => {
     url = `${env.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
   }
   if (url.startsWith('/api/map/tiles')) {
-    return PROXY_STREET_TILE_URL
+    url = PROXY_STREET_TILE_URL
+  }
+  // Native (Capacitor/Electron) has no same-origin server: promote any relative
+  // tile URL to an absolute backend URL. Web/PWA keeps the relative proxy path.
+  if (isNative() && url.startsWith('/')) {
+    return `${getApiOrigin()}${url}`
   }
   return url
 }

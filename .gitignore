@@ -16,6 +16,29 @@ node_modules/
 .env.*
 backend/.env
 frontend/.env
+# but DO track example env templates
+!.env.example
+!frontend/.env.example
+
+# Native packaging — Electron build artifacts (generated)
+/frontend/release/
+/frontend/dist-electron/
+
+# Capacitor: the android/ project IS committed (per Capacitor convention), but
+# build artifacts and signing secrets are NOT.
+/frontend/android/app/build/
+/frontend/android/build/
+/frontend/android/.gradle/
+/frontend/android/captures/
+/frontend/android/local.properties
+/frontend/ios/
+
+# Android signing secrets — NEVER commit
+/frontend/android/keystore.properties
+/frontend/android/keystore/
+*.keystore
+*.jks
+*.keystore.jks
 
 # Logs
 logs/

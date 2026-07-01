@@ -19,6 +19,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import PwaShell from './components/PwaShell'
 import SplashScreen from './components/SplashScreen'
 import { getAuthKitApiUrl } from './utils/apiBase'
+import { isNative } from './platform/runtime'
 import { useLanguageDocAttrs } from './lib/i18n'
 import './lib/i18n/fonts.css'
 
@@ -40,10 +41,15 @@ function LanguageDocSync({ children }) {
  */
 function isPublicMapRequest() {
   if (typeof window === 'undefined') return false
+  // Packaged native apps (Android/Windows) always run the FULL UMNAAPP, never the
+  // login-free public map viewer. Under file:// (Electron) window.location.hostname
+  // is '' which would otherwise falsely match an empty VITE_MAPS_HOST.
+  if (isNative()) return false
   const host = window.location.hostname || ''
   const path = window.location.pathname || ''
+  const mapsHost = (import.meta.env.VITE_MAPS_HOST || '').toLowerCase()
   const forcedMapsHost =
-    host.startsWith('maps.') || host === (import.meta.env.VITE_MAPS_HOST || '').toLowerCase()
+    host.startsWith('maps.') || (!!mapsHost && host === mapsHost)
   const mapsPath =
     path === '/embedded-map' ||
     path.startsWith('/embedded-map') ||

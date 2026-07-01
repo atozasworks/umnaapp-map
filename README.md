@@ -103,6 +103,120 @@ npx prisma generate
 npx prisma migrate dev
 ```
 
+## Cross-Platform Packaging (Web / Android / Windows)
+
+The **same** React frontend (`frontend/`) ships to three targets from one codebase.
+This is an **additive layer** — the web/PWA build, routes, auth, MapLibre, Socket.IO,
+Web Push (VAPID), and backend are all unchanged.
+
+| Target  | How it runs | Service Worker | API base |
+| ------- | ----------- | -------------- | -------- |
+| **Web / PWA** | Browser, `vite build` (`base '/'`) | ✅ enabled (injectManifest) | relative `/api` (same-origin / dev proxy) |
+| **Android** | Capacitor WebView | ✅ enabled | absolute `VITE_API_URL` |
+| **Windows** | Electron (`file://`) | ❌ disabled | absolute `VITE_API_URL` |
+
+Platform detection lives in `frontend/src/platform/runtime.js`; the API/socket/tile
+base resolution lives in `frontend/src/utils/apiBase.js`.
+
+### Environment variables (`frontend/.env`)
+
+Copy `frontend/.env.example` → `frontend/.env`. For **native builds these are required**
+(native apps have no same-origin server); for **web they should stay empty** so the
+original relative behavior is preserved.
+
+| Variable | Web | Native (Android/Windows) |
+| -------- | --- | ------------------------ |
+| `VITE_API_URL` | leave **empty** | **required**, absolute hosted backend, e.g. `https://umnaapptst.testatozas.in` |
+| `VITE_TILESERVER_URL` | optional | absolute, e.g. `https://umnaapp.in/tiles/{z}/{x}/{y}.png` |
+| `VITE_GOOGLE_CLIENT_ID` | Google web client ID | same |
+| `VITE_APK_URL`, `VITE_EXE_URL` | download links for the website "Install App" section | n/a |
+
+### Android (Capacitor)
+
+- App ID: `in.testatozas.umnaapp` · App name: `UMNAAPP` · webDir: `dist`
+- Plugins: App (deep links), Geolocation, Camera, Filesystem, Network, Browser, SplashScreen
+- Permissions: Internet, Location, Camera, Notifications (`POST_NOTIFICATIONS`)
+- Deep links: `umnaapp://` (incl. `umnaapp://auth`) and `https://umnaapptst.testatozas.in`
+
+**Prerequisites:** JDK 17, Android SDK / Android Studio (`ANDROID_HOME` set).
+
+```bash
+cd frontend
+npm install
+
+# One-time: create the android/ native project (already committed if present)
+npm run cap:add:android
+
+# Create a signing keystore + keystore.properties (KEEP THE PASSWORDS SAFE)
+npm run keystore:generate
+
+# Open in Android Studio (or build the signed APK + AAB)
+npm run android            # build web + sync + open Android Studio
+npm run build:apk          # signed APK + AAB → dist/android/app.apk, dist/android/app.aab
+```
+
+Outputs: `dist/android/app.apk` and `dist/android/app.aab`.
+
+**Google sign-in on Android:** GIS popups don't work in a WebView, so the native flow
+opens the hosted OAuth URL in the system browser and expects the JWT back via the
+`umnaapp://auth?token=...` deep link (handled in `src/platform/native.js`). The hosted
+backend must redirect to that deep link for native clients (or App Links must be
+configured via `/.well-known/assetlinks.json` on the hosted domain). **Email OTP works
+out of the box.**
+
+**Notifications:** Web Push/VAPID is unchanged for web/PWA. Native push is intentionally
+out of scope (no Firebase/FCM) — see `frontend/PUSH_NOTIFICATIONS.md`.
+
+### Windows (Electron)
+
+- Loads `frontend/dist` offline via `file://` with Vite `base './'` (web keeps `/`).
+- System tray (minimize to tray), single-instance lock, file access over IPC,
+  optional auto-update (`electron-updater`, safe no-op if unconfigured).
+- Service worker disabled in the desktop shell.
+
+```bash
+cd frontend
+npm run desktop            # build (electron target) + launch the desktop app
+npm run build:exe          # NSIS installer → dist/windows/UmnaAppSetup.exe
+```
+
+Output: `dist/windows/UmnaAppSetup.exe`.
+(Optional: add `frontend/build-resources/icon.ico` for a custom app icon.)
+
+### "Install App" section
+
+The landing page shows a platform-aware **Install App** section
+(`frontend/src/components/InstallAppSection.jsx`): Download APK (Android browsers),
+Download EXE (Windows browsers), Install PWA (everything else). It is hidden inside the
+packaged Android/Windows apps.
+
+### Build outputs summary
+
+```text
+dist/android/app.apk
+dist/android/app.aab
+dist/windows/UmnaAppSetup.exe
+```
+
+### Play Store guide (quick)
+
+1. Build the AAB: `npm run build:apk` → `dist/android/app.aab`.
+2. In the [Play Console](https://play.google.com/console), create the app
+   `in.testatozas.umnaapp`.
+3. Upload the AAB to a track (Internal testing → Production). Google re-signs with the
+   App Signing key; keep your upload keystore safe.
+4. Complete the store listing, content rating, data-safety form (declare Location, Camera).
+5. For Google sign-in + App Links, register your SHA-256 and host
+   `/.well-known/assetlinks.json` on `umnaapptst.testatozas.in`.
+
+### Deployment notes
+
+- **Web:** deploy `frontend/dist` (built with empty `VITE_API_URL`) as today; the backend
+  continues to serve it and handle `/api`, sockets, and Web Push unchanged.
+- **Native:** build with `VITE_API_URL` pointed at the hosted backend, then distribute the
+  APK/AAB and `UmnaAppSetup.exe`. Optionally publish the APK/EXE behind `VITE_APK_URL` /
+  `VITE_EXE_URL` so the website's Install App section can link to them.
+
 ## Tech Stack
 
 - Frontend: `React`, `Vite`, `Tailwind CSS`

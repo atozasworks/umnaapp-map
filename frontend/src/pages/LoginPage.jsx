@@ -2,6 +2,9 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthLayout, { AuthError, AuthDivider, GoogleSignInButton } from '../components/auth/AuthLayout'
 import api from '../services/api'
+import { isNative } from '../platform/runtime'
+import { startNativeGoogleLogin } from '../platform/native'
+import { getApiOrigin } from '../utils/apiBase'
 
 const errorMessages = {
   google_not_configured: 'Google login is not configured. Please use email OTP instead.',
@@ -41,7 +44,17 @@ const LoginPage = () => {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google'
+    // Web/PWA: unchanged same-origin OAuth redirect.
+    if (!isNative()) {
+      window.location.href = '/api/auth/google'
+      return
+    }
+    // Native (Android WebView): GIS popup/same-origin redirect won't work.
+    // Open the hosted OAuth flow in the system browser; the JWT returns via the
+    // umnaapp://auth deep link (handled in platform/native.js).
+    startNativeGoogleLogin(getApiOrigin()).then((ok) => {
+      if (!ok) setError('Google sign-in is unavailable. Please use email OTP.')
+    })
   }
 
   return (

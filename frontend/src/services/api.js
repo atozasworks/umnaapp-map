@@ -1,7 +1,9 @@
 import axios from 'axios'
+import { getApiBaseUrl } from '../utils/apiBase'
 
+// Web/PWA → '/api' (relative, unchanged). Native (Capacitor/Electron) → absolute backend URL.
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getApiBaseUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
