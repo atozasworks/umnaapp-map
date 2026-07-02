@@ -51,7 +51,7 @@ const RegisterPage = () => {
       subtitle="Join UMNAAPP and start mapping in minutes"
       footer={
         <p className="auth-footer-text">
-          Already have an account?{' '}
+          Already have an account? navya ..................{' '}
           <Link to="/login" className="auth-footer-link">
             Sign in
           </Link>
@@ -86,7 +86,7 @@ const RegisterPage = () => {
 
         <div className="auth-field">
           <label htmlFor="email" className="auth-label">
-            Email address
+            Email address 
           </label>
           <div className="auth-input-wrap">
             <svg className="auth-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
