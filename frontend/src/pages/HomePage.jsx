@@ -68,7 +68,7 @@ const resizeImageToDataUrl = (file, maxSize = MAX_AVATAR_SIZE) =>
     }
     img.src = url
   })
-
+//--------------------------------------------------------
 // Filter places to only those owned by the current user (by userId; each user sees only their own)
 const filterPlacesByUser = (placesList, currentUser) => {
   if (!currentUser) return []
