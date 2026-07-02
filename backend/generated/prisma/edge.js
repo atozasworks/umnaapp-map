@@ -444,7 +444,7 @@ const config = {
       "value": "prisma-client-js"
     },
     "output": {
-      "value": "C:\\001work\\umnaapp-map-1\\backend\\generated\\prisma",
+      "value": "C:\\001work\\Map_fork\\umnaapp-map\\backend\\generated\\prisma",
       "fromEnvVar": null
     },
     "config": {
@@ -458,7 +458,7 @@ const config = {
       }
     ],
     "previewFeatures": [],
-    "sourceFilePath": "C:\\001work\\umnaapp-map-1\\backend\\prisma\\schema.prisma",
+    "sourceFilePath": "C:\\001work\\Map_fork\\umnaapp-map\\backend\\prisma\\schema.prisma",
     "isCustomOutput": true
   },
   "relativeEnvPaths": {
