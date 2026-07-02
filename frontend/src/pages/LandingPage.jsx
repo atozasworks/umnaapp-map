@@ -225,7 +225,7 @@ const LandingPage = () => {
                 </div>
 
                 <h1 className="text-[2.75rem] sm:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6">
-                  <span className="text-white">Your world,</span>
+                  <span className="text-white">Your world, ch</span>
                   <br />
                   <span
                     className="bg-gradient-to-r from-sky-300 via-cyan-200 to-emerald-300 bg-clip-text text-transparent animate-shimmer"
