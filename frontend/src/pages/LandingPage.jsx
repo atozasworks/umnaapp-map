@@ -516,8 +516,7 @@ const LandingPage = () => {
                   Run UMNAAPP on your own machine
                 </h2>
                 <p className="text-slate-400 text-lg leading-relaxed mb-8">
-                  UMNAAPP is a free, open-source project. Clone the repo from GitHub, set up your environment,
-                  and run the full stack locally — React frontend, Node.js backend, PostgreSQL, and real-time map sync.
+                Get started with UMNAAPP by cloning the GitHub repository, configuring your local environment, and launching the complete stack—React frontend, Node.js backend, PostgreSQL database, and real-time map synchronization.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 mb-8">
