@@ -9,7 +9,7 @@ import { GITHUB_REPO_URL, devSetupSteps, prerequisites } from '../constants/open
 
 const features = [
   {
-    title: 'Interactive maps',
+    title: 'Interactive maps maps',
     description: 'Pan, zoom, and explore with buttery-smooth rendering.',
     gradient: 'from-sky-500 to-cyan-400',
     glow: 'group-hover:shadow-sky-500/25',
