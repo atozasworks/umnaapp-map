@@ -236,7 +236,7 @@ const LandingPage = () => {
                 </h1>
 
                 <p className="text-lg sm:text-xl text-slate-400 leading-relaxed max-w-xl mx-auto lg:mx-0 mb-8">
-                  Discover, save, and collaborate on locations with a stunning map experience — built for speed and clarity.
+                  Discover, save, and collaborate on locations with a stunning map experience — built for speed and clarity. Plan your next visit with confidence using live map insights. Keep your favorite places organized and easy to revisit anytime.
                 </p>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 mt-2">
