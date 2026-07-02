@@ -137,6 +137,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
                 </div>
               </div>
 
+              <h2 className="auth-brand-title">Every Journey, Perfectly Mapped...</h2>
              <h2 className="auth-brand-title">Find, Save & Share Amazing Places</h2>
               <p className="auth-brand-subtitle">
                 Discover places, save favorites, and collaborate in real time — all in one powerful map app.
