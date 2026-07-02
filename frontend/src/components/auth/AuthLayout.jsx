@@ -29,6 +29,15 @@ const highlights = [
     title: 'Real-time sync',
     text: 'Your pins and places update instantly everywhere.',
   },
+  {
+    icon: (
+      <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+      </svg>
+    ),
+    title: 'Save Favorite Places',
+    text: 'Quickly bookmark locations you visit most.',
+  },
 ]
 
 export function AuthError({ message }) {
@@ -129,6 +138,7 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
               </div>
 
               <h2 className="auth-brand-title">Every Journey, Perfectly Mapped...</h2>
+             <h2 className="auth-brand-title">Find, Save & Share Amazing Places</h2>
               <p className="auth-brand-subtitle">
                 Discover places, save favorites, and collaborate in real time — all in one powerful map app.
               </p>
