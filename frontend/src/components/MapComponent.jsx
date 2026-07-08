@@ -133,16 +133,27 @@ const verifyTileEndpoint = async (template) => {
   }
 }
 
+/**
+ * Force a raster tile source to drop its cached tiles and immediately request
+ * fresh ones for the current viewport. `clearTiles()` alone empties the cache
+ * but does not fetch replacements until the next map interaction, so we also
+ * call `update(transform)` to request the visible tiles right away (instant
+ * basemap switch instead of "changes only after you pan the map").
+ */
+const refreshRasterSourceCache = (map) => {
+  const cache = map.style?.sourceCaches?.['raster-tiles']
+  if (!cache) return
+  if (typeof cache.clearTiles === 'function') cache.clearTiles()
+  if (typeof cache.resume === 'function') cache.resume()
+  if (map.transform && typeof cache.update === 'function') cache.update(map.transform)
+  else if (typeof cache.reload === 'function') cache.reload()
+}
+
 const reloadRasterTileSource = (map, tileUrl) => {
   const src = map.getSource('raster-tiles')
   if (!src || typeof src.setTiles !== 'function') return false
   src.setTiles([tileUrl])
-  const cache = map.style?.sourceCaches?.['raster-tiles']
-  if (cache) {
-    cache.clearTiles()
-    if (typeof cache.reload === 'function') cache.reload()
-    else cache.update(map.transform)
-  }
+  refreshRasterSourceCache(map)
   map.triggerRepaint()
   return true
 }
@@ -255,12 +266,7 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
 
   raster.setTiles(getBasemapTileUrls(mode, streetUrl))
 
-  const cache = map.style?.sourceCaches?.['raster-tiles']
-  if (cache) {
-    cache.clearTiles()
-    if (typeof cache.reload === 'function') cache.reload()
-    else cache.update(map.transform)
-  }
+  refreshRasterSourceCache(map)
   map.triggerRepaint()
 
   if (mode === 'street') {

@@ -1722,6 +1722,106 @@ router.patch(
 )
 
 /**
+ * @route POST /api/map/places/:id/contribute
+ * @desc Google-Maps-style crowd contribution of place info
+ *       (phone / website / opening hours). Any signed-in user may add or edit
+ *       these fields inline. Records an audit entry and live-syncs the public
+ *       map when the place is approved. Only the three contribution fields can
+ *       be touched here — full edits still go through PATCH (owner/admin).
+ * @access Private
+ */
+router.post(
+  '/places/:id/contribute',
+  authenticateToken,
+  rateLimitMiddleware('places:contribute', 30, 60),
+  [
+    body('phone').optional({ nullable: true }).trim().isLength({ max: 50 }).withMessage('Phone max 50 chars'),
+    body('website').optional({ nullable: true }).trim().isLength({ max: 500 }).withMessage('Website max 500 chars'),
+    body('weekdayHours').optional({ nullable: true }).isArray({ max: 7 }).withMessage('Hours must be an array of up to 7 lines'),
+    body('weekdayHours.*').optional().isString().trim().isLength({ max: 120 }).withMessage('Each hours line max 120 chars'),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const id = String(req.params.id || '').trim()
+      if (!id) return res.status(400).json({ error: 'Place ID required' })
+      if (isOsmPlaceId(id)) {
+        return res.status(400).json({ error: 'This place cannot be edited yet.' })
+      }
+
+      const existing = await prisma.place.findUnique({ where: { id } })
+      if (!existing || !isPlaceVisibleToUser(existing, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+
+      // Contributors may both add missing info and edit info they've added.
+      const data = {}
+
+      if (req.body.phone !== undefined) {
+        const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : ''
+        if (phone) data.phone = phone.slice(0, 50)
+      }
+
+      if (req.body.website !== undefined) {
+        let website = typeof req.body.website === 'string' ? req.body.website.trim() : ''
+        if (website) {
+          if (!/^https?:\/\//i.test(website)) website = `https://${website}`
+          data.website = website.slice(0, 500)
+        }
+      }
+
+      if (req.body.weekdayHours !== undefined) {
+        const weekdayHours = Array.isArray(req.body.weekdayHours)
+          ? req.body.weekdayHours.map((l) => String(l || '').trim()).filter(Boolean).slice(0, 7)
+          : []
+        if (weekdayHours.length > 0) {
+          const existingHours = existing.openingHours
+          data.openingHours = {
+            ...(existingHours && typeof existingHours === 'object' ? existingHours : {}),
+            weekday_text: weekdayHours,
+          }
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        return res.status(400).json({ error: 'Nothing to save.' })
+      }
+
+      const place = await prisma.place.update({ where: { id }, data })
+
+      const changes = computeChanges(existing, place)
+      if (Object.keys(changes).length > 0) {
+        recordPlaceAuditAsync({
+          placeId: place.id,
+          action: PLACE_AUDIT_ACTIONS.UPDATED,
+          actor: userActor(req.user),
+          before: existing,
+          after: place,
+          changesOverride: changes,
+          note: 'Info added by contributor',
+        })
+      }
+
+      if (place.approvalStatus === 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.UPDATED, place)
+      }
+
+      res.json(attachApprovalMeta(serializePlace(place)))
+    } catch (error) {
+      console.error('Contribute place info error:', error)
+      res.status(500).json({ error: 'Failed to add info', message: error.message })
+    }
+  }
+)
+
+/**
  * @route GET /api/map/places/:id
  * @desc Get a single place by ID (any user's place)
  * @access Private
