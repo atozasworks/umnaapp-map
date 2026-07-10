@@ -8,6 +8,7 @@ import DataExplorer from './pages/DataExplorer.jsx'
 import PendingPlaces from './pages/PendingPlaces.jsx'
 import ExtractedPlaces from './pages/ExtractedPlaces.jsx'
 import BusinessClaims from './pages/BusinessClaims.jsx'
+import LegalDocs from './pages/LegalDocs.jsx'
 
 function PrivateRoute({ children }) {
   if (!getToken()) {
@@ -31,6 +32,7 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="pending-places" element={<PendingPlaces />} />
         <Route path="business-claims" element={<BusinessClaims />} />
+        <Route path="legal" element={<LegalDocs />} />
         <Route path="extracted-places" element={<ExtractedPlaces />} />
         <Route path="schema" element={<Schema />} />
         <Route path="data" element={<DataExplorer />} />

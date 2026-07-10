@@ -148,6 +148,20 @@ export async function restorePlaceVersion(id, auditId) {
   return data
 }
 
+export async function fetchLegalDocuments() {
+  const { data } = await api.get('/admin/legal')
+  return data.documents || []
+}
+
+export async function updateLegalDocument(type, { title, content, notify = true }) {
+  const { data } = await api.put(`/admin/legal/${encodeURIComponent(type)}`, {
+    title,
+    content,
+    notify,
+  })
+  return data
+}
+
 export async function fetchBusinessClaims(status = 'pending') {
   const { data } = await api.get('/admin/claims', { params: { status } })
   return data

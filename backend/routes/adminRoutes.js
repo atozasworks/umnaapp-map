@@ -15,6 +15,12 @@ import {
   sanitizePlaceName,
 } from '../utils/placePayload.js'
 import { onPlaceApproved } from '../services/notificationService.js'
+import {
+  getAllLegalDocuments,
+  getLegalDocument,
+  upsertLegalDocument,
+  sendLegalUpdateEmails,
+} from '../services/legalService.js'
 import { broadcastPlaceUpsert, broadcastPlaceRemoved, PLACE_EVENTS } from '../lib/placeEvents.js'
 import {
   recordPlaceAudit,
@@ -44,6 +50,7 @@ export const MODEL_META = [
   { key: 'businessClaim', label: 'BusinessClaim' },
   { key: 'placeLabel', label: 'PlaceLabel' },
   { key: 'notificationPreference', label: 'NotificationPreference' },
+  { key: 'legalDocument', label: 'LegalDocument' },
 ]
 
 const KEY_BY_LABEL = Object.fromEntries(MODEL_META.map((m) => [m.label, m.key]))
@@ -745,6 +752,75 @@ router.post('/claims/:id/reject', async (req, res) => {
     res.status(500).json({ error: e.message })
   }
 })
+
+// ── Legal documents (Privacy Policy & Terms) ──────────────────────────────
+
+/** GET /api/admin/legal — current Privacy Policy & Terms content */
+router.get('/legal', async (req, res) => {
+  try {
+    const documents = await getAllLegalDocuments()
+    res.json({ documents })
+  } catch (e) {
+    console.error('admin legal list', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** GET /api/admin/legal/:type — a single legal document */
+router.get('/legal/:type', async (req, res) => {
+  try {
+    const document = await getLegalDocument(req.params.type)
+    if (!document) return res.status(404).json({ error: 'Unknown document type' })
+    res.json({ document })
+  } catch (e) {
+    console.error('admin legal detail', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/**
+ * PUT /api/admin/legal/:type — save a legal document. On success, every user
+ * is emailed (in the background) that the policy changed.
+ */
+router.put(
+  '/legal/:type',
+  [
+    body('content').isString().trim().isLength({ min: 1, max: 100000 }),
+    body('title').optional().isString().trim().isLength({ max: 200 }),
+    body('notify').optional().isBoolean(),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const type = String(req.params.type || '').toLowerCase()
+      if (!['privacy', 'terms'].includes(type)) {
+        return res.status(400).json({ error: 'Invalid document type' })
+      }
+
+      const document = await upsertLegalDocument(
+        type,
+        { title: req.body.title, content: req.body.content },
+        'admin'
+      )
+
+      // Notify all users by email unless explicitly disabled. Fire-and-forget
+      // so a slow SMTP server never blocks the admin save response.
+      const notify = req.body.notify !== false && req.body.notify !== 'false'
+      if (notify) {
+        sendLegalUpdateEmails(document)
+          .then((r) => console.log('[legal] notify summary:', r))
+          .catch((err) => console.error('[legal] notify bg error:', err))
+      }
+
+      res.json({ success: true, document, notified: notify })
+    } catch (e) {
+      console.error('admin legal update', e)
+      res.status(500).json({ error: e.message })
+    }
+  }
+)
 
 /** GET /api/admin/overview — row counts per table */
 router.get('/overview', async (req, res) => {

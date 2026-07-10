@@ -29,6 +29,7 @@ import {
 import { publicPlaceSearch } from '../services/unifiedPlaceQuery.js'
 import { buildDirectRoute } from '../utils/routeHelpers.js'
 import { osrmProfileFor } from '../utils/travelModeRouting.js'
+import { getAllLegalDocuments, getLegalDocument } from '../services/legalService.js'
 
 const router = express.Router()
 
@@ -322,6 +323,44 @@ router.get('/config', rateLimitMiddleware('public:config', 120, 60), cacheMiddle
     },
   })
 })
+
+/**
+ * @route GET /api/public/legal
+ * @desc Current legal documents (Privacy Policy + Terms & Conditions)
+ * @access Public
+ */
+router.get('/legal', rateLimitMiddleware('public:legal', 120, 60), cacheMiddleware(60), async (req, res) => {
+  try {
+    const documents = await getAllLegalDocuments()
+    res.json({ documents })
+  } catch (error) {
+    console.error('[public] legal list error:', error)
+    res.status(500).json({ error: 'Failed to fetch legal documents' })
+  }
+})
+
+/**
+ * @route GET /api/public/legal/:type
+ * @desc Single legal document by type ('privacy' | 'terms')
+ * @access Public
+ */
+router.get(
+  '/legal/:type',
+  rateLimitMiddleware('public:legal', 120, 60),
+  cacheMiddleware(60),
+  [param('type').isIn(['privacy', 'terms'])],
+  async (req, res) => {
+    if (!handleValidation(req, res)) return
+    try {
+      const document = await getLegalDocument(req.params.type)
+      if (!document) return res.status(404).json({ error: 'Document not found' })
+      res.json({ document })
+    } catch (error) {
+      console.error('[public] legal detail error:', error)
+      res.status(500).json({ error: 'Failed to fetch legal document' })
+    }
+  }
+)
 
 /**
  * @route GET /api/public/place/:id

@@ -1,9 +1,78 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslate } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
 import AppLogo from '../components/AppLogo'
 import NotificationSettings from '../components/NotificationSettings'
+import api from '../services/api'
+
+// Parse the lightweight legal-document markup stored in the DB into blocks.
+// A line beginning with "# " is a section heading; blank lines separate
+// paragraphs. This avoids injecting raw HTML from admin-edited content.
+const parseLegalBlocks = (content) => {
+  const lines = String(content || '').split('\n')
+  const blocks = []
+  let para = []
+  const flush = () => {
+    if (para.length) {
+      blocks.push({ type: 'p', text: para.join(' ') })
+      para = []
+    }
+  }
+  for (const raw of lines) {
+    const line = raw.trim()
+    if (!line) {
+      flush()
+      continue
+    }
+    if (line.startsWith('# ')) {
+      flush()
+      blocks.push({ type: 'h', text: line.slice(2).trim() })
+    } else {
+      para.push(line)
+    }
+  }
+  flush()
+  return blocks
+}
+
+const formatLegalDate = (iso) => {
+  if (!iso) return null
+  try {
+    return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })
+  } catch {
+    return null
+  }
+}
+
+// Shown only if the DB-backed content cannot be fetched (offline / not migrated).
+const PRIVACY_FALLBACK_BLOCKS = [
+  { type: 'h', text: 'Information We Collect' },
+  { type: 'p', text: 'We collect information you provide directly, such as your name, email address, and profile picture when you create an account. We also collect location data when you use our mapping features, and usage data to improve our services.' },
+  { type: 'h', text: 'How We Use Your Information' },
+  { type: 'p', text: 'Your information is used to provide and improve our mapping services, personalize your experience, manage your account, and communicate important updates. Location data is used solely for map functionality and is not shared with third parties.' },
+  { type: 'h', text: 'Data Storage & Security' },
+  { type: 'p', text: 'We implement industry-standard security measures to protect your data. Your personal information is stored securely and encrypted during transmission. We retain your data only as long as necessary to provide our services.' },
+  { type: 'h', text: 'Your Rights' },
+  { type: 'p', text: 'You have the right to access, update, or delete your personal information at any time through your account settings. You can also request a copy of your data or ask us to stop processing your information.' },
+  { type: 'h', text: 'Contact Us' },
+  { type: 'p', text: 'If you have questions about this privacy policy or your data, please contact us through the Feedback option in the app.' },
+]
+
+const TERMS_FALLBACK_BLOCKS = [
+  { type: 'h', text: 'Acceptance of Terms' },
+  { type: 'p', text: 'By accessing and using UMNAAPP, you accept and agree to be bound by these terms. If you do not agree to these terms, please do not use the application.' },
+  { type: 'h', text: 'User Account' },
+  { type: 'p', text: 'You are responsible for maintaining the confidentiality of your account credentials. You agree to provide accurate information during registration and to update it as necessary. One person may maintain only one account.' },
+  { type: 'h', text: 'Acceptable Use' },
+  { type: 'p', text: 'You agree to use the app only for lawful purposes. You must not submit false or misleading place information, spam, or any content that violates applicable laws. Abuse of the platform may result in account suspension.' },
+  { type: 'h', text: 'User Contributions' },
+  { type: 'p', text: 'When you add places, reviews, or photos, you grant UMNAAPP a non-exclusive license to use this content within the service. You retain ownership of your contributions and can delete them at any time.' },
+  { type: 'h', text: 'Disclaimer' },
+  { type: 'p', text: 'Map data and directions are provided for informational purposes only. We do not guarantee the accuracy of mapping data, route calculations, or place information. Always exercise personal judgment when navigating.' },
+  { type: 'h', text: 'Changes to Terms' },
+  { type: 'p', text: 'We reserve the right to modify these terms at any time. Continued use of the app after changes constitutes acceptance of the updated terms. We will notify users of significant changes.' },
+]
 
 const MAX_AVATAR_SIZE = 200
 
@@ -47,6 +116,8 @@ const SettingsPage = () => {
   const [uploadingPicture, setUploadingPicture] = useState(false)
   const [toast, setToast] = useState(null)
   const [confirmLogoutVisible, setConfirmLogoutVisible] = useState(false)
+  const [legalDocs, setLegalDocs] = useState({ privacy: null, terms: null })
+  const [legalLoading, setLegalLoading] = useState(false)
   const profileFileInputRef = useRef(null)
 
   const tSettings = useTranslate('Settings')
@@ -71,6 +142,30 @@ const SettingsPage = () => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
   }, [])
+
+  // Lazily fetch the DB-backed legal document when its section is opened.
+  useEffect(() => {
+    const type = activeSection === 'privacy' ? 'privacy' : activeSection === 'terms' ? 'terms' : null
+    if (!type || legalDocs[type]) return
+    let cancelled = false
+    setLegalLoading(true)
+    api
+      .get(`/public/legal/${type}`)
+      .then(({ data }) => {
+        if (!cancelled && data?.document) {
+          setLegalDocs((prev) => ({ ...prev, [type]: data.document }))
+        }
+      })
+      .catch(() => {
+        /* keep built-in fallback content on failure */
+      })
+      .finally(() => {
+        if (!cancelled) setLegalLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeSection, legalDocs])
 
   const handleSaveProfile = async () => {
     if (!editName.trim() || editName.trim().length < 2) {
@@ -312,104 +407,53 @@ const SettingsPage = () => {
     </div>
   )
 
-  const renderPrivacyPolicy = () => (
-    <div className="animate-fade-in">
-      <button
-        onClick={() => setActiveSection(null)}
-        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 mb-5 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        {tBack}
-      </button>
+  const renderLegalSection = (type, heading, fallbackBlocks) => {
+    const doc = legalDocs[type]
+    const blocks = doc?.content ? parseLegalBlocks(doc.content) : fallbackBlocks
+    const updated = formatLegalDate(doc?.updatedAt)
+    return (
+      <div className="animate-fade-in">
+        <button
+          onClick={() => setActiveSection(null)}
+          className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 mb-5 transition-colors"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+          </svg>
+          {tBack}
+        </button>
 
-      <h2 className="text-lg font-bold text-slate-800 mb-4">{tPrivacyPolicy}</h2>
+        <h2 className="text-lg font-bold text-slate-800 mb-4">{doc?.title || heading}</h2>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4 text-sm text-slate-700 leading-relaxed">
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Information We Collect</h3>
-          <p>We collect information you provide directly, such as your name, email address, and profile picture when you create an account. We also collect location data when you use our mapping features, and usage data to improve our services.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">How We Use Your Information</h3>
-          <p>Your information is used to provide and improve our mapping services, personalize your experience, manage your account, and communicate important updates. Location data is used solely for map functionality and is not shared with third parties.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Data Storage & Security</h3>
-          <p>We implement industry-standard security measures to protect your data. Your personal information is stored securely and encrypted during transmission. We retain your data only as long as necessary to provide our services.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Your Rights</h3>
-          <p>You have the right to access, update, or delete your personal information at any time through your account settings. You can also request a copy of your data or ask us to stop processing your information.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Contact Us</h3>
-          <p>If you have questions about this privacy policy or your data, please contact us through the Feedback option in the app.</p>
-        </section>
-
-        <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">
-          Last updated: June 2025
-        </p>
+        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4 text-sm text-slate-700 leading-relaxed">
+          {legalLoading && !doc ? (
+            <p className="text-slate-400">Loading…</p>
+          ) : (
+            <>
+              {blocks.map((b, i) =>
+                b.type === 'h' ? (
+                  <h3 key={i} className="font-semibold text-slate-800 mb-1">{b.text}</h3>
+                ) : (
+                  <p key={i}>{b.text}</p>
+                )
+              )}
+              {updated && (
+                <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">
+                  Last updated: {updated}
+                </p>
+              )}
+            </>
+          )}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
-  const renderTermsConditions = () => (
-    <div className="animate-fade-in">
-      <button
-        onClick={() => setActiveSection(null)}
-        className="flex items-center gap-2 text-sm text-primary-600 hover:text-primary-800 mb-5 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        {tBack}
-      </button>
+  const renderPrivacyPolicy = () =>
+    renderLegalSection('privacy', tPrivacyPolicy, PRIVACY_FALLBACK_BLOCKS)
 
-      <h2 className="text-lg font-bold text-slate-800 mb-4">{tTermsConditions}</h2>
-
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4 text-sm text-slate-700 leading-relaxed">
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Acceptance of Terms</h3>
-          <p>By accessing and using UMNAAPP, you accept and agree to be bound by these terms. If you do not agree to these terms, please do not use the application.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">User Account</h3>
-          <p>You are responsible for maintaining the confidentiality of your account credentials. You agree to provide accurate information during registration and to update it as necessary. One person may maintain only one account.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Acceptable Use</h3>
-          <p>You agree to use the app only for lawful purposes. You must not submit false or misleading place information, spam, or any content that violates applicable laws. Abuse of the platform may result in account suspension.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">User Contributions</h3>
-          <p>When you add places, reviews, or photos, you grant UMNAAPP a non-exclusive license to use this content within the service. You retain ownership of your contributions and can delete them at any time.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Disclaimer</h3>
-          <p>Map data and directions are provided for informational purposes only. We do not guarantee the accuracy of mapping data, route calculations, or place information. Always exercise personal judgment when navigating.</p>
-        </section>
-
-        <section>
-          <h3 className="font-semibold text-slate-800 mb-2">Changes to Terms</h3>
-          <p>We reserve the right to modify these terms at any time. Continued use of the app after changes constitutes acceptance of the updated terms. We will notify users of significant changes.</p>
-        </section>
-
-        <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">
-          Last updated: June 2025
-        </p>
-      </div>
-    </div>
-  )
+  const renderTermsConditions = () =>
+    renderLegalSection('terms', tTermsConditions, TERMS_FALLBACK_BLOCKS)
 
   const renderMainMenu = () => (
     <div className="space-y-2 animate-fade-in">

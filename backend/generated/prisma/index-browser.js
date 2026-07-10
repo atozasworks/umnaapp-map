@@ -415,6 +415,17 @@ exports.Prisma.ItineraryVoteScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.LegalDocumentScalarFieldEnum = {
+  id: 'id',
+  type: 'type',
+  title: 'title',
+  content: 'content',
+  version: 'version',
+  updatedBy: 'updatedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -463,7 +474,8 @@ exports.Prisma.ModelName = {
   ItineraryMember: 'ItineraryMember',
   ItineraryStop: 'ItineraryStop',
   ItineraryComment: 'ItineraryComment',
-  ItineraryVote: 'ItineraryVote'
+  ItineraryVote: 'ItineraryVote',
+  LegalDocument: 'LegalDocument'
 };
 
 /**

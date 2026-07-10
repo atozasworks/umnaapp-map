@@ -501,3 +501,20 @@ model ItineraryVote {
   @@index([stopId])
 }
 
+// Editable legal documents (Privacy Policy, Terms & Conditions). A single row
+// per document type holds the current content shown to all users. Admins edit
+// the content in the admin panel; each save bumps `version`, stamps
+// `updatedAt`, and triggers an email to every user announcing the change.
+model LegalDocument {
+  id        String   @id @default(uuid())
+  type      String   @unique // 'privacy' | 'terms'
+  title     String
+  content   String   @db.Text
+  version   Int      @default(1)
+  updatedBy String?  @map("updated_by") // 'admin'
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([type])
+}
+
