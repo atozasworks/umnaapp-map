@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { registerSW } from 'virtual:pwa-register'
 import { useOnlineStatus } from '../hooks/useOnlineStatus'
+import { getOfflinePacksFlag, refreshOfflinePacksFlag } from '../utils/offlineMaps'
 
 function PwaOfflineBanner() {
   const isOnline = useOnlineStatus()
   if (isOnline) return null
+
+  const hasOfflineMaps = getOfflinePacksFlag()
 
   return (
     <div
@@ -12,7 +15,9 @@ function PwaOfflineBanner() {
       role="status"
       aria-live="polite"
     >
-      You are offline. Cached pages work; maps and live data need a connection.
+      {hasOfflineMaps
+        ? 'You are offline. Downloaded maps and cached pages are available.'
+        : 'You are offline. Cached pages work; download Offline Maps for map use without a connection.'}
     </div>
   )
 }
@@ -56,6 +61,7 @@ export default function PwaShell({ children }) {
         setNeedRefresh(true)
       },
     })
+    refreshOfflinePacksFlag().catch(() => {})
   }, [])
 
   const handleUpdate = () => {

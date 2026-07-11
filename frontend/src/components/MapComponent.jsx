@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHand
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSocket } from '../contexts/SocketContext'
+import { useOnlineStatus } from '../hooks/useOnlineStatus'
 import api from '../services/api'
 import { formatAddressSubtitle } from '../utils/formatAddress'
 import { whenStyleReady } from '../utils/mapWhenStyleReady'
@@ -22,6 +23,7 @@ import {
   throttle,
 } from '../utils/userPlaceLabelLayout'
 import { isPersistedPlaceId } from '../utils/placeSource'
+import { getOfflinePacksFlag, isViewportCovered } from '../utils/offlineMaps'
 
 const ROUTE_SOURCE_ID = 'route'
 const ROUTE_CASING_LAYER_ID = 'route-casing'
@@ -692,6 +694,11 @@ const MapComponent = forwardRef(({
   const [basemapMode, setBasemapMode] = useState(readStoredBasemapMode)
   const basemapModeRef = useRef(basemapMode)
   const areaExploreFeatureRef = useRef(areaExploreFeature)
+  const isOnline = useOnlineStatus()
+  const onlineStreetUrlRef = useRef(null)
+  const offlineMapsActiveRef = useRef(false)
+  const [offlineModeActive, setOfflineModeActive] = useState(false)
+  const [offlineAreaMissing, setOfflineAreaMissing] = useState(false)
   useEffect(() => {
     basemapModeRef.current = basemapMode
   }, [basemapMode])
@@ -1283,7 +1290,12 @@ const MapComponent = forwardRef(({
 
       // HTML/502 from a broken tile proxy returns HTTP 200 — MapLibre stays white
       // without firing tile errors. Probe once and swap to CARTO immediately.
-      if (basemapModeRef.current === 'street' && streetTilesUrlRef.current) {
+      // Skip when offline so we do not replace offline packs with an unreachable CDN.
+      if (
+        navigator.onLine !== false &&
+        basemapModeRef.current === 'street' &&
+        streetTilesUrlRef.current
+      ) {
         recoverStreetTiles(
           map,
           streetTilesUrlRef,
@@ -1322,6 +1334,7 @@ const MapComponent = forwardRef(({
         // the map renders instead of staying a blank grey screen.
         if (
           !tileFallbackApplied &&
+          !offlineMapsActiveRef.current &&
           basemapModeRef.current === 'street' &&
           streetTilesUrlRef.current &&
           streetTilesUrlRef.current !== STREET_TILE_FALLBACK_URL
@@ -1595,6 +1608,84 @@ const MapComponent = forwardRef(({
     if (!mapLoaded || !mapRef.current) return
     selectBasemapMode(basemapModeRef.current)
   }, [mapLoaded, selectBasemapMode])
+
+  // Offline Maps: when offline with downloaded packs, serve street tiles via same-origin proxy
+  // so the service worker can return Cache API packs. Restore prior URL when back online.
+  useEffect(() => {
+    if (!mapLoaded) return
+    const map = mapRef.current
+    if (!map || !streetTilesUrlRef.current) return
+    if (basemapModeRef.current !== 'street') {
+      offlineMapsActiveRef.current = false
+      setOfflineModeActive(false)
+      setOfflineAreaMissing(false)
+      return
+    }
+
+    if (!isOnline && getOfflinePacksFlag()) {
+      if (!onlineStreetUrlRef.current) {
+        onlineStreetUrlRef.current = streetTilesUrlRef.current
+      }
+      applyStreetTileUrl(map, streetTilesUrlRef, PROXY_STREET_TILE_URL, {
+        reason: 'offline maps — using cached proxy tiles',
+      })
+      offlineMapsActiveRef.current = true
+      setOfflineModeActive(true)
+      return
+    }
+
+    if (isOnline && onlineStreetUrlRef.current) {
+      const restore = onlineStreetUrlRef.current
+      onlineStreetUrlRef.current = null
+      offlineMapsActiveRef.current = false
+      setOfflineModeActive(false)
+      setOfflineAreaMissing(false)
+      if (restore && restore !== streetTilesUrlRef.current) {
+        applyStreetTileUrl(map, streetTilesUrlRef, restore, {
+          reason: 'restoring online tile source after offline',
+        })
+      }
+      return
+    }
+
+    offlineMapsActiveRef.current = false
+    setOfflineModeActive(false)
+    setOfflineAreaMissing(false)
+  }, [isOnline, mapLoaded, basemapMode])
+
+  // Offline Maps: warn when the visible area was not downloaded
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded || !offlineModeActive) return undefined
+
+    let cancelled = false
+    const checkCoverage = async () => {
+      try {
+        const b = map.getBounds()
+        const covered = await isViewportCovered(
+          {
+            west: b.getWest(),
+            south: b.getSouth(),
+            east: b.getEast(),
+            north: b.getNorth(),
+          },
+          map.getZoom()
+        )
+        if (!cancelled) setOfflineAreaMissing(!covered)
+      } catch {
+        if (!cancelled) setOfflineAreaMissing(true)
+      }
+    }
+
+    checkCoverage()
+    map.on('moveend', checkCoverage)
+    map.on('zoomend', checkCoverage)
+    return () => {
+      cancelled = true
+      map.off('moveend', checkCoverage)
+      map.off('zoomend', checkCoverage)
+    }
+  }, [mapLoaded, offlineModeActive])
 
   // User places: HTML markers with screen-space collision (names stay readable; zoom + priority + caps).
   useEffect(() => {
@@ -3183,6 +3274,31 @@ const MapComponent = forwardRef(({
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-100/90 z-[5]">
               <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary-500 border-t-transparent" />
               <p className="text-slate-700 font-medium text-sm">Loading map...</p>
+            </div>
+          )}
+
+          {/* Offline Mode indicator — small, non-blocking */}
+          {mapLoaded && offlineModeActive && (
+            <div
+              className="absolute top-3 left-1/2 -translate-x-1/2 z-20 pointer-events-none"
+              role="status"
+              aria-live="polite"
+            >
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-800/85 text-white text-[11px] font-semibold px-2.5 py-1 shadow-md">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" aria-hidden />
+                Offline Mode
+              </span>
+            </div>
+          )}
+
+          {mapLoaded && offlineModeActive && offlineAreaMissing && (
+            <div className="absolute top-12 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 sm:max-w-sm z-20">
+              <div className="rounded-xl bg-white/95 border border-amber-200 shadow-lg px-3 py-2.5 text-center">
+                <p className="text-xs font-semibold text-slate-800">This area isn&apos;t downloaded</p>
+                <p className="text-[11px] text-slate-600 mt-0.5 leading-snug">
+                  Connect to the internet, or open Offline Maps to download this region.
+                </p>
+              </div>
             </div>
           )}
 

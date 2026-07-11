@@ -29,6 +29,7 @@ import OnboardingTour, { hasSeenOnboarding, markOnboardingSeen } from '../compon
 import LiveLocationShareSheet from '../components/LiveLocationShareSheet'
 import LiveLocationViewerBar from '../components/LiveLocationViewerBar'
 import PublicUtilityFinderSheet from '../components/PublicUtilityFinderSheet'
+import OfflineMapsSheet from '../components/OfflineMapsSheet'
 import api from '../services/api'
 import {
   extractMapRenderingConfig,
@@ -193,6 +194,7 @@ const HomePage = () => {
   const [showUtilityFinder, setShowUtilityFinder] = useState(false)
   const [utilityOverlayPlaces, setUtilityOverlayPlaces] = useState([])
   const [selectedUtilityPlaceId, setSelectedUtilityPlaceId] = useState(null)
+  const [showOfflineMaps, setShowOfflineMaps] = useState(false)
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -223,6 +225,7 @@ const HomePage = () => {
   const menuAreaExplore = useTranslate('Area explore (draw)')
   const menuPlaceFinder = useTranslate('PlaceFinder')
   const menuPublicUtilities = useTranslate('Public Utility Finder')
+  const menuOfflineMaps = useTranslate('Offline Maps')
   const mapPublicUtilitiesTitle = useTranslate('Public Utilities')
 
   const closeMapContextMenu = useCallback(() => {
@@ -2486,6 +2489,19 @@ const HomePage = () => {
                   type="button"
                   onClick={() => {
                     setShowMenu(false)
+                    setShowOfflineMaps(true)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-sky-50 active:bg-sky-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-sky-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuOfflineMaps}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
                     setShowFestivalsPanel(true)
                   }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-fuchsia-50 active:bg-fuchsia-100 transition-colors text-left touch-manipulation"
@@ -2684,6 +2700,12 @@ const HomePage = () => {
         onPlaceSelect={handleUtilityPlaceSelect}
         onDirections={handleUtilityDirections}
         selectedPlaceId={selectedUtilityPlaceId}
+      />
+
+      <OfflineMapsSheet
+        isOpen={showOfflineMaps}
+        onClose={() => setShowOfflineMaps(false)}
+        mapRef={mapRef}
       />
 
       {viewerShareError && viewerShareId && (
