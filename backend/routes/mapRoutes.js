@@ -58,6 +58,7 @@ import {
 } from '../services/unifiedPlaceQuery.js'
 import { isPersistedSource } from '../utils/placeSource.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
+import { findPublicUtilitiesNearby } from '../services/publicUtilityService.js'
 import { buildNormalizedAddressFields } from '../utils/osmAddress.js'
 import {
   GRID_EXTRACT_MAX_PLACES,
@@ -2645,6 +2646,54 @@ router.post(
     } catch (error) {
       console.error('Map Assistant error:', error)
       res.status(500).json({ error: 'Assistant failed', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/utilities/nearby
+ * @desc Nearby public utilities (toilets, ATMs, hospitals, …) by type + radius
+ * @access Private
+ */
+router.get(
+  '/utilities/nearby',
+  authenticateToken,
+  rateLimitMiddleware('utilities:nearby', 60, 60),
+  [
+    query('lat').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude required'),
+    query('lng').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
+    query('type').isString().notEmpty().withMessage('Utility type required'),
+    query('radiusMeters').optional().isInt({ min: 100, max: 20000 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const lat = parseFloat(req.query.lat)
+      const lng = parseFloat(req.query.lng)
+      const type = String(req.query.type || '').trim()
+      const radiusMeters =
+        req.query.radiusMeters != null ? parseInt(req.query.radiusMeters, 10) : undefined
+
+      const payload = await findPublicUtilitiesNearby({
+        lat,
+        lng,
+        type,
+        radiusMeters,
+        viewerId: req.user.id,
+      })
+
+      res.json(payload)
+    } catch (err) {
+      const status = err.status || 500
+      if (status === 400) {
+        return res.status(400).json({ error: err.message || 'Invalid request' })
+      }
+      console.error('[utilities/nearby]', err)
+      res.status(500).json({ error: 'Failed to find nearby utilities' })
     }
   }
 )

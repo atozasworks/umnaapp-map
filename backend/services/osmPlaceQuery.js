@@ -508,6 +508,130 @@ export async function countOsmCategoriesInBbox({ minLat, maxLat, minLng, maxLng 
   }
 }
 
+/**
+ * Nearby OSM utilities filtered by amenity/highway/healthcare tags.
+ * Allows unnamed POIs (common for toilets, water, ATMs) using defaultName.
+ */
+export async function findOsmUtilitiesNearby({
+  lat,
+  lng,
+  radiusMeters = 2000,
+  osmFilters = [],
+  defaultName = 'Utility',
+  categoryLabel = 'Other',
+  limit = 60,
+} = {}) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return []
+  if (!Array.isArray(osmFilters) || osmFilters.length === 0) return []
+  if (!(await osmDatabaseAvailable())) return []
+
+  const pool = await getOsmPool()
+  if (!pool) return []
+
+  const allowedCols = new Set(OSM_TAG_COLUMNS)
+  const clauses = []
+  const params = [lng, lat, radiusMeters]
+  let paramIdx = 4
+
+  for (const filter of osmFilters) {
+    const col = String(filter?.col || '')
+    const values = Array.isArray(filter?.values)
+      ? filter.values.map((v) => String(v).trim()).filter(Boolean)
+      : []
+    if (!allowedCols.has(col) || values.length === 0) continue
+    clauses.push(`"${col}" = ANY($${paramIdx}::text[])`)
+    params.push(values)
+    paramIdx += 1
+  }
+
+  if (clauses.length === 0) return []
+
+  const tagWhere = `(${clauses.join(' OR ')})`
+  const cap = Math.min(Math.max(1, limit), 100)
+  params.push(cap)
+  const limitParam = paramIdx
+
+  const pointSql = `
+    SELECT ${POINT_SELECT},
+           ST_Distance(way::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS "distanceMeters"
+      FROM planet_osm_point
+     WHERE ${tagWhere}
+       AND ST_DWithin(way::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
+     ORDER BY way <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
+     LIMIT $${limitParam}
+  `
+
+  const polySql = `
+    SELECT ${POLYGON_SELECT},
+           ST_Distance(ST_PointOnSurface(way)::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography) AS "distanceMeters"
+      FROM planet_osm_polygon
+     WHERE ${tagWhere}
+       AND ST_DWithin(ST_PointOnSurface(way)::geography, ST_SetSRID(ST_MakePoint($1, $2), 4326)::geography, $3)
+     ORDER BY ST_PointOnSurface(way) <-> ST_SetSRID(ST_MakePoint($1, $2), 4326)
+     LIMIT $${limitParam}
+  `
+
+  const mapRow = (row, osmType) => {
+    const latN = parseFloat(row.latitude)
+    const lngN = parseFloat(row.longitude)
+    if (!Number.isFinite(latN) || !Number.isFinite(lngN)) return null
+    const rawName = String(row.name || '').trim()
+    const name = rawName || defaultName
+    const tag = primaryOsmTag(row)
+    const id = makeOsmPlaceId(osmType, row.osm_id)
+    return {
+      id,
+      placeId: id,
+      name,
+      placeNameEn: name,
+      place_name_en: name,
+      placeNameLocal: null,
+      place_name_local: null,
+      category: categoryLabel,
+      latitude: latN,
+      longitude: lngN,
+      zoomLevel: 16,
+      source: PLACE_SOURCES.OSM,
+      sourceId: id,
+      osmId: row.osm_id,
+      osmType,
+      osmTag: tag?.value ?? null,
+      isPersisted: false,
+      isDbPlace: false,
+      userId: null,
+      userName: null,
+      approvalStatus: null,
+      distanceMeters: Math.round(parseFloat(row.distanceMeters) || 0),
+      address: null,
+    }
+  }
+
+  try {
+    const [pointRes, polyRes] = await Promise.all([
+      pool.query(pointSql, params),
+      pool.query(polySql, params),
+    ])
+    const merged = [
+      ...pointRes.rows.map((r) => mapRow(r, 'node')),
+      ...polyRes.rows.map((r) => mapRow(r, 'way')),
+    ].filter(Boolean)
+
+    const byId = new Map()
+    for (const p of merged) {
+      const prev = byId.get(p.id)
+      if (!prev || (p.distanceMeters ?? Infinity) < (prev.distanceMeters ?? Infinity)) {
+        byId.set(p.id, p)
+      }
+    }
+    return [...byId.values()]
+      .sort((a, b) => (a.distanceMeters ?? 0) - (b.distanceMeters ?? 0))
+      .slice(0, cap)
+  } catch (e) {
+    console.warn('[osm-query] utilities nearby failed:', e.message)
+    return []
+  }
+}
+
 export function isOsmQueryEnabled() {
   return osmDatabaseConfigured()
 }

@@ -28,6 +28,7 @@ import FeedbackModal from '../components/FeedbackModal'
 import OnboardingTour, { hasSeenOnboarding, markOnboardingSeen } from '../components/OnboardingTour'
 import LiveLocationShareSheet from '../components/LiveLocationShareSheet'
 import LiveLocationViewerBar from '../components/LiveLocationViewerBar'
+import PublicUtilityFinderSheet from '../components/PublicUtilityFinderSheet'
 import api from '../services/api'
 import {
   extractMapRenderingConfig,
@@ -189,6 +190,9 @@ const HomePage = () => {
   const [viewerShareSeed, setViewerShareSeed] = useState(null)
   const [liveShareFollow, setLiveShareFollow] = useState(false)
   const [liveShareError, setLiveShareError] = useState('')
+  const [showUtilityFinder, setShowUtilityFinder] = useState(false)
+  const [utilityOverlayPlaces, setUtilityOverlayPlaces] = useState([])
+  const [selectedUtilityPlaceId, setSelectedUtilityPlaceId] = useState(null)
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -218,6 +222,8 @@ const HomePage = () => {
   const myPlacesViewOnMap = useTranslate('View on map')
   const menuAreaExplore = useTranslate('Area explore (draw)')
   const menuPlaceFinder = useTranslate('PlaceFinder')
+  const menuPublicUtilities = useTranslate('Public Utility Finder')
+  const mapPublicUtilitiesTitle = useTranslate('Public Utilities')
 
   const closeMapContextMenu = useCallback(() => {
     setMapContextMenu(null)
@@ -1337,6 +1343,38 @@ const HomePage = () => {
     handlePlaceDirections(place)
   }
 
+  const handleUtilityFinderOpen = () => {
+    setShowUtilityFinder(true)
+  }
+
+  const handleUtilityFinderClose = () => {
+    setShowUtilityFinder(false)
+  }
+
+  const handleUtilityResults = useCallback((places) => {
+    setUtilityOverlayPlaces(places || [])
+    setSelectedUtilityPlaceId(null)
+  }, [])
+
+  const handleUtilityClear = useCallback(() => {
+    setUtilityOverlayPlaces([])
+    setSelectedUtilityPlaceId(null)
+  }, [])
+
+  const handleUtilityPlaceSelect = useCallback((place) => {
+    setSelectedUtilityPlaceId(place?.placeId || place?.id || null)
+  }, [])
+
+  const handleUtilityDirections = useCallback((place) => {
+    setShowUtilityFinder(false)
+    setRoutePanelEndPlace({
+      lat: place.latitude ?? place.lat,
+      lng: place.longitude ?? place.lng,
+      name: place.place_name_en || place.displayName || place.name,
+    })
+    setShowRoutePanel(true)
+  }, [])
+
   const mapSearchResultPlaces = askMapsPlaces
 
   const handlePlaceEdit = (place) => {
@@ -2205,7 +2243,7 @@ const HomePage = () => {
           onMapContextMenu={setMapContextMenu}
           onMapReady={handleMapReady}
           onPlaceClick={openPlaceDetail}
-          selectedPlaceId={selectedPlace?.id ?? null}
+          selectedPlaceId={selectedPlace?.id ?? selectedUtilityPlaceId ?? null}
           addPlaceMode={addPlacePickMode}
           blockAddPlaceMapClick={polygonMapInteraction}
           blockContextMenu={polygonMapInteraction || addPlacePickMode}
@@ -2214,8 +2252,12 @@ const HomePage = () => {
           places={mapPlaces}
           searchResultPlaces={mapSearchResultPlaces}
           polygonOverlayPlaces={polygonOverlayPlaces}
+          utilityOverlayPlaces={utilityOverlayPlaces}
           areaExploreFeature={areaExploreFeature}
           autoFitSearchResults={askMapsPlaces.length > 1}
+          autoFitUtilityResults={utilityOverlayPlaces.length > 0}
+          onUtilityPlaceClick={handleUtilityPlaceSelect}
+          onUtilityDirections={handleUtilityDirections}
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
           routeStops={routeStops}
@@ -2231,6 +2273,22 @@ const HomePage = () => {
             onStopViewing={handleViewerEnded}
           />
         )}
+
+        {/* Public Utilities map control */}
+        <button
+          type="button"
+          onClick={handleUtilityFinderOpen}
+          title={mapPublicUtilitiesTitle}
+          aria-label={mapPublicUtilitiesTitle}
+          className="absolute left-2 sm:left-4 z-10 glass rounded-lg shadow-lg p-2.5 hover:bg-white/80 active:scale-95 transition-all border border-white/30 flex items-center gap-1.5"
+          style={{ bottom: 'calc(env(safe-area-inset-bottom) + 3.5rem)' }}
+        >
+          <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+          </svg>
+          <span className="hidden sm:inline text-xs font-semibold text-slate-700 pr-0.5">{mapPublicUtilitiesTitle}</span>
+        </button>
       </div>
 
       {mapContextMenu && (
@@ -2413,6 +2471,21 @@ const HomePage = () => {
                   type="button"
                   onClick={() => {
                     setShowMenu(false)
+                    handleUtilityFinderOpen()
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-teal-50 active:bg-teal-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-teal-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 11h.01M12 8v6" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuPublicUtilities}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
                     setShowFestivalsPanel(true)
                   }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-fuchsia-50 active:bg-fuchsia-100 transition-colors text-left touch-manipulation"
@@ -2429,7 +2502,6 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
                   </svg>
                   <span className="text-sm font-medium text-slate-800">{menuGroupTrips}</span>
-                  <span className="text-[10px] font-bold uppercase tracking-wide px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 ml-auto">New</span>
                 </button>
               </div>
 
@@ -2600,6 +2672,18 @@ const HomePage = () => {
         shareUrl={senderShareToken ? buildLiveShareUrl(senderShareToken) : ''}
         onStop={handleLiveShareStop}
         presenceStatus={senderPresenceStatus}
+      />
+
+      <PublicUtilityFinderSheet
+        isOpen={showUtilityFinder}
+        onClose={handleUtilityFinderClose}
+        currentLocation={currentLocation}
+        mapRef={mapRef}
+        onResults={handleUtilityResults}
+        onClearResults={handleUtilityClear}
+        onPlaceSelect={handleUtilityPlaceSelect}
+        onDirections={handleUtilityDirections}
+        selectedPlaceId={selectedUtilityPlaceId}
       />
 
       {viewerShareError && viewerShareId && (

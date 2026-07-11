@@ -615,8 +615,12 @@ const MapComponent = forwardRef(({
   places = [],
   searchResultPlaces = [],
   polygonOverlayPlaces = [],
+  utilityOverlayPlaces = [],
   areaExploreFeature = null,
   autoFitSearchResults = true,
+  autoFitUtilityResults = true,
+  onUtilityPlaceClick = null,
+  onUtilityDirections = null,
   routeStartPlace = null,
   routeEndPlace = null,
   routeStops = [],
@@ -629,6 +633,7 @@ const MapComponent = forwardRef(({
   const searchedMarkerRef = useRef(null)
   const searchResultMarkersRef = useRef({})
   const polygonOverlayMarkersRef = useRef({})
+  const utilityOverlayMarkersRef = useRef({})
   const routeEndpointMarkersRef = useRef({})
   const vehicleMarkersRef = useRef({})
   const liveShareMarkersRef = useRef({})
@@ -1924,6 +1929,108 @@ const MapComponent = forwardRef(({
       polygonOverlayMarkersRef.current = {}
     }
   }, [mapLoaded, polygonOverlayPlaces, onPlaceClick, onMapClick, selectedPlaceId, emitAddPlaceMapPick])
+
+  // Public Utility Finder markers (same pin style; rich popup with nav link)
+  useEffect(() => {
+    if (!mapRef.current || !mapLoaded) return
+
+    Object.values(utilityOverlayMarkersRef.current).forEach((m) => m?.remove())
+    utilityOverlayMarkersRef.current = {}
+
+    const formatDist = (meters) => {
+      if (meters == null || !Number.isFinite(meters)) return ''
+      if (meters < 1000) return `${Math.round(meters)} m`
+      const km = meters / 1000
+      return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`
+    }
+
+    utilityOverlayPlaces.forEach((place) => {
+      const key = place.placeId || `util-${place.lat}-${place.lng}`
+      const el = createSearchResultMarkerElement(place)
+      applyPlaceMarkerSelected(el, place.placeId, selectedPlaceId)
+      const marker = new maplibregl.Marker({ element: el, anchor: 'bottom' })
+        .setLngLat([place.lng, place.lat])
+
+      const name = escapeHtml(place.displayName || place.name || 'Utility')
+      const category = escapeHtml(place.category || 'Public Utility')
+      const address = place.address ? escapeHtml(String(place.address)) : ''
+      const dist = formatDist(place.distanceMeters)
+      const navUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(`${place.lat},${place.lng}`)}`
+      const popup = new maplibregl.Popup({ offset: 22, maxWidth: '260px', closeButton: true }).setHTML(
+        `<div class="p-2.5 min-w-[160px]">
+          <strong class="text-slate-800 text-sm block">${name}</strong>
+          <div class="text-xs text-slate-600 mt-1">${category}${dist ? ` · ${escapeHtml(dist)}` : ''}</div>
+          ${address ? `<div class="text-xs text-slate-500 mt-1 leading-snug">${address}</div>` : ''}
+          <div class="mt-2 flex flex-col gap-1.5">
+            <a href="${navUrl}" target="_blank" rel="noopener noreferrer"
+               class="block text-center text-xs font-semibold rounded-lg px-2 py-1.5 bg-teal-600 text-white no-underline">Open Google / Navigation</a>
+            <button type="button" data-utility-directions="1"
+               class="w-full text-xs font-semibold rounded-lg px-2 py-1.5 bg-slate-100 text-slate-700 border-0 cursor-pointer">Directions in app</button>
+          </div>
+        </div>`
+      )
+      marker.setPopup(popup)
+      popup.on('open', () => {
+        const root = popup.getElement()
+        const btn = root?.querySelector?.('[data-utility-directions]')
+        if (btn) {
+          btn.onclick = (e) => {
+            e.preventDefault()
+            e.stopPropagation()
+            const mapped = placeFromSearchMarker(place)
+            if (onUtilityDirections) onUtilityDirections(mapped)
+            else if (onUtilityPlaceClick) onUtilityPlaceClick(mapped)
+            else if (onPlaceClick) onPlaceClick(mapped)
+          }
+        }
+      })
+
+      el.style.cursor = 'pointer'
+      el.addEventListener('click', (e) => {
+        e.stopPropagation()
+        if (addPlaceModeRef.current && onMapClickRef.current) {
+          emitAddPlaceMapPick(place.lat, place.lng)
+          return
+        }
+        if (!marker.getPopup()?.isOpen()) marker.togglePopup()
+        if (onUtilityPlaceClick) onUtilityPlaceClick(placeFromSearchMarker(place))
+      })
+
+      marker.addTo(mapRef.current)
+      utilityOverlayMarkersRef.current[key] = marker
+    })
+
+    if (autoFitUtilityResults && utilityOverlayPlaces.length > 1) {
+      const bounds = utilityOverlayPlaces.reduce(
+        (b, p) => b.extend([p.lng, p.lat]),
+        new maplibregl.LngLatBounds(
+          [utilityOverlayPlaces[0].lng, utilityOverlayPlaces[0].lat],
+          [utilityOverlayPlaces[0].lng, utilityOverlayPlaces[0].lat]
+        )
+      )
+      mapRef.current.fitBounds(bounds, { padding: 60, duration: 800, maxZoom: 15 })
+    } else if (autoFitUtilityResults && utilityOverlayPlaces.length === 1) {
+      mapRef.current.flyTo({
+        center: [utilityOverlayPlaces[0].lng, utilityOverlayPlaces[0].lat],
+        zoom: 15,
+        duration: 700,
+      })
+    }
+
+    return () => {
+      Object.values(utilityOverlayMarkersRef.current).forEach((m) => m?.remove())
+      utilityOverlayMarkersRef.current = {}
+    }
+  }, [
+    mapLoaded,
+    utilityOverlayPlaces,
+    autoFitUtilityResults,
+    onPlaceClick,
+    onUtilityPlaceClick,
+    onUtilityDirections,
+    selectedPlaceId,
+    emitAddPlaceMapPick,
+  ])
 
   // Route stop markers (A, B, C…)
   useEffect(() => {
