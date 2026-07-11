@@ -8,6 +8,8 @@ export const NOTIFICATION_TYPES = {
   PLACE_ADDED: 'place_added',
   PLACE_APPROVED: 'place_approved',
   FESTIVAL_TODAY: 'festival_today',
+  LOCATION_SHARE_VIEWED: 'location_share_viewed',
+  LOCATION_SHARE_ENDED: 'location_share_ended',
 }
 
 /**
@@ -21,6 +23,7 @@ const PREF_KEY_BY_TYPE = {
   festival_today: 'festival',
   business_claim_approved: 'businessClaim',
   business_claim_rejected: 'businessClaim',
+  // location_share_* are transactional (always delivered when created)
 }
 
 /** Default preferences when a user has no preference row (everything on). */
@@ -398,4 +401,46 @@ export async function notifyFestivalsStartingToday() {
     }
   }
   return { count: notified }
+}
+
+export async function notifyLiveLocationViewed(share, viewer) {
+  if (!share?.ownerId || !viewer?.id || share.ownerId === viewer.id) return null
+  const viewerName = (viewer.name || 'Someone').trim()
+  return createUserNotification({
+    userId: share.ownerId,
+    type: NOTIFICATION_TYPES.LOCATION_SHARE_VIEWED,
+    title: 'Live location viewed',
+    body: `${viewerName} opened your live-location link.`,
+    data: {
+      shareId: share.id,
+      viewerUserId: viewer.id,
+      viewerName,
+    },
+  })
+}
+
+export async function notifyLiveLocationEnded(share, { reason = 'stopped' } = {}) {
+  if (!share?.id) return
+  const ownerName = (share.owner?.name || 'Someone').trim()
+  const viewers = await prisma.liveLocationViewer.findMany({
+    where: { shareId: share.id, userId: { not: share.ownerId } },
+    select: { userId: true },
+  })
+  const title = reason === 'expired' ? 'Live location expired' : 'Live location ended'
+  const body =
+    reason === 'expired'
+      ? `${ownerName}'s live-location share has expired.`
+      : `${ownerName} stopped sharing live location.`
+
+  await Promise.all(
+    viewers.map((viewer) =>
+      createUserNotification({
+        userId: viewer.userId,
+        type: NOTIFICATION_TYPES.LOCATION_SHARE_ENDED,
+        title,
+        body,
+        data: { shareId: share.id, reason, ownerName },
+      })
+    )
+  )
 }

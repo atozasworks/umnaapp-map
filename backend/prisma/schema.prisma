@@ -12,37 +12,39 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  name          String
-  email         String    @unique
-  password      String?   // Optional for OTP-only users
-  googleId      String?   @unique
-  picture       String?   // Profile image: URL (Google) or base64 data URL (uploaded)
-  emailVerified      Boolean   @default(false)
-  profilePublic      Boolean   @default(true) @map("profile_public") // public profile visibility
-  lastGridExtractAt  DateTime? @map("last_grid_extract_at")
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
+  id                String    @id @default(uuid())
+  name              String
+  email             String    @unique
+  password          String? // Optional for OTP-only users
+  googleId          String?   @unique
+  picture           String? // Profile image: URL (Google) or base64 data URL (uploaded)
+  emailVerified     Boolean   @default(false)
+  profilePublic     Boolean   @default(true) @map("profile_public") // public profile visibility
+  lastGridExtractAt DateTime? @map("last_grid_extract_at")
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
 
-  otpVerifications OTPVerification[]
-  sessions         Session[]
-  vehicles         Vehicle[]
-  locations        Location[]
-  routes           Route[]
-  places           Place[]
-  placeReviews     PlaceReview[]
-  placePhotos      PlacePhoto[]
-  favorites        Favorite[]
-  notifications    Notification[]
-  pushSubscriptions PushSubscription[]
+  otpVerifications       OTPVerification[]
+  sessions               Session[]
+  vehicles               Vehicle[]
+  locations              Location[]
+  routes                 Route[]
+  places                 Place[]
+  placeReviews           PlaceReview[]
+  placePhotos            PlacePhoto[]
+  favorites              Favorite[]
+  notifications          Notification[]
+  pushSubscriptions      PushSubscription[]
   notificationPreference NotificationPreference?
-  businessClaims   BusinessClaim[]
-  placeLabels      PlaceLabel[]
+  businessClaims         BusinessClaim[]
+  placeLabels            PlaceLabel[]
 
-  ownedItineraries     Itinerary[]        @relation("ItineraryOwner")
-  itineraryMemberships ItineraryMember[]
-  itineraryComments    ItineraryComment[]
-  itineraryVotes       ItineraryVote[]
+  ownedItineraries        Itinerary[]          @relation("ItineraryOwner")
+  itineraryMemberships    ItineraryMember[]
+  itineraryComments       ItineraryComment[]
+  itineraryVotes          ItineraryVote[]
+  ownedLiveLocationShares LiveLocationShare[]  @relation("LiveLocationOwner")
+  liveLocationViewerships LiveLocationViewer[]
 
   @@index([email])
   @@index([googleId])
@@ -51,7 +53,7 @@ model User {
 model Notification {
   id        String   @id @default(uuid())
   userId    String   @map("user_id")
-  type      String   // place_submitted | place_added | place_approved
+  type      String // place_submitted | place_added | place_approved
   title     String
   body      String   @db.Text
   data      Json?
@@ -71,13 +73,13 @@ model Notification {
 model NotificationPreference {
   id            String   @id @default(uuid())
   userId        String   @unique @map("user_id")
-  pushEnabled   Boolean  @default(true)  @map("push_enabled")
-  placeApproved Boolean  @default(true)  @map("place_approved")
-  placeAdded    Boolean  @default(true)  @map("place_added")
+  pushEnabled   Boolean  @default(true) @map("push_enabled")
+  placeApproved Boolean  @default(true) @map("place_approved")
+  placeAdded    Boolean  @default(true) @map("place_added")
   festival      Boolean  @default(true)
-  businessClaim Boolean  @default(true)  @map("business_claim")
+  businessClaim Boolean  @default(true) @map("business_claim")
   createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt      @map("updated_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -101,7 +103,7 @@ model OTPVerification {
   id        String   @id @default(uuid())
   email     String
   otp       String
-  type      String   // 'register' or 'login'
+  type      String // 'register' or 'login'
   expiresAt DateTime
   verified  Boolean  @default(false)
   createdAt DateTime @default(now())
@@ -128,39 +130,39 @@ model Session {
 }
 
 model Vehicle {
-  id          String   @id @default(uuid())
-  name        String
+  id           String   @id @default(uuid())
+  name         String
   licensePlate String?  @unique
-  type        String   // 'car', 'truck', 'bike', etc.
-  status      String   @default("idle") // 'idle', 'active', 'maintenance'
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  type         String // 'car', 'truck', 'bike', etc.
+  status       String   @default("idle") // 'idle', 'active', 'maintenance'
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  locations   Location[]
-  routes      Route[]
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  locations Location[]
+  routes    Route[]
 
   @@index([userId])
   @@index([status])
 }
 
 model Location {
-  id          String   @id @default(uuid())
-  vehicleId   String?
-  userId      String?
-  latitude    Float
-  longitude   Float
-  accuracy    Float?   // GPS accuracy in meters
-  speed       Float?   // Speed in km/h
-  heading     Float?   // Direction in degrees (0-360)
-  timestamp   DateTime @default(now())
-  
-  // PostGIS geometry column
-  point       Unsupported("geometry(Point,4326)")?
+  id        String   @id @default(uuid())
+  vehicleId String?
+  userId    String?
+  latitude  Float
+  longitude Float
+  accuracy  Float? // GPS accuracy in meters
+  speed     Float? // Speed in km/h
+  heading   Float? // Direction in degrees (0-360)
+  timestamp DateTime @default(now())
 
-  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
-  user        User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  // PostGIS geometry column
+  point Unsupported("geometry(Point,4326)")?
+
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  user    User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([vehicleId])
   @@index([userId])
@@ -169,7 +171,7 @@ model Location {
 }
 
 model Route {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   vehicleId   String?
   userId      String
   name        String?
@@ -177,18 +179,18 @@ model Route {
   startLng    Float
   endLat      Float
   endLng      Float
-  waypoints   Json?    // Array of {lat, lng} waypoints
-  distance    Float?   // Distance in meters
-  duration    Int?     // Duration in seconds
-  polyline    String?  // Encoded polyline
-  status      String   @default("planned") // 'planned', 'active', 'completed', 'cancelled'
+  waypoints   Json? // Array of {lat, lng} waypoints
+  distance    Float? // Distance in meters
+  duration    Int? // Duration in seconds
+  polyline    String? // Encoded polyline
+  status      String    @default("planned") // 'planned', 'active', 'completed', 'cancelled'
   startedAt   DateTime?
   completedAt DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  vehicle     Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  user    User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([vehicleId])
   @@index([userId])
@@ -197,58 +199,58 @@ model Route {
 }
 
 model Place {
-  id               String   @id @default(uuid())
-  name             String   // Legacy: kept for backward compat; equals place_name_en for new places
-  placeNameEn      String?  @map("place_name_en")   // English name (preferred)
-  placeNameLocal   String?  @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
-  category         String   // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
-  latitude         Float
-  longitude        Float
-  zoomLevel        Float    @default(15)
-  userId           String
-  userName         String?  @map("user_name")   // User name when place was added
-  userEmail        String?  @map("user_email")  // User email when place was added
-  source           String   @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
-  approvalStatus   String   @default("pending") @map("approval_status") // pending | approved | rejected
-  approvedAt       DateTime? @map("approved_at")
-  autoApproveAt    DateTime? @map("auto_approve_at")
-  googlePlaceId    String?  @map("google_place_id")
-  googleType       String?  @map("google_type")
-  googleTypes      Json?    @map("google_types")
-  googleMapsUrl    String?  @map("google_maps_url")
-  vicinity         String?
-  fullAddress      String?  @map("full_address")
-  village          String?
-  taluk            String?
-  district         String?
-  state            String?
-  country          String?
-  pincode          String?
-  phone            String?
-  website          String?
-  rating           Float?
-  reviewCount      Int?     @map("review_count")
-  openingHours     Json?    @map("opening_hours")
-  businessStatus   String?  @map("business_status")
-  description      String?  @db.Text
-  googleReviews    Json?    @map("google_reviews")
-  nearbyPlaces     Json?    @map("nearby_places")
-  googlePhotos     Json?    @map("google_photos")
-  mapRenderingConfig Json?  @map("map_rendering_config")
-  extractedAt      DateTime? @map("extracted_at")
+  id                 String                               @id @default(uuid())
+  name               String // Legacy: kept for backward compat; equals place_name_en for new places
+  placeNameEn        String?                              @map("place_name_en") // English name (preferred)
+  placeNameLocal     String?                              @map("place_name_local") // Local language name (Kannada, Tamil, etc.)
+  category           String // Restaurant, Hospital, Hotel, Parking, Shop, Tourist Place, etc.
+  latitude           Float
+  longitude          Float
+  zoomLevel          Float                                @default(15)
+  userId             String
+  userName           String?                              @map("user_name") // User name when place was added
+  userEmail          String?                              @map("user_email") // User email when place was added
+  source             String                               @default("contribution") // 'contribution' = Add Place, 'saved' = save from search
+  approvalStatus     String                               @default("pending") @map("approval_status") // pending | approved | rejected
+  approvedAt         DateTime?                            @map("approved_at")
+  autoApproveAt      DateTime?                            @map("auto_approve_at")
+  googlePlaceId      String?                              @map("google_place_id")
+  googleType         String?                              @map("google_type")
+  googleTypes        Json?                                @map("google_types")
+  googleMapsUrl      String?                              @map("google_maps_url")
+  vicinity           String?
+  fullAddress        String?                              @map("full_address")
+  village            String?
+  taluk              String?
+  district           String?
+  state              String?
+  country            String?
+  pincode            String?
+  phone              String?
+  website            String?
+  rating             Float?
+  reviewCount        Int?                                 @map("review_count")
+  openingHours       Json?                                @map("opening_hours")
+  businessStatus     String?                              @map("business_status")
+  description        String?                              @db.Text
+  googleReviews      Json?                                @map("google_reviews")
+  nearbyPlaces       Json?                                @map("nearby_places")
+  googlePhotos       Json?                                @map("google_photos")
+  mapRenderingConfig Json?                                @map("map_rendering_config")
+  extractedAt        DateTime?                            @map("extracted_at")
   // Festival / jatre overlay: time-bound markers shown only during their window.
-  festivalStartDate  DateTime? @map("festival_start_date")
-  festivalEndDate    DateTime? @map("festival_end_date")
-  festivalRecurrence String?   @map("festival_recurrence") // 'yearly' | 'none'
-  festivalNotifiedAt DateTime? @map("festival_notified_at") // last occurrence start we broadcast to all users
+  festivalStartDate  DateTime?                            @map("festival_start_date")
+  festivalEndDate    DateTime?                            @map("festival_end_date")
+  festivalRecurrence String?                              @map("festival_recurrence") // 'yearly' | 'none'
+  festivalNotifiedAt DateTime?                            @map("festival_notified_at") // last occurrence start we broadcast to all users
   // Business ownership: set when an admin approves a BusinessClaim for this place.
-  claimedById      String?   @map("claimed_by_id")
-  claimVerifiedAt  DateTime? @map("claim_verified_at")
+  claimedById        String?                              @map("claimed_by_id")
+  claimVerifiedAt    DateTime?                            @map("claim_verified_at")
   // PostGIS geometry, kept in sync with latitude/longitude by a DB trigger.
   // Enables GiST-indexed ST_DWithin / ST_Contains spatial queries.
-  geom             Unsupported("geometry(Point,4326)")?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  geom               Unsupported("geometry(Point,4326)")?
+  createdAt          DateTime                             @default(now())
+  updatedAt          DateTime                             @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -305,7 +307,7 @@ model PlaceReview {
   placeId   String
   userId    String
   userName  String?  @map("user_name")
-  rating    Int      // 1-5
+  rating    Int // 1-5
   comment   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -323,7 +325,7 @@ model PlacePhoto {
   placeId   String
   userId    String
   userName  String?  @map("user_name")
-  dataUrl   String   // base64 data URL (jpeg, compressed)
+  dataUrl   String // base64 data URL (jpeg, compressed)
   caption   String?
   createdAt DateTime @default(now())
 
@@ -390,12 +392,12 @@ model PlaceLabel {
 model PlaceAudit {
   id        String   @id @default(uuid())
   placeId   String   @map("place_id")
-  action    String   // created | updated | approved | rejected | deleted | restored
+  action    String // created | updated | approved | rejected | deleted | restored
   actorType String   @default("user") @map("actor_type") // user | admin | system
   actorId   String?  @map("actor_id")
   actorName String?  @map("actor_name")
-  changes   Json?    // { field: { old, new } } diff for this event
-  snapshot  Json?    // full place snapshot at this version (used for restore)
+  changes   Json? // { field: { old, new } } diff for this event
+  snapshot  Json? // full place snapshot at this version (used for restore)
   note      String?  @db.Text // optional human note (e.g. "auto-approved")
   createdAt DateTime @default(now()) @map("created_at")
 
@@ -501,6 +503,50 @@ model ItineraryVote {
   @@index([stopId])
 }
 
+// Timed live-location sessions retain only the owner's latest point. Access is
+// limited to the owner and authenticated users who exchanged the share token.
+model LiveLocationShare {
+  id              String    @id @default(uuid())
+  ownerId         String    @map("owner_id")
+  tokenHash       String    @unique @map("token_hash")
+  status          String    @default("active") // active | stopped | expired
+  durationMinutes Int       @map("duration_minutes")
+  expiresAt       DateTime  @map("expires_at")
+  endedAt         DateTime? @map("ended_at")
+  endedReason     String?   @map("ended_reason")
+  lastLatitude    Float?    @map("last_latitude")
+  lastLongitude   Float?    @map("last_longitude")
+  lastAccuracy    Float?    @map("last_accuracy")
+  lastSpeed       Float?    @map("last_speed")
+  lastHeading     Float?    @map("last_heading")
+  lastUpdatedAt   DateTime? @map("last_updated_at")
+  presenceStatus  String    @default("active") @map("presence_status") // active | paused
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  owner   User                 @relation("LiveLocationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  viewers LiveLocationViewer[]
+
+  @@index([ownerId, createdAt])
+  @@index([status, expiresAt])
+  @@index([updatedAt])
+}
+
+model LiveLocationViewer {
+  id            String   @id @default(uuid())
+  shareId       String   @map("share_id")
+  userId        String   @map("user_id")
+  firstViewedAt DateTime @default(now()) @map("first_viewed_at")
+  lastViewedAt  DateTime @default(now()) @map("last_viewed_at")
+
+  share LiveLocationShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shareId, userId])
+  @@index([userId, lastViewedAt])
+  @@index([shareId])
+}
+
 // Editable legal documents (Privacy Policy, Terms & Conditions). A single row
 // per document type holds the current content shown to all users. Admins edit
 // the content in the admin panel; each save bumps `version`, stamps
@@ -517,4 +563,3 @@ model LegalDocument {
 
   @@index([type])
 }
-

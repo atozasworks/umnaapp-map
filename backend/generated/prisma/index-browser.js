@@ -155,6 +155,7 @@ exports.Prisma.NotificationPreferenceScalarFieldEnum = {
   placeAdded: 'placeAdded',
   festival: 'festival',
   businessClaim: 'businessClaim',
+  locationShare: 'locationShare',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -415,6 +416,34 @@ exports.Prisma.ItineraryVoteScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.LiveLocationShareScalarFieldEnum = {
+  id: 'id',
+  ownerId: 'ownerId',
+  tokenHash: 'tokenHash',
+  status: 'status',
+  durationMinutes: 'durationMinutes',
+  expiresAt: 'expiresAt',
+  endedAt: 'endedAt',
+  endedReason: 'endedReason',
+  lastLatitude: 'lastLatitude',
+  lastLongitude: 'lastLongitude',
+  lastAccuracy: 'lastAccuracy',
+  lastSpeed: 'lastSpeed',
+  lastHeading: 'lastHeading',
+  lastUpdatedAt: 'lastUpdatedAt',
+  presenceStatus: 'presenceStatus',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.LiveLocationViewerScalarFieldEnum = {
+  id: 'id',
+  shareId: 'shareId',
+  userId: 'userId',
+  firstViewedAt: 'firstViewedAt',
+  lastViewedAt: 'lastViewedAt'
+};
+
 exports.Prisma.LegalDocumentScalarFieldEnum = {
   id: 'id',
   type: 'type',
@@ -475,6 +504,8 @@ exports.Prisma.ModelName = {
   ItineraryStop: 'ItineraryStop',
   ItineraryComment: 'ItineraryComment',
   ItineraryVote: 'ItineraryVote',
+  LiveLocationShare: 'LiveLocationShare',
+  LiveLocationViewer: 'LiveLocationViewer',
   LegalDocument: 'LegalDocument'
 };
 

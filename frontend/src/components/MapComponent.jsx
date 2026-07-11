@@ -631,6 +631,7 @@ const MapComponent = forwardRef(({
   const polygonOverlayMarkersRef = useRef({})
   const routeEndpointMarkersRef = useRef({})
   const vehicleMarkersRef = useRef({})
+  const liveShareMarkersRef = useRef({})
   const routeLayerRef = useRef(null)
   const routeGeoJsonRef = useRef(null)
   const lastRouteDrawOptionsRef = useRef(null)
@@ -2245,6 +2246,60 @@ const MapComponent = forwardRef(({
       .addTo(mapRef.current)
   }, [])
 
+  const updateLiveShareMarker = useCallback((markerId, location) => {
+    if (!mapRef.current) return
+
+    const { lat, lng, label, picture, heading } = location
+    if (liveShareMarkersRef.current[markerId]) {
+      liveShareMarkersRef.current[markerId].remove()
+    }
+
+    const wrapper = document.createElement('div')
+    wrapper.style.display = 'flex'
+    wrapper.style.flexDirection = 'column'
+    wrapper.style.alignItems = 'center'
+    wrapper.style.cursor = 'pointer'
+
+    const pin = document.createElement('div')
+    pin.style.width = '28px'
+    pin.style.height = '28px'
+    pin.style.borderRadius = '50%'
+    pin.style.backgroundColor = '#2563EB'
+    pin.style.border = '3px solid white'
+    pin.style.boxShadow = '0 2px 8px rgba(0,0,0,0.35)'
+    if (picture) {
+      pin.style.backgroundImage = `url(${picture})`
+      pin.style.backgroundSize = 'cover'
+      pin.style.backgroundPosition = 'center'
+    }
+    if (heading != null) {
+      pin.style.transform = `rotate(${heading}deg)`
+    }
+
+    const nameLabel = document.createElement('div')
+    nameLabel.textContent = label || 'Live location'
+    nameLabel.style.maxWidth = '160px'
+    nameLabel.style.fontSize = '11px'
+    nameLabel.style.fontWeight = '600'
+    nameLabel.style.color = '#1e293b'
+    nameLabel.style.background = 'rgba(255,255,255,0.95)'
+    nameLabel.style.padding = '3px 8px'
+    nameLabel.style.borderRadius = '6px'
+    nameLabel.style.marginTop = '4px'
+    nameLabel.style.textAlign = 'center'
+    nameLabel.style.whiteSpace = 'nowrap'
+    nameLabel.style.overflow = 'hidden'
+    nameLabel.style.textOverflow = 'ellipsis'
+    nameLabel.style.boxShadow = '0 1px 4px rgba(0,0,0,0.15)'
+
+    wrapper.appendChild(pin)
+    wrapper.appendChild(nameLabel)
+
+    liveShareMarkersRef.current[markerId] = new maplibregl.Marker({ element: wrapper, anchor: 'bottom' })
+      .setLngLat([lng, lat])
+      .addTo(mapRef.current)
+  }, [])
+
   // Fly to user's current location (always prefer a fresh high-accuracy read on tap)
   const locateMe = useCallback(() => {
     if (!mapRef.current) return
@@ -2977,7 +3032,27 @@ const MapComponent = forwardRef(({
         }
       })
     },
-  }), [clearMeasureDistance, drawRoute, measurePointCount, measureTotalMeters, syncMeasurePath])
+    setLiveShareMarker: (marker) => {
+      if (!marker?.id || marker.lat == null || marker.lng == null) return
+      updateLiveShareMarker(marker.id, marker)
+    },
+    removeLiveShareMarker: (markerId) => {
+      if (liveShareMarkersRef.current[markerId]) {
+        liveShareMarkersRef.current[markerId].remove()
+        delete liveShareMarkersRef.current[markerId]
+      }
+    },
+    flyToLiveShare: (markerId, options = {}) => {
+      const marker = liveShareMarkersRef.current[markerId]
+      if (!marker || !mapRef.current) return
+      const lngLat = marker.getLngLat()
+      mapRef.current.flyTo({
+        center: [lngLat.lng, lngLat.lat],
+        zoom: options.zoom || 16,
+        duration: options.duration || 800,
+      })
+    },
+  }), [clearMeasureDistance, drawRoute, measurePointCount, measureTotalMeters, syncMeasurePath, updateLiveShareMarker])
 
   return (
     <div className={`absolute inset-0 w-full h-full ${addPlaceMode || measureDistanceActive ? 'cursor-crosshair' : ''}`}>

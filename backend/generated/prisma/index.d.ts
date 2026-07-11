@@ -119,6 +119,16 @@ export type ItineraryComment = $Result.DefaultSelection<Prisma.$ItineraryComment
  */
 export type ItineraryVote = $Result.DefaultSelection<Prisma.$ItineraryVotePayload>
 /**
+ * Model LiveLocationShare
+ * 
+ */
+export type LiveLocationShare = $Result.DefaultSelection<Prisma.$LiveLocationSharePayload>
+/**
+ * Model LiveLocationViewer
+ * 
+ */
+export type LiveLocationViewer = $Result.DefaultSelection<Prisma.$LiveLocationViewerPayload>
+/**
  * Model LegalDocument
  * 
  */
@@ -456,6 +466,26 @@ export class PrismaClient<
     * ```
     */
   get itineraryVote(): Prisma.ItineraryVoteDelegate<ExtArgs>;
+
+  /**
+   * `prisma.liveLocationShare`: Exposes CRUD operations for the **LiveLocationShare** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LiveLocationShares
+    * const liveLocationShares = await prisma.liveLocationShare.findMany()
+    * ```
+    */
+  get liveLocationShare(): Prisma.LiveLocationShareDelegate<ExtArgs>;
+
+  /**
+   * `prisma.liveLocationViewer`: Exposes CRUD operations for the **LiveLocationViewer** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more LiveLocationViewers
+    * const liveLocationViewers = await prisma.liveLocationViewer.findMany()
+    * ```
+    */
+  get liveLocationViewer(): Prisma.LiveLocationViewerDelegate<ExtArgs>;
 
   /**
    * `prisma.legalDocument`: Exposes CRUD operations for the **LegalDocument** model.
@@ -928,6 +958,8 @@ export namespace Prisma {
     ItineraryStop: 'ItineraryStop',
     ItineraryComment: 'ItineraryComment',
     ItineraryVote: 'ItineraryVote',
+    LiveLocationShare: 'LiveLocationShare',
+    LiveLocationViewer: 'LiveLocationViewer',
     LegalDocument: 'LegalDocument'
   };
 
@@ -944,7 +976,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "itinerary" | "itineraryMember" | "itineraryStop" | "itineraryComment" | "itineraryVote" | "legalDocument"
+      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "itinerary" | "itineraryMember" | "itineraryStop" | "itineraryComment" | "itineraryVote" | "liveLocationShare" | "liveLocationViewer" | "legalDocument"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2418,6 +2450,146 @@ export namespace Prisma {
           }
         }
       }
+      LiveLocationShare: {
+        payload: Prisma.$LiveLocationSharePayload<ExtArgs>
+        fields: Prisma.LiveLocationShareFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LiveLocationShareFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LiveLocationShareFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
+          }
+          findFirst: {
+            args: Prisma.LiveLocationShareFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LiveLocationShareFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
+          }
+          findMany: {
+            args: Prisma.LiveLocationShareFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>[]
+          }
+          create: {
+            args: Prisma.LiveLocationShareCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
+          }
+          createMany: {
+            args: Prisma.LiveLocationShareCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LiveLocationShareCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>[]
+          }
+          delete: {
+            args: Prisma.LiveLocationShareDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
+          }
+          update: {
+            args: Prisma.LiveLocationShareUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
+          }
+          deleteMany: {
+            args: Prisma.LiveLocationShareDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LiveLocationShareUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.LiveLocationShareUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
+          }
+          aggregate: {
+            args: Prisma.LiveLocationShareAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLiveLocationShare>
+          }
+          groupBy: {
+            args: Prisma.LiveLocationShareGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationShareGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LiveLocationShareCountArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationShareCountAggregateOutputType> | number
+          }
+        }
+      }
+      LiveLocationViewer: {
+        payload: Prisma.$LiveLocationViewerPayload<ExtArgs>
+        fields: Prisma.LiveLocationViewerFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.LiveLocationViewerFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.LiveLocationViewerFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
+          }
+          findFirst: {
+            args: Prisma.LiveLocationViewerFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.LiveLocationViewerFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
+          }
+          findMany: {
+            args: Prisma.LiveLocationViewerFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>[]
+          }
+          create: {
+            args: Prisma.LiveLocationViewerCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
+          }
+          createMany: {
+            args: Prisma.LiveLocationViewerCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.LiveLocationViewerCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>[]
+          }
+          delete: {
+            args: Prisma.LiveLocationViewerDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
+          }
+          update: {
+            args: Prisma.LiveLocationViewerUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
+          }
+          deleteMany: {
+            args: Prisma.LiveLocationViewerDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.LiveLocationViewerUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.LiveLocationViewerUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
+          }
+          aggregate: {
+            args: Prisma.LiveLocationViewerAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLiveLocationViewer>
+          }
+          groupBy: {
+            args: Prisma.LiveLocationViewerGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationViewerGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.LiveLocationViewerCountArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationViewerCountAggregateOutputType> | number
+          }
+        }
+      }
       LegalDocument: {
         payload: Prisma.$LegalDocumentPayload<ExtArgs>
         fields: Prisma.LegalDocumentFieldRefs
@@ -2666,6 +2838,8 @@ export namespace Prisma {
     itineraryMemberships: number
     itineraryComments: number
     itineraryVotes: number
+    ownedLiveLocationShares: number
+    liveLocationViewerships: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2686,6 +2860,8 @@ export namespace Prisma {
     itineraryMemberships?: boolean | UserCountOutputTypeCountItineraryMembershipsArgs
     itineraryComments?: boolean | UserCountOutputTypeCountItineraryCommentsArgs
     itineraryVotes?: boolean | UserCountOutputTypeCountItineraryVotesArgs
+    ownedLiveLocationShares?: boolean | UserCountOutputTypeCountOwnedLiveLocationSharesArgs
+    liveLocationViewerships?: boolean | UserCountOutputTypeCountLiveLocationViewershipsArgs
   }
 
   // Custom InputTypes
@@ -2816,6 +2992,20 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountItineraryVotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ItineraryVoteWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountOwnedLiveLocationSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationShareWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountLiveLocationViewershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationViewerWhereInput
   }
 
 
@@ -3003,6 +3193,37 @@ export namespace Prisma {
    */
   export type ItineraryStopCountOutputTypeCountVotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: ItineraryVoteWhereInput
+  }
+
+
+  /**
+   * Count Type LiveLocationShareCountOutputType
+   */
+
+  export type LiveLocationShareCountOutputType = {
+    viewers: number
+  }
+
+  export type LiveLocationShareCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    viewers?: boolean | LiveLocationShareCountOutputTypeCountViewersArgs
+  }
+
+  // Custom InputTypes
+  /**
+   * LiveLocationShareCountOutputType without action
+   */
+  export type LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShareCountOutputType
+     */
+    select?: LiveLocationShareCountOutputTypeSelect<ExtArgs> | null
+  }
+
+  /**
+   * LiveLocationShareCountOutputType without action
+   */
+  export type LiveLocationShareCountOutputTypeCountViewersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationViewerWhereInput
   }
 
 
@@ -3240,6 +3461,8 @@ export namespace Prisma {
     itineraryMemberships?: boolean | User$itineraryMembershipsArgs<ExtArgs>
     itineraryComments?: boolean | User$itineraryCommentsArgs<ExtArgs>
     itineraryVotes?: boolean | User$itineraryVotesArgs<ExtArgs>
+    ownedLiveLocationShares?: boolean | User$ownedLiveLocationSharesArgs<ExtArgs>
+    liveLocationViewerships?: boolean | User$liveLocationViewershipsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -3290,6 +3513,8 @@ export namespace Prisma {
     itineraryMemberships?: boolean | User$itineraryMembershipsArgs<ExtArgs>
     itineraryComments?: boolean | User$itineraryCommentsArgs<ExtArgs>
     itineraryVotes?: boolean | User$itineraryVotesArgs<ExtArgs>
+    ownedLiveLocationShares?: boolean | User$ownedLiveLocationSharesArgs<ExtArgs>
+    liveLocationViewerships?: boolean | User$liveLocationViewershipsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3315,6 +3540,8 @@ export namespace Prisma {
       itineraryMemberships: Prisma.$ItineraryMemberPayload<ExtArgs>[]
       itineraryComments: Prisma.$ItineraryCommentPayload<ExtArgs>[]
       itineraryVotes: Prisma.$ItineraryVotePayload<ExtArgs>[]
+      ownedLiveLocationShares: Prisma.$LiveLocationSharePayload<ExtArgs>[]
+      liveLocationViewerships: Prisma.$LiveLocationViewerPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3710,6 +3937,8 @@ export namespace Prisma {
     itineraryMemberships<T extends User$itineraryMembershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findMany"> | Null>
     itineraryComments<T extends User$itineraryCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findMany"> | Null>
     itineraryVotes<T extends User$itineraryVotesArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryVotesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findMany"> | Null>
+    ownedLiveLocationShares<T extends User$ownedLiveLocationSharesArgs<ExtArgs> = {}>(args?: Subset<T, User$ownedLiveLocationSharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findMany"> | Null>
+    liveLocationViewerships<T extends User$liveLocationViewershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$liveLocationViewershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4416,6 +4645,46 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: ItineraryVoteScalarFieldEnum | ItineraryVoteScalarFieldEnum[]
+  }
+
+  /**
+   * User.ownedLiveLocationShares
+   */
+  export type User$ownedLiveLocationSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    where?: LiveLocationShareWhereInput
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
+    cursor?: LiveLocationShareWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
+  }
+
+  /**
+   * User.liveLocationViewerships
+   */
+  export type User$liveLocationViewershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    where?: LiveLocationViewerWhereInput
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    cursor?: LiveLocationViewerWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
   }
 
   /**
@@ -5416,6 +5685,7 @@ export namespace Prisma {
     placeAdded: boolean | null
     festival: boolean | null
     businessClaim: boolean | null
+    locationShare: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5428,6 +5698,7 @@ export namespace Prisma {
     placeAdded: boolean | null
     festival: boolean | null
     businessClaim: boolean | null
+    locationShare: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5440,6 +5711,7 @@ export namespace Prisma {
     placeAdded: number
     festival: number
     businessClaim: number
+    locationShare: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -5454,6 +5726,7 @@ export namespace Prisma {
     placeAdded?: true
     festival?: true
     businessClaim?: true
+    locationShare?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5466,6 +5739,7 @@ export namespace Prisma {
     placeAdded?: true
     festival?: true
     businessClaim?: true
+    locationShare?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5478,6 +5752,7 @@ export namespace Prisma {
     placeAdded?: true
     festival?: true
     businessClaim?: true
+    locationShare?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -5563,6 +5838,7 @@ export namespace Prisma {
     placeAdded: boolean
     festival: boolean
     businessClaim: boolean
+    locationShare: boolean
     createdAt: Date
     updatedAt: Date
     _count: NotificationPreferenceCountAggregateOutputType | null
@@ -5592,6 +5868,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -5605,6 +5882,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -5618,6 +5896,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -5642,6 +5921,7 @@ export namespace Prisma {
       placeAdded: boolean
       festival: boolean
       businessClaim: boolean
+      locationShare: boolean
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["notificationPreference"]>
@@ -6045,6 +6325,7 @@ export namespace Prisma {
     readonly placeAdded: FieldRef<"NotificationPreference", 'Boolean'>
     readonly festival: FieldRef<"NotificationPreference", 'Boolean'>
     readonly businessClaim: FieldRef<"NotificationPreference", 'Boolean'>
+    readonly locationShare: FieldRef<"NotificationPreference", 'Boolean'>
     readonly createdAt: FieldRef<"NotificationPreference", 'DateTime'>
     readonly updatedAt: FieldRef<"NotificationPreference", 'DateTime'>
   }
@@ -25189,6 +25470,2102 @@ export namespace Prisma {
 
 
   /**
+   * Model LiveLocationShare
+   */
+
+  export type AggregateLiveLocationShare = {
+    _count: LiveLocationShareCountAggregateOutputType | null
+    _avg: LiveLocationShareAvgAggregateOutputType | null
+    _sum: LiveLocationShareSumAggregateOutputType | null
+    _min: LiveLocationShareMinAggregateOutputType | null
+    _max: LiveLocationShareMaxAggregateOutputType | null
+  }
+
+  export type LiveLocationShareAvgAggregateOutputType = {
+    durationMinutes: number | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+  }
+
+  export type LiveLocationShareSumAggregateOutputType = {
+    durationMinutes: number | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+  }
+
+  export type LiveLocationShareMinAggregateOutputType = {
+    id: string | null
+    ownerId: string | null
+    tokenHash: string | null
+    status: string | null
+    durationMinutes: number | null
+    expiresAt: Date | null
+    endedAt: Date | null
+    endedReason: string | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+    lastUpdatedAt: Date | null
+    presenceStatus: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LiveLocationShareMaxAggregateOutputType = {
+    id: string | null
+    ownerId: string | null
+    tokenHash: string | null
+    status: string | null
+    durationMinutes: number | null
+    expiresAt: Date | null
+    endedAt: Date | null
+    endedReason: string | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+    lastUpdatedAt: Date | null
+    presenceStatus: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type LiveLocationShareCountAggregateOutputType = {
+    id: number
+    ownerId: number
+    tokenHash: number
+    status: number
+    durationMinutes: number
+    expiresAt: number
+    endedAt: number
+    endedReason: number
+    lastLatitude: number
+    lastLongitude: number
+    lastAccuracy: number
+    lastSpeed: number
+    lastHeading: number
+    lastUpdatedAt: number
+    presenceStatus: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type LiveLocationShareAvgAggregateInputType = {
+    durationMinutes?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+  }
+
+  export type LiveLocationShareSumAggregateInputType = {
+    durationMinutes?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+  }
+
+  export type LiveLocationShareMinAggregateInputType = {
+    id?: true
+    ownerId?: true
+    tokenHash?: true
+    status?: true
+    durationMinutes?: true
+    expiresAt?: true
+    endedAt?: true
+    endedReason?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+    lastUpdatedAt?: true
+    presenceStatus?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LiveLocationShareMaxAggregateInputType = {
+    id?: true
+    ownerId?: true
+    tokenHash?: true
+    status?: true
+    durationMinutes?: true
+    expiresAt?: true
+    endedAt?: true
+    endedReason?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+    lastUpdatedAt?: true
+    presenceStatus?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type LiveLocationShareCountAggregateInputType = {
+    id?: true
+    ownerId?: true
+    tokenHash?: true
+    status?: true
+    durationMinutes?: true
+    expiresAt?: true
+    endedAt?: true
+    endedReason?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+    lastUpdatedAt?: true
+    presenceStatus?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type LiveLocationShareAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LiveLocationShare to aggregate.
+     */
+    where?: LiveLocationShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationShares to fetch.
+     */
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LiveLocationShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationShares.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LiveLocationShares
+    **/
+    _count?: true | LiveLocationShareCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LiveLocationShareAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LiveLocationShareSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LiveLocationShareMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LiveLocationShareMaxAggregateInputType
+  }
+
+  export type GetLiveLocationShareAggregateType<T extends LiveLocationShareAggregateArgs> = {
+        [P in keyof T & keyof AggregateLiveLocationShare]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLiveLocationShare[P]>
+      : GetScalarType<T[P], AggregateLiveLocationShare[P]>
+  }
+
+
+
+
+  export type LiveLocationShareGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationShareWhereInput
+    orderBy?: LiveLocationShareOrderByWithAggregationInput | LiveLocationShareOrderByWithAggregationInput[]
+    by: LiveLocationShareScalarFieldEnum[] | LiveLocationShareScalarFieldEnum
+    having?: LiveLocationShareScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LiveLocationShareCountAggregateInputType | true
+    _avg?: LiveLocationShareAvgAggregateInputType
+    _sum?: LiveLocationShareSumAggregateInputType
+    _min?: LiveLocationShareMinAggregateInputType
+    _max?: LiveLocationShareMaxAggregateInputType
+  }
+
+  export type LiveLocationShareGroupByOutputType = {
+    id: string
+    ownerId: string
+    tokenHash: string
+    status: string
+    durationMinutes: number
+    expiresAt: Date
+    endedAt: Date | null
+    endedReason: string | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+    lastUpdatedAt: Date | null
+    presenceStatus: string
+    createdAt: Date
+    updatedAt: Date
+    _count: LiveLocationShareCountAggregateOutputType | null
+    _avg: LiveLocationShareAvgAggregateOutputType | null
+    _sum: LiveLocationShareSumAggregateOutputType | null
+    _min: LiveLocationShareMinAggregateOutputType | null
+    _max: LiveLocationShareMaxAggregateOutputType | null
+  }
+
+  type GetLiveLocationShareGroupByPayload<T extends LiveLocationShareGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LiveLocationShareGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LiveLocationShareGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LiveLocationShareGroupByOutputType[P]>
+            : GetScalarType<T[P], LiveLocationShareGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LiveLocationShareSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerId?: boolean
+    tokenHash?: boolean
+    status?: boolean
+    durationMinutes?: boolean
+    expiresAt?: boolean
+    endedAt?: boolean
+    endedReason?: boolean
+    lastLatitude?: boolean
+    lastLongitude?: boolean
+    lastAccuracy?: boolean
+    lastSpeed?: boolean
+    lastHeading?: boolean
+    lastUpdatedAt?: boolean
+    presenceStatus?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    viewers?: boolean | LiveLocationShare$viewersArgs<ExtArgs>
+    _count?: boolean | LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["liveLocationShare"]>
+
+  export type LiveLocationShareSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    ownerId?: boolean
+    tokenHash?: boolean
+    status?: boolean
+    durationMinutes?: boolean
+    expiresAt?: boolean
+    endedAt?: boolean
+    endedReason?: boolean
+    lastLatitude?: boolean
+    lastLongitude?: boolean
+    lastAccuracy?: boolean
+    lastSpeed?: boolean
+    lastHeading?: boolean
+    lastUpdatedAt?: boolean
+    presenceStatus?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["liveLocationShare"]>
+
+  export type LiveLocationShareSelectScalar = {
+    id?: boolean
+    ownerId?: boolean
+    tokenHash?: boolean
+    status?: boolean
+    durationMinutes?: boolean
+    expiresAt?: boolean
+    endedAt?: boolean
+    endedReason?: boolean
+    lastLatitude?: boolean
+    lastLongitude?: boolean
+    lastAccuracy?: boolean
+    lastSpeed?: boolean
+    lastHeading?: boolean
+    lastUpdatedAt?: boolean
+    presenceStatus?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type LiveLocationShareInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+    viewers?: boolean | LiveLocationShare$viewersArgs<ExtArgs>
+    _count?: boolean | LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs>
+  }
+  export type LiveLocationShareIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    owner?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $LiveLocationSharePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LiveLocationShare"
+    objects: {
+      owner: Prisma.$UserPayload<ExtArgs>
+      viewers: Prisma.$LiveLocationViewerPayload<ExtArgs>[]
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      ownerId: string
+      tokenHash: string
+      status: string
+      durationMinutes: number
+      expiresAt: Date
+      endedAt: Date | null
+      endedReason: string | null
+      lastLatitude: number | null
+      lastLongitude: number | null
+      lastAccuracy: number | null
+      lastSpeed: number | null
+      lastHeading: number | null
+      lastUpdatedAt: Date | null
+      presenceStatus: string
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["liveLocationShare"]>
+    composites: {}
+  }
+
+  type LiveLocationShareGetPayload<S extends boolean | null | undefined | LiveLocationShareDefaultArgs> = $Result.GetResult<Prisma.$LiveLocationSharePayload, S>
+
+  type LiveLocationShareCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LiveLocationShareFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LiveLocationShareCountAggregateInputType | true
+    }
+
+  export interface LiveLocationShareDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LiveLocationShare'], meta: { name: 'LiveLocationShare' } }
+    /**
+     * Find zero or one LiveLocationShare that matches the filter.
+     * @param {LiveLocationShareFindUniqueArgs} args - Arguments to find a LiveLocationShare
+     * @example
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LiveLocationShareFindUniqueArgs>(args: SelectSubset<T, LiveLocationShareFindUniqueArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one LiveLocationShare that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {LiveLocationShareFindUniqueOrThrowArgs} args - Arguments to find a LiveLocationShare
+     * @example
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LiveLocationShareFindUniqueOrThrowArgs>(args: SelectSubset<T, LiveLocationShareFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first LiveLocationShare that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationShareFindFirstArgs} args - Arguments to find a LiveLocationShare
+     * @example
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LiveLocationShareFindFirstArgs>(args?: SelectSubset<T, LiveLocationShareFindFirstArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first LiveLocationShare that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationShareFindFirstOrThrowArgs} args - Arguments to find a LiveLocationShare
+     * @example
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LiveLocationShareFindFirstOrThrowArgs>(args?: SelectSubset<T, LiveLocationShareFindFirstOrThrowArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more LiveLocationShares that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationShareFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LiveLocationShares
+     * const liveLocationShares = await prisma.liveLocationShare.findMany()
+     * 
+     * // Get first 10 LiveLocationShares
+     * const liveLocationShares = await prisma.liveLocationShare.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const liveLocationShareWithIdOnly = await prisma.liveLocationShare.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LiveLocationShareFindManyArgs>(args?: SelectSubset<T, LiveLocationShareFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a LiveLocationShare.
+     * @param {LiveLocationShareCreateArgs} args - Arguments to create a LiveLocationShare.
+     * @example
+     * // Create one LiveLocationShare
+     * const LiveLocationShare = await prisma.liveLocationShare.create({
+     *   data: {
+     *     // ... data to create a LiveLocationShare
+     *   }
+     * })
+     * 
+     */
+    create<T extends LiveLocationShareCreateArgs>(args: SelectSubset<T, LiveLocationShareCreateArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many LiveLocationShares.
+     * @param {LiveLocationShareCreateManyArgs} args - Arguments to create many LiveLocationShares.
+     * @example
+     * // Create many LiveLocationShares
+     * const liveLocationShare = await prisma.liveLocationShare.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LiveLocationShareCreateManyArgs>(args?: SelectSubset<T, LiveLocationShareCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LiveLocationShares and returns the data saved in the database.
+     * @param {LiveLocationShareCreateManyAndReturnArgs} args - Arguments to create many LiveLocationShares.
+     * @example
+     * // Create many LiveLocationShares
+     * const liveLocationShare = await prisma.liveLocationShare.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LiveLocationShares and only return the `id`
+     * const liveLocationShareWithIdOnly = await prisma.liveLocationShare.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LiveLocationShareCreateManyAndReturnArgs>(args?: SelectSubset<T, LiveLocationShareCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a LiveLocationShare.
+     * @param {LiveLocationShareDeleteArgs} args - Arguments to delete one LiveLocationShare.
+     * @example
+     * // Delete one LiveLocationShare
+     * const LiveLocationShare = await prisma.liveLocationShare.delete({
+     *   where: {
+     *     // ... filter to delete one LiveLocationShare
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LiveLocationShareDeleteArgs>(args: SelectSubset<T, LiveLocationShareDeleteArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one LiveLocationShare.
+     * @param {LiveLocationShareUpdateArgs} args - Arguments to update one LiveLocationShare.
+     * @example
+     * // Update one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LiveLocationShareUpdateArgs>(args: SelectSubset<T, LiveLocationShareUpdateArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more LiveLocationShares.
+     * @param {LiveLocationShareDeleteManyArgs} args - Arguments to filter LiveLocationShares to delete.
+     * @example
+     * // Delete a few LiveLocationShares
+     * const { count } = await prisma.liveLocationShare.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LiveLocationShareDeleteManyArgs>(args?: SelectSubset<T, LiveLocationShareDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LiveLocationShares.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationShareUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LiveLocationShares
+     * const liveLocationShare = await prisma.liveLocationShare.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LiveLocationShareUpdateManyArgs>(args: SelectSubset<T, LiveLocationShareUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one LiveLocationShare.
+     * @param {LiveLocationShareUpsertArgs} args - Arguments to update or create a LiveLocationShare.
+     * @example
+     * // Update or create a LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.upsert({
+     *   create: {
+     *     // ... data to create a LiveLocationShare
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LiveLocationShare we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LiveLocationShareUpsertArgs>(args: SelectSubset<T, LiveLocationShareUpsertArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of LiveLocationShares.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationShareCountArgs} args - Arguments to filter LiveLocationShares to count.
+     * @example
+     * // Count the number of LiveLocationShares
+     * const count = await prisma.liveLocationShare.count({
+     *   where: {
+     *     // ... the filter for the LiveLocationShares we want to count
+     *   }
+     * })
+    **/
+    count<T extends LiveLocationShareCountArgs>(
+      args?: Subset<T, LiveLocationShareCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LiveLocationShareCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LiveLocationShare.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationShareAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LiveLocationShareAggregateArgs>(args: Subset<T, LiveLocationShareAggregateArgs>): Prisma.PrismaPromise<GetLiveLocationShareAggregateType<T>>
+
+    /**
+     * Group by LiveLocationShare.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationShareGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LiveLocationShareGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LiveLocationShareGroupByArgs['orderBy'] }
+        : { orderBy?: LiveLocationShareGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LiveLocationShareGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLiveLocationShareGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LiveLocationShare model
+   */
+  readonly fields: LiveLocationShareFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LiveLocationShare.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LiveLocationShareClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    owner<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    viewers<T extends LiveLocationShare$viewersArgs<ExtArgs> = {}>(args?: Subset<T, LiveLocationShare$viewersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findMany"> | Null>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LiveLocationShare model
+   */ 
+  interface LiveLocationShareFieldRefs {
+    readonly id: FieldRef<"LiveLocationShare", 'String'>
+    readonly ownerId: FieldRef<"LiveLocationShare", 'String'>
+    readonly tokenHash: FieldRef<"LiveLocationShare", 'String'>
+    readonly status: FieldRef<"LiveLocationShare", 'String'>
+    readonly durationMinutes: FieldRef<"LiveLocationShare", 'Int'>
+    readonly expiresAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly endedAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly endedReason: FieldRef<"LiveLocationShare", 'String'>
+    readonly lastLatitude: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastLongitude: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastAccuracy: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastSpeed: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastHeading: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastUpdatedAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly presenceStatus: FieldRef<"LiveLocationShare", 'String'>
+    readonly createdAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly updatedAt: FieldRef<"LiveLocationShare", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LiveLocationShare findUnique
+   */
+  export type LiveLocationShareFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationShare to fetch.
+     */
+    where: LiveLocationShareWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationShare findUniqueOrThrow
+   */
+  export type LiveLocationShareFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationShare to fetch.
+     */
+    where: LiveLocationShareWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationShare findFirst
+   */
+  export type LiveLocationShareFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationShare to fetch.
+     */
+    where?: LiveLocationShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationShares to fetch.
+     */
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LiveLocationShares.
+     */
+    cursor?: LiveLocationShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationShares.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LiveLocationShares.
+     */
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
+  }
+
+  /**
+   * LiveLocationShare findFirstOrThrow
+   */
+  export type LiveLocationShareFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationShare to fetch.
+     */
+    where?: LiveLocationShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationShares to fetch.
+     */
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LiveLocationShares.
+     */
+    cursor?: LiveLocationShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationShares.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LiveLocationShares.
+     */
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
+  }
+
+  /**
+   * LiveLocationShare findMany
+   */
+  export type LiveLocationShareFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationShares to fetch.
+     */
+    where?: LiveLocationShareWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationShares to fetch.
+     */
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LiveLocationShares.
+     */
+    cursor?: LiveLocationShareWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationShares from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationShares.
+     */
+    skip?: number
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
+  }
+
+  /**
+   * LiveLocationShare create
+   */
+  export type LiveLocationShareCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * The data needed to create a LiveLocationShare.
+     */
+    data: XOR<LiveLocationShareCreateInput, LiveLocationShareUncheckedCreateInput>
+  }
+
+  /**
+   * LiveLocationShare createMany
+   */
+  export type LiveLocationShareCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LiveLocationShares.
+     */
+    data: LiveLocationShareCreateManyInput | LiveLocationShareCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LiveLocationShare createManyAndReturn
+   */
+  export type LiveLocationShareCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many LiveLocationShares.
+     */
+    data: LiveLocationShareCreateManyInput | LiveLocationShareCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LiveLocationShare update
+   */
+  export type LiveLocationShareUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * The data needed to update a LiveLocationShare.
+     */
+    data: XOR<LiveLocationShareUpdateInput, LiveLocationShareUncheckedUpdateInput>
+    /**
+     * Choose, which LiveLocationShare to update.
+     */
+    where: LiveLocationShareWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationShare updateMany
+   */
+  export type LiveLocationShareUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LiveLocationShares.
+     */
+    data: XOR<LiveLocationShareUpdateManyMutationInput, LiveLocationShareUncheckedUpdateManyInput>
+    /**
+     * Filter which LiveLocationShares to update
+     */
+    where?: LiveLocationShareWhereInput
+  }
+
+  /**
+   * LiveLocationShare upsert
+   */
+  export type LiveLocationShareUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * The filter to search for the LiveLocationShare to update in case it exists.
+     */
+    where: LiveLocationShareWhereUniqueInput
+    /**
+     * In case the LiveLocationShare found by the `where` argument doesn't exist, create a new LiveLocationShare with this data.
+     */
+    create: XOR<LiveLocationShareCreateInput, LiveLocationShareUncheckedCreateInput>
+    /**
+     * In case the LiveLocationShare was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LiveLocationShareUpdateInput, LiveLocationShareUncheckedUpdateInput>
+  }
+
+  /**
+   * LiveLocationShare delete
+   */
+  export type LiveLocationShareDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    /**
+     * Filter which LiveLocationShare to delete.
+     */
+    where: LiveLocationShareWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationShare deleteMany
+   */
+  export type LiveLocationShareDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LiveLocationShares to delete
+     */
+    where?: LiveLocationShareWhereInput
+  }
+
+  /**
+   * LiveLocationShare.viewers
+   */
+  export type LiveLocationShare$viewersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    where?: LiveLocationViewerWhereInput
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    cursor?: LiveLocationViewerWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
+  }
+
+  /**
+   * LiveLocationShare without action
+   */
+  export type LiveLocationShareDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationShare
+     */
+    select?: LiveLocationShareSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationShareInclude<ExtArgs> | null
+  }
+
+
+  /**
+   * Model LiveLocationViewer
+   */
+
+  export type AggregateLiveLocationViewer = {
+    _count: LiveLocationViewerCountAggregateOutputType | null
+    _min: LiveLocationViewerMinAggregateOutputType | null
+    _max: LiveLocationViewerMaxAggregateOutputType | null
+  }
+
+  export type LiveLocationViewerMinAggregateOutputType = {
+    id: string | null
+    shareId: string | null
+    userId: string | null
+    firstViewedAt: Date | null
+    lastViewedAt: Date | null
+  }
+
+  export type LiveLocationViewerMaxAggregateOutputType = {
+    id: string | null
+    shareId: string | null
+    userId: string | null
+    firstViewedAt: Date | null
+    lastViewedAt: Date | null
+  }
+
+  export type LiveLocationViewerCountAggregateOutputType = {
+    id: number
+    shareId: number
+    userId: number
+    firstViewedAt: number
+    lastViewedAt: number
+    _all: number
+  }
+
+
+  export type LiveLocationViewerMinAggregateInputType = {
+    id?: true
+    shareId?: true
+    userId?: true
+    firstViewedAt?: true
+    lastViewedAt?: true
+  }
+
+  export type LiveLocationViewerMaxAggregateInputType = {
+    id?: true
+    shareId?: true
+    userId?: true
+    firstViewedAt?: true
+    lastViewedAt?: true
+  }
+
+  export type LiveLocationViewerCountAggregateInputType = {
+    id?: true
+    shareId?: true
+    userId?: true
+    firstViewedAt?: true
+    lastViewedAt?: true
+    _all?: true
+  }
+
+  export type LiveLocationViewerAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LiveLocationViewer to aggregate.
+     */
+    where?: LiveLocationViewerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationViewers to fetch.
+     */
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: LiveLocationViewerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationViewers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationViewers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned LiveLocationViewers
+    **/
+    _count?: true | LiveLocationViewerCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: LiveLocationViewerMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: LiveLocationViewerMaxAggregateInputType
+  }
+
+  export type GetLiveLocationViewerAggregateType<T extends LiveLocationViewerAggregateArgs> = {
+        [P in keyof T & keyof AggregateLiveLocationViewer]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateLiveLocationViewer[P]>
+      : GetScalarType<T[P], AggregateLiveLocationViewer[P]>
+  }
+
+
+
+
+  export type LiveLocationViewerGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationViewerWhereInput
+    orderBy?: LiveLocationViewerOrderByWithAggregationInput | LiveLocationViewerOrderByWithAggregationInput[]
+    by: LiveLocationViewerScalarFieldEnum[] | LiveLocationViewerScalarFieldEnum
+    having?: LiveLocationViewerScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: LiveLocationViewerCountAggregateInputType | true
+    _min?: LiveLocationViewerMinAggregateInputType
+    _max?: LiveLocationViewerMaxAggregateInputType
+  }
+
+  export type LiveLocationViewerGroupByOutputType = {
+    id: string
+    shareId: string
+    userId: string
+    firstViewedAt: Date
+    lastViewedAt: Date
+    _count: LiveLocationViewerCountAggregateOutputType | null
+    _min: LiveLocationViewerMinAggregateOutputType | null
+    _max: LiveLocationViewerMaxAggregateOutputType | null
+  }
+
+  type GetLiveLocationViewerGroupByPayload<T extends LiveLocationViewerGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<LiveLocationViewerGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof LiveLocationViewerGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], LiveLocationViewerGroupByOutputType[P]>
+            : GetScalarType<T[P], LiveLocationViewerGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type LiveLocationViewerSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    shareId?: boolean
+    userId?: boolean
+    firstViewedAt?: boolean
+    lastViewedAt?: boolean
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["liveLocationViewer"]>
+
+  export type LiveLocationViewerSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    shareId?: boolean
+    userId?: boolean
+    firstViewedAt?: boolean
+    lastViewedAt?: boolean
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["liveLocationViewer"]>
+
+  export type LiveLocationViewerSelectScalar = {
+    id?: boolean
+    shareId?: boolean
+    userId?: boolean
+    firstViewedAt?: boolean
+    lastViewedAt?: boolean
+  }
+
+  export type LiveLocationViewerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type LiveLocationViewerIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $LiveLocationViewerPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LiveLocationViewer"
+    objects: {
+      share: Prisma.$LiveLocationSharePayload<ExtArgs>
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      shareId: string
+      userId: string
+      firstViewedAt: Date
+      lastViewedAt: Date
+    }, ExtArgs["result"]["liveLocationViewer"]>
+    composites: {}
+  }
+
+  type LiveLocationViewerGetPayload<S extends boolean | null | undefined | LiveLocationViewerDefaultArgs> = $Result.GetResult<Prisma.$LiveLocationViewerPayload, S>
+
+  type LiveLocationViewerCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LiveLocationViewerFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LiveLocationViewerCountAggregateInputType | true
+    }
+
+  export interface LiveLocationViewerDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LiveLocationViewer'], meta: { name: 'LiveLocationViewer' } }
+    /**
+     * Find zero or one LiveLocationViewer that matches the filter.
+     * @param {LiveLocationViewerFindUniqueArgs} args - Arguments to find a LiveLocationViewer
+     * @example
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends LiveLocationViewerFindUniqueArgs>(args: SelectSubset<T, LiveLocationViewerFindUniqueArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one LiveLocationViewer that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {LiveLocationViewerFindUniqueOrThrowArgs} args - Arguments to find a LiveLocationViewer
+     * @example
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends LiveLocationViewerFindUniqueOrThrowArgs>(args: SelectSubset<T, LiveLocationViewerFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first LiveLocationViewer that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationViewerFindFirstArgs} args - Arguments to find a LiveLocationViewer
+     * @example
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends LiveLocationViewerFindFirstArgs>(args?: SelectSubset<T, LiveLocationViewerFindFirstArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first LiveLocationViewer that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationViewerFindFirstOrThrowArgs} args - Arguments to find a LiveLocationViewer
+     * @example
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends LiveLocationViewerFindFirstOrThrowArgs>(args?: SelectSubset<T, LiveLocationViewerFindFirstOrThrowArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more LiveLocationViewers that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationViewerFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all LiveLocationViewers
+     * const liveLocationViewers = await prisma.liveLocationViewer.findMany()
+     * 
+     * // Get first 10 LiveLocationViewers
+     * const liveLocationViewers = await prisma.liveLocationViewer.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const liveLocationViewerWithIdOnly = await prisma.liveLocationViewer.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends LiveLocationViewerFindManyArgs>(args?: SelectSubset<T, LiveLocationViewerFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a LiveLocationViewer.
+     * @param {LiveLocationViewerCreateArgs} args - Arguments to create a LiveLocationViewer.
+     * @example
+     * // Create one LiveLocationViewer
+     * const LiveLocationViewer = await prisma.liveLocationViewer.create({
+     *   data: {
+     *     // ... data to create a LiveLocationViewer
+     *   }
+     * })
+     * 
+     */
+    create<T extends LiveLocationViewerCreateArgs>(args: SelectSubset<T, LiveLocationViewerCreateArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many LiveLocationViewers.
+     * @param {LiveLocationViewerCreateManyArgs} args - Arguments to create many LiveLocationViewers.
+     * @example
+     * // Create many LiveLocationViewers
+     * const liveLocationViewer = await prisma.liveLocationViewer.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends LiveLocationViewerCreateManyArgs>(args?: SelectSubset<T, LiveLocationViewerCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many LiveLocationViewers and returns the data saved in the database.
+     * @param {LiveLocationViewerCreateManyAndReturnArgs} args - Arguments to create many LiveLocationViewers.
+     * @example
+     * // Create many LiveLocationViewers
+     * const liveLocationViewer = await prisma.liveLocationViewer.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many LiveLocationViewers and only return the `id`
+     * const liveLocationViewerWithIdOnly = await prisma.liveLocationViewer.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends LiveLocationViewerCreateManyAndReturnArgs>(args?: SelectSubset<T, LiveLocationViewerCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a LiveLocationViewer.
+     * @param {LiveLocationViewerDeleteArgs} args - Arguments to delete one LiveLocationViewer.
+     * @example
+     * // Delete one LiveLocationViewer
+     * const LiveLocationViewer = await prisma.liveLocationViewer.delete({
+     *   where: {
+     *     // ... filter to delete one LiveLocationViewer
+     *   }
+     * })
+     * 
+     */
+    delete<T extends LiveLocationViewerDeleteArgs>(args: SelectSubset<T, LiveLocationViewerDeleteArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one LiveLocationViewer.
+     * @param {LiveLocationViewerUpdateArgs} args - Arguments to update one LiveLocationViewer.
+     * @example
+     * // Update one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends LiveLocationViewerUpdateArgs>(args: SelectSubset<T, LiveLocationViewerUpdateArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more LiveLocationViewers.
+     * @param {LiveLocationViewerDeleteManyArgs} args - Arguments to filter LiveLocationViewers to delete.
+     * @example
+     * // Delete a few LiveLocationViewers
+     * const { count } = await prisma.liveLocationViewer.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends LiveLocationViewerDeleteManyArgs>(args?: SelectSubset<T, LiveLocationViewerDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more LiveLocationViewers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationViewerUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many LiveLocationViewers
+     * const liveLocationViewer = await prisma.liveLocationViewer.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends LiveLocationViewerUpdateManyArgs>(args: SelectSubset<T, LiveLocationViewerUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one LiveLocationViewer.
+     * @param {LiveLocationViewerUpsertArgs} args - Arguments to update or create a LiveLocationViewer.
+     * @example
+     * // Update or create a LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.upsert({
+     *   create: {
+     *     // ... data to create a LiveLocationViewer
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the LiveLocationViewer we want to update
+     *   }
+     * })
+     */
+    upsert<T extends LiveLocationViewerUpsertArgs>(args: SelectSubset<T, LiveLocationViewerUpsertArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of LiveLocationViewers.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationViewerCountArgs} args - Arguments to filter LiveLocationViewers to count.
+     * @example
+     * // Count the number of LiveLocationViewers
+     * const count = await prisma.liveLocationViewer.count({
+     *   where: {
+     *     // ... the filter for the LiveLocationViewers we want to count
+     *   }
+     * })
+    **/
+    count<T extends LiveLocationViewerCountArgs>(
+      args?: Subset<T, LiveLocationViewerCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], LiveLocationViewerCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a LiveLocationViewer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationViewerAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends LiveLocationViewerAggregateArgs>(args: Subset<T, LiveLocationViewerAggregateArgs>): Prisma.PrismaPromise<GetLiveLocationViewerAggregateType<T>>
+
+    /**
+     * Group by LiveLocationViewer.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {LiveLocationViewerGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends LiveLocationViewerGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: LiveLocationViewerGroupByArgs['orderBy'] }
+        : { orderBy?: LiveLocationViewerGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, LiveLocationViewerGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLiveLocationViewerGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the LiveLocationViewer model
+   */
+  readonly fields: LiveLocationViewerFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for LiveLocationViewer.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__LiveLocationViewerClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    share<T extends LiveLocationShareDefaultArgs<ExtArgs> = {}>(args?: Subset<T, LiveLocationShareDefaultArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the LiveLocationViewer model
+   */ 
+  interface LiveLocationViewerFieldRefs {
+    readonly id: FieldRef<"LiveLocationViewer", 'String'>
+    readonly shareId: FieldRef<"LiveLocationViewer", 'String'>
+    readonly userId: FieldRef<"LiveLocationViewer", 'String'>
+    readonly firstViewedAt: FieldRef<"LiveLocationViewer", 'DateTime'>
+    readonly lastViewedAt: FieldRef<"LiveLocationViewer", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * LiveLocationViewer findUnique
+   */
+  export type LiveLocationViewerFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationViewer to fetch.
+     */
+    where: LiveLocationViewerWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationViewer findUniqueOrThrow
+   */
+  export type LiveLocationViewerFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationViewer to fetch.
+     */
+    where: LiveLocationViewerWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationViewer findFirst
+   */
+  export type LiveLocationViewerFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationViewer to fetch.
+     */
+    where?: LiveLocationViewerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationViewers to fetch.
+     */
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LiveLocationViewers.
+     */
+    cursor?: LiveLocationViewerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationViewers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationViewers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LiveLocationViewers.
+     */
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
+  }
+
+  /**
+   * LiveLocationViewer findFirstOrThrow
+   */
+  export type LiveLocationViewerFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationViewer to fetch.
+     */
+    where?: LiveLocationViewerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationViewers to fetch.
+     */
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for LiveLocationViewers.
+     */
+    cursor?: LiveLocationViewerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationViewers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationViewers.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of LiveLocationViewers.
+     */
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
+  }
+
+  /**
+   * LiveLocationViewer findMany
+   */
+  export type LiveLocationViewerFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * Filter, which LiveLocationViewers to fetch.
+     */
+    where?: LiveLocationViewerWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of LiveLocationViewers to fetch.
+     */
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing LiveLocationViewers.
+     */
+    cursor?: LiveLocationViewerWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` LiveLocationViewers from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` LiveLocationViewers.
+     */
+    skip?: number
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
+  }
+
+  /**
+   * LiveLocationViewer create
+   */
+  export type LiveLocationViewerCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * The data needed to create a LiveLocationViewer.
+     */
+    data: XOR<LiveLocationViewerCreateInput, LiveLocationViewerUncheckedCreateInput>
+  }
+
+  /**
+   * LiveLocationViewer createMany
+   */
+  export type LiveLocationViewerCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many LiveLocationViewers.
+     */
+    data: LiveLocationViewerCreateManyInput | LiveLocationViewerCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * LiveLocationViewer createManyAndReturn
+   */
+  export type LiveLocationViewerCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many LiveLocationViewers.
+     */
+    data: LiveLocationViewerCreateManyInput | LiveLocationViewerCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * LiveLocationViewer update
+   */
+  export type LiveLocationViewerUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * The data needed to update a LiveLocationViewer.
+     */
+    data: XOR<LiveLocationViewerUpdateInput, LiveLocationViewerUncheckedUpdateInput>
+    /**
+     * Choose, which LiveLocationViewer to update.
+     */
+    where: LiveLocationViewerWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationViewer updateMany
+   */
+  export type LiveLocationViewerUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update LiveLocationViewers.
+     */
+    data: XOR<LiveLocationViewerUpdateManyMutationInput, LiveLocationViewerUncheckedUpdateManyInput>
+    /**
+     * Filter which LiveLocationViewers to update
+     */
+    where?: LiveLocationViewerWhereInput
+  }
+
+  /**
+   * LiveLocationViewer upsert
+   */
+  export type LiveLocationViewerUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * The filter to search for the LiveLocationViewer to update in case it exists.
+     */
+    where: LiveLocationViewerWhereUniqueInput
+    /**
+     * In case the LiveLocationViewer found by the `where` argument doesn't exist, create a new LiveLocationViewer with this data.
+     */
+    create: XOR<LiveLocationViewerCreateInput, LiveLocationViewerUncheckedCreateInput>
+    /**
+     * In case the LiveLocationViewer was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<LiveLocationViewerUpdateInput, LiveLocationViewerUncheckedUpdateInput>
+  }
+
+  /**
+   * LiveLocationViewer delete
+   */
+  export type LiveLocationViewerDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    /**
+     * Filter which LiveLocationViewer to delete.
+     */
+    where: LiveLocationViewerWhereUniqueInput
+  }
+
+  /**
+   * LiveLocationViewer deleteMany
+   */
+  export type LiveLocationViewerDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which LiveLocationViewers to delete
+     */
+    where?: LiveLocationViewerWhereInput
+  }
+
+  /**
+   * LiveLocationViewer without action
+   */
+  export type LiveLocationViewerDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the LiveLocationViewer
+     */
+    select?: LiveLocationViewerSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model LegalDocument
    */
 
@@ -26189,6 +28566,7 @@ export namespace Prisma {
     placeAdded: 'placeAdded',
     festival: 'festival',
     businessClaim: 'businessClaim',
+    locationShare: 'locationShare',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -26506,6 +28884,40 @@ export namespace Prisma {
   export type ItineraryVoteScalarFieldEnum = (typeof ItineraryVoteScalarFieldEnum)[keyof typeof ItineraryVoteScalarFieldEnum]
 
 
+  export const LiveLocationShareScalarFieldEnum: {
+    id: 'id',
+    ownerId: 'ownerId',
+    tokenHash: 'tokenHash',
+    status: 'status',
+    durationMinutes: 'durationMinutes',
+    expiresAt: 'expiresAt',
+    endedAt: 'endedAt',
+    endedReason: 'endedReason',
+    lastLatitude: 'lastLatitude',
+    lastLongitude: 'lastLongitude',
+    lastAccuracy: 'lastAccuracy',
+    lastSpeed: 'lastSpeed',
+    lastHeading: 'lastHeading',
+    lastUpdatedAt: 'lastUpdatedAt',
+    presenceStatus: 'presenceStatus',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type LiveLocationShareScalarFieldEnum = (typeof LiveLocationShareScalarFieldEnum)[keyof typeof LiveLocationShareScalarFieldEnum]
+
+
+  export const LiveLocationViewerScalarFieldEnum: {
+    id: 'id',
+    shareId: 'shareId',
+    userId: 'userId',
+    firstViewedAt: 'firstViewedAt',
+    lastViewedAt: 'lastViewedAt'
+  };
+
+  export type LiveLocationViewerScalarFieldEnum = (typeof LiveLocationViewerScalarFieldEnum)[keyof typeof LiveLocationViewerScalarFieldEnum]
+
+
   export const LegalDocumentScalarFieldEnum: {
     id: 'id',
     type: 'type',
@@ -26672,6 +29084,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberListRelationFilter
     itineraryComments?: ItineraryCommentListRelationFilter
     itineraryVotes?: ItineraryVoteListRelationFilter
+    ownedLiveLocationShares?: LiveLocationShareListRelationFilter
+    liveLocationViewerships?: LiveLocationViewerListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -26704,6 +29118,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberOrderByRelationAggregateInput
     itineraryComments?: ItineraryCommentOrderByRelationAggregateInput
     itineraryVotes?: ItineraryVoteOrderByRelationAggregateInput
+    ownedLiveLocationShares?: LiveLocationShareOrderByRelationAggregateInput
+    liveLocationViewerships?: LiveLocationViewerOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -26739,6 +29155,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberListRelationFilter
     itineraryComments?: ItineraryCommentListRelationFilter
     itineraryVotes?: ItineraryVoteListRelationFilter
+    ownedLiveLocationShares?: LiveLocationShareListRelationFilter
+    liveLocationViewerships?: LiveLocationViewerListRelationFilter
   }, "id" | "email" | "googleId">
 
   export type UserOrderByWithAggregationInput = {
@@ -26856,6 +29274,7 @@ export namespace Prisma {
     placeAdded?: BoolFilter<"NotificationPreference"> | boolean
     festival?: BoolFilter<"NotificationPreference"> | boolean
     businessClaim?: BoolFilter<"NotificationPreference"> | boolean
+    locationShare?: BoolFilter<"NotificationPreference"> | boolean
     createdAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     updatedAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
@@ -26869,6 +29288,7 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
+    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
@@ -26885,6 +29305,7 @@ export namespace Prisma {
     placeAdded?: BoolFilter<"NotificationPreference"> | boolean
     festival?: BoolFilter<"NotificationPreference"> | boolean
     businessClaim?: BoolFilter<"NotificationPreference"> | boolean
+    locationShare?: BoolFilter<"NotificationPreference"> | boolean
     createdAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     updatedAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
@@ -26898,6 +29319,7 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
+    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: NotificationPreferenceCountOrderByAggregateInput
@@ -26916,6 +29338,7 @@ export namespace Prisma {
     placeAdded?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
     festival?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
     businessClaim?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
+    locationShare?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
   }
@@ -28552,6 +30975,185 @@ export namespace Prisma {
     updatedAt?: DateTimeWithAggregatesFilter<"ItineraryVote"> | Date | string
   }
 
+  export type LiveLocationShareWhereInput = {
+    AND?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    OR?: LiveLocationShareWhereInput[]
+    NOT?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    id?: StringFilter<"LiveLocationShare"> | string
+    ownerId?: StringFilter<"LiveLocationShare"> | string
+    tokenHash?: StringFilter<"LiveLocationShare"> | string
+    status?: StringFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    owner?: XOR<UserRelationFilter, UserWhereInput>
+    viewers?: LiveLocationViewerListRelationFilter
+  }
+
+  export type LiveLocationShareOrderByWithRelationInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    endedReason?: SortOrderInput | SortOrder
+    lastLatitude?: SortOrderInput | SortOrder
+    lastLongitude?: SortOrderInput | SortOrder
+    lastAccuracy?: SortOrderInput | SortOrder
+    lastSpeed?: SortOrderInput | SortOrder
+    lastHeading?: SortOrderInput | SortOrder
+    lastUpdatedAt?: SortOrderInput | SortOrder
+    presenceStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    owner?: UserOrderByWithRelationInput
+    viewers?: LiveLocationViewerOrderByRelationAggregateInput
+  }
+
+  export type LiveLocationShareWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    tokenHash?: string
+    AND?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    OR?: LiveLocationShareWhereInput[]
+    NOT?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    ownerId?: StringFilter<"LiveLocationShare"> | string
+    status?: StringFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    owner?: XOR<UserRelationFilter, UserWhereInput>
+    viewers?: LiveLocationViewerListRelationFilter
+  }, "id" | "tokenHash">
+
+  export type LiveLocationShareOrderByWithAggregationInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    endedReason?: SortOrderInput | SortOrder
+    lastLatitude?: SortOrderInput | SortOrder
+    lastLongitude?: SortOrderInput | SortOrder
+    lastAccuracy?: SortOrderInput | SortOrder
+    lastSpeed?: SortOrderInput | SortOrder
+    lastHeading?: SortOrderInput | SortOrder
+    lastUpdatedAt?: SortOrderInput | SortOrder
+    presenceStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: LiveLocationShareCountOrderByAggregateInput
+    _avg?: LiveLocationShareAvgOrderByAggregateInput
+    _max?: LiveLocationShareMaxOrderByAggregateInput
+    _min?: LiveLocationShareMinOrderByAggregateInput
+    _sum?: LiveLocationShareSumOrderByAggregateInput
+  }
+
+  export type LiveLocationShareScalarWhereWithAggregatesInput = {
+    AND?: LiveLocationShareScalarWhereWithAggregatesInput | LiveLocationShareScalarWhereWithAggregatesInput[]
+    OR?: LiveLocationShareScalarWhereWithAggregatesInput[]
+    NOT?: LiveLocationShareScalarWhereWithAggregatesInput | LiveLocationShareScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    ownerId?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    tokenHash?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    status?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntWithAggregatesFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeWithAggregatesFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableWithAggregatesFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableWithAggregatesFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableWithAggregatesFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"LiveLocationShare"> | Date | string
+  }
+
+  export type LiveLocationViewerWhereInput = {
+    AND?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    OR?: LiveLocationViewerWhereInput[]
+    NOT?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    id?: StringFilter<"LiveLocationViewer"> | string
+    shareId?: StringFilter<"LiveLocationViewer"> | string
+    userId?: StringFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    share?: XOR<LiveLocationShareRelationFilter, LiveLocationShareWhereInput>
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }
+
+  export type LiveLocationViewerOrderByWithRelationInput = {
+    id?: SortOrder
+    shareId?: SortOrder
+    userId?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
+    share?: LiveLocationShareOrderByWithRelationInput
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type LiveLocationViewerWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    shareId_userId?: LiveLocationViewerShareIdUserIdCompoundUniqueInput
+    AND?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    OR?: LiveLocationViewerWhereInput[]
+    NOT?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    shareId?: StringFilter<"LiveLocationViewer"> | string
+    userId?: StringFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    share?: XOR<LiveLocationShareRelationFilter, LiveLocationShareWhereInput>
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }, "id" | "shareId_userId">
+
+  export type LiveLocationViewerOrderByWithAggregationInput = {
+    id?: SortOrder
+    shareId?: SortOrder
+    userId?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
+    _count?: LiveLocationViewerCountOrderByAggregateInput
+    _max?: LiveLocationViewerMaxOrderByAggregateInput
+    _min?: LiveLocationViewerMinOrderByAggregateInput
+  }
+
+  export type LiveLocationViewerScalarWhereWithAggregatesInput = {
+    AND?: LiveLocationViewerScalarWhereWithAggregatesInput | LiveLocationViewerScalarWhereWithAggregatesInput[]
+    OR?: LiveLocationViewerScalarWhereWithAggregatesInput[]
+    NOT?: LiveLocationViewerScalarWhereWithAggregatesInput | LiveLocationViewerScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LiveLocationViewer"> | string
+    shareId?: StringWithAggregatesFilter<"LiveLocationViewer"> | string
+    userId?: StringWithAggregatesFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeWithAggregatesFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeWithAggregatesFilter<"LiveLocationViewer"> | Date | string
+  }
+
   export type LegalDocumentWhereInput = {
     AND?: LegalDocumentWhereInput | LegalDocumentWhereInput[]
     OR?: LegalDocumentWhereInput[]
@@ -28651,6 +31253,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -28683,6 +31287,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -28715,6 +31321,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -28747,6 +31355,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -28874,6 +31484,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutNotificationPreferenceInput
@@ -28887,6 +31498,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -28898,6 +31510,7 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutNotificationPreferenceNestedInput
@@ -28911,6 +31524,7 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -28923,6 +31537,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -28934,6 +31549,7 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -28946,6 +31562,7 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -30759,6 +33376,203 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type LiveLocationShareCreateInput = {
+    id?: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    owner: UserCreateNestedOneWithoutOwnedLiveLocationSharesInput
+    viewers?: LiveLocationViewerCreateNestedManyWithoutShareInput
+  }
+
+  export type LiveLocationShareUncheckedCreateInput = {
+    id?: string
+    ownerId: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    viewers?: LiveLocationViewerUncheckedCreateNestedManyWithoutShareInput
+  }
+
+  export type LiveLocationShareUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: UserUpdateOneRequiredWithoutOwnedLiveLocationSharesNestedInput
+    viewers?: LiveLocationViewerUpdateManyWithoutShareNestedInput
+  }
+
+  export type LiveLocationShareUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    viewers?: LiveLocationViewerUncheckedUpdateManyWithoutShareNestedInput
+  }
+
+  export type LiveLocationShareCreateManyInput = {
+    id?: string
+    ownerId: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LiveLocationShareUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationShareUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerCreateInput = {
+    id?: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+    share: LiveLocationShareCreateNestedOneWithoutViewersInput
+    user: UserCreateNestedOneWithoutLiveLocationViewershipsInput
+  }
+
+  export type LiveLocationViewerUncheckedCreateInput = {
+    id?: string
+    shareId: string
+    userId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+  }
+
+  export type LiveLocationViewerUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    share?: LiveLocationShareUpdateOneRequiredWithoutViewersNestedInput
+    user?: UserUpdateOneRequiredWithoutLiveLocationViewershipsNestedInput
+  }
+
+  export type LiveLocationViewerUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerCreateManyInput = {
+    id?: string
+    shareId: string
+    userId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+  }
+
+  export type LiveLocationViewerUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type LegalDocumentCreateInput = {
     id?: string
     type: string
@@ -31000,6 +33814,18 @@ export namespace Prisma {
     none?: ItineraryVoteWhereInput
   }
 
+  export type LiveLocationShareListRelationFilter = {
+    every?: LiveLocationShareWhereInput
+    some?: LiveLocationShareWhereInput
+    none?: LiveLocationShareWhereInput
+  }
+
+  export type LiveLocationViewerListRelationFilter = {
+    every?: LiveLocationViewerWhereInput
+    some?: LiveLocationViewerWhereInput
+    none?: LiveLocationViewerWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -31070,6 +33896,14 @@ export namespace Prisma {
   }
 
   export type ItineraryVoteOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type LiveLocationShareOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type LiveLocationViewerOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -31278,6 +34112,7 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
+    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -31290,6 +34125,7 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
+    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -31302,6 +34138,7 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
+    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -32332,6 +35169,118 @@ export namespace Prisma {
     value?: SortOrder
   }
 
+  export type LiveLocationShareCountOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrder
+    endedReason?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+    lastUpdatedAt?: SortOrder
+    presenceStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LiveLocationShareAvgOrderByAggregateInput = {
+    durationMinutes?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+  }
+
+  export type LiveLocationShareMaxOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrder
+    endedReason?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+    lastUpdatedAt?: SortOrder
+    presenceStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LiveLocationShareMinOrderByAggregateInput = {
+    id?: SortOrder
+    ownerId?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrder
+    endedReason?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+    lastUpdatedAt?: SortOrder
+    presenceStatus?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LiveLocationShareSumOrderByAggregateInput = {
+    durationMinutes?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+  }
+
+  export type LiveLocationShareRelationFilter = {
+    is?: LiveLocationShareWhereInput
+    isNot?: LiveLocationShareWhereInput
+  }
+
+  export type LiveLocationViewerShareIdUserIdCompoundUniqueInput = {
+    shareId: string
+    userId: string
+  }
+
+  export type LiveLocationViewerCountOrderByAggregateInput = {
+    id?: SortOrder
+    shareId?: SortOrder
+    userId?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
+  }
+
+  export type LiveLocationViewerMaxOrderByAggregateInput = {
+    id?: SortOrder
+    shareId?: SortOrder
+    userId?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
+  }
+
+  export type LiveLocationViewerMinOrderByAggregateInput = {
+    id?: SortOrder
+    shareId?: SortOrder
+    userId?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
+  }
+
   export type LegalDocumentCountOrderByAggregateInput = {
     id?: SortOrder
     type?: SortOrder
@@ -32498,6 +35447,20 @@ export namespace Prisma {
     connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
   }
 
+  export type LiveLocationShareCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+  }
+
+  export type LiveLocationViewerCreateNestedManyWithoutUserInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+  }
+
   export type OTPVerificationUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<OTPVerificationCreateWithoutUserInput, OTPVerificationUncheckedCreateWithoutUserInput> | OTPVerificationCreateWithoutUserInput[] | OTPVerificationUncheckedCreateWithoutUserInput[]
     connectOrCreate?: OTPVerificationCreateOrConnectWithoutUserInput | OTPVerificationCreateOrConnectWithoutUserInput[]
@@ -32621,6 +35584,20 @@ export namespace Prisma {
     connectOrCreate?: ItineraryVoteCreateOrConnectWithoutUserInput | ItineraryVoteCreateOrConnectWithoutUserInput[]
     createMany?: ItineraryVoteCreateManyUserInputEnvelope
     connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
+  }
+
+  export type LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+  }
+
+  export type LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -32891,6 +35868,34 @@ export namespace Prisma {
     deleteMany?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
   }
 
+  export type LiveLocationShareUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    upsert?: LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    set?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    disconnect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    delete?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    update?: LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: LiveLocationShareUpdateManyWithWhereWithoutOwnerInput | LiveLocationShareUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
+  }
+
+  export type LiveLocationViewerUpdateManyWithoutUserNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput | LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput | LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutUserInput | LiveLocationViewerUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+  }
+
   export type OTPVerificationUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<OTPVerificationCreateWithoutUserInput, OTPVerificationUncheckedCreateWithoutUserInput> | OTPVerificationCreateWithoutUserInput[] | OTPVerificationUncheckedCreateWithoutUserInput[]
     connectOrCreate?: OTPVerificationCreateOrConnectWithoutUserInput | OTPVerificationCreateOrConnectWithoutUserInput[]
@@ -33137,6 +36142,34 @@ export namespace Prisma {
     update?: ItineraryVoteUpdateWithWhereUniqueWithoutUserInput | ItineraryVoteUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: ItineraryVoteUpdateManyWithWhereWithoutUserInput | ItineraryVoteUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
+  }
+
+  export type LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    upsert?: LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    set?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    disconnect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    delete?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    update?: LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: LiveLocationShareUpdateManyWithWhereWithoutOwnerInput | LiveLocationShareUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
+  }
+
+  export type LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput | LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput | LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutUserInput | LiveLocationViewerUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutNotificationsInput = {
@@ -34051,6 +37084,90 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutItineraryVotesInput, UserUpdateWithoutItineraryVotesInput>, UserUncheckedUpdateWithoutItineraryVotesInput>
   }
 
+  export type UserCreateNestedOneWithoutOwnedLiveLocationSharesInput = {
+    create?: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutOwnedLiveLocationSharesInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type LiveLocationViewerCreateNestedManyWithoutShareInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+  }
+
+  export type LiveLocationViewerUncheckedCreateNestedManyWithoutShareInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+  }
+
+  export type UserUpdateOneRequiredWithoutOwnedLiveLocationSharesNestedInput = {
+    create?: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutOwnedLiveLocationSharesInput
+    upsert?: UserUpsertWithoutOwnedLiveLocationSharesInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutOwnedLiveLocationSharesInput, UserUpdateWithoutOwnedLiveLocationSharesInput>, UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput>
+  }
+
+  export type LiveLocationViewerUpdateManyWithoutShareNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput | LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput | LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutShareInput | LiveLocationViewerUpdateManyWithWhereWithoutShareInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+  }
+
+  export type LiveLocationViewerUncheckedUpdateManyWithoutShareNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput | LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput | LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutShareInput | LiveLocationViewerUpdateManyWithWhereWithoutShareInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+  }
+
+  export type LiveLocationShareCreateNestedOneWithoutViewersInput = {
+    create?: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutViewersInput
+    connect?: LiveLocationShareWhereUniqueInput
+  }
+
+  export type UserCreateNestedOneWithoutLiveLocationViewershipsInput = {
+    create?: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLiveLocationViewershipsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type LiveLocationShareUpdateOneRequiredWithoutViewersNestedInput = {
+    create?: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutViewersInput
+    upsert?: LiveLocationShareUpsertWithoutViewersInput
+    connect?: LiveLocationShareWhereUniqueInput
+    update?: XOR<XOR<LiveLocationShareUpdateToOneWithWhereWithoutViewersInput, LiveLocationShareUpdateWithoutViewersInput>, LiveLocationShareUncheckedUpdateWithoutViewersInput>
+  }
+
+  export type UserUpdateOneRequiredWithoutLiveLocationViewershipsNestedInput = {
+    create?: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLiveLocationViewershipsInput
+    upsert?: UserUpsertWithoutLiveLocationViewershipsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutLiveLocationViewershipsInput, UserUpdateWithoutLiveLocationViewershipsInput>, UserUncheckedUpdateWithoutLiveLocationViewershipsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -34751,6 +37868,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -34762,6 +37880,7 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
+    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -34956,6 +38075,80 @@ export namespace Prisma {
 
   export type ItineraryVoteCreateManyUserInputEnvelope = {
     data: ItineraryVoteCreateManyUserInput | ItineraryVoteCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type LiveLocationShareCreateWithoutOwnerInput = {
+    id?: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    viewers?: LiveLocationViewerCreateNestedManyWithoutShareInput
+  }
+
+  export type LiveLocationShareUncheckedCreateWithoutOwnerInput = {
+    id?: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    viewers?: LiveLocationViewerUncheckedCreateNestedManyWithoutShareInput
+  }
+
+  export type LiveLocationShareCreateOrConnectWithoutOwnerInput = {
+    where: LiveLocationShareWhereUniqueInput
+    create: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type LiveLocationShareCreateManyOwnerInputEnvelope = {
+    data: LiveLocationShareCreateManyOwnerInput | LiveLocationShareCreateManyOwnerInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type LiveLocationViewerCreateWithoutUserInput = {
+    id?: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+    share: LiveLocationShareCreateNestedOneWithoutViewersInput
+  }
+
+  export type LiveLocationViewerUncheckedCreateWithoutUserInput = {
+    id?: string
+    shareId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+  }
+
+  export type LiveLocationViewerCreateOrConnectWithoutUserInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    create: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput>
+  }
+
+  export type LiveLocationViewerCreateManyUserInputEnvelope = {
+    data: LiveLocationViewerCreateManyUserInput | LiveLocationViewerCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -35354,6 +38547,7 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -35365,6 +38559,7 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
+    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -35551,6 +38746,72 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"ItineraryVote"> | Date | string
   }
 
+  export type LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput = {
+    where: LiveLocationShareWhereUniqueInput
+    update: XOR<LiveLocationShareUpdateWithoutOwnerInput, LiveLocationShareUncheckedUpdateWithoutOwnerInput>
+    create: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput = {
+    where: LiveLocationShareWhereUniqueInput
+    data: XOR<LiveLocationShareUpdateWithoutOwnerInput, LiveLocationShareUncheckedUpdateWithoutOwnerInput>
+  }
+
+  export type LiveLocationShareUpdateManyWithWhereWithoutOwnerInput = {
+    where: LiveLocationShareScalarWhereInput
+    data: XOR<LiveLocationShareUpdateManyMutationInput, LiveLocationShareUncheckedUpdateManyWithoutOwnerInput>
+  }
+
+  export type LiveLocationShareScalarWhereInput = {
+    AND?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
+    OR?: LiveLocationShareScalarWhereInput[]
+    NOT?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
+    id?: StringFilter<"LiveLocationShare"> | string
+    ownerId?: StringFilter<"LiveLocationShare"> | string
+    tokenHash?: StringFilter<"LiveLocationShare"> | string
+    status?: StringFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+  }
+
+  export type LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    update: XOR<LiveLocationViewerUpdateWithoutUserInput, LiveLocationViewerUncheckedUpdateWithoutUserInput>
+    create: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput>
+  }
+
+  export type LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    data: XOR<LiveLocationViewerUpdateWithoutUserInput, LiveLocationViewerUncheckedUpdateWithoutUserInput>
+  }
+
+  export type LiveLocationViewerUpdateManyWithWhereWithoutUserInput = {
+    where: LiveLocationViewerScalarWhereInput
+    data: XOR<LiveLocationViewerUpdateManyMutationInput, LiveLocationViewerUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type LiveLocationViewerScalarWhereInput = {
+    AND?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+    OR?: LiveLocationViewerScalarWhereInput[]
+    NOT?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+    id?: StringFilter<"LiveLocationViewer"> | string
+    shareId?: StringFilter<"LiveLocationViewer"> | string
+    userId?: StringFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+  }
+
   export type UserCreateWithoutNotificationsInput = {
     id?: string
     name: string
@@ -35580,6 +38841,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -35611,6 +38874,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -35658,6 +38923,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -35689,6 +38956,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutNotificationPreferenceInput = {
@@ -35720,6 +38989,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationPreferenceInput = {
@@ -35751,6 +39022,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationPreferenceInput = {
@@ -35798,6 +39071,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationPreferenceInput = {
@@ -35829,6 +39104,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPushSubscriptionsInput = {
@@ -35860,6 +39137,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPushSubscriptionsInput = {
@@ -35891,6 +39170,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPushSubscriptionsInput = {
@@ -35938,6 +39219,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPushSubscriptionsInput = {
@@ -35969,6 +39252,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOtpVerificationsInput = {
@@ -36000,6 +39285,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOtpVerificationsInput = {
@@ -36031,6 +39318,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOtpVerificationsInput = {
@@ -36078,6 +39367,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOtpVerificationsInput = {
@@ -36109,6 +39400,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -36140,6 +39433,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -36171,6 +39466,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -36218,6 +39515,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -36249,6 +39548,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutVehiclesInput = {
@@ -36280,6 +39581,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutVehiclesInput = {
@@ -36311,6 +39614,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutVehiclesInput = {
@@ -36438,6 +39743,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutVehiclesInput = {
@@ -36469,6 +39776,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type LocationUpsertWithWhereUniqueWithoutVehicleInput = {
@@ -36561,6 +39870,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLocationsInput = {
@@ -36592,6 +39903,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLocationsInput = {
@@ -36674,6 +39987,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLocationsInput = {
@@ -36705,6 +40020,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type VehicleCreateWithoutRoutesInput = {
@@ -36765,6 +40082,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRoutesInput = {
@@ -36796,6 +40115,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRoutesInput = {
@@ -36878,6 +40199,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRoutesInput = {
@@ -36909,6 +40232,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPlacesInput = {
@@ -36940,6 +40265,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlacesInput = {
@@ -36971,6 +40298,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlacesInput = {
@@ -37182,6 +40511,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlacesInput = {
@@ -37213,6 +40544,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceReviewUpsertWithWhereUniqueWithoutPlaceInput = {
@@ -37324,6 +40657,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutFavoritesInput = {
@@ -37355,6 +40690,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutFavoritesInput = {
@@ -37515,6 +40852,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFavoritesInput = {
@@ -37546,6 +40885,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceUpsertWithoutFavoritesInput = {
@@ -37809,6 +41150,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlaceReviewsInput = {
@@ -37840,6 +41183,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlaceReviewsInput = {
@@ -38006,6 +41351,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlaceReviewsInput = {
@@ -38037,6 +41384,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceCreateWithoutPhotosInput = {
@@ -38181,6 +41530,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlacePhotosInput = {
@@ -38212,6 +41563,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlacePhotosInput = {
@@ -38378,6 +41731,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlacePhotosInput = {
@@ -38409,6 +41764,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceCreateWithoutClaimsInput = {
@@ -38553,6 +41910,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutBusinessClaimsInput = {
@@ -38584,6 +41943,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutBusinessClaimsInput = {
@@ -38750,6 +42111,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutBusinessClaimsInput = {
@@ -38781,6 +42144,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPlaceLabelsInput = {
@@ -38812,6 +42177,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlaceLabelsInput = {
@@ -38843,6 +42210,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlaceLabelsInput = {
@@ -39003,6 +42372,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlaceLabelsInput = {
@@ -39034,6 +42405,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceUpsertWithoutLabelsInput = {
@@ -39184,6 +42557,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOwnedItinerariesInput = {
@@ -39215,6 +42590,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOwnedItinerariesInput = {
@@ -39334,6 +42711,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOwnedItinerariesInput = {
@@ -39365,6 +42744,8 @@ export namespace Prisma {
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ItineraryMemberUpsertWithWhereUniqueWithoutItineraryInput = {
@@ -39484,6 +42865,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutItineraryMembershipsInput = {
@@ -39515,6 +42898,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutItineraryMembershipsInput = {
@@ -39603,6 +42988,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutItineraryMembershipsInput = {
@@ -39634,6 +43021,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ItineraryCreateWithoutStopsInput = {
@@ -39868,6 +43257,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutItineraryCommentsInput = {
@@ -39899,6 +43290,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutItineraryCommentsInput = {
@@ -39995,6 +43388,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutItineraryCommentsInput = {
@@ -40026,6 +43421,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ItineraryStopCreateWithoutVotesInput = {
@@ -40100,6 +43497,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutItineraryVotesInput = {
@@ -40131,6 +43530,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
     itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutItineraryVotesInput = {
@@ -40227,6 +43628,8 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutItineraryVotesInput = {
@@ -40258,6 +43661,440 @@ export namespace Prisma {
     ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
     itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutOwnedLiveLocationSharesInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    vehicles?: VehicleCreateNestedManyWithoutUserInput
+    locations?: LocationCreateNestedManyWithoutUserInput
+    routes?: RouteCreateNestedManyWithoutUserInput
+    places?: PlaceCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
+    favorites?: FavoriteCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutOwnedLiveLocationSharesInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    vehicles?: VehicleUncheckedCreateNestedManyWithoutUserInput
+    locations?: LocationUncheckedCreateNestedManyWithoutUserInput
+    routes?: RouteUncheckedCreateNestedManyWithoutUserInput
+    places?: PlaceUncheckedCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewUncheckedCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutOwnedLiveLocationSharesInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
+  }
+
+  export type LiveLocationViewerCreateWithoutShareInput = {
+    id?: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+    user: UserCreateNestedOneWithoutLiveLocationViewershipsInput
+  }
+
+  export type LiveLocationViewerUncheckedCreateWithoutShareInput = {
+    id?: string
+    userId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+  }
+
+  export type LiveLocationViewerCreateOrConnectWithoutShareInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    create: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput>
+  }
+
+  export type LiveLocationViewerCreateManyShareInputEnvelope = {
+    data: LiveLocationViewerCreateManyShareInput | LiveLocationViewerCreateManyShareInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type UserUpsertWithoutOwnedLiveLocationSharesInput = {
+    update: XOR<UserUpdateWithoutOwnedLiveLocationSharesInput, UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput>
+    create: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutOwnedLiveLocationSharesInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutOwnedLiveLocationSharesInput, UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput>
+  }
+
+  export type UserUpdateWithoutOwnedLiveLocationSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUpdateManyWithoutUserNestedInput
+    locations?: LocationUpdateManyWithoutUserNestedInput
+    routes?: RouteUpdateManyWithoutUserNestedInput
+    places?: PlaceUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUncheckedUpdateManyWithoutUserNestedInput
+    locations?: LocationUncheckedUpdateManyWithoutUserNestedInput
+    routes?: RouteUncheckedUpdateManyWithoutUserNestedInput
+    places?: PlaceUncheckedUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUncheckedUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    update: XOR<LiveLocationViewerUpdateWithoutShareInput, LiveLocationViewerUncheckedUpdateWithoutShareInput>
+    create: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput>
+  }
+
+  export type LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    data: XOR<LiveLocationViewerUpdateWithoutShareInput, LiveLocationViewerUncheckedUpdateWithoutShareInput>
+  }
+
+  export type LiveLocationViewerUpdateManyWithWhereWithoutShareInput = {
+    where: LiveLocationViewerScalarWhereInput
+    data: XOR<LiveLocationViewerUpdateManyMutationInput, LiveLocationViewerUncheckedUpdateManyWithoutShareInput>
+  }
+
+  export type LiveLocationShareCreateWithoutViewersInput = {
+    id?: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    owner: UserCreateNestedOneWithoutOwnedLiveLocationSharesInput
+  }
+
+  export type LiveLocationShareUncheckedCreateWithoutViewersInput = {
+    id?: string
+    ownerId: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LiveLocationShareCreateOrConnectWithoutViewersInput = {
+    where: LiveLocationShareWhereUniqueInput
+    create: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
+  }
+
+  export type UserCreateWithoutLiveLocationViewershipsInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    vehicles?: VehicleCreateNestedManyWithoutUserInput
+    locations?: LocationCreateNestedManyWithoutUserInput
+    routes?: RouteCreateNestedManyWithoutUserInput
+    places?: PlaceCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
+    favorites?: FavoriteCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+  }
+
+  export type UserUncheckedCreateWithoutLiveLocationViewershipsInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    vehicles?: VehicleUncheckedCreateNestedManyWithoutUserInput
+    locations?: LocationUncheckedCreateNestedManyWithoutUserInput
+    routes?: RouteUncheckedCreateNestedManyWithoutUserInput
+    places?: PlaceUncheckedCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewUncheckedCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+  }
+
+  export type UserCreateOrConnectWithoutLiveLocationViewershipsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
+  }
+
+  export type LiveLocationShareUpsertWithoutViewersInput = {
+    update: XOR<LiveLocationShareUpdateWithoutViewersInput, LiveLocationShareUncheckedUpdateWithoutViewersInput>
+    create: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
+    where?: LiveLocationShareWhereInput
+  }
+
+  export type LiveLocationShareUpdateToOneWithWhereWithoutViewersInput = {
+    where?: LiveLocationShareWhereInput
+    data: XOR<LiveLocationShareUpdateWithoutViewersInput, LiveLocationShareUncheckedUpdateWithoutViewersInput>
+  }
+
+  export type LiveLocationShareUpdateWithoutViewersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    owner?: UserUpdateOneRequiredWithoutOwnedLiveLocationSharesNestedInput
+  }
+
+  export type LiveLocationShareUncheckedUpdateWithoutViewersInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    ownerId?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type UserUpsertWithoutLiveLocationViewershipsInput = {
+    update: XOR<UserUpdateWithoutLiveLocationViewershipsInput, UserUncheckedUpdateWithoutLiveLocationViewershipsInput>
+    create: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutLiveLocationViewershipsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutLiveLocationViewershipsInput, UserUncheckedUpdateWithoutLiveLocationViewershipsInput>
+  }
+
+  export type UserUpdateWithoutLiveLocationViewershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUpdateManyWithoutUserNestedInput
+    locations?: LocationUpdateManyWithoutUserNestedInput
+    routes?: RouteUpdateManyWithoutUserNestedInput
+    places?: PlaceUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutLiveLocationViewershipsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUncheckedUpdateManyWithoutUserNestedInput
+    locations?: LocationUncheckedUpdateManyWithoutUserNestedInput
+    routes?: RouteUncheckedUpdateManyWithoutUserNestedInput
+    places?: PlaceUncheckedUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUncheckedUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
   }
 
   export type OTPVerificationCreateManyUserInput = {
@@ -40477,6 +44314,32 @@ export namespace Prisma {
     value: number
     createdAt?: Date | string
     updatedAt?: Date | string
+  }
+
+  export type LiveLocationShareCreateManyOwnerInput = {
+    id?: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LiveLocationViewerCreateManyUserInput = {
+    id?: string
+    shareId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
   }
 
   export type OTPVerificationUpdateWithoutUserInput = {
@@ -41154,6 +45017,86 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type LiveLocationShareUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    viewers?: LiveLocationViewerUpdateManyWithoutShareNestedInput
+  }
+
+  export type LiveLocationShareUncheckedUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    viewers?: LiveLocationViewerUncheckedUpdateManyWithoutShareNestedInput
+  }
+
+  export type LiveLocationShareUncheckedUpdateManyWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    share?: LiveLocationShareUpdateOneRequiredWithoutViewersNestedInput
+  }
+
+  export type LiveLocationViewerUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type LocationCreateManyVehicleInput = {
     id?: string
     userId?: string | null
@@ -41666,6 +45609,34 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type LiveLocationViewerCreateManyShareInput = {
+    id?: string
+    userId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+  }
+
+  export type LiveLocationViewerUpdateWithoutShareInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutLiveLocationViewershipsNestedInput
+  }
+
+  export type LiveLocationViewerUncheckedUpdateWithoutShareInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerUncheckedUpdateManyWithoutShareInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
 
 
   /**
@@ -41691,6 +45662,10 @@ export namespace Prisma {
      * @deprecated Use ItineraryStopCountOutputTypeDefaultArgs instead
      */
     export type ItineraryStopCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryStopCountOutputTypeDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use LiveLocationShareCountOutputTypeDefaultArgs instead
+     */
+    export type LiveLocationShareCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserDefaultArgs instead
      */
@@ -41775,6 +45750,14 @@ export namespace Prisma {
      * @deprecated Use ItineraryVoteDefaultArgs instead
      */
     export type ItineraryVoteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryVoteDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use LiveLocationShareDefaultArgs instead
+     */
+    export type LiveLocationShareArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LiveLocationShareDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use LiveLocationViewerDefaultArgs instead
+     */
+    export type LiveLocationViewerArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LiveLocationViewerDefaultArgs<ExtArgs>
     /**
      * @deprecated Use LegalDocumentDefaultArgs instead
      */

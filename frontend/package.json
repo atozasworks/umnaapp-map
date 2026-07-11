@@ -10,6 +10,7 @@
     "ci:lint": "eslint src --max-warnings 200",
     "ci:audit": "npm audit --audit-level=high",
     "ci:build": "vite build",
+    "ci:test": "node --test tests/liveLocationShare.test.mjs tests/authRedirect.test.mjs",
     "ci:check": "npm run ci:lint && npm run ci:audit && npm run ci:build"
   },
   "dependencies": {

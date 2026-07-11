@@ -21,7 +21,12 @@ import notificationRoutes from './routes/notificationRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import itineraryRoutes from './routes/itineraryRoutes.js'
+import liveLocationRoutes from './routes/liveLocationRoutes.js'
 import { itineraryRoom } from './services/itineraryService.js'
+import {
+  pauseOwnerLiveSharesOnDisconnect,
+  registerLiveLocationSockets,
+} from './lib/liveLocationSockets.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
 import { validateAdminSecretOrExit } from './middleware/adminAuth.js'
 import { rateLimitMiddleware } from './middleware/rateLimit.js'
@@ -107,6 +112,7 @@ app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), not
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
 app.use('/api/feedback', feedbackRoutes)
 app.use('/api/itineraries', itineraryRoutes) // Co-Edited Group Itineraries
+app.use('/api/live-location', liveLocationRoutes) // Timed live-location sharing
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -352,8 +358,11 @@ io.on('connection', async (socket) => {
     }
   })
 
+  registerLiveLocationSockets(io, socket)
+
   // Handle disconnection
   socket.on('disconnect', () => {
+    pauseOwnerLiveSharesOnDisconnect(socket.userId).catch(() => {})
     console.log(`User disconnected: ${socket.userId}`)
   })
 

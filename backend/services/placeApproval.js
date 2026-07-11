@@ -8,6 +8,7 @@ import {
 } from './placeAudit.js'
 import { PLACE_DETAIL_SELECT } from '../utils/placePayload.js'
 import { broadcastPlaceUpsert, PLACE_EVENTS } from '../lib/placeEvents.js'
+import { expireDueLiveLocationShares } from './liveLocationService.js'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -281,6 +282,13 @@ export function startPlaceApprovalScheduler() {
     removeExpiredFestivals({ force: true })
       .then(({ count }) => {
         if (count > 0) console.log(`Festivals: auto-removed ${count} expired festival(s)`)
+      })
+      .catch(() => {})
+    expireDueLiveLocationShares()
+      .then((expired) => {
+        if (expired.length > 0) {
+          console.log(`Live location: expired ${expired.length} share(s)`)
+        }
       })
       .catch(() => {})
   }

@@ -30,6 +30,7 @@ psql "$DATABASE_URL" -f prisma/add-user-profile-public.sql    # Phase 6
 psql "$DATABASE_URL" -f prisma/add-phase7-claims-labels.sql   # Phase 7
 psql "$DATABASE_URL" -f prisma/add-notification-preferences.sql  # Phase 8
 psql "$DATABASE_URL" -f prisma/add-postgis-place-geom.sql     # Phase 9 (needs PostGIS)
+psql "$DATABASE_URL" -f prisma/add-live-location-sharing.sql  # Timed live-location sharing
 npx prisma generate
 ```
 

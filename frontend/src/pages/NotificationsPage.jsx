@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../hooks/useNotifications'
 
 const ITINERARY_TYPES = ['itinerary_invite', 'itinerary_joined', 'itinerary_updated']
+const LIVE_LOCATION_TYPES = ['location_share_viewed', 'location_share_ended']
 
 function formatTimeAgo(iso) {
   const then = new Date(iso).getTime()
@@ -71,6 +72,10 @@ export default function NotificationsPage() {
         } else if (data.shareToken) {
           navigate(`/home?joinTrip=${data.shareToken}`)
         }
+        return
+      }
+      if (LIVE_LOCATION_TYPES.includes(n.type) && n.data?.shareId) {
+        navigate(`/home?openLiveShare=${encodeURIComponent(n.data.shareId)}`)
         return
       }
       if (n.data?.placeId || (n.data?.latitude != null && n.data?.longitude != null)) {

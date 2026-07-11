@@ -12,10 +12,10 @@ export const DEFAULT_LEGAL_DOCS = {
     title: 'Privacy Policy',
     content: [
       '# Information We Collect',
-      'We collect information you provide directly, such as your name, email address, and profile picture when you create an account. We also collect location data when you use our mapping features, and usage data to improve our services.',
+      'We collect information you provide directly, such as your name, email address, and profile picture when you create an account. We also collect location data when you use our mapping features, including when you choose to share your live location with people you invite through a timed link. We store only your latest shared position for active sessions, not a movement history. Usage data helps us improve our services.',
       '',
       '# How We Use Your Information',
-      'Your information is used to provide and improve our mapping services, personalize your experience, manage your account, and communicate important updates. Location data is used solely for map functionality and is not shared with third parties.',
+      'Your information is used to provide and improve our mapping services, personalize your experience, manage your account, and communicate important updates. Location data is used for map functionality. Live location is shared only when you start sharing and only with authenticated viewers who open your link before the session expires or you stop sharing.',
       '',
       '# Data Storage & Security',
       'We implement industry-standard security measures to protect your data. Your personal information is stored securely and encrypted during transmission. We retain your data only as long as necessary to provide our services.',

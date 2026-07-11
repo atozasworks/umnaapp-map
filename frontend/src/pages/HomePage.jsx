@@ -26,6 +26,8 @@ import NotificationBell from '../components/NotificationBell'
 import MapAssistantChatbot from '../components/MapAssistantChatbot'
 import FeedbackModal from '../components/FeedbackModal'
 import OnboardingTour, { hasSeenOnboarding, markOnboardingSeen } from '../components/OnboardingTour'
+import LiveLocationShareSheet from '../components/LiveLocationShareSheet'
+import LiveLocationViewerBar from '../components/LiveLocationViewerBar'
 import api from '../services/api'
 import {
   extractMapRenderingConfig,
@@ -36,6 +38,12 @@ import { isFestivalPlace, isFestivalVisibleNow } from '../utils/festival'
 import { getAppOrigin } from '../utils/apiBase'
 import { extractPlaceNameFromDisplay } from '../utils/formatAddress'
 import { getCurrentPositionAsync } from '../utils/geolocation'
+import {
+  buildLiveShareUrl,
+  getShareLocation,
+} from '../utils/liveLocationShare'
+import { useLiveLocationShare, fetchActiveOwnedLiveShare, restoreLiveShareToken } from '../hooks/useLiveLocationShare'
+import { exchangeLiveShareToken, useLiveLocationViewer } from '../hooks/useLiveLocationViewer'
 
 const MAX_AVATAR_SIZE = 200
 
@@ -174,6 +182,13 @@ const HomePage = () => {
   const [polygonOverlayPlaces, setPolygonOverlayPlaces] = useState([])
   const [polygonMapInteraction, setPolygonMapInteraction] = useState(false)
   const [areaExploreFeature, setAreaExploreFeature] = useState(null)
+  const [showLiveShareSheet, setShowLiveShareSheet] = useState(false)
+  const [senderShare, setSenderShare] = useState(null)
+  const [senderShareToken, setSenderShareToken] = useState('')
+  const [viewerShareId, setViewerShareId] = useState(null)
+  const [viewerShareSeed, setViewerShareSeed] = useState(null)
+  const [liveShareFollow, setLiveShareFollow] = useState(false)
+  const [liveShareError, setLiveShareError] = useState('')
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -609,16 +624,109 @@ const HomePage = () => {
 
   const handleLocationSharing = () => {
     setShowMenu(false)
-    const map = mapRef.current?.getMap?.()
-    const center = map?.getCenter()
-    const lat = center ? center.lat : currentLocation?.lat
-    const lng = center ? center.lng : currentLocation?.lng
-    if (lat == null || lng == null) {
-      showToast('Location not available', 'error')
-      return
-    }
-    shareLocationAt(lat, lng)
+    setLiveShareError('')
+    setShowLiveShareSheet(true)
   }
+
+  const handleSenderShareEnded = useCallback(() => {
+    setSenderShare((prev) => (prev ? { ...prev, status: 'stopped' } : null))
+    mapRef.current?.removeLiveShareMarker?.('sender-live-share')
+  }, [])
+
+  const { presenceStatus: senderPresenceStatus, stopSharing } = useLiveLocationShare({
+    share: senderShare?.isOwner ? senderShare : null,
+    onShareEnded: handleSenderShareEnded,
+    onError: (err) => {
+      const message = err?.message || 'Location permission denied'
+      setLiveShareError(message)
+      showToast(message, 'error')
+    },
+  })
+
+  const handleViewerLocation = useCallback((location) => {
+    if (!location || !viewerShareId) return
+    mapRef.current?.setLiveShareMarker?.({
+      id: viewerShareId,
+      lat: location.latitude,
+      lng: location.longitude,
+      label: viewerShareSeed?.owner?.name || 'Live location',
+      picture: viewerShareSeed?.owner?.picture,
+      heading: location.heading,
+    })
+    if (liveShareFollow) {
+      mapRef.current?.flyToLiveShare?.(viewerShareId)
+    }
+  }, [viewerShareId, viewerShareSeed, liveShareFollow])
+
+  const handleViewerDirections = () => {
+    const location = getShareLocation(viewerShare || viewerShareSeed)
+    if (!location) return
+    setRoutePanelEndPlace({
+      lat: location.latitude,
+      lng: location.longitude,
+      name: viewerShare?.owner?.name || 'Live location',
+    })
+    setShowRoutePanel(true)
+  }
+
+  const handleLiveShareStarted = ({ share, token }) => {
+    setSenderShare({ ...share, isOwner: true })
+    setSenderShareToken(token)
+    showToast('Live location sharing started', 'success')
+  }
+
+  const handleLiveShareStop = async () => {
+    const stopped = await stopSharing()
+    if (stopped) setSenderShare(stopped)
+    setSenderShareToken('')
+    showToast('Live location sharing stopped', 'info')
+  }
+
+  // Resume an active owned share after reload (GPS + link).
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const active = await fetchActiveOwnedLiveShare()
+        if (cancelled || !active || active.status !== 'active') return
+        const token = await restoreLiveShareToken(active.id)
+        if (cancelled) return
+        setSenderShare({ ...active, isOwner: true })
+        setSenderShareToken(token || '')
+      } catch {
+        /* no active share or API unavailable */
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  const handleViewerEnded = useCallback(() => {
+    if (viewerShareId) mapRef.current?.removeLiveShareMarker?.(viewerShareId)
+    setViewerShareId(null)
+    setViewerShareSeed(null)
+    setLiveShareFollow(false)
+  }, [viewerShareId])
+
+  const {
+    share: viewerShare,
+    loading: viewerShareLoading,
+    error: viewerShareError,
+    stale: viewerShareStale,
+  } = useLiveLocationViewer({
+    shareId: viewerShareId,
+    initialShare: viewerShareSeed,
+    onEnded: handleViewerEnded,
+    onLocation: handleViewerLocation,
+  })
+
+  const activeViewerShare = viewerShare || viewerShareSeed
+  const showViewerBar =
+    viewerShareId &&
+    activeViewerShare &&
+    user?.id &&
+    activeViewerShare.ownerId !== user.id
 
   const findPlaceNearCoordinates = (lat, lng, thresholdDeg = 0.00045) => {
     return allPlaces.find(
@@ -1347,6 +1455,43 @@ const HomePage = () => {
     }
   }, [])
 
+  // Live location share deep links:
+  //   /home?liveShare=<token>  → exchange token, then open viewer session
+  //   /home?openLiveShare=<id> → open existing viewer session
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token = params.get('liveShare')
+    const openShare = params.get('openLiveShare')
+
+    const cleanupUrl = (nextParams) => {
+      const qs = nextParams.toString()
+      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
+    }
+
+    if (token) {
+      exchangeLiveShareToken(token)
+        .then((share) => {
+          setViewerShareId(share.id)
+          setViewerShareSeed(share)
+          params.delete('liveShare')
+          params.set('openLiveShare', share.id)
+          cleanupUrl(params)
+        })
+        .catch(() => {
+          showToast('This live-location link is invalid or expired', 'error')
+          params.delete('liveShare')
+          cleanupUrl(params)
+        })
+      return
+    }
+
+    if (openShare) {
+      handleNotificationLiveShareOpen(openShare)
+      params.delete('openLiveShare')
+      cleanupUrl(params)
+    }
+  }, [])
+
   // Open a trip when arriving via a link or from the notifications page:
   //   /home?joinTrip=<shareToken>  → join then open
   //   /home?openTrip=<itineraryId> → open existing trip
@@ -1394,6 +1539,30 @@ const HomePage = () => {
       setItineraryJoinToken(shareToken)
     }
   }, [])
+
+  const handleNotificationLiveShareOpen = useCallback(async (shareId) => {
+    if (!shareId) return
+    try {
+      const { data } = await api.get(`/live-location/shares/${shareId}`)
+      const share = data.share
+      if (!share) return
+      if (share.isOwner || share.ownerId === user?.id) {
+        if (share.status === 'active') {
+          const token = await restoreLiveShareToken(share.id)
+          setSenderShare({ ...share, isOwner: true })
+          setSenderShareToken(token || '')
+          setShowLiveShareSheet(true)
+        } else {
+          showToast('That live-location share has ended', 'info')
+        }
+        return
+      }
+      setViewerShareId(share.id)
+      setViewerShareSeed(share)
+    } catch {
+      showToast('Live-location share unavailable', 'error')
+    }
+  }, [user?.id])
 
   const handleStartNavigation = useCallback((session) => {
     if (!session?.route) return
@@ -1657,6 +1826,7 @@ const HomePage = () => {
             <NotificationBell
               onPlaceFocus={handleNotificationPlaceFocus}
               onOpenItinerary={handleNotificationItineraryOpen}
+              onOpenLiveShare={handleNotificationLiveShareOpen}
             />
             {/* Extract Places button */}
             <button
@@ -2050,6 +2220,17 @@ const HomePage = () => {
           routeEndPlace={routeEndPlace}
           routeStops={routeStops}
         />
+        {showViewerBar && (
+          <LiveLocationViewerBar
+            share={activeViewerShare}
+            stale={viewerShareStale}
+            followEnabled={liveShareFollow}
+            onRecenter={() => mapRef.current?.flyToLiveShare?.(viewerShareId)}
+            onToggleFollow={() => setLiveShareFollow((prev) => !prev)}
+            onDirections={handleViewerDirections}
+            onStopViewing={handleViewerEnded}
+          />
+        )}
       </div>
 
       {mapContextMenu && (
@@ -2407,6 +2588,25 @@ const HomePage = () => {
         onClose={() => setShowLanguageModal(false)}
       />
 
+      <LiveLocationShareSheet
+        isOpen={showLiveShareSheet}
+        onClose={() => setShowLiveShareSheet(false)}
+        onStarted={handleLiveShareStarted}
+        onError={(message) => {
+          setLiveShareError(message)
+          showToast(message, 'error')
+        }}
+        activeShare={senderShare?.status === 'active' ? senderShare : null}
+        shareUrl={senderShareToken ? buildLiveShareUrl(senderShareToken) : ''}
+        onStop={handleLiveShareStop}
+        presenceStatus={senderPresenceStatus}
+      />
+
+      {viewerShareError && viewerShareId && (
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[360] px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">
+          {viewerShareError}
+        </div>
+      )}
 
       {/* Share Location fallback modal (desktop / unsupported browsers) */}
       {shareModal && (

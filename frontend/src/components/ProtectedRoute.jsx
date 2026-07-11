@@ -1,8 +1,10 @@
-import { Navigate } from 'react-router-dom'
+import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { authPageWithRedirect } from '../utils/authRedirect'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
+  const location = useLocation()
 
   if (loading) {
     return (
@@ -12,7 +14,8 @@ const ProtectedRoute = ({ children }) => {
     )
   }
 
-  return isAuthenticated ? children : <Navigate to="/login" replace />
+  const redirect = `${location.pathname}${location.search}`
+  return isAuthenticated ? children : <Navigate to={authPageWithRedirect('/login', redirect)} replace />
 }
 
 export default ProtectedRoute

@@ -16,6 +16,7 @@ import NotificationsPage from './pages/NotificationsPage'
 import MyContributionsPage from './pages/MyContributionsPage'
 import PublicProfilePage from './pages/PublicProfilePage'
 import ProtectedRoute from './components/ProtectedRoute'
+import LiveLocationTokenRedirect from './components/LiveLocationTokenRedirect'
 import PwaShell from './components/PwaShell'
 import SplashScreen from './components/SplashScreen'
 import { getAuthKitApiUrl } from './utils/apiBase'
@@ -104,6 +105,14 @@ function App() {
                 }
               />
               <Route path="/verify-otp" element={<OTPVerificationPage />} />
+              <Route
+                path="/live/:token"
+                element={
+                  <ProtectedRoute>
+                    <LiveLocationTokenRedirect />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/home"
                 element={

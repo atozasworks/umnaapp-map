@@ -1,4 +1,5 @@
 import express from 'express'
+import crypto from 'crypto'
 import { body } from 'express-validator'
 import {
   register,
@@ -15,6 +16,49 @@ import { rateLimitMiddleware } from '../middleware/rateLimit.js'
 import passport from '../config/passport.js'
 
 const router = express.Router()
+
+const sanitizeAuthRedirect = (value) => {
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/home'
+  try {
+    const parsed = new URL(value, 'http://umnaapp.local')
+    if (parsed.origin !== 'http://umnaapp.local') return '/home'
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return '/home'
+  }
+}
+
+const oauthStateSecret = () =>
+  process.env.JWT_SECRET || process.env.SESSION_SECRET || process.env.GOOGLE_CLIENT_SECRET
+
+const createOAuthState = (redirect) => {
+  const payload = Buffer.from(
+    JSON.stringify({ redirect: sanitizeAuthRedirect(redirect), issuedAt: Date.now() })
+  ).toString('base64url')
+  const signature = crypto.createHmac('sha256', oauthStateSecret()).update(payload).digest('base64url')
+  return `${payload}.${signature}`
+}
+
+const readOAuthRedirect = (state) => {
+  if (typeof state !== 'string') return '/home'
+  const [payload, signature] = state.split('.')
+  if (!payload || !signature) return '/home'
+  const expected = crypto.createHmac('sha256', oauthStateSecret()).update(payload).digest()
+  let received
+  try {
+    received = Buffer.from(signature, 'base64url')
+  } catch {
+    return '/home'
+  }
+  if (received.length !== expected.length || !crypto.timingSafeEqual(received, expected)) return '/home'
+  try {
+    const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+    if (!Number.isFinite(parsed.issuedAt) || Date.now() - parsed.issuedAt > 15 * 60 * 1000) return '/home'
+    return sanitizeAuthRedirect(parsed.redirect)
+  } catch {
+    return '/home'
+  }
+}
 
 // Register
 router.post(
@@ -84,6 +128,7 @@ router.get(
     passport.authenticate('google', {
       scope: ['profile', 'email'],
       prompt: 'select_account',
+      state: createOAuthState(req.query.redirect),
     })(req, res, next)
   }
 )
@@ -105,7 +150,9 @@ router.get(
       if (!user) return res.redirect(`${frontendUrl}/login?error=google_auth_failed`)
       try {
         const token = user.token
-        res.redirect(`${frontendUrl}/home?token=${token}`)
+        const redirectUrl = new URL(readOAuthRedirect(req.query.state), frontendUrl)
+        redirectUrl.searchParams.set('token', token)
+        res.redirect(redirectUrl.toString())
       } catch (error) {
         res.redirect(`${frontendUrl}/login?error=auth_failed`)
       }

@@ -5,6 +5,7 @@ import AppLogo from '../components/AppLogo'
 import LandingInstallPopup from '../components/LandingInstallPopup'
 import MapAssistantChatbot from '../components/MapAssistantChatbot'
 import { useAuth } from '../contexts/AuthContext'
+import { sanitizeAuthRedirect } from '../utils/authRedirect'
 import { GITHUB_REPO_URL, devSetupSteps, prerequisites } from '../constants/openSource'
 
 const features = [
@@ -159,6 +160,12 @@ const LandingPage = () => {
 
   useEffect(() => {
     if (isAuthenticated) {
+      const params = new URLSearchParams(window.location.search)
+      const liveShare = params.get('liveShare')
+      if (liveShare) {
+        navigate(sanitizeAuthRedirect(`/home?liveShare=${encodeURIComponent(liveShare)}`))
+        return
+      }
       navigate('/home')
     }
   }, [isAuthenticated, navigate])

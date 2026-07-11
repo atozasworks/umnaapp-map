@@ -13,7 +13,7 @@
     "ci:lint": "prisma validate && prisma format --check",
     "ci:audit": "npm audit --audit-level=high",
     "ci:build": "prisma generate",
-    "ci:test": "node --test tests/smoke.test.mjs",
+    "ci:test": "node --test tests/smoke.test.mjs tests/liveLocation.test.mjs tests/liveLocation.smoke.test.mjs",
     "validate:schemas": "prisma validate && prisma format --check",
     "ci:check": "npm run ci:lint && npm run ci:audit && npm run ci:build"
   },

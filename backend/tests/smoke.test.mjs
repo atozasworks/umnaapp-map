@@ -77,3 +77,8 @@ test('GET /api/admin/places without admin secret is rejected', async () => {
   const res = await fetch(`${BASE}/api/admin/places`)
   assert.ok(res.status === 401 || res.status === 403)
 })
+
+test('GET /api/live-location/shares without a token is rejected', async () => {
+  const res = await fetch(`${BASE}/api/live-location/shares`)
+  assert.equal(res.status, 401)
+})

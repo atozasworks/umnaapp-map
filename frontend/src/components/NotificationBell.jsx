@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../hooks/useNotifications'
 
 const ITINERARY_TYPES = ['itinerary_invite', 'itinerary_joined', 'itinerary_updated']
+const LIVE_LOCATION_TYPES = ['location_share_viewed', 'location_share_ended']
 
 function formatTimeAgo(iso) {
   const then = new Date(iso).getTime()
@@ -49,6 +50,16 @@ function NotificationIcon({ type }) {
       </div>
     )
   }
+  if (LIVE_LOCATION_TYPES.includes(type)) {
+    return (
+      <div className={`${base} bg-rose-100 text-rose-600`}>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
+      </div>
+    )
+  }
   return (
     <div className={`${base} bg-amber-100 text-amber-600`}>
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -58,7 +69,7 @@ function NotificationIcon({ type }) {
   )
 }
 
-export default function NotificationBell({ onPlaceFocus, onOpenItinerary }) {
+export default function NotificationBell({ onPlaceFocus, onOpenItinerary, onOpenLiveShare }) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef(null)
   const buttonRef = useRef(null)
@@ -120,13 +131,26 @@ export default function NotificationBell({ onPlaceFocus, onOpenItinerary }) {
         openItinerary(notification, { join: notification.type === 'itinerary_invite' })
         return
       }
+      if (LIVE_LOCATION_TYPES.includes(notification.type)) {
+        const shareId = notification.data?.shareId
+        if (shareId && onOpenLiveShare) {
+          onOpenLiveShare(shareId)
+          setOpen(false)
+          return
+        }
+        if (shareId) {
+          navigate(`/home?openLiveShare=${encodeURIComponent(shareId)}`)
+          setOpen(false)
+          return
+        }
+      }
       const placeId = notification.data?.placeId
       if (placeId && onPlaceFocus) {
         onPlaceFocus(notification.data)
         setOpen(false)
       }
     },
-    [markRead, onPlaceFocus, openItinerary]
+    [markRead, onPlaceFocus, openItinerary, onOpenLiveShare, navigate]
   )
 
   const handleDelete = useCallback(

@@ -55,7 +55,10 @@ export const AuthProvider = ({ children }) => {
     if (urlToken) {
       setToken(urlToken)
       localStorage.setItem('token', urlToken)
-      window.history.replaceState({}, document.title, window.location.pathname)
+      urlParams.delete('token')
+      const remainingSearch = urlParams.toString()
+      const cleanUrl = `${window.location.pathname}${remainingSearch ? `?${remainingSearch}` : ''}${window.location.hash}`
+      window.history.replaceState({}, document.title, cleanUrl)
     }
 
     // Load user from database when token exists

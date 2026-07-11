@@ -39,10 +39,12 @@ model User {
   businessClaims         BusinessClaim[]
   placeLabels            PlaceLabel[]
 
-  ownedItineraries     Itinerary[]        @relation("ItineraryOwner")
-  itineraryMemberships ItineraryMember[]
-  itineraryComments    ItineraryComment[]
-  itineraryVotes       ItineraryVote[]
+  ownedItineraries        Itinerary[]          @relation("ItineraryOwner")
+  itineraryMemberships    ItineraryMember[]
+  itineraryComments       ItineraryComment[]
+  itineraryVotes          ItineraryVote[]
+  ownedLiveLocationShares LiveLocationShare[]  @relation("LiveLocationOwner")
+  liveLocationViewerships LiveLocationViewer[]
 
   @@index([email])
   @@index([googleId])
@@ -499,6 +501,50 @@ model ItineraryVote {
 
   @@unique([stopId, userId])
   @@index([stopId])
+}
+
+// Timed live-location sessions retain only the owner's latest point. Access is
+// limited to the owner and authenticated users who exchanged the share token.
+model LiveLocationShare {
+  id              String    @id @default(uuid())
+  ownerId         String    @map("owner_id")
+  tokenHash       String    @unique @map("token_hash")
+  status          String    @default("active") // active | stopped | expired
+  durationMinutes Int       @map("duration_minutes")
+  expiresAt       DateTime  @map("expires_at")
+  endedAt         DateTime? @map("ended_at")
+  endedReason     String?   @map("ended_reason")
+  lastLatitude    Float?    @map("last_latitude")
+  lastLongitude   Float?    @map("last_longitude")
+  lastAccuracy    Float?    @map("last_accuracy")
+  lastSpeed       Float?    @map("last_speed")
+  lastHeading     Float?    @map("last_heading")
+  lastUpdatedAt   DateTime? @map("last_updated_at")
+  presenceStatus  String    @default("active") @map("presence_status") // active | paused
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  owner   User                 @relation("LiveLocationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  viewers LiveLocationViewer[]
+
+  @@index([ownerId, createdAt])
+  @@index([status, expiresAt])
+  @@index([updatedAt])
+}
+
+model LiveLocationViewer {
+  id            String   @id @default(uuid())
+  shareId       String   @map("share_id")
+  userId        String   @map("user_id")
+  firstViewedAt DateTime @default(now()) @map("first_viewed_at")
+  lastViewedAt  DateTime @default(now()) @map("last_viewed_at")
+
+  share LiveLocationShare @relation(fields: [shareId], references: [id], onDelete: Cascade)
+  user  User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([shareId, userId])
+  @@index([userId, lastViewedAt])
+  @@index([shareId])
 }
 
 // Editable legal documents (Privacy Policy, Terms & Conditions). A single row
