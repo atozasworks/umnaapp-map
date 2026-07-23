@@ -14,6 +14,7 @@ import authRoutes from './routes/authRoutes.js'
 import atozasAuthRoutes from './routes/atozasAuthRoutes.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
+import safeRouteRoutes from './routes/safeRouteRoutes.js'
 import publicRoutes from './routes/publicRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
@@ -106,6 +107,7 @@ app.use('/api/auth', rateLimitMiddleware('auth', 40, 60), authRoutes)
 app.use('/api', atozasAuthRoutes) // Atozas Auth Kit routes (/api/email/send-otp, /api/email/verify-otp, /api/me)
 app.use('/api/test', testRoutes)
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
+app.use('/api/map', safeRouteRoutes) // Safe Route scoring + community hazard reports
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
 app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)

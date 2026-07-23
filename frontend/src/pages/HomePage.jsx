@@ -30,7 +30,10 @@ import LiveLocationShareSheet from '../components/LiveLocationShareSheet'
 import LiveLocationViewerBar from '../components/LiveLocationViewerBar'
 import PublicUtilityFinderSheet from '../components/PublicUtilityFinderSheet'
 import OfflineMapsSheet from '../components/OfflineMapsSheet'
+import HazardReportSheet from '../components/HazardReportSheet'
+import useSafeRouteMonitor from '../hooks/useSafeRouteMonitor'
 import api from '../services/api'
+import { getUtilityAddPlacePrefill, toUtilityOverlayPlace } from '../utils/publicUtilities'
 import {
   extractMapRenderingConfig,
   withMapRenderingConfig,
@@ -127,6 +130,11 @@ const HomePage = () => {
   const location = useLocation()
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
+  const [routePanelSafeMode, setRoutePanelSafeMode] = useState(false)
+  const [showHazardReport, setShowHazardReport] = useState(false)
+  const [hazardReportCoords, setHazardReportCoords] = useState(null)
+  const [navSafetyWarning, setNavSafetyWarning] = useState(null)
+  const [navSaferRoute, setNavSaferRoute] = useState(null)
   const [showAskMapsPanel, setShowAskMapsPanel] = useState(false)
   const [showFestivalsPanel, setShowFestivalsPanel] = useState(false)
   const [showItinerariesPanel, setShowItinerariesPanel] = useState(false)
@@ -194,6 +202,8 @@ const HomePage = () => {
   const [showUtilityFinder, setShowUtilityFinder] = useState(false)
   const [utilityOverlayPlaces, setUtilityOverlayPlaces] = useState([])
   const [selectedUtilityPlaceId, setSelectedUtilityPlaceId] = useState(null)
+  const [utilityInjectedPlace, setUtilityInjectedPlace] = useState(null)
+  const pendingUtilityAddTypeRef = useRef(null)
   const [showOfflineMaps, setShowOfflineMaps] = useState(false)
 
   const menuShowSidebar = useTranslate('Show side bar')
@@ -226,6 +236,7 @@ const HomePage = () => {
   const menuPlaceFinder = useTranslate('PlaceFinder')
   const menuPublicUtilities = useTranslate('Public Utility Finder')
   const menuOfflineMaps = useTranslate('Offline Maps')
+  const menuSafeRoute = useTranslate('Safe Route')
   const mapPublicUtilitiesTitle = useTranslate('Public Utilities')
 
   const closeMapContextMenu = useCallback(() => {
@@ -745,7 +756,7 @@ const HomePage = () => {
     )
   }
 
-  const openAddPlaceAt = async (lat, lng, { category } = {}) => {
+  const openAddPlaceAt = async (lat, lng, { category, customCategory, name } = {}) => {
     const map = mapRef.current?.getMap?.()
     const zoom = map ? Math.round(map.getZoom()) : 15
     // Open modal immediately so the user sees feedback; enrich location in the background.
@@ -754,6 +765,8 @@ const HomePage = () => {
       longitude: lng,
       zoomLevel: zoom,
       ...(category ? { category } : {}),
+      ...(customCategory ? { customCategory } : {}),
+      ...(name ? { name } : {}),
     })
     setAddPlaceLocationMethod('map-or-current')
     setShowAddPlaceModal(true)
@@ -766,6 +779,12 @@ const HomePage = () => {
       })
       if (category) {
         details.category = category
+      }
+      if (customCategory) {
+        details.customCategory = customCategory
+      }
+      if (name && !details.name) {
+        details.name = name
       }
       setMapLocation(details)
     } catch (err) {
@@ -839,6 +858,7 @@ const HomePage = () => {
         break
       case 'directionsFrom': {
         const start = { lat, lng, name: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }
+        setRoutePanelSafeMode(false)
         setRoutePanelStartPlace(start)
         setRoutePanelEndPlace(null)
         setShowRoutePanel(true)
@@ -851,6 +871,7 @@ const HomePage = () => {
       }
       case 'directionsTo': {
         const end = { lat, lng, name: `${lat.toFixed(6)}, ${lng.toFixed(6)}` }
+        setRoutePanelSafeMode(false)
         setRoutePanelEndPlace(end)
         setRoutePanelStartPlace(null)
         setShowRoutePanel(true)
@@ -889,6 +910,10 @@ const HomePage = () => {
         }
         break
       }
+      case 'reportHazard':
+        setHazardReportCoords({ lat, lng })
+        setShowHazardReport(true)
+        break
       case 'measure':
         setMeasureDistanceActive(true)
         if (mapRef.current?.flyTo) {
@@ -1264,6 +1289,31 @@ const HomePage = () => {
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
+
+    const utilityTypeId = pendingUtilityAddTypeRef.current
+    if (utilityTypeId && !wasEdit) {
+      pendingUtilityAddTypeRef.current = null
+      const overlay = toUtilityOverlayPlace(
+        {
+          ...place,
+          placeId: place.id,
+          name: place.place_name_en || place.placeNameEn || place.name,
+          latitude: place.latitude,
+          longitude: place.longitude,
+          category: place.category,
+          source: 'contribution',
+        },
+        utilityTypeId
+      )
+      setUtilityOverlayPlaces((prev) => [
+        overlay,
+        ...prev.filter((p) => String(p.placeId) !== String(overlay.placeId)),
+      ])
+      setSelectedUtilityPlaceId(overlay.placeId)
+      setUtilityInjectedPlace({ typeId: utilityTypeId, place, token: Date.now() })
+      setShowUtilityFinder(true)
+    }
+
     if (wasEdit) {
       showToast?.('Place updated', 'success')
     } else {
@@ -1377,6 +1427,42 @@ const HomePage = () => {
     })
     setShowRoutePanel(true)
   }, [])
+
+  const handleUtilityAddPlace = useCallback(
+    async (typeId, coords) => {
+      const prefill = getUtilityAddPlacePrefill(typeId)
+      pendingUtilityAddTypeRef.current = typeId
+      setUtilityInjectedPlace(null)
+
+      let lat = coords?.lat
+      let lng = coords?.lng
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        if (Number.isFinite(currentLocation?.lat) && Number.isFinite(currentLocation?.lng)) {
+          lat = currentLocation.lat
+          lng = currentLocation.lng
+        } else {
+          const center = mapRef.current?.getMap?.()?.getCenter?.()
+          lat = center?.lat
+          lng = center?.lng
+        }
+      }
+
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+        showToast('Location needed to add a place. Enable GPS or pan the map.', 'error')
+        pendingUtilityAddTypeRef.current = null
+        return
+      }
+
+      // Hide the utility sheet so Add Place (lower z-index) is usable; reopen after save.
+      setShowUtilityFinder(false)
+      await openAddPlaceAt(lat, lng, {
+        category: prefill.category,
+        customCategory: prefill.customCategory || undefined,
+        name: prefill.defaultName,
+      })
+    },
+    [currentLocation]
+  )
 
   const mapSearchResultPlaces = askMapsPlaces
 
@@ -1608,6 +1694,8 @@ const HomePage = () => {
   const handleStartNavigation = useCallback((session) => {
     if (!session?.route) return
     mapRef.current?.clearAlternativeRoutes?.()
+    setNavSafetyWarning(null)
+    setNavSaferRoute(null)
     setNavigation(session)
     setShowRoutePanel(false)
     // Re-assert the route polyline on the map so it stays visible once the
@@ -1617,11 +1705,66 @@ const HomePage = () => {
       mapRef.current.setRouteGeometry({ geometry }, { fitBounds: false })
       requestAnimationFrame(() => mapRef.current?.ensureRouteOnTop?.())
     }
+    if (session.safeRouteEnabled && session.route?.riskySegments) {
+      mapRef.current?.setSafetyOverlays?.({
+        hazards: [],
+        riskySegments: session.route.riskySegments,
+      })
+    }
+  }, [])
+
+  /** Close directions panel and wipe all route map state (polyline, alts, markers, safety). */
+  const closeRouteSearchAndClear = useCallback(() => {
+    setShowRoutePanel(false)
+    setRoutePanelSafeMode(false)
+    setRouteStartPlace(null)
+    setRouteEndPlace(null)
+    setRouteStops([])
+    setRoutePanelEndPlace(null)
+    setRoutePanelStartPlace(null)
+    mapRef.current?.clearRoute?.()
+    mapRef.current?.clearAlternativeRoutes?.()
+    mapRef.current?.clearSafetyOverlays?.()
   }, [])
 
   const handleExitNavigation = useCallback(() => {
     setNavigation(null)
+    setNavSafetyWarning(null)
+    setNavSaferRoute(null)
+    mapRef.current?.clearSafetyOverlays?.()
   }, [])
+
+  useSafeRouteMonitor({
+    enabled: Boolean(navigation?.safeRouteEnabled && navigation?.route),
+    currentLocation,
+    route: navigation?.route,
+    avoidOptions: navigation?.avoidOptions,
+    onWarning: (warning) => setNavSafetyWarning(warning),
+    onSaferRoute: (safer) => setNavSaferRoute(safer),
+  })
+
+  const handleAcceptSaferRoute = useCallback(() => {
+    if (!navSaferRoute?.geometry) return
+    setNavigation((prev) =>
+      prev
+        ? {
+            ...prev,
+            route: navSaferRoute,
+          }
+        : prev
+    )
+    mapRef.current?.setRouteGeometry?.(
+      { geometry: navSaferRoute.geometry },
+      { fitBounds: false }
+    )
+    mapRef.current?.setSafetyOverlays?.({
+      hazards: [],
+      riskySegments: navSaferRoute.riskySegments || [],
+    })
+    setNavSaferRoute(null)
+    setNavSafetyWarning(null)
+    showToast('Switched to a safer route', 'success')
+  }, [navSaferRoute])
 
   // Recompute the route from the user's current position when they go off-route.
   const handleNavigationReroute = useCallback(
@@ -1631,11 +1774,31 @@ const HomePage = () => {
         if (!prev?.destination) return prev
         const start = { lat: location.lat, lng: location.lng }
         const end = { lat: prev.destination.lat, lng: prev.destination.lng }
+        const useSafe = Boolean(prev.safeRouteEnabled)
         mapRef.current
-          .calculateRoute(start, end, [], prev.travelMode)
-          .then((result) => {
-            if (result?.route) {
-              setNavigation((cur) => (cur ? { ...cur, route: result.route } : cur))
+          .calculateRoute(start, end, [], prev.travelMode, { alternatives: useSafe })
+          .then(async (result) => {
+            let nextRoute = result?.route
+            if (useSafe && result?.alternatives?.length) {
+              try {
+                const { data } = await api.post('/map/safe-route/score', {
+                  routes: result.alternatives,
+                  avoidOptions: prev.avoidOptions,
+                })
+                const safestIndex = data?.safestIndex ?? 0
+                nextRoute = data?.routes?.[safestIndex] || nextRoute
+              } catch {
+                /* keep OSRM primary */
+              }
+            }
+            if (nextRoute) {
+              setNavigation((cur) => (cur ? { ...cur, route: nextRoute } : cur))
+              if (useSafe && nextRoute.riskySegments) {
+                mapRef.current?.setSafetyOverlays?.({
+                  hazards: [],
+                  riskySegments: nextRoute.riskySegments,
+                })
+              }
             }
           })
           .catch(() => {})
@@ -1924,7 +2087,14 @@ const HomePage = () => {
             category: f.category || null,
           }))}
           onSelect={handleSearchSelect}
-          onRoute={() => setShowRoutePanel(!showRoutePanel)}
+          onRoute={() => {
+            if (showRoutePanel) {
+              closeRouteSearchAndClear()
+            } else {
+              setRoutePanelSafeMode(false)
+              setShowRoutePanel(true)
+            }
+          }}
           onAskMaps={handleAskMapsOpen}
           onResultsChange={() => {}}
           onSavePlace={handleSavePlaceFromSearch}
@@ -2036,6 +2206,11 @@ const HomePage = () => {
           setAddPlaceExcludeId(null)
           setEditPlaceId(null)
           setAddFestivalMode(false)
+          // If user cancelled an add started from Public Utility Finder, restore the sheet.
+          if (pendingUtilityAddTypeRef.current) {
+            pendingUtilityAddTypeRef.current = null
+            setShowUtilityFinder(true)
+          }
         }}
         initialData={null}
         mapLocation={mapLocation}
@@ -2136,15 +2311,7 @@ const HomePage = () => {
           <div
             className="absolute inset-0 pointer-events-auto bg-black/25 sm:hidden"
             aria-hidden
-            onClick={() => {
-              setShowRoutePanel(false)
-              setRouteStartPlace(null)
-              setRouteEndPlace(null)
-              setRouteStops([])
-              setRoutePanelEndPlace(null)
-              setRoutePanelStartPlace(null)
-              mapRef.current?.clearRoute?.()
-            }}
+            onClick={closeRouteSearchAndClear}
           />
           <div
             className="relative z-10 pointer-events-auto w-full sm:max-w-[400px] sm:h-full flex flex-col animate-sheet-up sm:animate-fade-in sm:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
@@ -2156,15 +2323,8 @@ const HomePage = () => {
                 onCalculateRoute={handleCalculateRoute}
                 initialEndPlace={routePanelEndPlace}
                 initialStartPlace={routePanelStartPlace}
-                onClose={() => {
-                  setShowRoutePanel(false)
-                  setRouteStartPlace(null)
-                  setRouteEndPlace(null)
-                  setRouteStops([])
-                  setRoutePanelEndPlace(null)
-                  setRoutePanelStartPlace(null)
-                  mapRef.current?.clearRoute?.()
-                }}
+                initialSafeRoute={routePanelSafeMode}
+                onClose={closeRouteSearchAndClear}
                 onSearchResultsChange={() => {}}
                 onStartNavigation={handleStartNavigation}
                 onRoutePlacesChange={(start, end, stops) => {
@@ -2187,6 +2347,17 @@ const HomePage = () => {
           destinationName={navigation.destinationName}
           onExit={handleExitNavigation}
           onReroute={handleNavigationReroute}
+          safetyWarning={navSafetyWarning}
+          saferRouteAvailable={Boolean(navSaferRoute)}
+          onAcceptSaferRoute={handleAcceptSaferRoute}
+          onReportHazard={
+            navigation.safeRouteEnabled
+              ? (coords) => {
+                  setHazardReportCoords(coords)
+                  setShowHazardReport(true)
+                }
+              : null
+          }
         />
       )}
 
@@ -2489,6 +2660,25 @@ const HomePage = () => {
                   type="button"
                   onClick={() => {
                     setShowMenu(false)
+                    setRoutePanelSafeMode(true)
+                    setShowRoutePanel(true)
+                  }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-emerald-50 active:bg-emerald-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                    />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuSafeRoute}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMenu(false)
                     setShowOfflineMaps(true)
                   }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-sky-50 active:bg-sky-100 transition-colors text-left touch-manipulation"
@@ -2699,13 +2889,25 @@ const HomePage = () => {
         onClearResults={handleUtilityClear}
         onPlaceSelect={handleUtilityPlaceSelect}
         onDirections={handleUtilityDirections}
+        onAddPlace={handleUtilityAddPlace}
         selectedPlaceId={selectedUtilityPlaceId}
+        injectedPlace={utilityInjectedPlace}
       />
 
       <OfflineMapsSheet
         isOpen={showOfflineMaps}
         onClose={() => setShowOfflineMaps(false)}
         mapRef={mapRef}
+      />
+
+      <HazardReportSheet
+        isOpen={showHazardReport}
+        onClose={() => {
+          setShowHazardReport(false)
+          setHazardReportCoords(null)
+        }}
+        coordinates={hazardReportCoords}
+        onSubmitted={() => showToast('Hazard report submitted for moderation', 'success')}
       />
 
       {viewerShareError && viewerShareId && (

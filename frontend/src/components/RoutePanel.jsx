@@ -11,6 +11,18 @@ import {
   formatDurationDelta,
   getEffectiveStartPlace,
 } from '../utils/routeHelpers'
+import {
+  DEFAULT_SAFE_AVOID_OPTIONS,
+  SAFE_AVOID_OPTION_META,
+  SAFE_ROUTE_TAG_COLORS,
+  buildSafeRouteMapStyles,
+  estimateFuelLiters,
+  formatSafetyImpact,
+  formatSafetyScore,
+  getRouteSafetyDetails,
+  hazardTypeLabel,
+  safetyScoreColor,
+} from '../utils/safeRoute'
 import { highlightQuerySegments, splitPlaceSuggestion } from '../utils/gmapsSearchHighlight'
 import { getSpeechController } from '../utils/speech'
 
@@ -362,7 +374,18 @@ const StepIcon = ({ modifier }) => {
   return <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19V5m0 0l-4 4m4-4l4 4" /></svg>
 }
 
-const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSearchResultsChange, onRoutePlacesChange, onStartNavigation, initialEndPlace, initialStartPlace }) => {
+const RoutePanel = ({
+  mapRef,
+  currentLocation,
+  onCalculateRoute,
+  onClose,
+  onSearchResultsChange,
+  onRoutePlacesChange,
+  onStartNavigation,
+  initialEndPlace,
+  initialStartPlace,
+  initialSafeRoute = false,
+}) => {
   const tDirections = useTranslate('Directions')
   const tStart = useTranslate('Start')
   const tGetDirections = useTranslate('Get Directions')
@@ -399,6 +422,18 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const tRouteLabel = useTranslate('Route')
   const tAlternativesDirectOnly = useTranslate(
     'Alternative routes are only available for direct trips without extra stops.'
+  )
+  const tSafeRoute = useTranslate('Safe Route')
+  const tSafest = useTranslate('Safest')
+  const tSafetyScore = useTranslate('Safety score')
+  const tRiskySegments = useTranslate('Risky segments')
+  const tFuelEst = useTranslate('Est. fuel')
+  const tAvoidOptions = useTranslate('Avoid')
+  const tSafetyAlerts = useTranslate('Route alerts')
+  const tWhySafer = useTranslate('Why this is safer')
+  const tWhyRisky = useTranslate('Why this is riskier')
+  const tSafetyFallback = useTranslate(
+    'Limited safety data — using best available routing with road heuristics.'
   )
 
   const travelModeLabels = useMemo(
@@ -452,6 +487,13 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const [isRouteEdited, setIsRouteEdited] = useState(false)
   const [allModesData, setAllModesData] = useState(null)
   const [alternativeRoutes, setAlternativeRoutes] = useState(null)
+  const [safeRouteEnabled, setSafeRouteEnabled] = useState(() => Boolean(initialSafeRoute))
+  const [avoidOptions, setAvoidOptions] = useState(() => ({ ...DEFAULT_SAFE_AVOID_OPTIONS }))
+  const [showAvoidOptions, setShowAvoidOptions] = useState(false)
+  const [safetyAlerts, setSafetyAlerts] = useState([])
+  const [safetyFallback, setSafetyFallback] = useState(false)
+  const [safetyHazards, setSafetyHazards] = useState([])
+  const [isScoringSafe, setIsScoringSafe] = useState(false)
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0)
   const [error, setError] = useState(null)
   const [showSteps, setShowSteps] = useState(false)
@@ -500,6 +542,11 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   const effectiveRouteStops = useMemo(
     () => getResolvedRouteStops(effectiveStartPlace, waypoints, endPlace),
     [effectiveStartPlace, waypoints, endPlace]
+  )
+
+  const selectedSafetyDetails = useMemo(
+    () => (safeRouteEnabled && routeData ? getRouteSafetyDetails(routeData) : { safe: [], risk: [] }),
+    [safeRouteEnabled, routeData]
   )
 
   const getCalcStops = useCallback(
@@ -586,6 +633,85 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
   }, [routeData, mobileSheetCollapsed, refitRouteOnMap])
 
   const handleSelectRouteRef = useRef(null)
+  const safeRouteEnabledRef = useRef(safeRouteEnabled)
+  const avoidOptionsRef = useRef(avoidOptions)
+  safeRouteEnabledRef.current = safeRouteEnabled
+  avoidOptionsRef.current = avoidOptions
+
+  const paintAltRoutes = useCallback(
+    (alts, selectedIndex, mode) => {
+      if (!mapRef?.current?.drawAlternativeRoutes || !alts?.length) return
+      const routeOpts = { ...(MODE_ROUTE_OPTIONS[mode] || {}) }
+      if (safeRouteEnabledRef.current) {
+        routeOpts.routeStyles = buildSafeRouteMapStyles(alts)
+      }
+      mapRef.current.drawAlternativeRoutes(alts, selectedIndex, handleSelectRouteRef.current, routeOpts)
+      const selected = alts[selectedIndex]
+      if (selected?.riskySegments || safetyHazards.length) {
+        mapRef.current.setSafetyOverlays?.({
+          hazards: safetyHazards,
+          riskySegments: selected?.riskySegments || [],
+        })
+      }
+    },
+    [mapRef, safetyHazards]
+  )
+
+  const applySafeScoring = useCallback(
+    async (alts, mode, isStale) => {
+      if (!alts?.length) return alts
+      if (!safeRouteEnabledRef.current) {
+        mapRef.current?.clearSafetyOverlays?.()
+        setSafetyAlerts([])
+        setSafetyFallback(false)
+        setSafetyHazards([])
+        return alts
+      }
+
+      setIsScoringSafe(true)
+      try {
+        const { data } = await api.post('/map/safe-route/score', {
+          routes: alts,
+          avoidOptions: avoidOptionsRef.current,
+        })
+        if (isStale?.()) return alts
+
+        const scored = data?.routes?.length ? data.routes : alts
+        const safestIndex =
+          Number.isInteger(data?.safestIndex) && data.safestIndex >= 0 ? data.safestIndex : 0
+        setSafetyAlerts(data?.alerts || [])
+        setSafetyFallback(Boolean(data?.fallback))
+        setSafetyHazards(data?.hazards || [])
+        setAlternativeRoutes(scored)
+        setSelectedRouteIndex(safestIndex)
+        setRouteData(scored[safestIndex] || scored[0])
+
+        const routeOpts = MODE_ROUTE_OPTIONS[mode] || {}
+        const selected = scored[safestIndex] || scored[0]
+        if (selected?.geometry && mapRef?.current?.setRouteGeometry) {
+          mapRef.current.setRouteGeometry(
+            { geometry: selected.geometry },
+            { fitBounds: false, ...routeOpts }
+          )
+        }
+        paintAltRoutes(scored, safestIndex, mode)
+        mapRef.current?.setSafetyOverlays?.({
+          hazards: data?.hazards || [],
+          riskySegments: selected?.riskySegments || [],
+        })
+        return scored
+      } catch {
+        if (!isStale?.()) {
+          setSafetyFallback(true)
+          setSafetyAlerts([])
+        }
+        return alts
+      } finally {
+        if (!isStale?.()) setIsScoringSafe(false)
+      }
+    },
+    [mapRef, paintAltRoutes]
+  )
 
   const handleSelectRoute = useCallback(
     (index) => {
@@ -600,13 +726,27 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
         if (mapRef?.current?.setRouteGeometry && selected.geometry) {
           mapRef.current.setRouteGeometry({ geometry: selected.geometry }, { fitBounds: false, ...routeOpts })
         }
-        if (mapRef?.current?.drawAlternativeRoutes) {
-          mapRef.current.drawAlternativeRoutes(alternativeRoutes, index, handleSelectRouteRef.current, routeOpts)
+        paintAltRoutes(alternativeRoutes, index, travelMode)
+        if (safeRouteEnabled) {
+          mapRef.current?.setSafetyOverlays?.({
+            hazards: safetyHazards,
+            riskySegments: selected.riskySegments || [],
+          })
         }
         refitRouteOnMap(mobileSheetCollapsed)
       }
     },
-    [alternativeRoutes, selectedRouteIndex, travelMode, mapRef, mobileSheetCollapsed, refitRouteOnMap]
+    [
+      alternativeRoutes,
+      selectedRouteIndex,
+      travelMode,
+      mapRef,
+      mobileSheetCollapsed,
+      refitRouteOnMap,
+      paintAltRoutes,
+      safeRouteEnabled,
+      safetyHazards,
+    ]
   )
 
   useEffect(() => {
@@ -632,17 +772,23 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           setAlternativeRoutes(altRoutes)
           setSelectedRouteIndex(0)
           setRouteData(altRoutes[0])
-          mapRef.current.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRouteRef.current, routeOpts)
+          paintAltRoutes(altRoutes, 0, mode)
+          if (safeRouteEnabledRef.current) {
+            await applySafeScoring(altRoutes, mode)
+          }
         } else {
           setAlternativeRoutes(null)
           mapRef.current.clearAlternativeRoutes?.()
+          if (altRoutes?.[0] && safeRouteEnabledRef.current) {
+            await applySafeScoring(altRoutes, mode)
+          }
         }
       } catch {
         setAlternativeRoutes(null)
         mapRef.current?.clearAlternativeRoutes?.()
       }
     },
-    [effectiveRouteStops, mapRef]
+    [effectiveRouteStops, mapRef, paintAltRoutes, applySafeScoring]
   )
 
   const handleCalculate = useCallback(async (modeOverride, stopsOverride) => {
@@ -708,10 +854,20 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           if (altRoutes && altRoutes.length > 1) {
             setAlternativeRoutes(altRoutes)
             setSelectedRouteIndex(0)
-            mapRef.current?.drawAlternativeRoutes?.(altRoutes, 0, handleSelectRouteRef.current, routeOpts)
+            paintAltRoutes(altRoutes, 0, mode)
+            if (safeRouteEnabledRef.current) {
+              applySafeScoring(altRoutes, mode, isStale)
+            }
           } else {
             setAlternativeRoutes(null)
             mapRef.current?.clearAlternativeRoutes?.()
+            if (primary && safeRouteEnabledRef.current) {
+              applySafeScoring([primary], mode, isStale)
+            } else {
+              mapRef.current?.clearSafetyOverlays?.()
+              setSafetyAlerts([])
+              setSafetyHazards([])
+            }
           }
           mapRef.current?.ensureRouteOnTop?.()
         })
@@ -745,6 +901,8 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     refitRouteOnMap,
     onCalculateRoute,
     tFailedRoute,
+    paintAltRoutes,
+    applySafeScoring,
   ])
 
   const recalcWithStops = useCallback(
@@ -969,6 +1127,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     if (mapRef?.current?.clearRoute) {
       mapRef.current.clearRoute()
     }
+    mapRef.current?.clearSafetyOverlays?.()
     setRouteData(null)
     setIsRouteEdited(false)
     setAllModesData(null)
@@ -977,6 +1136,9 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
     setShowSteps(false)
     setMobileSheetCollapsed(false)
     setError(null)
+    setSafetyAlerts([])
+    setSafetyHazards([])
+    setSafetyFallback(false)
   }
 
   const handleStartNavigation = () => {
@@ -989,7 +1151,29 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
       destinationName: endPlace?.name || '',
       destination: endPlace,
       stops: resolvedRouteStops,
+      safeRouteEnabled,
+      avoidOptions: safeRouteEnabled ? avoidOptions : undefined,
     })
+  }
+
+  const toggleSafeRoute = () => {
+    const next = !safeRouteEnabled
+    setSafeRouteEnabled(next)
+    if (!next) {
+      mapRef.current?.clearSafetyOverlays?.()
+      setSafetyAlerts([])
+      setSafetyHazards([])
+      setSafetyFallback(false)
+      if (alternativeRoutes?.length > 1) {
+        paintAltRoutes(alternativeRoutes, selectedRouteIndex, travelMode)
+      }
+      return
+    }
+    const routesToScore =
+      alternativeRoutes?.length > 0 ? alternativeRoutes : routeData ? [routeData] : null
+    if (routesToScore) {
+      applySafeScoring(routesToScore, travelMode)
+    }
   }
 
   const handleSwap = () => {
@@ -1149,16 +1333,27 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                 const modeColor = TRAVEL_MODES.find((m) => m.id === travelMode)?.color || '#136AEC'
                 const baseline = alternativeRoutes[0]?.duration
                 const delta = formatDurationDelta(altRoute.duration, baseline)
+                const isSafest = safeRouteEnabled && altRoute.routeTags?.includes('safest')
                 return (
                   <button
                     key={`mobile-alt-${i}`}
                     type="button"
                     onClick={() => handleSelectRoute(i)}
                     className={`gmaps-alt-route-chip${isSelected ? ' gmaps-alt-route-chip--selected' : ''}`}
-                    style={isSelected ? { borderColor: modeColor, color: modeColor } : {}}
+                    style={
+                      isSelected
+                        ? {
+                            borderColor: isSafest ? SAFE_ROUTE_TAG_COLORS.safest : modeColor,
+                            color: isSafest ? SAFE_ROUTE_TAG_COLORS.safest : modeColor,
+                          }
+                        : {}
+                    }
                   >
                     <span className="gmaps-alt-route-chip-time">{formatDuration(altRoute.duration)}</span>
                     {delta && <span className="gmaps-alt-route-chip-delta">{delta}</span>}
+                    {isSafest && (
+                      <span className="text-[9px] font-bold text-emerald-700">{tSafest}</span>
+                    )}
                   </button>
                 )
               })}
@@ -1354,6 +1549,205 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
           </div>
         )}
 
+        {/* Safe Route controls */}
+        <div className="mt-3 rounded-xl border border-emerald-100 bg-emerald-50/60 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={toggleSafeRoute}
+              className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors ${
+                safeRouteEnabled
+                  ? 'bg-emerald-600 text-white shadow-sm'
+                  : 'bg-white text-emerald-800 border border-emerald-200'
+              }`}
+              aria-pressed={safeRouteEnabled}
+            >
+              <svg className="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z"
+                />
+              </svg>
+              {tSafeRoute}
+              {isScoringSafe ? '…' : ''}
+            </button>
+            {safeRouteEnabled && (
+              <button
+                type="button"
+                onClick={() => setShowAvoidOptions((v) => !v)}
+                className="text-[11px] font-semibold text-emerald-800 underline-offset-2 hover:underline"
+              >
+                {tAvoidOptions}
+              </button>
+            )}
+          </div>
+          {safeRouteEnabled && showAvoidOptions && (
+            <div className="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+              {SAFE_AVOID_OPTION_META.map(({ key, label }) => (
+                <label
+                  key={key}
+                  className="flex cursor-pointer items-center gap-2 rounded-lg bg-white/80 px-2 py-1.5 text-[11px] text-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    checked={Boolean(avoidOptions[key])}
+                    onChange={(e) => {
+                      const next = { ...avoidOptions, [key]: e.target.checked }
+                      setAvoidOptions(next)
+                      avoidOptionsRef.current = next
+                      const routesToScore =
+                        alternativeRoutes?.length > 0
+                          ? alternativeRoutes
+                          : routeData
+                            ? [routeData]
+                            : null
+                      if (routesToScore) applySafeScoring(routesToScore, travelMode)
+                    }}
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          )}
+          {safeRouteEnabled && safetyFallback && (
+            <p className="mt-2 text-[10px] leading-snug text-emerald-900/70">{tSafetyFallback}</p>
+          )}
+        </div>
+
+        {safeRouteEnabled && routeData && Number.isFinite(routeData.safetyScore) && (
+          <div className="mt-3 rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
+              <span className="font-semibold text-slate-600">{tSafetyScore}</span>
+              <span
+                className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
+                style={{ backgroundColor: safetyScoreColor(routeData.safetyScore) }}
+              >
+                {formatSafetyScore(routeData.safetyScore)}/100
+              </span>
+              <span className="text-slate-500">
+                {tRiskySegments}: {routeData.riskySegmentCount ?? 0}
+              </span>
+              {(routeData.fuelEstimateLiters != null ||
+                estimateFuelLiters(routeData.distance, travelMode) != null) && (
+                <span className="text-slate-500">
+                  {tFuelEst}:{' '}
+                  {routeData.fuelEstimateLiters ??
+                    estimateFuelLiters(routeData.distance, travelMode)}{' '}
+                  L
+                </span>
+              )}
+            </div>
+            {(() => {
+              const { safe, risk } = selectedSafetyDetails
+              if (!safe.length && !risk.length) {
+                if (safetyAlerts.length === 0) return null
+                return (
+                  <div className="mt-2 space-y-1">
+                    <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                      {tSafetyAlerts}
+                    </div>
+                    {safetyAlerts.slice(0, 4).map((alert, i) => (
+                      <div
+                        key={`alert-${i}-${alert.type}`}
+                        className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] text-amber-900"
+                      >
+                        <span className="mt-0.5 text-amber-600">⚠</span>
+                        <span>{alert.message || hazardTypeLabel(alert.type)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )
+              }
+              return (
+                <div className="mt-2.5 space-y-2.5">
+                  {safe.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
+                        {tWhySafer}
+                      </div>
+                      <ul className="mt-1 space-y-1">
+                        {safe.map((item, i) => {
+                          const impactLabel = formatSafetyImpact(item.impact)
+                          return (
+                            <li
+                              key={`safe-${item.id || i}-${i}`}
+                              className="flex items-start gap-1.5 rounded-lg bg-emerald-50 px-2 py-1.5 text-[11px] text-emerald-900"
+                            >
+                              <span className="mt-0.5 shrink-0 font-bold text-emerald-600" aria-hidden>
+                                ✓
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="font-medium">{item.message}</span>
+                                {item.detail ? (
+                                  <span className="mt-0.5 block text-[10px] text-emerald-800/75">
+                                    {item.detail}
+                                  </span>
+                                ) : null}
+                              </span>
+                              {impactLabel ? (
+                                <span className="shrink-0 text-[10px] font-bold text-emerald-700">
+                                  {impactLabel}
+                                </span>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  {risk.length > 0 && (
+                    <div>
+                      <div className="text-[10px] font-semibold uppercase tracking-wide text-amber-700">
+                        {tWhyRisky}
+                      </div>
+                      <ul className="mt-1 space-y-1">
+                        {risk.map((item, i) => {
+                          const impactLabel = formatSafetyImpact(item.impact)
+                          return (
+                            <li
+                              key={`risk-${item.id || item.type || i}-${i}`}
+                              className="flex items-start gap-1.5 rounded-lg bg-amber-50 px-2 py-1.5 text-[11px] text-amber-950"
+                            >
+                              <span className="mt-0.5 shrink-0 text-amber-600" aria-hidden>
+                                ⚠
+                              </span>
+                              <span className="min-w-0 flex-1">
+                                <span className="font-medium">
+                                  {item.message || hazardTypeLabel(item.type)}
+                                </span>
+                                {item.detail || Number.isFinite(item.distanceMeters) ? (
+                                  <span className="mt-0.5 block text-[10px] text-amber-900/70">
+                                    {[
+                                      item.detail,
+                                      Number.isFinite(item.distanceMeters)
+                                        ? `~${item.distanceMeters} m from route`
+                                        : null,
+                                    ]
+                                      .filter(Boolean)
+                                      .join(' · ')}
+                                  </span>
+                                ) : null}
+                              </span>
+                              {impactLabel ? (
+                                <span className="shrink-0 text-[10px] font-bold text-amber-800">
+                                  {impactLabel}
+                                </span>
+                              ) : null}
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+          </div>
+        )}
+
         {routeData && waypoints.filter((w) => w.place).length > 0 && (
           <p className="mt-3 text-[10px] text-slate-500 leading-snug px-0.5">{tAlternativesDirectOnly}</p>
         )}
@@ -1374,6 +1768,7 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
               const showRecommended = tags.includes('recommended') || i === 0
               const showFastest = tags.includes('fastest') && !showRecommended
               const showShortest = tags.includes('shortest') && !showRecommended && !showFastest
+              const showSafest = tags.includes('safest')
               return (
                 <button
                   key={`alt-${i}-${altRoute.routeIndex ?? i}`}
@@ -1389,7 +1784,13 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                     <div className="flex items-center gap-2 min-w-0 flex-wrap">
                       <div
                         className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isSelected ? '' : 'opacity-40'}`}
-                        style={{ backgroundColor: isSelected ? modeColor : '#9CA3AF' }}
+                        style={{
+                          backgroundColor: isSelected
+                            ? showSafest && safeRouteEnabled
+                              ? SAFE_ROUTE_TAG_COLORS.safest
+                              : modeColor
+                            : '#9CA3AF',
+                        }}
                       />
                       <span
                         className={`text-sm font-bold ${isSelected ? '' : 'text-slate-700'}`}
@@ -1402,9 +1803,25 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                       )}
                       <span className="text-xs text-slate-400">·</span>
                       <span className="text-xs text-slate-500 font-medium truncate">{formatDistance(altRoute.distance)}</span>
+                      {safeRouteEnabled && Number.isFinite(altRoute.safetyScore) && (
+                        <>
+                          <span className="text-xs text-slate-400">·</span>
+                          <span
+                            className="text-[10px] font-bold"
+                            style={{ color: safetyScoreColor(altRoute.safetyScore) }}
+                          >
+                            {formatSafetyScore(altRoute.safetyScore)}
+                          </span>
+                        </>
+                      )}
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {showRecommended && (
+                      {showSafest && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                          {getRouteTagLabel('safest', () => tSafest) || tSafest}
+                        </span>
+                      )}
+                      {showRecommended && !showSafest && (
                         <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#e8f0fe] text-[#1967d2]">
                           {getRouteTagLabel('recommended', () => tRecommended) || tRecommended}
                         </span>
@@ -1431,6 +1848,36 @@ const RoutePanel = ({ mapRef, currentLocation, onCalculateRoute, onClose, onSear
                       {tVia} {summary}
                     </div>
                   )}
+                  {safeRouteEnabled && (() => {
+                    const details = getRouteSafetyDetails(altRoute)
+                    const topRisk = details.risk[0]
+                    const topSafe = !topRisk && details.safe[0]
+                    if (topRisk) {
+                      return (
+                        <div className="mt-1 text-[10px] text-amber-700 pl-[18px] line-clamp-2">
+                          ⚠ {topRisk.message || hazardTypeLabel(topRisk.type)}
+                          {altRoute.riskySegmentCount > 1
+                            ? ` · +${altRoute.riskySegmentCount - 1} more`
+                            : ''}
+                        </div>
+                      )
+                    }
+                    if (topSafe) {
+                      return (
+                        <div className="mt-1 text-[10px] text-emerald-700 pl-[18px] line-clamp-2">
+                          ✓ {topSafe.message}
+                        </div>
+                      )
+                    }
+                    if (altRoute.riskySegmentCount > 0) {
+                      return (
+                        <div className="mt-1 text-[10px] text-amber-700 pl-[18px]">
+                          {altRoute.riskySegmentCount} {tRiskySegments.toLowerCase()}
+                        </div>
+                      )
+                    }
+                    return null
+                  })()}
                 </button>
               )
             })}

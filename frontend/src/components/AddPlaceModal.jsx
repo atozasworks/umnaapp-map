@@ -232,6 +232,8 @@ const AddPlaceModal = ({
             initialData?.placeNameLocal ??
             (locChanged ? '' : prev.placeNameLocal),
           category: festivalMode ? 'Festival' : (fromMap?.category ?? initialData?.category ?? prev.category),
+          customCategory:
+            fromMap?.customCategory ?? initialData?.customCategory ?? prev.customCategory,
           latitude: fromMap?.latitude != null ? String(fromMap.latitude) : initialData?.latitude != null ? String(initialData.latitude) : prev.latitude,
           longitude: fromMap?.longitude != null ? String(fromMap.longitude) : initialData?.longitude != null ? String(initialData.longitude) : prev.longitude,
           zoomLevel: fromMap?.zoomLevel != null ? String(fromMap.zoomLevel) : initialData?.zoomLevel != null ? String(initialData.zoomLevel) : prev.zoomLevel ?? '15',
@@ -559,6 +561,16 @@ const AddPlaceModal = ({
     }
     if (isNaN(lng) || lng < -180 || lng > 180) {
       setError('Valid longitude is required (-180 to 180).')
+      setSaving(false)
+      return
+    }
+
+    if (
+      !festivalMode &&
+      formData.category === 'Other' &&
+      !formData.customCategory.trim()
+    ) {
+      setError('Please enter a custom category name.')
       setSaving(false)
       return
     }

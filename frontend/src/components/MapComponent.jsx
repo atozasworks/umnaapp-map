@@ -32,6 +32,12 @@ const ROUTE_HIT_LAYER_ID = 'route-hit'
 const ROUTE_GOOGLE_BLUE = '#4285F4'
 const ROUTE_LAYER_STACK = [ROUTE_CASING_LAYER_ID, ROUTE_HIT_LAYER_ID, ROUTE_LAYER_ID]
 
+const SAFE_HAZARD_SOURCE_ID = 'safe-hazards-src'
+const SAFE_HAZARD_LAYER_ID = 'safe-hazards-layer'
+const SAFE_RISKY_SOURCE_ID = 'safe-risky-src'
+const SAFE_RISKY_LAYER_ID = 'safe-risky-layer'
+const SAFE_RISKY_HALO_LAYER_ID = 'safe-risky-halo'
+
 /** Expand tiny route bounds so fitBounds does not over-zoom past the polyline. */
 function expandRouteBounds(bounds, minSpanDeg = 0.004) {
   const ne = bounds.getNorthEast()
@@ -657,6 +663,7 @@ const MapComponent = forwardRef(({
   const altRouteDrawStateRef = useRef(null)
   const altRouteSelectCallbackRef = useRef(null)
   const ensureRouteOnTopRef = useRef(() => {})
+  const safetyHazardMarkersRef = useRef([])
   const watchIdRef = useRef(null)
   const navModeRef = useRef(false)
   const lastValidLocationRef = useRef(null)
@@ -2538,6 +2545,108 @@ const MapComponent = forwardRef(({
     })
   }, [currentLocation, updateUserLocation])
 
+  const clearSafetyOverlays = useCallback(() => {
+    const map = mapRef.current
+    for (const marker of safetyHazardMarkersRef.current) {
+      try {
+        marker.remove()
+      } catch {
+        /* ignore */
+      }
+    }
+    safetyHazardMarkersRef.current = []
+    if (!map?.isStyleLoaded?.()) return
+    for (const id of [SAFE_RISKY_HALO_LAYER_ID, SAFE_RISKY_LAYER_ID, SAFE_HAZARD_LAYER_ID]) {
+      try {
+        if (map.getLayer(id)) map.removeLayer(id)
+      } catch {
+        /* ignore */
+      }
+    }
+    for (const id of [SAFE_RISKY_SOURCE_ID, SAFE_HAZARD_SOURCE_ID]) {
+      try {
+        if (map.getSource(id)) map.removeSource(id)
+      } catch {
+        /* ignore */
+      }
+    }
+  }, [])
+
+  const setSafetyOverlays = useCallback(
+    ({ hazards = [], riskySegments = [] } = {}) => {
+      const map = mapRef.current
+      if (!map?.isStyleLoaded?.()) return
+      clearSafetyOverlays()
+
+      const hazardFeatures = (hazards || [])
+        .filter((h) => h?.latitude != null && h?.longitude != null)
+        .map((h) => ({
+          type: 'Feature',
+          properties: { type: h.type || 'hazard', severity: h.severity || 3 },
+          geometry: { type: 'Point', coordinates: [h.longitude, h.latitude] },
+        }))
+
+      const riskyFeatures = (riskySegments || [])
+        .filter((s) => s?.latitude != null && s?.longitude != null)
+        .map((s) => ({
+          type: 'Feature',
+          properties: { type: s.type || 'risk', severity: s.severity || 3 },
+          geometry: { type: 'Point', coordinates: [s.longitude, s.latitude] },
+        }))
+
+      if (riskyFeatures.length > 0) {
+        map.addSource(SAFE_RISKY_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: riskyFeatures },
+        })
+        map.addLayer({
+          id: SAFE_RISKY_HALO_LAYER_ID,
+          type: 'circle',
+          source: SAFE_RISKY_SOURCE_ID,
+          paint: {
+            'circle-radius': 18,
+            'circle-color': '#F59E0B',
+            'circle-opacity': 0.25,
+          },
+        })
+        map.addLayer({
+          id: SAFE_RISKY_LAYER_ID,
+          type: 'circle',
+          source: SAFE_RISKY_SOURCE_ID,
+          paint: {
+            'circle-radius': 7,
+            'circle-color': '#DC2626',
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#FFFFFF',
+          },
+        })
+      }
+
+      for (const h of hazards || []) {
+        if (h?.latitude == null || h?.longitude == null) continue
+        const el = document.createElement('div')
+        el.className = 'safe-hazard-marker'
+        el.title = h.type || 'Hazard'
+        el.style.cssText =
+          'width:22px;height:22px;border-radius:50%;background:#B45309;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center;'
+        el.innerHTML =
+          '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>'
+        const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          .setLngLat([h.longitude, h.latitude])
+          .addTo(map)
+        safetyHazardMarkersRef.current.push(marker)
+      }
+
+      if (hazardFeatures.length > 0 && !map.getSource(SAFE_HAZARD_SOURCE_ID)) {
+        map.addSource(SAFE_HAZARD_SOURCE_ID, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: hazardFeatures },
+        })
+      }
+    },
+    [clearSafetyOverlays]
+  )
+
   const clearAlternativeRoutes = useCallback(() => {
     const map = mapRef.current
     if (!map?.isStyleLoaded?.()) return
@@ -2638,7 +2747,9 @@ const MapComponent = forwardRef(({
         if (!feature) return
 
         const isSelected = i === selectedIndex
-        const style = ALT_ROUTE_STYLES[i % ALT_ROUTE_STYLES.length]
+        const customStyles = Array.isArray(options.routeStyles) ? options.routeStyles : null
+        const style =
+          (customStyles && customStyles[i]) || ALT_ROUTE_STYLES[i % ALT_ROUTE_STYLES.length]
         const srcId = `alt-route-${i}-src`
         const hitLayerId = `alt-route-${i}-hit`
         const layerId = `alt-route-${i}-line`
@@ -3066,15 +3177,31 @@ const MapComponent = forwardRef(({
     },
     clearRoute: () => {
       const map = mapRef.current
-      if (!map?.isStyleLoaded?.()) return
       clearAlternativeRoutes()
-      removeRouteLayers(map)
+      clearSafetyOverlays()
+      if (map?.isStyleLoaded?.()) {
+        removeRouteLayers(map)
+      } else if (map) {
+        try {
+          removeRouteLayers(map)
+        } catch {
+          /* style may not be ready */
+        }
+      }
       if (routeLayerRef.current) {
         routeLayerRef.current = null
       }
       routeGeoJsonRef.current = null
       routeEditStateRef.current = null
       lastRouteDrawOptionsRef.current = null
+      Object.values(routeEndpointMarkersRef.current).forEach((m) => {
+        try {
+          m?.remove()
+        } catch {
+          /* ignore */
+        }
+      })
+      routeEndpointMarkersRef.current = {}
       setRoute(null)
     },
     setRouteGeometry: (geometry, options = {}) => {
@@ -3096,6 +3223,12 @@ const MapComponent = forwardRef(({
     },
     clearAlternativeRoutes: () => {
       clearAlternativeRoutes()
+    },
+    setSafetyOverlays: (payload) => {
+      setSafetyOverlays(payload || {})
+    },
+    clearSafetyOverlays: () => {
+      clearSafetyOverlays()
     },
     setRouteEditHandler: (handler) => {
       routeEditHandlerRef.current = typeof handler === 'function' ? handler : null
@@ -3250,7 +3383,7 @@ const MapComponent = forwardRef(({
         duration: options.duration || 800,
       })
     },
-  }), [clearMeasureDistance, drawRoute, measurePointCount, measureTotalMeters, syncMeasurePath, updateLiveShareMarker])
+  }), [clearAlternativeRoutes, clearMeasureDistance, clearSafetyOverlays, drawRoute, measurePointCount, measureTotalMeters, setSafetyOverlays, syncMeasurePath, updateLiveShareMarker])
 
   return (
     <div className={`absolute inset-0 w-full h-full ${addPlaceMode || measureDistanceActive ? 'cursor-crosshair' : ''}`}>

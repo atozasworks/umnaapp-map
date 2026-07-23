@@ -26,7 +26,7 @@ export const PUBLIC_UTILITY_TYPES = [
     label: 'Public Toilets',
     defaultName: 'Public Toilet',
     osmFilters: [{ col: 'amenity', values: ['toilets'] }],
-    dbCategories: [],
+    dbCategories: ['Public Toilet', 'Public Toilets'],
     searchQueries: ['public toilet', 'toilet'],
   },
   {
@@ -34,7 +34,7 @@ export const PUBLIC_UTILITY_TYPES = [
     label: 'Drinking Water',
     defaultName: 'Drinking Water',
     osmFilters: [{ col: 'amenity', values: ['drinking_water'] }],
-    dbCategories: [],
+    dbCategories: ['Drinking Water'],
     searchQueries: ['drinking water', 'water point'],
   },
   {
@@ -42,7 +42,7 @@ export const PUBLIC_UTILITY_TYPES = [
     label: 'Charging Stations',
     defaultName: 'Charging Station',
     osmFilters: [{ col: 'amenity', values: ['charging_station'] }],
-    dbCategories: [],
+    dbCategories: ['Charging Station', 'Charging Stations'],
     searchQueries: ['EV charging', 'charging station'],
   },
   {
@@ -50,7 +50,7 @@ export const PUBLIC_UTILITY_TYPES = [
     label: 'Public WiFi',
     defaultName: 'Public WiFi',
     osmFilters: [{ col: 'amenity', values: ['internet_cafe'] }],
-    dbCategories: [],
+    dbCategories: ['Public WiFi', 'WiFi'],
     searchQueries: ['wifi', 'public wifi', 'internet cafe'],
   },
   {
@@ -82,7 +82,7 @@ export const PUBLIC_UTILITY_TYPES = [
     label: 'Fire Stations',
     defaultName: 'Fire Station',
     osmFilters: [{ col: 'amenity', values: ['fire_station'] }],
-    dbCategories: [],
+    dbCategories: ['Fire Station', 'Fire Stations'],
     searchQueries: ['fire station'],
   },
   {

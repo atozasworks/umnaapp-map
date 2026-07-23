@@ -96,7 +96,9 @@ export default function PublicUtilityFinderSheet({
   onClearResults,
   onPlaceSelect,
   onDirections,
+  onAddPlace,
   selectedPlaceId = null,
+  injectedPlace = null,
 }) {
   const tTitle = useTranslate('Public Utility Finder')
   const tSubtitle = useTranslate('Find nearby public utilities on the map')
@@ -111,13 +113,21 @@ export default function PublicUtilityFinderSheet({
   const tDirections = useTranslate('Directions')
   const tGoogle = useTranslate('Open in Google Maps')
   const tFailed = useTranslate('Could not load utilities. Try again.')
+  const tSearch = useTranslate('Search')
+  const tAdd = useTranslate('Add')
+  const tWhatToDo = useTranslate('What would you like to do?')
+  const tSearchDesc = useTranslate('Find nearby places on the map')
+  const tAddDesc = useTranslate('Add a new place for this category')
+  const tCancel = useTranslate('Cancel')
 
   const [radiusMeters, setRadiusMeters] = useState(UTILITY_DEFAULT_RADIUS_METERS)
   const [selectedType, setSelectedType] = useState(null)
+  const [pendingActionType, setPendingActionType] = useState(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
   const [results, setResults] = useState([])
   const [activePlaceId, setActivePlaceId] = useState(null)
+  const [successMessage, setSuccessMessage] = useState(null)
 
   const getCoords = useCallback(() => {
     if (Number.isFinite(currentLocation?.lat) && Number.isFinite(currentLocation?.lng)) {
@@ -133,15 +143,55 @@ export default function PublicUtilityFinderSheet({
   const clearAll = useCallback(() => {
     setResults([])
     setSelectedType(null)
+    setPendingActionType(null)
     setActivePlaceId(null)
     setError(null)
+    setSuccessMessage(null)
     onClearResults?.()
   }, [onClearResults])
 
   useEffect(() => {
-    if (!isOpen) return undefined
-    return () => {}
+    if (!isOpen) {
+      setPendingActionType(null)
+      setSuccessMessage(null)
+    }
   }, [isOpen])
+
+  // Immediately show a place that was just added for the active utility category.
+  useEffect(() => {
+    if (!injectedPlace?.place || !injectedPlace?.typeId) return
+    const typeId = injectedPlace.typeId
+    const overlay = toUtilityOverlayPlace(
+      {
+        ...injectedPlace.place,
+        placeId: injectedPlace.place.id || injectedPlace.place.placeId,
+        name:
+          injectedPlace.place.place_name_en ||
+          injectedPlace.place.placeNameEn ||
+          injectedPlace.place.name,
+        latitude: injectedPlace.place.latitude,
+        longitude: injectedPlace.place.longitude,
+        category: injectedPlace.place.category,
+        address:
+          injectedPlace.place.fullAddress ||
+          injectedPlace.place.full_address ||
+          null,
+        source: 'contribution',
+      },
+      typeId
+    )
+    if (!Number.isFinite(overlay.lat) || !Number.isFinite(overlay.lng)) return
+
+    setSelectedType(typeId)
+    setPendingActionType(null)
+    setError(null)
+    setSuccessMessage('Place saved and shown on the map.')
+    setResults((prev) => [
+      overlay,
+      ...prev.filter((p) => String(p.placeId) !== String(overlay.placeId)),
+    ])
+    setActivePlaceId(overlay.placeId)
+  }, [injectedPlace])
 
   const fetchUtilities = async (typeId, radius = radiusMeters) => {
     const coords = getCoords()
@@ -150,8 +200,10 @@ export default function PublicUtilityFinderSheet({
       return
     }
     setSelectedType(typeId)
+    setPendingActionType(null)
     setLoading(true)
     setError(null)
+    setSuccessMessage(null)
     setActivePlaceId(null)
     try {
       const { data } = await api.get('/map/utilities/nearby', {
@@ -176,6 +228,26 @@ export default function PublicUtilityFinderSheet({
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleCategoryClick = (typeId) => {
+    if (loading) return
+    setPendingActionType(typeId)
+    setError(null)
+    setSuccessMessage(null)
+  }
+
+  const handleActionSearch = () => {
+    if (!pendingActionType) return
+    fetchUtilities(pendingActionType)
+  }
+
+  const handleActionAdd = () => {
+    if (!pendingActionType) return
+    const typeId = pendingActionType
+    setPendingActionType(null)
+    setSelectedType(typeId)
+    onAddPlace?.(typeId, getCoords())
   }
 
   const handleRadiusChange = (meters) => {
@@ -262,13 +334,13 @@ export default function PublicUtilityFinderSheet({
           <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400 mb-2">{tCategories}</p>
           <div className="grid grid-cols-2 gap-2 max-h-[40vh] sm:max-h-none overflow-y-auto pr-0.5">
             {PUBLIC_UTILITY_TYPES.map((u) => {
-              const active = selectedType === u.id
+              const active = selectedType === u.id || pendingActionType === u.id
               return (
                 <button
                   key={u.id}
                   type="button"
                   disabled={loading}
-                  onClick={() => fetchUtilities(u.id)}
+                  onClick={() => handleCategoryClick(u.id)}
                   className={`flex items-center gap-2.5 rounded-xl border px-3 py-2.5 text-left min-h-[48px] touch-manipulation transition-colors disabled:opacity-60 ${
                     active
                       ? 'border-teal-600 bg-teal-50 shadow-sm'
@@ -316,6 +388,12 @@ export default function PublicUtilityFinderSheet({
           {!loading && error && (
             <div className="rounded-xl bg-red-50 border border-red-100 px-3 py-3 text-sm text-red-700">
               {error}
+            </div>
+          )}
+
+          {!loading && successMessage && (
+            <div className="mb-3 rounded-xl bg-emerald-50 border border-emerald-100 px-3 py-3 text-sm text-emerald-800">
+              {successMessage}
             </div>
           )}
 
@@ -388,11 +466,93 @@ export default function PublicUtilityFinderSheet({
 
           {!loading && !selectedType && !error && (
             <p className="text-xs text-slate-500 text-center py-6">
-              Select a category to show nearby utilities on the map.
+              Select a category, then choose Search or Add.
             </p>
           )}
         </div>
       </div>
+
+      {pendingActionType && (
+        <div className="absolute inset-0 z-[10] flex items-center justify-center p-4 pointer-events-auto">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/40"
+            aria-label={tCancel}
+            onClick={() => setPendingActionType(null)}
+          />
+          <div
+            className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden animate-fade-in"
+            role="dialog"
+            aria-modal="true"
+            aria-label={tWhatToDo}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 pt-5 pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                {(() => {
+                  const u = getUtilityTypeMeta(pendingActionType)
+                  if (!u) return null
+                  return (
+                    <span
+                      className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                      style={{ backgroundColor: `${u.color}18`, color: u.color }}
+                    >
+                      <UtilityIcon type={u.icon} className="w-5 h-5" />
+                    </span>
+                  )
+                })()}
+                <div className="min-w-0">
+                  <h3 className="text-base font-bold text-slate-900 truncate">
+                    {getUtilityTypeMeta(pendingActionType)?.label || 'Utility'}
+                  </h3>
+                  <p className="text-xs text-slate-500 mt-0.5">{tWhatToDo}</p>
+                </div>
+              </div>
+            </div>
+            <div className="p-4 space-y-2.5">
+              <button
+                type="button"
+                onClick={handleActionSearch}
+                className="w-full flex items-center gap-3 rounded-xl border border-teal-200 bg-teal-50 hover:bg-teal-100 px-4 py-3.5 text-left transition-colors touch-manipulation min-h-[56px]"
+              >
+                <span className="w-10 h-10 rounded-full bg-teal-600 text-white flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-teal-900">{tSearch}</span>
+                  <span className="block text-[11px] text-teal-800/80 mt-0.5">{tSearchDesc}</span>
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={handleActionAdd}
+                className="w-full flex items-center gap-3 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-3.5 text-left transition-colors touch-manipulation min-h-[56px]"
+              >
+                <span className="w-10 h-10 rounded-full bg-slate-800 text-white flex items-center justify-center flex-shrink-0">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v12m-6-6h12" />
+                  </svg>
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-sm font-bold text-slate-900">{tAdd}</span>
+                  <span className="block text-[11px] text-slate-500 mt-0.5">{tAddDesc}</span>
+                </span>
+              </button>
+            </div>
+            <div className="px-4 pb-4">
+              <button
+                type="button"
+                onClick={() => setPendingActionType(null)}
+                className="w-full min-h-[40px] rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+              >
+                {tCancel}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

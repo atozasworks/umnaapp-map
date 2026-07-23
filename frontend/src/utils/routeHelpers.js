@@ -67,6 +67,7 @@ export function getRouteTagLabel(tag, translate) {
   if (tag === 'recommended') return translate('Recommended')
   if (tag === 'fastest') return translate('Fastest')
   if (tag === 'shortest') return translate('Shortest')
+  if (tag === 'safest') return translate('Safest')
   return null
 }
 

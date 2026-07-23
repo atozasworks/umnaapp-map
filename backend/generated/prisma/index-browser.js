@@ -155,7 +155,6 @@ exports.Prisma.NotificationPreferenceScalarFieldEnum = {
   placeAdded: 'placeAdded',
   festival: 'festival',
   businessClaim: 'businessClaim',
-  locationShare: 'locationShare',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -444,6 +443,23 @@ exports.Prisma.LiveLocationViewerScalarFieldEnum = {
   lastViewedAt: 'lastViewedAt'
 };
 
+exports.Prisma.SafetyHazardReportScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  type: 'type',
+  latitude: 'latitude',
+  longitude: 'longitude',
+  severity: 'severity',
+  description: 'description',
+  roadName: 'roadName',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  approvedAt: 'approvedAt',
+  moderatedBy: 'moderatedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
 exports.Prisma.LegalDocumentScalarFieldEnum = {
   id: 'id',
   type: 'type',
@@ -506,6 +522,7 @@ exports.Prisma.ModelName = {
   ItineraryVote: 'ItineraryVote',
   LiveLocationShare: 'LiveLocationShare',
   LiveLocationViewer: 'LiveLocationViewer',
+  SafetyHazardReport: 'SafetyHazardReport',
   LegalDocument: 'LegalDocument'
 };
 

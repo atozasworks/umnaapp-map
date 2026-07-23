@@ -1023,4 +1023,105 @@ router.get('/records/:model', async (req, res) => {
   }
 })
 
+/** GET /api/admin/safety-hazards — list hazard reports for moderation */
+router.get('/safety-hazards', async (req, res) => {
+  try {
+    if (!prisma.safetyHazardReport) {
+      return res.status(503).json({ error: 'SafetyHazardReport model unavailable' })
+    }
+    const status = String(req.query.status || 'pending').trim()
+    const where = ['pending', 'approved', 'rejected'].includes(status) ? { status } : {}
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 100))
+    const rows = await prisma.safetyHazardReport.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { user: { select: { id: true, name: true, email: true } } },
+    })
+    res.json({
+      hazards: rows.map((r) => ({
+        id: r.id,
+        type: r.type,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        severity: r.severity,
+        description: r.description,
+        roadName: r.roadName,
+        status: r.status,
+        expiresAt: r.expiresAt,
+        approvedAt: r.approvedAt,
+        createdAt: r.createdAt,
+        userId: r.userId,
+        userName: r.user?.name || null,
+        userEmail: r.user?.email || null,
+      })),
+    })
+  } catch (e) {
+    console.error('admin safety-hazards', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** PATCH /api/admin/safety-hazards/:id/approve */
+router.patch('/safety-hazards/:id/approve', async (req, res) => {
+  try {
+    if (!prisma.safetyHazardReport) {
+      return res.status(503).json({ error: 'SafetyHazardReport model unavailable' })
+    }
+    const id = String(req.params.id || '').trim()
+    if (!id) return res.status(400).json({ error: 'id required' })
+    const result = await prisma.safetyHazardReport.updateMany({
+      where: { id, status: 'pending' },
+      data: {
+        status: 'approved',
+        approvedAt: new Date(),
+        moderatedBy: 'admin',
+      },
+    })
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Pending hazard not found' })
+    }
+    const row = await prisma.safetyHazardReport.findUnique({
+      where: { id },
+      include: { user: { select: { name: true, email: true } } },
+    })
+    res.json({
+      hazard: {
+        ...row,
+        userName: row?.user?.name,
+        userEmail: row?.user?.email,
+        user: undefined,
+      },
+    })
+  } catch (e) {
+    console.error('admin safety-hazards approve', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** PATCH /api/admin/safety-hazards/:id/reject */
+router.patch('/safety-hazards/:id/reject', async (req, res) => {
+  try {
+    if (!prisma.safetyHazardReport) {
+      return res.status(503).json({ error: 'SafetyHazardReport model unavailable' })
+    }
+    const id = String(req.params.id || '').trim()
+    if (!id) return res.status(400).json({ error: 'id required' })
+    const result = await prisma.safetyHazardReport.updateMany({
+      where: { id, status: 'pending' },
+      data: {
+        status: 'rejected',
+        moderatedBy: 'admin',
+      },
+    })
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Pending hazard not found' })
+    }
+    res.json({ success: true })
+  } catch (e) {
+    console.error('admin safety-hazards reject', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
 export default router

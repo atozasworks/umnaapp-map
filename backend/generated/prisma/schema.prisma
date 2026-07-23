@@ -45,6 +45,7 @@ model User {
   itineraryVotes          ItineraryVote[]
   ownedLiveLocationShares LiveLocationShare[]  @relation("LiveLocationOwner")
   liveLocationViewerships LiveLocationViewer[]
+  safetyHazardReports     SafetyHazardReport[]
 
   @@index([email])
   @@index([googleId])
@@ -545,6 +546,34 @@ model LiveLocationViewer {
   @@unique([shareId, userId])
   @@index([userId, lastViewedAt])
   @@index([shareId])
+}
+
+// Community road-safety / hazard reports for Safe Route Navigation.
+// Reports stay pending until an admin approves them; only approved reports
+// affect public safety scoring and map alerts.
+model SafetyHazardReport {
+  id          String    @id @default(uuid())
+  userId      String    @map("user_id")
+  type        String // unsafe_road | poor_lighting | flood | accident | road_block | harassment | construction | heavy_traffic | safe_road
+  latitude    Float
+  longitude   Float
+  severity    Int       @default(3) // 1 (low) – 5 (critical)
+  description String?   @db.Text
+  roadName    String?   @map("road_name")
+  status      String    @default("pending") // pending | approved | rejected
+  expiresAt   DateTime? @map("expires_at")
+  approvedAt  DateTime? @map("approved_at")
+  moderatedBy String?   @map("moderated_by")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([type, status])
+  @@index([latitude, longitude])
+  @@index([expiresAt])
+  @@index([userId])
 }
 
 // Editable legal documents (Privacy Policy, Terms & Conditions). A single row

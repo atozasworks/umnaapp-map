@@ -129,6 +129,11 @@ export type LiveLocationShare = $Result.DefaultSelection<Prisma.$LiveLocationSha
  */
 export type LiveLocationViewer = $Result.DefaultSelection<Prisma.$LiveLocationViewerPayload>
 /**
+ * Model SafetyHazardReport
+ * 
+ */
+export type SafetyHazardReport = $Result.DefaultSelection<Prisma.$SafetyHazardReportPayload>
+/**
  * Model LegalDocument
  * 
  */
@@ -486,6 +491,16 @@ export class PrismaClient<
     * ```
     */
   get liveLocationViewer(): Prisma.LiveLocationViewerDelegate<ExtArgs>;
+
+  /**
+   * `prisma.safetyHazardReport`: Exposes CRUD operations for the **SafetyHazardReport** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more SafetyHazardReports
+    * const safetyHazardReports = await prisma.safetyHazardReport.findMany()
+    * ```
+    */
+  get safetyHazardReport(): Prisma.SafetyHazardReportDelegate<ExtArgs>;
 
   /**
    * `prisma.legalDocument`: Exposes CRUD operations for the **LegalDocument** model.
@@ -960,6 +975,7 @@ export namespace Prisma {
     ItineraryVote: 'ItineraryVote',
     LiveLocationShare: 'LiveLocationShare',
     LiveLocationViewer: 'LiveLocationViewer',
+    SafetyHazardReport: 'SafetyHazardReport',
     LegalDocument: 'LegalDocument'
   };
 
@@ -976,7 +992,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "itinerary" | "itineraryMember" | "itineraryStop" | "itineraryComment" | "itineraryVote" | "liveLocationShare" | "liveLocationViewer" | "legalDocument"
+      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "itinerary" | "itineraryMember" | "itineraryStop" | "itineraryComment" | "itineraryVote" | "liveLocationShare" | "liveLocationViewer" | "safetyHazardReport" | "legalDocument"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2590,6 +2606,76 @@ export namespace Prisma {
           }
         }
       }
+      SafetyHazardReport: {
+        payload: Prisma.$SafetyHazardReportPayload<ExtArgs>
+        fields: Prisma.SafetyHazardReportFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.SafetyHazardReportFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.SafetyHazardReportFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
+          }
+          findFirst: {
+            args: Prisma.SafetyHazardReportFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.SafetyHazardReportFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
+          }
+          findMany: {
+            args: Prisma.SafetyHazardReportFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>[]
+          }
+          create: {
+            args: Prisma.SafetyHazardReportCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
+          }
+          createMany: {
+            args: Prisma.SafetyHazardReportCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.SafetyHazardReportCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>[]
+          }
+          delete: {
+            args: Prisma.SafetyHazardReportDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
+          }
+          update: {
+            args: Prisma.SafetyHazardReportUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
+          }
+          deleteMany: {
+            args: Prisma.SafetyHazardReportDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.SafetyHazardReportUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.SafetyHazardReportUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
+          }
+          aggregate: {
+            args: Prisma.SafetyHazardReportAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSafetyHazardReport>
+          }
+          groupBy: {
+            args: Prisma.SafetyHazardReportGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SafetyHazardReportGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.SafetyHazardReportCountArgs<ExtArgs>
+            result: $Utils.Optional<SafetyHazardReportCountAggregateOutputType> | number
+          }
+        }
+      }
       LegalDocument: {
         payload: Prisma.$LegalDocumentPayload<ExtArgs>
         fields: Prisma.LegalDocumentFieldRefs
@@ -2840,6 +2926,7 @@ export namespace Prisma {
     itineraryVotes: number
     ownedLiveLocationShares: number
     liveLocationViewerships: number
+    safetyHazardReports: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2862,6 +2949,7 @@ export namespace Prisma {
     itineraryVotes?: boolean | UserCountOutputTypeCountItineraryVotesArgs
     ownedLiveLocationShares?: boolean | UserCountOutputTypeCountOwnedLiveLocationSharesArgs
     liveLocationViewerships?: boolean | UserCountOutputTypeCountLiveLocationViewershipsArgs
+    safetyHazardReports?: boolean | UserCountOutputTypeCountSafetyHazardReportsArgs
   }
 
   // Custom InputTypes
@@ -3006,6 +3094,13 @@ export namespace Prisma {
    */
   export type UserCountOutputTypeCountLiveLocationViewershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     where?: LiveLocationViewerWhereInput
+  }
+
+  /**
+   * UserCountOutputType without action
+   */
+  export type UserCountOutputTypeCountSafetyHazardReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SafetyHazardReportWhereInput
   }
 
 
@@ -3463,6 +3558,7 @@ export namespace Prisma {
     itineraryVotes?: boolean | User$itineraryVotesArgs<ExtArgs>
     ownedLiveLocationShares?: boolean | User$ownedLiveLocationSharesArgs<ExtArgs>
     liveLocationViewerships?: boolean | User$liveLocationViewershipsArgs<ExtArgs>
+    safetyHazardReports?: boolean | User$safetyHazardReportsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -3515,6 +3611,7 @@ export namespace Prisma {
     itineraryVotes?: boolean | User$itineraryVotesArgs<ExtArgs>
     ownedLiveLocationShares?: boolean | User$ownedLiveLocationSharesArgs<ExtArgs>
     liveLocationViewerships?: boolean | User$liveLocationViewershipsArgs<ExtArgs>
+    safetyHazardReports?: boolean | User$safetyHazardReportsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3542,6 +3639,7 @@ export namespace Prisma {
       itineraryVotes: Prisma.$ItineraryVotePayload<ExtArgs>[]
       ownedLiveLocationShares: Prisma.$LiveLocationSharePayload<ExtArgs>[]
       liveLocationViewerships: Prisma.$LiveLocationViewerPayload<ExtArgs>[]
+      safetyHazardReports: Prisma.$SafetyHazardReportPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3939,6 +4037,7 @@ export namespace Prisma {
     itineraryVotes<T extends User$itineraryVotesArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryVotesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findMany"> | Null>
     ownedLiveLocationShares<T extends User$ownedLiveLocationSharesArgs<ExtArgs> = {}>(args?: Subset<T, User$ownedLiveLocationSharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findMany"> | Null>
     liveLocationViewerships<T extends User$liveLocationViewershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$liveLocationViewershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findMany"> | Null>
+    safetyHazardReports<T extends User$safetyHazardReportsArgs<ExtArgs> = {}>(args?: Subset<T, User$safetyHazardReportsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4685,6 +4784,26 @@ export namespace Prisma {
     take?: number
     skip?: number
     distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
+  }
+
+  /**
+   * User.safetyHazardReports
+   */
+  export type User$safetyHazardReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    where?: SafetyHazardReportWhereInput
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
+    cursor?: SafetyHazardReportWhereUniqueInput
+    take?: number
+    skip?: number
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
   }
 
   /**
@@ -5685,7 +5804,6 @@ export namespace Prisma {
     placeAdded: boolean | null
     festival: boolean | null
     businessClaim: boolean | null
-    locationShare: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5698,7 +5816,6 @@ export namespace Prisma {
     placeAdded: boolean | null
     festival: boolean | null
     businessClaim: boolean | null
-    locationShare: boolean | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -5711,7 +5828,6 @@ export namespace Prisma {
     placeAdded: number
     festival: number
     businessClaim: number
-    locationShare: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -5726,7 +5842,6 @@ export namespace Prisma {
     placeAdded?: true
     festival?: true
     businessClaim?: true
-    locationShare?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5739,7 +5854,6 @@ export namespace Prisma {
     placeAdded?: true
     festival?: true
     businessClaim?: true
-    locationShare?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -5752,7 +5866,6 @@ export namespace Prisma {
     placeAdded?: true
     festival?: true
     businessClaim?: true
-    locationShare?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -5838,7 +5951,6 @@ export namespace Prisma {
     placeAdded: boolean
     festival: boolean
     businessClaim: boolean
-    locationShare: boolean
     createdAt: Date
     updatedAt: Date
     _count: NotificationPreferenceCountAggregateOutputType | null
@@ -5868,7 +5980,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -5882,7 +5993,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
@@ -5896,7 +6006,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -5921,7 +6030,6 @@ export namespace Prisma {
       placeAdded: boolean
       festival: boolean
       businessClaim: boolean
-      locationShare: boolean
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["notificationPreference"]>
@@ -6325,7 +6433,6 @@ export namespace Prisma {
     readonly placeAdded: FieldRef<"NotificationPreference", 'Boolean'>
     readonly festival: FieldRef<"NotificationPreference", 'Boolean'>
     readonly businessClaim: FieldRef<"NotificationPreference", 'Boolean'>
-    readonly locationShare: FieldRef<"NotificationPreference", 'Boolean'>
     readonly createdAt: FieldRef<"NotificationPreference", 'DateTime'>
     readonly updatedAt: FieldRef<"NotificationPreference", 'DateTime'>
   }
@@ -27566,6 +27673,1089 @@ export namespace Prisma {
 
 
   /**
+   * Model SafetyHazardReport
+   */
+
+  export type AggregateSafetyHazardReport = {
+    _count: SafetyHazardReportCountAggregateOutputType | null
+    _avg: SafetyHazardReportAvgAggregateOutputType | null
+    _sum: SafetyHazardReportSumAggregateOutputType | null
+    _min: SafetyHazardReportMinAggregateOutputType | null
+    _max: SafetyHazardReportMaxAggregateOutputType | null
+  }
+
+  export type SafetyHazardReportAvgAggregateOutputType = {
+    latitude: number | null
+    longitude: number | null
+    severity: number | null
+  }
+
+  export type SafetyHazardReportSumAggregateOutputType = {
+    latitude: number | null
+    longitude: number | null
+    severity: number | null
+  }
+
+  export type SafetyHazardReportMinAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    type: string | null
+    latitude: number | null
+    longitude: number | null
+    severity: number | null
+    description: string | null
+    roadName: string | null
+    status: string | null
+    expiresAt: Date | null
+    approvedAt: Date | null
+    moderatedBy: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SafetyHazardReportMaxAggregateOutputType = {
+    id: string | null
+    userId: string | null
+    type: string | null
+    latitude: number | null
+    longitude: number | null
+    severity: number | null
+    description: string | null
+    roadName: string | null
+    status: string | null
+    expiresAt: Date | null
+    approvedAt: Date | null
+    moderatedBy: string | null
+    createdAt: Date | null
+    updatedAt: Date | null
+  }
+
+  export type SafetyHazardReportCountAggregateOutputType = {
+    id: number
+    userId: number
+    type: number
+    latitude: number
+    longitude: number
+    severity: number
+    description: number
+    roadName: number
+    status: number
+    expiresAt: number
+    approvedAt: number
+    moderatedBy: number
+    createdAt: number
+    updatedAt: number
+    _all: number
+  }
+
+
+  export type SafetyHazardReportAvgAggregateInputType = {
+    latitude?: true
+    longitude?: true
+    severity?: true
+  }
+
+  export type SafetyHazardReportSumAggregateInputType = {
+    latitude?: true
+    longitude?: true
+    severity?: true
+  }
+
+  export type SafetyHazardReportMinAggregateInputType = {
+    id?: true
+    userId?: true
+    type?: true
+    latitude?: true
+    longitude?: true
+    severity?: true
+    description?: true
+    roadName?: true
+    status?: true
+    expiresAt?: true
+    approvedAt?: true
+    moderatedBy?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SafetyHazardReportMaxAggregateInputType = {
+    id?: true
+    userId?: true
+    type?: true
+    latitude?: true
+    longitude?: true
+    severity?: true
+    description?: true
+    roadName?: true
+    status?: true
+    expiresAt?: true
+    approvedAt?: true
+    moderatedBy?: true
+    createdAt?: true
+    updatedAt?: true
+  }
+
+  export type SafetyHazardReportCountAggregateInputType = {
+    id?: true
+    userId?: true
+    type?: true
+    latitude?: true
+    longitude?: true
+    severity?: true
+    description?: true
+    roadName?: true
+    status?: true
+    expiresAt?: true
+    approvedAt?: true
+    moderatedBy?: true
+    createdAt?: true
+    updatedAt?: true
+    _all?: true
+  }
+
+  export type SafetyHazardReportAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SafetyHazardReport to aggregate.
+     */
+    where?: SafetyHazardReportWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SafetyHazardReports to fetch.
+     */
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: SafetyHazardReportWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SafetyHazardReports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SafetyHazardReports.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned SafetyHazardReports
+    **/
+    _count?: true | SafetyHazardReportCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: SafetyHazardReportAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: SafetyHazardReportSumAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: SafetyHazardReportMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: SafetyHazardReportMaxAggregateInputType
+  }
+
+  export type GetSafetyHazardReportAggregateType<T extends SafetyHazardReportAggregateArgs> = {
+        [P in keyof T & keyof AggregateSafetyHazardReport]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateSafetyHazardReport[P]>
+      : GetScalarType<T[P], AggregateSafetyHazardReport[P]>
+  }
+
+
+
+
+  export type SafetyHazardReportGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SafetyHazardReportWhereInput
+    orderBy?: SafetyHazardReportOrderByWithAggregationInput | SafetyHazardReportOrderByWithAggregationInput[]
+    by: SafetyHazardReportScalarFieldEnum[] | SafetyHazardReportScalarFieldEnum
+    having?: SafetyHazardReportScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: SafetyHazardReportCountAggregateInputType | true
+    _avg?: SafetyHazardReportAvgAggregateInputType
+    _sum?: SafetyHazardReportSumAggregateInputType
+    _min?: SafetyHazardReportMinAggregateInputType
+    _max?: SafetyHazardReportMaxAggregateInputType
+  }
+
+  export type SafetyHazardReportGroupByOutputType = {
+    id: string
+    userId: string
+    type: string
+    latitude: number
+    longitude: number
+    severity: number
+    description: string | null
+    roadName: string | null
+    status: string
+    expiresAt: Date | null
+    approvedAt: Date | null
+    moderatedBy: string | null
+    createdAt: Date
+    updatedAt: Date
+    _count: SafetyHazardReportCountAggregateOutputType | null
+    _avg: SafetyHazardReportAvgAggregateOutputType | null
+    _sum: SafetyHazardReportSumAggregateOutputType | null
+    _min: SafetyHazardReportMinAggregateOutputType | null
+    _max: SafetyHazardReportMaxAggregateOutputType | null
+  }
+
+  type GetSafetyHazardReportGroupByPayload<T extends SafetyHazardReportGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<SafetyHazardReportGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof SafetyHazardReportGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], SafetyHazardReportGroupByOutputType[P]>
+            : GetScalarType<T[P], SafetyHazardReportGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type SafetyHazardReportSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    type?: boolean
+    latitude?: boolean
+    longitude?: boolean
+    severity?: boolean
+    description?: boolean
+    roadName?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    approvedAt?: boolean
+    moderatedBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["safetyHazardReport"]>
+
+  export type SafetyHazardReportSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    userId?: boolean
+    type?: boolean
+    latitude?: boolean
+    longitude?: boolean
+    severity?: boolean
+    description?: boolean
+    roadName?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    approvedAt?: boolean
+    moderatedBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["safetyHazardReport"]>
+
+  export type SafetyHazardReportSelectScalar = {
+    id?: boolean
+    userId?: boolean
+    type?: boolean
+    latitude?: boolean
+    longitude?: boolean
+    severity?: boolean
+    description?: boolean
+    roadName?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    approvedAt?: boolean
+    moderatedBy?: boolean
+    createdAt?: boolean
+    updatedAt?: boolean
+  }
+
+  export type SafetyHazardReportInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+  export type SafetyHazardReportIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }
+
+  export type $SafetyHazardReportPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SafetyHazardReport"
+    objects: {
+      user: Prisma.$UserPayload<ExtArgs>
+    }
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      userId: string
+      type: string
+      latitude: number
+      longitude: number
+      severity: number
+      description: string | null
+      roadName: string | null
+      status: string
+      expiresAt: Date | null
+      approvedAt: Date | null
+      moderatedBy: string | null
+      createdAt: Date
+      updatedAt: Date
+    }, ExtArgs["result"]["safetyHazardReport"]>
+    composites: {}
+  }
+
+  type SafetyHazardReportGetPayload<S extends boolean | null | undefined | SafetyHazardReportDefaultArgs> = $Result.GetResult<Prisma.$SafetyHazardReportPayload, S>
+
+  type SafetyHazardReportCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<SafetyHazardReportFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: SafetyHazardReportCountAggregateInputType | true
+    }
+
+  export interface SafetyHazardReportDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SafetyHazardReport'], meta: { name: 'SafetyHazardReport' } }
+    /**
+     * Find zero or one SafetyHazardReport that matches the filter.
+     * @param {SafetyHazardReportFindUniqueArgs} args - Arguments to find a SafetyHazardReport
+     * @example
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends SafetyHazardReportFindUniqueArgs>(args: SelectSubset<T, SafetyHazardReportFindUniqueArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one SafetyHazardReport that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {SafetyHazardReportFindUniqueOrThrowArgs} args - Arguments to find a SafetyHazardReport
+     * @example
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends SafetyHazardReportFindUniqueOrThrowArgs>(args: SelectSubset<T, SafetyHazardReportFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first SafetyHazardReport that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SafetyHazardReportFindFirstArgs} args - Arguments to find a SafetyHazardReport
+     * @example
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends SafetyHazardReportFindFirstArgs>(args?: SelectSubset<T, SafetyHazardReportFindFirstArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first SafetyHazardReport that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SafetyHazardReportFindFirstOrThrowArgs} args - Arguments to find a SafetyHazardReport
+     * @example
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends SafetyHazardReportFindFirstOrThrowArgs>(args?: SelectSubset<T, SafetyHazardReportFindFirstOrThrowArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more SafetyHazardReports that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SafetyHazardReportFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all SafetyHazardReports
+     * const safetyHazardReports = await prisma.safetyHazardReport.findMany()
+     * 
+     * // Get first 10 SafetyHazardReports
+     * const safetyHazardReports = await prisma.safetyHazardReport.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const safetyHazardReportWithIdOnly = await prisma.safetyHazardReport.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends SafetyHazardReportFindManyArgs>(args?: SelectSubset<T, SafetyHazardReportFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a SafetyHazardReport.
+     * @param {SafetyHazardReportCreateArgs} args - Arguments to create a SafetyHazardReport.
+     * @example
+     * // Create one SafetyHazardReport
+     * const SafetyHazardReport = await prisma.safetyHazardReport.create({
+     *   data: {
+     *     // ... data to create a SafetyHazardReport
+     *   }
+     * })
+     * 
+     */
+    create<T extends SafetyHazardReportCreateArgs>(args: SelectSubset<T, SafetyHazardReportCreateArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many SafetyHazardReports.
+     * @param {SafetyHazardReportCreateManyArgs} args - Arguments to create many SafetyHazardReports.
+     * @example
+     * // Create many SafetyHazardReports
+     * const safetyHazardReport = await prisma.safetyHazardReport.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends SafetyHazardReportCreateManyArgs>(args?: SelectSubset<T, SafetyHazardReportCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many SafetyHazardReports and returns the data saved in the database.
+     * @param {SafetyHazardReportCreateManyAndReturnArgs} args - Arguments to create many SafetyHazardReports.
+     * @example
+     * // Create many SafetyHazardReports
+     * const safetyHazardReport = await prisma.safetyHazardReport.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many SafetyHazardReports and only return the `id`
+     * const safetyHazardReportWithIdOnly = await prisma.safetyHazardReport.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends SafetyHazardReportCreateManyAndReturnArgs>(args?: SelectSubset<T, SafetyHazardReportCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a SafetyHazardReport.
+     * @param {SafetyHazardReportDeleteArgs} args - Arguments to delete one SafetyHazardReport.
+     * @example
+     * // Delete one SafetyHazardReport
+     * const SafetyHazardReport = await prisma.safetyHazardReport.delete({
+     *   where: {
+     *     // ... filter to delete one SafetyHazardReport
+     *   }
+     * })
+     * 
+     */
+    delete<T extends SafetyHazardReportDeleteArgs>(args: SelectSubset<T, SafetyHazardReportDeleteArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one SafetyHazardReport.
+     * @param {SafetyHazardReportUpdateArgs} args - Arguments to update one SafetyHazardReport.
+     * @example
+     * // Update one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends SafetyHazardReportUpdateArgs>(args: SelectSubset<T, SafetyHazardReportUpdateArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more SafetyHazardReports.
+     * @param {SafetyHazardReportDeleteManyArgs} args - Arguments to filter SafetyHazardReports to delete.
+     * @example
+     * // Delete a few SafetyHazardReports
+     * const { count } = await prisma.safetyHazardReport.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends SafetyHazardReportDeleteManyArgs>(args?: SelectSubset<T, SafetyHazardReportDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more SafetyHazardReports.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SafetyHazardReportUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many SafetyHazardReports
+     * const safetyHazardReport = await prisma.safetyHazardReport.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends SafetyHazardReportUpdateManyArgs>(args: SelectSubset<T, SafetyHazardReportUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one SafetyHazardReport.
+     * @param {SafetyHazardReportUpsertArgs} args - Arguments to update or create a SafetyHazardReport.
+     * @example
+     * // Update or create a SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.upsert({
+     *   create: {
+     *     // ... data to create a SafetyHazardReport
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the SafetyHazardReport we want to update
+     *   }
+     * })
+     */
+    upsert<T extends SafetyHazardReportUpsertArgs>(args: SelectSubset<T, SafetyHazardReportUpsertArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of SafetyHazardReports.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SafetyHazardReportCountArgs} args - Arguments to filter SafetyHazardReports to count.
+     * @example
+     * // Count the number of SafetyHazardReports
+     * const count = await prisma.safetyHazardReport.count({
+     *   where: {
+     *     // ... the filter for the SafetyHazardReports we want to count
+     *   }
+     * })
+    **/
+    count<T extends SafetyHazardReportCountArgs>(
+      args?: Subset<T, SafetyHazardReportCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], SafetyHazardReportCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a SafetyHazardReport.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SafetyHazardReportAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends SafetyHazardReportAggregateArgs>(args: Subset<T, SafetyHazardReportAggregateArgs>): Prisma.PrismaPromise<GetSafetyHazardReportAggregateType<T>>
+
+    /**
+     * Group by SafetyHazardReport.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {SafetyHazardReportGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends SafetyHazardReportGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: SafetyHazardReportGroupByArgs['orderBy'] }
+        : { orderBy?: SafetyHazardReportGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, SafetyHazardReportGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSafetyHazardReportGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the SafetyHazardReport model
+   */
+  readonly fields: SafetyHazardReportFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for SafetyHazardReport.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__SafetyHazardReportClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the SafetyHazardReport model
+   */ 
+  interface SafetyHazardReportFieldRefs {
+    readonly id: FieldRef<"SafetyHazardReport", 'String'>
+    readonly userId: FieldRef<"SafetyHazardReport", 'String'>
+    readonly type: FieldRef<"SafetyHazardReport", 'String'>
+    readonly latitude: FieldRef<"SafetyHazardReport", 'Float'>
+    readonly longitude: FieldRef<"SafetyHazardReport", 'Float'>
+    readonly severity: FieldRef<"SafetyHazardReport", 'Int'>
+    readonly description: FieldRef<"SafetyHazardReport", 'String'>
+    readonly roadName: FieldRef<"SafetyHazardReport", 'String'>
+    readonly status: FieldRef<"SafetyHazardReport", 'String'>
+    readonly expiresAt: FieldRef<"SafetyHazardReport", 'DateTime'>
+    readonly approvedAt: FieldRef<"SafetyHazardReport", 'DateTime'>
+    readonly moderatedBy: FieldRef<"SafetyHazardReport", 'String'>
+    readonly createdAt: FieldRef<"SafetyHazardReport", 'DateTime'>
+    readonly updatedAt: FieldRef<"SafetyHazardReport", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * SafetyHazardReport findUnique
+   */
+  export type SafetyHazardReportFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * Filter, which SafetyHazardReport to fetch.
+     */
+    where: SafetyHazardReportWhereUniqueInput
+  }
+
+  /**
+   * SafetyHazardReport findUniqueOrThrow
+   */
+  export type SafetyHazardReportFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * Filter, which SafetyHazardReport to fetch.
+     */
+    where: SafetyHazardReportWhereUniqueInput
+  }
+
+  /**
+   * SafetyHazardReport findFirst
+   */
+  export type SafetyHazardReportFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * Filter, which SafetyHazardReport to fetch.
+     */
+    where?: SafetyHazardReportWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SafetyHazardReports to fetch.
+     */
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SafetyHazardReports.
+     */
+    cursor?: SafetyHazardReportWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SafetyHazardReports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SafetyHazardReports.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SafetyHazardReports.
+     */
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
+  }
+
+  /**
+   * SafetyHazardReport findFirstOrThrow
+   */
+  export type SafetyHazardReportFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * Filter, which SafetyHazardReport to fetch.
+     */
+    where?: SafetyHazardReportWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SafetyHazardReports to fetch.
+     */
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for SafetyHazardReports.
+     */
+    cursor?: SafetyHazardReportWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SafetyHazardReports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SafetyHazardReports.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of SafetyHazardReports.
+     */
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
+  }
+
+  /**
+   * SafetyHazardReport findMany
+   */
+  export type SafetyHazardReportFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * Filter, which SafetyHazardReports to fetch.
+     */
+    where?: SafetyHazardReportWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of SafetyHazardReports to fetch.
+     */
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing SafetyHazardReports.
+     */
+    cursor?: SafetyHazardReportWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` SafetyHazardReports from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` SafetyHazardReports.
+     */
+    skip?: number
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
+  }
+
+  /**
+   * SafetyHazardReport create
+   */
+  export type SafetyHazardReportCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * The data needed to create a SafetyHazardReport.
+     */
+    data: XOR<SafetyHazardReportCreateInput, SafetyHazardReportUncheckedCreateInput>
+  }
+
+  /**
+   * SafetyHazardReport createMany
+   */
+  export type SafetyHazardReportCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many SafetyHazardReports.
+     */
+    data: SafetyHazardReportCreateManyInput | SafetyHazardReportCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * SafetyHazardReport createManyAndReturn
+   */
+  export type SafetyHazardReportCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many SafetyHazardReports.
+     */
+    data: SafetyHazardReportCreateManyInput | SafetyHazardReportCreateManyInput[]
+    skipDuplicates?: boolean
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportIncludeCreateManyAndReturn<ExtArgs> | null
+  }
+
+  /**
+   * SafetyHazardReport update
+   */
+  export type SafetyHazardReportUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * The data needed to update a SafetyHazardReport.
+     */
+    data: XOR<SafetyHazardReportUpdateInput, SafetyHazardReportUncheckedUpdateInput>
+    /**
+     * Choose, which SafetyHazardReport to update.
+     */
+    where: SafetyHazardReportWhereUniqueInput
+  }
+
+  /**
+   * SafetyHazardReport updateMany
+   */
+  export type SafetyHazardReportUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update SafetyHazardReports.
+     */
+    data: XOR<SafetyHazardReportUpdateManyMutationInput, SafetyHazardReportUncheckedUpdateManyInput>
+    /**
+     * Filter which SafetyHazardReports to update
+     */
+    where?: SafetyHazardReportWhereInput
+  }
+
+  /**
+   * SafetyHazardReport upsert
+   */
+  export type SafetyHazardReportUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * The filter to search for the SafetyHazardReport to update in case it exists.
+     */
+    where: SafetyHazardReportWhereUniqueInput
+    /**
+     * In case the SafetyHazardReport found by the `where` argument doesn't exist, create a new SafetyHazardReport with this data.
+     */
+    create: XOR<SafetyHazardReportCreateInput, SafetyHazardReportUncheckedCreateInput>
+    /**
+     * In case the SafetyHazardReport was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<SafetyHazardReportUpdateInput, SafetyHazardReportUncheckedUpdateInput>
+  }
+
+  /**
+   * SafetyHazardReport delete
+   */
+  export type SafetyHazardReportDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    /**
+     * Filter which SafetyHazardReport to delete.
+     */
+    where: SafetyHazardReportWhereUniqueInput
+  }
+
+  /**
+   * SafetyHazardReport deleteMany
+   */
+  export type SafetyHazardReportDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which SafetyHazardReports to delete
+     */
+    where?: SafetyHazardReportWhereInput
+  }
+
+  /**
+   * SafetyHazardReport without action
+   */
+  export type SafetyHazardReportDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the SafetyHazardReport
+     */
+    select?: SafetyHazardReportSelect<ExtArgs> | null
+    /**
+     * Choose, which related nodes to fetch as well
+     */
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+  }
+
+
+  /**
    * Model LegalDocument
    */
 
@@ -28566,7 +29756,6 @@ export namespace Prisma {
     placeAdded: 'placeAdded',
     festival: 'festival',
     businessClaim: 'businessClaim',
-    locationShare: 'locationShare',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -28918,6 +30107,26 @@ export namespace Prisma {
   export type LiveLocationViewerScalarFieldEnum = (typeof LiveLocationViewerScalarFieldEnum)[keyof typeof LiveLocationViewerScalarFieldEnum]
 
 
+  export const SafetyHazardReportScalarFieldEnum: {
+    id: 'id',
+    userId: 'userId',
+    type: 'type',
+    latitude: 'latitude',
+    longitude: 'longitude',
+    severity: 'severity',
+    description: 'description',
+    roadName: 'roadName',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    approvedAt: 'approvedAt',
+    moderatedBy: 'moderatedBy',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type SafetyHazardReportScalarFieldEnum = (typeof SafetyHazardReportScalarFieldEnum)[keyof typeof SafetyHazardReportScalarFieldEnum]
+
+
   export const LegalDocumentScalarFieldEnum: {
     id: 'id',
     type: 'type',
@@ -29086,6 +30295,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteListRelationFilter
     ownedLiveLocationShares?: LiveLocationShareListRelationFilter
     liveLocationViewerships?: LiveLocationViewerListRelationFilter
+    safetyHazardReports?: SafetyHazardReportListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -29120,6 +30330,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteOrderByRelationAggregateInput
     ownedLiveLocationShares?: LiveLocationShareOrderByRelationAggregateInput
     liveLocationViewerships?: LiveLocationViewerOrderByRelationAggregateInput
+    safetyHazardReports?: SafetyHazardReportOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -29157,6 +30368,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteListRelationFilter
     ownedLiveLocationShares?: LiveLocationShareListRelationFilter
     liveLocationViewerships?: LiveLocationViewerListRelationFilter
+    safetyHazardReports?: SafetyHazardReportListRelationFilter
   }, "id" | "email" | "googleId">
 
   export type UserOrderByWithAggregationInput = {
@@ -29274,7 +30486,6 @@ export namespace Prisma {
     placeAdded?: BoolFilter<"NotificationPreference"> | boolean
     festival?: BoolFilter<"NotificationPreference"> | boolean
     businessClaim?: BoolFilter<"NotificationPreference"> | boolean
-    locationShare?: BoolFilter<"NotificationPreference"> | boolean
     createdAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     updatedAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
@@ -29288,7 +30499,6 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
-    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
@@ -29305,7 +30515,6 @@ export namespace Prisma {
     placeAdded?: BoolFilter<"NotificationPreference"> | boolean
     festival?: BoolFilter<"NotificationPreference"> | boolean
     businessClaim?: BoolFilter<"NotificationPreference"> | boolean
-    locationShare?: BoolFilter<"NotificationPreference"> | boolean
     createdAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     updatedAt?: DateTimeFilter<"NotificationPreference"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
@@ -29319,7 +30528,6 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
-    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: NotificationPreferenceCountOrderByAggregateInput
@@ -29338,7 +30546,6 @@ export namespace Prisma {
     placeAdded?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
     festival?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
     businessClaim?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
-    locationShare?: BoolWithAggregatesFilter<"NotificationPreference"> | boolean
     createdAt?: DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"NotificationPreference"> | Date | string
   }
@@ -31154,6 +32361,108 @@ export namespace Prisma {
     lastViewedAt?: DateTimeWithAggregatesFilter<"LiveLocationViewer"> | Date | string
   }
 
+  export type SafetyHazardReportWhereInput = {
+    AND?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    OR?: SafetyHazardReportWhereInput[]
+    NOT?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    id?: StringFilter<"SafetyHazardReport"> | string
+    userId?: StringFilter<"SafetyHazardReport"> | string
+    type?: StringFilter<"SafetyHazardReport"> | string
+    latitude?: FloatFilter<"SafetyHazardReport"> | number
+    longitude?: FloatFilter<"SafetyHazardReport"> | number
+    severity?: IntFilter<"SafetyHazardReport"> | number
+    description?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    status?: StringFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }
+
+  export type SafetyHazardReportOrderByWithRelationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+    description?: SortOrderInput | SortOrder
+    roadName?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    moderatedBy?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    user?: UserOrderByWithRelationInput
+  }
+
+  export type SafetyHazardReportWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    OR?: SafetyHazardReportWhereInput[]
+    NOT?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    userId?: StringFilter<"SafetyHazardReport"> | string
+    type?: StringFilter<"SafetyHazardReport"> | string
+    latitude?: FloatFilter<"SafetyHazardReport"> | number
+    longitude?: FloatFilter<"SafetyHazardReport"> | number
+    severity?: IntFilter<"SafetyHazardReport"> | number
+    description?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    status?: StringFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    user?: XOR<UserRelationFilter, UserWhereInput>
+  }, "id">
+
+  export type SafetyHazardReportOrderByWithAggregationInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+    description?: SortOrderInput | SortOrder
+    roadName?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    moderatedBy?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+    _count?: SafetyHazardReportCountOrderByAggregateInput
+    _avg?: SafetyHazardReportAvgOrderByAggregateInput
+    _max?: SafetyHazardReportMaxOrderByAggregateInput
+    _min?: SafetyHazardReportMinOrderByAggregateInput
+    _sum?: SafetyHazardReportSumOrderByAggregateInput
+  }
+
+  export type SafetyHazardReportScalarWhereWithAggregatesInput = {
+    AND?: SafetyHazardReportScalarWhereWithAggregatesInput | SafetyHazardReportScalarWhereWithAggregatesInput[]
+    OR?: SafetyHazardReportScalarWhereWithAggregatesInput[]
+    NOT?: SafetyHazardReportScalarWhereWithAggregatesInput | SafetyHazardReportScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    userId?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    type?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    latitude?: FloatWithAggregatesFilter<"SafetyHazardReport"> | number
+    longitude?: FloatWithAggregatesFilter<"SafetyHazardReport"> | number
+    severity?: IntWithAggregatesFilter<"SafetyHazardReport"> | number
+    description?: StringNullableWithAggregatesFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableWithAggregatesFilter<"SafetyHazardReport"> | string | null
+    status?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableWithAggregatesFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableWithAggregatesFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"SafetyHazardReport"> | Date | string
+  }
+
   export type LegalDocumentWhereInput = {
     AND?: LegalDocumentWhereInput | LegalDocumentWhereInput[]
     OR?: LegalDocumentWhereInput[]
@@ -31255,6 +32564,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -31289,6 +32599,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -31323,6 +32634,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -31357,6 +32669,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -31484,7 +32797,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
     user: UserCreateNestedOneWithoutNotificationPreferenceInput
@@ -31498,7 +32810,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -31510,7 +32821,6 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
-    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutNotificationPreferenceNestedInput
@@ -31524,7 +32834,6 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
-    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -31537,7 +32846,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -31549,7 +32857,6 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
-    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -31562,7 +32869,6 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
-    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -33573,6 +34879,124 @@ export namespace Prisma {
     lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SafetyHazardReportCreateInput = {
+    id?: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    user: UserCreateNestedOneWithoutSafetyHazardReportsInput
+  }
+
+  export type SafetyHazardReportUncheckedCreateInput = {
+    id?: string
+    userId: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SafetyHazardReportUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutSafetyHazardReportsNestedInput
+  }
+
+  export type SafetyHazardReportUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SafetyHazardReportCreateManyInput = {
+    id?: string
+    userId: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SafetyHazardReportUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SafetyHazardReportUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type LegalDocumentCreateInput = {
     id?: string
     type: string
@@ -33826,6 +35250,12 @@ export namespace Prisma {
     none?: LiveLocationViewerWhereInput
   }
 
+  export type SafetyHazardReportListRelationFilter = {
+    every?: SafetyHazardReportWhereInput
+    some?: SafetyHazardReportWhereInput
+    none?: SafetyHazardReportWhereInput
+  }
+
   export type SortOrderInput = {
     sort: SortOrder
     nulls?: NullsOrder
@@ -33904,6 +35334,10 @@ export namespace Prisma {
   }
 
   export type LiveLocationViewerOrderByRelationAggregateInput = {
+    _count?: SortOrder
+  }
+
+  export type SafetyHazardReportOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -34112,7 +35546,6 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
-    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -34125,7 +35558,6 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
-    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -34138,7 +35570,6 @@ export namespace Prisma {
     placeAdded?: SortOrder
     festival?: SortOrder
     businessClaim?: SortOrder
-    locationShare?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -35281,6 +36712,69 @@ export namespace Prisma {
     lastViewedAt?: SortOrder
   }
 
+  export type SafetyHazardReportCountOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+    description?: SortOrder
+    roadName?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    approvedAt?: SortOrder
+    moderatedBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SafetyHazardReportAvgOrderByAggregateInput = {
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+  }
+
+  export type SafetyHazardReportMaxOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+    description?: SortOrder
+    roadName?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    approvedAt?: SortOrder
+    moderatedBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SafetyHazardReportMinOrderByAggregateInput = {
+    id?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+    description?: SortOrder
+    roadName?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    approvedAt?: SortOrder
+    moderatedBy?: SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type SafetyHazardReportSumOrderByAggregateInput = {
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+  }
+
   export type LegalDocumentCountOrderByAggregateInput = {
     id?: SortOrder
     type?: SortOrder
@@ -35461,6 +36955,13 @@ export namespace Prisma {
     connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
   }
 
+  export type SafetyHazardReportCreateNestedManyWithoutUserInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+  }
+
   export type OTPVerificationUncheckedCreateNestedManyWithoutUserInput = {
     create?: XOR<OTPVerificationCreateWithoutUserInput, OTPVerificationUncheckedCreateWithoutUserInput> | OTPVerificationCreateWithoutUserInput[] | OTPVerificationUncheckedCreateWithoutUserInput[]
     connectOrCreate?: OTPVerificationCreateOrConnectWithoutUserInput | OTPVerificationCreateOrConnectWithoutUserInput[]
@@ -35598,6 +37099,13 @@ export namespace Prisma {
     connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
     createMany?: LiveLocationViewerCreateManyUserInputEnvelope
     connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+  }
+
+  export type SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -35896,6 +37404,20 @@ export namespace Prisma {
     deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
   }
 
+  export type SafetyHazardReportUpdateManyWithoutUserNestedInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    upsert?: SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput | SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    set?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    disconnect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    delete?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    update?: SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput | SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: SafetyHazardReportUpdateManyWithWhereWithoutUserInput | SafetyHazardReportUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
+  }
+
   export type OTPVerificationUncheckedUpdateManyWithoutUserNestedInput = {
     create?: XOR<OTPVerificationCreateWithoutUserInput, OTPVerificationUncheckedCreateWithoutUserInput> | OTPVerificationCreateWithoutUserInput[] | OTPVerificationUncheckedCreateWithoutUserInput[]
     connectOrCreate?: OTPVerificationCreateOrConnectWithoutUserInput | OTPVerificationCreateOrConnectWithoutUserInput[]
@@ -36170,6 +37692,20 @@ export namespace Prisma {
     update?: LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput | LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput[]
     updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutUserInput | LiveLocationViewerUpdateManyWithWhereWithoutUserInput[]
     deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+  }
+
+  export type SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    upsert?: SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput | SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    set?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    disconnect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    delete?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    update?: SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput | SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: SafetyHazardReportUpdateManyWithWhereWithoutUserInput | SafetyHazardReportUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutNotificationsInput = {
@@ -37168,6 +38704,20 @@ export namespace Prisma {
     update?: XOR<XOR<UserUpdateToOneWithWhereWithoutLiveLocationViewershipsInput, UserUpdateWithoutLiveLocationViewershipsInput>, UserUncheckedUpdateWithoutLiveLocationViewershipsInput>
   }
 
+  export type UserCreateNestedOneWithoutSafetyHazardReportsInput = {
+    create?: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSafetyHazardReportsInput
+    connect?: UserWhereUniqueInput
+  }
+
+  export type UserUpdateOneRequiredWithoutSafetyHazardReportsNestedInput = {
+    create?: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSafetyHazardReportsInput
+    upsert?: UserUpsertWithoutSafetyHazardReportsInput
+    connect?: UserWhereUniqueInput
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutSafetyHazardReportsInput, UserUpdateWithoutSafetyHazardReportsInput>, UserUncheckedUpdateWithoutSafetyHazardReportsInput>
+  }
+
   export type NestedStringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -37868,7 +39418,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -37880,7 +39429,6 @@ export namespace Prisma {
     placeAdded?: boolean
     festival?: boolean
     businessClaim?: boolean
-    locationShare?: boolean
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -38149,6 +39697,48 @@ export namespace Prisma {
 
   export type LiveLocationViewerCreateManyUserInputEnvelope = {
     data: LiveLocationViewerCreateManyUserInput | LiveLocationViewerCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SafetyHazardReportCreateWithoutUserInput = {
+    id?: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SafetyHazardReportUncheckedCreateWithoutUserInput = {
+    id?: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type SafetyHazardReportCreateOrConnectWithoutUserInput = {
+    where: SafetyHazardReportWhereUniqueInput
+    create: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput>
+  }
+
+  export type SafetyHazardReportCreateManyUserInputEnvelope = {
+    data: SafetyHazardReportCreateManyUserInput | SafetyHazardReportCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -38547,7 +40137,6 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
-    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -38559,7 +40148,6 @@ export namespace Prisma {
     placeAdded?: BoolFieldUpdateOperationsInput | boolean
     festival?: BoolFieldUpdateOperationsInput | boolean
     businessClaim?: BoolFieldUpdateOperationsInput | boolean
-    locationShare?: BoolFieldUpdateOperationsInput | boolean
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -38812,6 +40400,42 @@ export namespace Prisma {
     lastViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
   }
 
+  export type SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput = {
+    where: SafetyHazardReportWhereUniqueInput
+    update: XOR<SafetyHazardReportUpdateWithoutUserInput, SafetyHazardReportUncheckedUpdateWithoutUserInput>
+    create: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput>
+  }
+
+  export type SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput = {
+    where: SafetyHazardReportWhereUniqueInput
+    data: XOR<SafetyHazardReportUpdateWithoutUserInput, SafetyHazardReportUncheckedUpdateWithoutUserInput>
+  }
+
+  export type SafetyHazardReportUpdateManyWithWhereWithoutUserInput = {
+    where: SafetyHazardReportScalarWhereInput
+    data: XOR<SafetyHazardReportUpdateManyMutationInput, SafetyHazardReportUncheckedUpdateManyWithoutUserInput>
+  }
+
+  export type SafetyHazardReportScalarWhereInput = {
+    AND?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
+    OR?: SafetyHazardReportScalarWhereInput[]
+    NOT?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
+    id?: StringFilter<"SafetyHazardReport"> | string
+    userId?: StringFilter<"SafetyHazardReport"> | string
+    type?: StringFilter<"SafetyHazardReport"> | string
+    latitude?: FloatFilter<"SafetyHazardReport"> | number
+    longitude?: FloatFilter<"SafetyHazardReport"> | number
+    severity?: IntFilter<"SafetyHazardReport"> | number
+    description?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    status?: StringFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+  }
+
   export type UserCreateWithoutNotificationsInput = {
     id?: string
     name: string
@@ -38843,6 +40467,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -38876,6 +40501,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -38925,6 +40551,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -38958,6 +40585,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutNotificationPreferenceInput = {
@@ -38991,6 +40619,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationPreferenceInput = {
@@ -39024,6 +40653,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationPreferenceInput = {
@@ -39073,6 +40703,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationPreferenceInput = {
@@ -39106,6 +40737,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPushSubscriptionsInput = {
@@ -39139,6 +40771,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPushSubscriptionsInput = {
@@ -39172,6 +40805,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPushSubscriptionsInput = {
@@ -39221,6 +40855,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPushSubscriptionsInput = {
@@ -39254,6 +40889,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOtpVerificationsInput = {
@@ -39287,6 +40923,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOtpVerificationsInput = {
@@ -39320,6 +40957,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOtpVerificationsInput = {
@@ -39369,6 +41007,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOtpVerificationsInput = {
@@ -39402,6 +41041,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -39435,6 +41075,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -39468,6 +41109,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -39517,6 +41159,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -39550,6 +41193,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutVehiclesInput = {
@@ -39583,6 +41227,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutVehiclesInput = {
@@ -39616,6 +41261,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutVehiclesInput = {
@@ -39745,6 +41391,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutVehiclesInput = {
@@ -39778,6 +41425,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type LocationUpsertWithWhereUniqueWithoutVehicleInput = {
@@ -39872,6 +41520,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLocationsInput = {
@@ -39905,6 +41554,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLocationsInput = {
@@ -39989,6 +41639,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLocationsInput = {
@@ -40022,6 +41673,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type VehicleCreateWithoutRoutesInput = {
@@ -40084,6 +41736,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRoutesInput = {
@@ -40117,6 +41770,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRoutesInput = {
@@ -40201,6 +41855,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRoutesInput = {
@@ -40234,6 +41889,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPlacesInput = {
@@ -40267,6 +41923,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlacesInput = {
@@ -40300,6 +41957,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlacesInput = {
@@ -40513,6 +42171,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlacesInput = {
@@ -40546,6 +42205,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceReviewUpsertWithWhereUniqueWithoutPlaceInput = {
@@ -40659,6 +42319,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutFavoritesInput = {
@@ -40692,6 +42353,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutFavoritesInput = {
@@ -40854,6 +42516,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFavoritesInput = {
@@ -40887,6 +42550,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceUpsertWithoutFavoritesInput = {
@@ -41152,6 +42816,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlaceReviewsInput = {
@@ -41185,6 +42850,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlaceReviewsInput = {
@@ -41353,6 +43019,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlaceReviewsInput = {
@@ -41386,6 +43053,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceCreateWithoutPhotosInput = {
@@ -41532,6 +43200,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlacePhotosInput = {
@@ -41565,6 +43234,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlacePhotosInput = {
@@ -41733,6 +43403,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlacePhotosInput = {
@@ -41766,6 +43437,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceCreateWithoutClaimsInput = {
@@ -41912,6 +43584,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutBusinessClaimsInput = {
@@ -41945,6 +43618,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutBusinessClaimsInput = {
@@ -42113,6 +43787,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutBusinessClaimsInput = {
@@ -42146,6 +43821,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPlaceLabelsInput = {
@@ -42179,6 +43855,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlaceLabelsInput = {
@@ -42212,6 +43889,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlaceLabelsInput = {
@@ -42374,6 +44052,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlaceLabelsInput = {
@@ -42407,6 +44086,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceUpsertWithoutLabelsInput = {
@@ -42559,6 +44239,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOwnedItinerariesInput = {
@@ -42592,6 +44273,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOwnedItinerariesInput = {
@@ -42713,6 +44395,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOwnedItinerariesInput = {
@@ -42746,6 +44429,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ItineraryMemberUpsertWithWhereUniqueWithoutItineraryInput = {
@@ -42867,6 +44551,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutItineraryMembershipsInput = {
@@ -42900,6 +44585,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutItineraryMembershipsInput = {
@@ -42990,6 +44676,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutItineraryMembershipsInput = {
@@ -43023,6 +44710,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ItineraryCreateWithoutStopsInput = {
@@ -43259,6 +44947,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutItineraryCommentsInput = {
@@ -43292,6 +44981,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutItineraryCommentsInput = {
@@ -43390,6 +45080,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutItineraryCommentsInput = {
@@ -43423,6 +45114,7 @@ export namespace Prisma {
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type ItineraryStopCreateWithoutVotesInput = {
@@ -43499,6 +45191,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutItineraryVotesInput = {
@@ -43532,6 +45225,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutItineraryVotesInput = {
@@ -43630,6 +45324,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutItineraryVotesInput = {
@@ -43663,6 +45358,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOwnedLiveLocationSharesInput = {
@@ -43696,6 +45392,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOwnedLiveLocationSharesInput = {
@@ -43729,6 +45426,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOwnedLiveLocationSharesInput = {
@@ -43802,6 +45500,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput = {
@@ -43835,6 +45534,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput = {
@@ -43929,6 +45629,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLiveLocationViewershipsInput = {
@@ -43962,6 +45663,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
     itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLiveLocationViewershipsInput = {
@@ -44062,6 +45764,7 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLiveLocationViewershipsInput = {
@@ -44095,6 +45798,159 @@ export namespace Prisma {
     itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
     itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
     ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserCreateWithoutSafetyHazardReportsInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
+    sessions?: SessionCreateNestedManyWithoutUserInput
+    vehicles?: VehicleCreateNestedManyWithoutUserInput
+    locations?: LocationCreateNestedManyWithoutUserInput
+    routes?: RouteCreateNestedManyWithoutUserInput
+    places?: PlaceCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
+    favorites?: FavoriteCreateNestedManyWithoutUserInput
+    notifications?: NotificationCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+  }
+
+  export type UserUncheckedCreateWithoutSafetyHazardReportsInput = {
+    id?: string
+    name: string
+    email: string
+    password?: string | null
+    googleId?: string | null
+    picture?: string | null
+    emailVerified?: boolean
+    profilePublic?: boolean
+    lastGridExtractAt?: Date | string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
+    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
+    vehicles?: VehicleUncheckedCreateNestedManyWithoutUserInput
+    locations?: LocationUncheckedCreateNestedManyWithoutUserInput
+    routes?: RouteUncheckedCreateNestedManyWithoutUserInput
+    places?: PlaceUncheckedCreateNestedManyWithoutUserInput
+    placeReviews?: PlaceReviewUncheckedCreateNestedManyWithoutUserInput
+    placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
+    favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
+    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
+    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
+    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
+    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
+    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
+    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
+    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
+    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
+    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+  }
+
+  export type UserCreateOrConnectWithoutSafetyHazardReportsInput = {
+    where: UserWhereUniqueInput
+    create: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
+  }
+
+  export type UserUpsertWithoutSafetyHazardReportsInput = {
+    update: XOR<UserUpdateWithoutSafetyHazardReportsInput, UserUncheckedUpdateWithoutSafetyHazardReportsInput>
+    create: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
+    where?: UserWhereInput
+  }
+
+  export type UserUpdateToOneWithWhereWithoutSafetyHazardReportsInput = {
+    where?: UserWhereInput
+    data: XOR<UserUpdateWithoutSafetyHazardReportsInput, UserUncheckedUpdateWithoutSafetyHazardReportsInput>
+  }
+
+  export type UserUpdateWithoutSafetyHazardReportsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
+    sessions?: SessionUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUpdateManyWithoutUserNestedInput
+    locations?: LocationUpdateManyWithoutUserNestedInput
+    routes?: RouteUpdateManyWithoutUserNestedInput
+    places?: PlaceUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+  }
+
+  export type UserUncheckedUpdateWithoutSafetyHazardReportsInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    name?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    password?: NullableStringFieldUpdateOperationsInput | string | null
+    googleId?: NullableStringFieldUpdateOperationsInput | string | null
+    picture?: NullableStringFieldUpdateOperationsInput | string | null
+    emailVerified?: BoolFieldUpdateOperationsInput | boolean
+    profilePublic?: BoolFieldUpdateOperationsInput | boolean
+    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
+    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
+    vehicles?: VehicleUncheckedUpdateManyWithoutUserNestedInput
+    locations?: LocationUncheckedUpdateManyWithoutUserNestedInput
+    routes?: RouteUncheckedUpdateManyWithoutUserNestedInput
+    places?: PlaceUncheckedUpdateManyWithoutUserNestedInput
+    placeReviews?: PlaceReviewUncheckedUpdateManyWithoutUserNestedInput
+    placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
+    favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
+    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
+    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
+    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
+    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
+    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
+    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
+    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
+    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OTPVerificationCreateManyUserInput = {
@@ -44340,6 +46196,22 @@ export namespace Prisma {
     shareId: string
     firstViewedAt?: Date | string
     lastViewedAt?: Date | string
+  }
+
+  export type SafetyHazardReportCreateManyUserInput = {
+    id?: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
   }
 
   export type OTPVerificationUpdateWithoutUserInput = {
@@ -45097,6 +46969,54 @@ export namespace Prisma {
     lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type SafetyHazardReportUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SafetyHazardReportUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SafetyHazardReportUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type LocationCreateManyVehicleInput = {
     id?: string
     userId?: string | null
@@ -45758,6 +47678,10 @@ export namespace Prisma {
      * @deprecated Use LiveLocationViewerDefaultArgs instead
      */
     export type LiveLocationViewerArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LiveLocationViewerDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use SafetyHazardReportDefaultArgs instead
+     */
+    export type SafetyHazardReportArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SafetyHazardReportDefaultArgs<ExtArgs>
     /**
      * @deprecated Use LegalDocumentDefaultArgs instead
      */

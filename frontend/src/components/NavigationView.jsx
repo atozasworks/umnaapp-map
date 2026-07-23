@@ -74,6 +74,10 @@ export default function NavigationView({
   destinationName,
   onExit,
   onReroute,
+  safetyWarning = null,
+  saferRouteAvailable = false,
+  onAcceptSaferRoute = null,
+  onReportHazard = null,
 }) {
   const { language } = useLanguage()
   const [muted, setMuted] = useState(false)
@@ -90,6 +94,10 @@ export default function NavigationView({
   const tArrived = useTranslate('You have arrived')
   const tRerouting = useTranslate('Rerouting…')
   const tEnd = useTranslate('End navigation')
+  const tSafetyWarn = useTranslate('Safety warning ahead')
+  const tSaferAvailable = useTranslate('Safer route available')
+  const tSwitchSafer = useTranslate('Switch')
+  const tReportHazard = useTranslate('Report hazard')
 
   followingRef.current = following
 
@@ -197,6 +205,7 @@ export default function NavigationView({
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[60] flex flex-col justify-between">
+      <div>
       {/* Top maneuver banner */}
       <div
         className="pointer-events-auto mx-2 mt-2 rounded-2xl bg-[#1a73e8] text-white shadow-2xl sm:mx-3 sm:mt-3"
@@ -249,6 +258,56 @@ export default function NavigationView({
           </div>
         )}
       </div>
+
+      {(safetyWarning || saferRouteAvailable) && (
+        <div className="pointer-events-auto mx-2 mt-2 space-y-2 sm:mx-3">
+          {safetyWarning && (
+            <div className="flex items-start gap-2 rounded-xl border border-amber-300 bg-amber-50 px-3 py-2.5 text-amber-950 shadow-lg">
+              <span className="mt-0.5 text-amber-600" aria-hidden>
+                ⚠
+              </span>
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-bold uppercase tracking-wide text-amber-800">
+                  {tSafetyWarn}
+                </p>
+                <p className="text-sm font-medium leading-snug">
+                  {safetyWarning.message || tSafetyWarn}
+                  {Number.isFinite(safetyWarning.distanceMeters)
+                    ? ` · ${Math.round(safetyWarning.distanceMeters)} m`
+                    : ''}
+                </p>
+              </div>
+            </div>
+          )}
+          {saferRouteAvailable && onAcceptSaferRoute && (
+            <div className="flex items-center justify-between gap-2 rounded-xl border border-emerald-300 bg-emerald-50 px-3 py-2.5 text-emerald-950 shadow-lg">
+              <p className="text-sm font-semibold">{tSaferAvailable}</p>
+              <button
+                type="button"
+                onClick={onAcceptSaferRoute}
+                className="rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white"
+              >
+                {tSwitchSafer}
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+      </div>
+
+      {onReportHazard && currentLocation && (
+        <div className="pointer-events-auto absolute right-2 top-1/2 z-[61] -translate-y-1/2 sm:right-3">
+          <button
+            type="button"
+            onClick={() =>
+              onReportHazard({ lat: currentLocation.lat, lng: currentLocation.lng })
+            }
+            className="rounded-full bg-white/95 px-3 py-2 text-[11px] font-semibold text-amber-800 shadow-md ring-1 ring-amber-200"
+          >
+            {tReportHazard}
+          </button>
+        </div>
+      )}
 
       {/* Recenter button (only while the user has panned away) */}
       {!following && (
