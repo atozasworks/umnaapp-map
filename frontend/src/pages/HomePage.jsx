@@ -188,7 +188,6 @@ const HomePage = () => {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [mapReadyTick, setMapReadyTick] = useState(0)
-  const hasInitialAutoCenterRef = useRef(false)
   const [polygonOverlayPlaces, setPolygonOverlayPlaces] = useState([])
   const [polygonMapInteraction, setPolygonMapInteraction] = useState(false)
   const [areaExploreFeature, setAreaExploreFeature] = useState(null)
@@ -295,35 +294,8 @@ const HomePage = () => {
     }
   }, [mapContextMenu, closeMapContextMenu, mapReadyTick])
 
-  // First GPS fix: center on user once — but not if they already have saved places (map fits to those pins).
-  useEffect(() => {
-    if (mapReadyTick === 0) return
-    if (hasInitialAutoCenterRef.current) return
-    if (allPlaces.length > 0) {
-      hasInitialAutoCenterRef.current = true
-      return
-    }
-    if (!Number.isFinite(currentLocation?.lat) || !Number.isFinite(currentLocation?.lng)) return
-    if (!mapRef.current?.flyTo) return
-    const map = mapRef.current?.getMap?.()
-    const center = map?.getCenter?.()
-    if (center) {
-      const isAlreadyCentered =
-        Math.abs(center.lat - currentLocation.lat) < 0.0002
-        && Math.abs(center.lng - currentLocation.lng) < 0.0002
-      if (isAlreadyCentered) {
-        hasInitialAutoCenterRef.current = true
-        return
-      }
-    }
-
-    hasInitialAutoCenterRef.current = true
-    mapRef.current.flyTo({
-      center: [currentLocation.lng, currentLocation.lat],
-      zoom: 16,
-      duration: 900,
-    })
-  }, [mapReadyTick, currentLocation, allPlaces.length])
+  // Initial camera (cached location / GPS / saved places) is owned by MapComponent —
+  // avoid a second flyTo here that fights the map and feels laggy.
 
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
@@ -2021,6 +1993,9 @@ const HomePage = () => {
               />
               <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
                 {navAppTitle}
+              </span>
+              <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wide text-slate-500/90 leading-none whitespace-nowrap self-end mb-0.5 sm:mb-1">
+                alpha version
               </span>
             </h1>
           </div>

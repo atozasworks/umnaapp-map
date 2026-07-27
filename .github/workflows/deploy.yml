@@ -1,12 +1,21 @@
 # UMNAAPP Map — CI/CD with single Quality Gate
 # Stack: PostgreSQL, Prisma, Express, React (Vite), Node.js
 #
-# Required GitHub secrets (per environment: production / stage):
+# Deploy jobs use GitHub Environment: umnaappMain
+# ALL runtime config is injected from that environment's Secrets.
+# The workflow never reads or merges the VPS's existing backend/.env —
+# it generates a fresh .env from secrets on the runner and installs it.
+#
+# Required Environment Secrets (umnaappMain):
 #   VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_APP_DIR
-#   VPS_PORT (optional, default 22)
-#   DATABASE_URL, JWT_SECRET, ADMIN_SECRET, PORT
-#   VITE_API_URL (frontend build), SMTP_*, GOOGLE_*, GROQ_API_KEY, VAPID_*, etc.
-#   See backend/env.example.txt for the full list used during .env creation.
+#   DATABASE_URL, JWT_SECRET, ADMIN_SECRET, PORT, FRONTEND_URL
+#   umna_API_URL (frontend/admin Vite build → VITE_API_URL)
+# Optional (set when needed): VPS_PORT, JWT_EXPIRES_IN, ADMIN_URL, SMTP_*,
+#   FEEDBACK_*, GOOGLE_*, GROQ_*, VAPID_*, ROUTE_SERVICE_URL, SEARCH_*,
+#   OSRM_*, FRONTEND_BUILD_PATH, ADMIN_BUILD_PATH, CORS_ORIGINS,
+#   UMNAAPP_OSM_DATABASE_URL, TILESERVER_URL, PLACES_*, umna_GOOGLE_CLIENT_ID,
+#   umna_TILESERVER_URL, umna_MAPS_HOST, etc.
+# See backend/env.example.txt for variable meanings.
 
 name: CI/CD Deploy to VPS
 
@@ -335,7 +344,7 @@ jobs:
       ((github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    environment: umnaappMain
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -349,10 +358,23 @@ jobs:
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          umna_API_URL: ${{ secrets.umna_API_URL }}
+          umna_GOOGLE_CLIENT_ID: ${{ secrets.umna_GOOGLE_CLIENT_ID }}
+          umna_TILESERVER_URL: ${{ secrets.umna_TILESERVER_URL }}
+          umna_MAPS_HOST: ${{ secrets.umna_MAPS_HOST }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           CI: false
         run: |
+          set -euo pipefail
+          if [ -z "${umna_API_URL:-}" ]; then
+            echo "Missing required Environment Secret: umna_API_URL (umnaappMain)"
+            exit 1
+          fi
+          # Map umna_* Environment Secrets → Vite VITE_* build env (Vite requires VITE_ prefix).
+          export VITE_API_URL="$umna_API_URL"
+          export VITE_GOOGLE_CLIENT_ID="${umna_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}"
+          export VITE_TILESERVER_URL="${umna_TILESERVER_URL:-}"
+          export VITE_MAPS_HOST="${umna_MAPS_HOST:-}"
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
           npm run build
 
@@ -429,7 +451,7 @@ jobs:
       ((github.event_name == 'push' && needs.changes.outputs.admin == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_admin == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    environment: umnaappMain
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -442,7 +464,16 @@ jobs:
 
       - name: Build admin
         working-directory: admin
+        env:
+          umna_API_URL: ${{ secrets.umna_API_URL }}
+          CI: false
         run: |
+          set -euo pipefail
+          if [ -z "${umna_API_URL:-}" ]; then
+            echo "Missing required Environment Secret: umna_API_URL (umnaappMain)"
+            exit 1
+          fi
+          export VITE_API_URL="$umna_API_URL"
           if [ -f package-lock.json ]; then npm ci; else npm install; fi
           npm run build
 
@@ -494,7 +525,7 @@ jobs:
       ((github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    environment: umnaappMain
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -505,6 +536,7 @@ jobs:
           tar -czf ../backend-deploy.tar.gz \
             --exclude=node_modules \
             --exclude=.env \
+            --exclude=.env.* \
             --exclude=uploads \
             --exclude=build \
             --exclude=admin/dist \
@@ -512,6 +544,175 @@ jobs:
             --exclude=.git \
             .
           ls -lh ../backend-deploy.tar.gz
+
+      - name: Generate backend .env from GitHub Environment secrets
+        env:
+          PORT: ${{ secrets.PORT }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+          JWT_EXPIRES_IN: ${{ secrets.JWT_EXPIRES_IN }}
+          ADMIN_SECRET: ${{ secrets.ADMIN_SECRET }}
+          ADMIN_URL: ${{ secrets.ADMIN_URL }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
+          FRONTEND_BUILD_PATH: ${{ secrets.FRONTEND_BUILD_PATH }}
+          ADMIN_BUILD_PATH: ${{ secrets.ADMIN_BUILD_PATH }}
+          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
+          SMTP_NAME: ${{ secrets.SMTP_NAME }}
+          SMTP_SERVER: ${{ secrets.SMTP_SERVER }}
+          SMTP_PORT: ${{ secrets.SMTP_PORT }}
+          SMTP_SECURE: ${{ secrets.SMTP_SECURE }}
+          SMTP_EMAIL: ${{ secrets.SMTP_EMAIL }}
+          SMTP_EMAIL_PASSWORD: ${{ secrets.SMTP_EMAIL_PASSWORD }}
+          FEEDBACK_EMAIL: ${{ secrets.FEEDBACK_EMAIL }}
+          FEEDBACK_SMTP_SERVER: ${{ secrets.FEEDBACK_SMTP_SERVER }}
+          FEEDBACK_SMTP_PORT: ${{ secrets.FEEDBACK_SMTP_PORT }}
+          FEEDBACK_SMTP_SECURE: ${{ secrets.FEEDBACK_SMTP_SECURE }}
+          FEEDBACK_SMTP_EMAIL: ${{ secrets.FEEDBACK_SMTP_EMAIL }}
+          FEEDBACK_SMTP_PASSWORD: ${{ secrets.FEEDBACK_SMTP_PASSWORD }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_CALLBACK_URL: ${{ secrets.GOOGLE_CALLBACK_URL }}
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          GROQ_MODEL: ${{ secrets.GROQ_MODEL }}
+          GROQ_TIMEOUT_MS: ${{ secrets.GROQ_TIMEOUT_MS }}
+          GROQ_ASSISTANT_MODEL: ${{ secrets.GROQ_ASSISTANT_MODEL }}
+          VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
+          VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+          VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          ROUTE_SERVICE_URL: ${{ secrets.ROUTE_SERVICE_URL }}
+          OSRM_URL: ${{ secrets.OSRM_URL }}
+          OSRM_PUBLIC_URL: ${{ secrets.OSRM_PUBLIC_URL }}
+          SEARCH_URL: ${{ secrets.SEARCH_URL }}
+          SEARCH_SIMPLE_URL: ${{ secrets.SEARCH_SIMPLE_URL }}
+          REVERSE_URL: ${{ secrets.REVERSE_URL }}
+          NOMINATIM_URL: ${{ secrets.NOMINATIM_URL }}
+          TILESERVER_URL: ${{ secrets.TILESERVER_URL }}
+          UMNAAPP_OSM_DATABASE_URL: ${{ secrets.UMNAAPP_OSM_DATABASE_URL }}
+          UMNAAPP_OSM_POOL_MAX: ${{ secrets.UMNAAPP_OSM_POOL_MAX }}
+          ATOZAS_TRANSLATE_API_URL: ${{ secrets.ATOZAS_TRANSLATE_API_URL }}
+          ATOZAS_TRANSLATE_API_KEY: ${{ secrets.ATOZAS_TRANSLATE_API_KEY }}
+          PLACE_DELETE_ADMIN_USER_IDS: ${{ secrets.PLACE_DELETE_ADMIN_USER_IDS }}
+          PLACE_DELETE_ADMIN_EMAILS: ${{ secrets.PLACE_DELETE_ADMIN_EMAILS }}
+          GOOGLE_API_HARD_STOP: ${{ secrets.GOOGLE_API_HARD_STOP }}
+          PLACES_MIN_ZOOM_NEARBY: ${{ secrets.PLACES_MIN_ZOOM_NEARBY }}
+          PLACES_MAX_NEARBY_PER_SESSION: ${{ secrets.PLACES_MAX_NEARBY_PER_SESSION }}
+          PLACES_MAX_NEARBY_PER_DAY: ${{ secrets.PLACES_MAX_NEARBY_PER_DAY }}
+          PLACES_BOUNDS_CACHE_MAX: ${{ secrets.PLACES_BOUNDS_CACHE_MAX }}
+          PLACES_BOUNDS_CACHE_TTL_MS: ${{ secrets.PLACES_BOUNDS_CACHE_TTL_MS }}
+          PLACES_DETAILS_CACHE_MAX: ${{ secrets.PLACES_DETAILS_CACHE_MAX }}
+          PLACES_DETAILS_CACHE_TTL_MS: ${{ secrets.PLACES_DETAILS_CACHE_TTL_MS }}
+          PLACES_MAP_IDLE_DEBOUNCE_MS: ${{ secrets.PLACES_MAP_IDLE_DEBOUNCE_MS }}
+          PLACES_MIN_DELAY_MS: ${{ secrets.PLACES_MIN_DELAY_MS }}
+          PLACES_CELL_DELAY_MS: ${{ secrets.PLACES_CELL_DELAY_MS }}
+          EXTRACT_MAX_AREA_KM2: ${{ secrets.EXTRACT_MAX_AREA_KM2 }}
+          PUBLIC_MAP_DEFAULT_LAT: ${{ secrets.PUBLIC_MAP_DEFAULT_LAT }}
+          PUBLIC_MAP_DEFAULT_LNG: ${{ secrets.PUBLIC_MAP_DEFAULT_LNG }}
+          PUBLIC_MAP_DEFAULT_ZOOM: ${{ secrets.PUBLIC_MAP_DEFAULT_ZOOM }}
+        run: |
+          set -euo pipefail
+          umask 077
+          OUT=backend.env.deploy
+          : > "$OUT"
+
+          require() {
+            local name="$1" value="$2"
+            if [ -z "${value}" ]; then
+              echo "::error::Missing required Environment Secret '${name}' in umnaappMain"
+              exit 1
+            fi
+          }
+
+          # Never echo secret values — only validate presence.
+          require PORT "${PORT:-}"
+          require DATABASE_URL "${DATABASE_URL:-}"
+          require JWT_SECRET "${JWT_SECRET:-}"
+          require ADMIN_SECRET "${ADMIN_SECRET:-}"
+          require FRONTEND_URL "${FRONTEND_URL:-}"
+
+          write_kv() {
+            local key="$1" value="$2"
+            # Skip empty optional secrets so dotenv does not override defaults with "".
+            if [ -z "${value}" ]; then
+              return 0
+            fi
+            printf '%s=%s\n' "$key" "$value" >> "$OUT"
+          }
+
+          printf '%s\n' 'NODE_ENV=production' >> "$OUT"
+          write_kv PORT "$PORT"
+          write_kv DATABASE_URL "$DATABASE_URL"
+          write_kv JWT_SECRET "$JWT_SECRET"
+          write_kv JWT_EXPIRES_IN "${JWT_EXPIRES_IN:-7d}"
+          write_kv ADMIN_SECRET "$ADMIN_SECRET"
+          write_kv ADMIN_URL "$ADMIN_URL"
+          write_kv FRONTEND_URL "$FRONTEND_URL"
+          write_kv FRONTEND_BUILD_PATH "$FRONTEND_BUILD_PATH"
+          write_kv ADMIN_BUILD_PATH "$ADMIN_BUILD_PATH"
+          write_kv CORS_ORIGINS "$CORS_ORIGINS"
+          write_kv SMTP_NAME "$SMTP_NAME"
+          write_kv SMTP_SERVER "$SMTP_SERVER"
+          write_kv SMTP_PORT "$SMTP_PORT"
+          write_kv SMTP_SECURE "$SMTP_SECURE"
+          write_kv SMTP_EMAIL "$SMTP_EMAIL"
+          write_kv SMTP_EMAIL_PASSWORD "$SMTP_EMAIL_PASSWORD"
+          write_kv FEEDBACK_EMAIL "$FEEDBACK_EMAIL"
+          write_kv FEEDBACK_SMTP_SERVER "$FEEDBACK_SMTP_SERVER"
+          write_kv FEEDBACK_SMTP_PORT "$FEEDBACK_SMTP_PORT"
+          write_kv FEEDBACK_SMTP_SECURE "$FEEDBACK_SMTP_SECURE"
+          write_kv FEEDBACK_SMTP_EMAIL "$FEEDBACK_SMTP_EMAIL"
+          write_kv FEEDBACK_SMTP_PASSWORD "$FEEDBACK_SMTP_PASSWORD"
+          write_kv GOOGLE_CLIENT_ID "$GOOGLE_CLIENT_ID"
+          write_kv GOOGLE_CLIENT_SECRET "$GOOGLE_CLIENT_SECRET"
+          write_kv GOOGLE_CALLBACK_URL "$GOOGLE_CALLBACK_URL"
+          write_kv GOOGLE_MAPS_API_KEY "$GOOGLE_MAPS_API_KEY"
+          write_kv GROQ_API_KEY "$GROQ_API_KEY"
+          write_kv GROQ_MODEL "$GROQ_MODEL"
+          write_kv GROQ_TIMEOUT_MS "$GROQ_TIMEOUT_MS"
+          write_kv GROQ_ASSISTANT_MODEL "$GROQ_ASSISTANT_MODEL"
+          write_kv VAPID_PUBLIC_KEY "$VAPID_PUBLIC_KEY"
+          write_kv VAPID_PRIVATE_KEY "$VAPID_PRIVATE_KEY"
+          write_kv VAPID_SUBJECT "$VAPID_SUBJECT"
+          write_kv ROUTE_SERVICE_URL "$ROUTE_SERVICE_URL"
+          write_kv OSRM_URL "$OSRM_URL"
+          write_kv OSRM_PUBLIC_URL "$OSRM_PUBLIC_URL"
+          write_kv SEARCH_URL "$SEARCH_URL"
+          write_kv SEARCH_SIMPLE_URL "$SEARCH_SIMPLE_URL"
+          write_kv REVERSE_URL "$REVERSE_URL"
+          write_kv NOMINATIM_URL "$NOMINATIM_URL"
+          write_kv TILESERVER_URL "$TILESERVER_URL"
+          write_kv UMNAAPP_OSM_DATABASE_URL "$UMNAAPP_OSM_DATABASE_URL"
+          write_kv UMNAAPP_OSM_POOL_MAX "$UMNAAPP_OSM_POOL_MAX"
+          write_kv ATOZAS_TRANSLATE_API_URL "$ATOZAS_TRANSLATE_API_URL"
+          write_kv ATOZAS_TRANSLATE_API_KEY "$ATOZAS_TRANSLATE_API_KEY"
+          write_kv PLACE_DELETE_ADMIN_USER_IDS "$PLACE_DELETE_ADMIN_USER_IDS"
+          write_kv PLACE_DELETE_ADMIN_EMAILS "$PLACE_DELETE_ADMIN_EMAILS"
+          write_kv GOOGLE_API_HARD_STOP "$GOOGLE_API_HARD_STOP"
+          write_kv PLACES_MIN_ZOOM_NEARBY "$PLACES_MIN_ZOOM_NEARBY"
+          write_kv PLACES_MAX_NEARBY_PER_SESSION "$PLACES_MAX_NEARBY_PER_SESSION"
+          write_kv PLACES_MAX_NEARBY_PER_DAY "$PLACES_MAX_NEARBY_PER_DAY"
+          write_kv PLACES_BOUNDS_CACHE_MAX "$PLACES_BOUNDS_CACHE_MAX"
+          write_kv PLACES_BOUNDS_CACHE_TTL_MS "$PLACES_BOUNDS_CACHE_TTL_MS"
+          write_kv PLACES_DETAILS_CACHE_MAX "$PLACES_DETAILS_CACHE_MAX"
+          write_kv PLACES_DETAILS_CACHE_TTL_MS "$PLACES_DETAILS_CACHE_TTL_MS"
+          write_kv PLACES_MAP_IDLE_DEBOUNCE_MS "$PLACES_MAP_IDLE_DEBOUNCE_MS"
+          write_kv PLACES_MIN_DELAY_MS "$PLACES_MIN_DELAY_MS"
+          write_kv PLACES_CELL_DELAY_MS "$PLACES_CELL_DELAY_MS"
+          write_kv EXTRACT_MAX_AREA_KM2 "$EXTRACT_MAX_AREA_KM2"
+          write_kv PUBLIC_MAP_DEFAULT_LAT "$PUBLIC_MAP_DEFAULT_LAT"
+          write_kv PUBLIC_MAP_DEFAULT_LNG "$PUBLIC_MAP_DEFAULT_LNG"
+          write_kv PUBLIC_MAP_DEFAULT_ZOOM "$PUBLIC_MAP_DEFAULT_ZOOM"
+
+          chmod 600 "$OUT"
+          # Sanity: file exists, has required keys, no secret values printed.
+          test -s "$OUT"
+          grep -q '^NODE_ENV=production$' "$OUT"
+          grep -q '^PORT=' "$OUT"
+          grep -q '^DATABASE_URL=' "$OUT"
+          grep -q '^JWT_SECRET=' "$OUT"
+          grep -q '^ADMIN_SECRET=' "$OUT"
+          grep -q '^FRONTEND_URL=' "$OUT"
+          echo "Generated backend.env.deploy ($(wc -l < "$OUT") keys) from umnaappMain secrets"
 
       - name: Validate SSH key
         run: |
@@ -524,14 +725,14 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keygen -l -f ~/.ssh/deploy_key >/dev/null
 
-      - name: SCP backend archive
+      - name: SCP backend archive and env file
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          source: backend-deploy.tar.gz
+          source: backend-deploy.tar.gz,backend.env.deploy
           target: /tmp
           timeout: 300s
 
@@ -554,11 +755,13 @@ jobs:
             [ -d "${BACKEND_DIR}/uploads" ] && cp -r "${BACKEND_DIR}/uploads" ./uploads || true
             [ -d "${BACKEND_DIR}/build" ] && cp -r "${BACKEND_DIR}/build" ./build || true
             [ -d "${BACKEND_DIR}/admin/dist" ] && mkdir -p ./admin/dist && cp -r "${BACKEND_DIR}/admin/dist"/* ./admin/dist/ || true
+            # Never carry over a server-side .env — config comes only from GitHub Secrets.
+            rm -f ./.env ./.env.* 2>/dev/null || true
             cp -r ./* "${BACKEND_DIR}/"
             cp -r ./.??* "${BACKEND_DIR}/" 2>/dev/null || true
             rm -rf "${TEMP_DIR}" /tmp/backend-deploy.tar.gz
 
-      - name: Create .env on VPS
+      - name: Install .env on VPS from GitHub Environment secrets
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -569,33 +772,21 @@ jobs:
           script: |
             set -euo pipefail
             APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            cd "${APP_DIR}/backend"
+            BACKEND_DIR="${APP_DIR}/backend"
+            test -f /tmp/backend.env.deploy
             umask 077
-            printf '%s\n' \
-              "NODE_ENV=production" \
-              "PORT=${{ secrets.PORT }}" \
-              "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
-              "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
-              "JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}" \
-              "ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}" \
-              "SMTP_NAME=${{ secrets.SMTP_NAME }}" \
-              "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" \
-              "SMTP_PORT=${{ secrets.SMTP_PORT }}" \
-              "SMTP_SECURE=${{ secrets.SMTP_SECURE }}" \
-              "SMTP_EMAIL=${{ secrets.SMTP_EMAIL }}" \
-              "SMTP_EMAIL_PASSWORD=${{ secrets.SMTP_EMAIL_PASSWORD }}" \
-              "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" \
-              "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-              "GOOGLE_CALLBACK_URL=${{ secrets.GOOGLE_CALLBACK_URL }}" \
-              "GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}" \
-              "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
-              "VAPID_PUBLIC_KEY=${{ secrets.VAPID_PUBLIC_KEY }}" \
-              "VAPID_PRIVATE_KEY=${{ secrets.VAPID_PRIVATE_KEY }}" \
-              "VAPID_SUBJECT=${{ secrets.VAPID_SUBJECT }}" \
-              "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
-              "ADMIN_URL=${{ secrets.ADMIN_URL }}" \
-              > .env
-            chmod 600 .env
+            # Replace any existing server .env entirely — do not source/merge it.
+            rm -f "${BACKEND_DIR}/.env"
+            install -m 600 /tmp/backend.env.deploy "${BACKEND_DIR}/.env"
+            rm -f /tmp/backend.env.deploy
+            # Verify required keys exist without printing values.
+            for key in NODE_ENV PORT DATABASE_URL JWT_SECRET ADMIN_SECRET FRONTEND_URL; do
+              grep -q "^${key}=" "${BACKEND_DIR}/.env" || {
+                echo "Installed .env missing required key: ${key}"
+                exit 1
+              }
+            done
+            echo "Installed backend/.env from umnaappMain secrets ($(wc -l < "${BACKEND_DIR}/.env") lines)"
 
       - name: Install dependencies and restart PM2
         uses: appleboy/ssh-action@v1.2.0
@@ -632,4 +823,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f backend-deploy.tar.gz
+        run: rm -f backend-deploy.tar.gz backend.env.deploy

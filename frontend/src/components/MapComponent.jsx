@@ -128,16 +128,65 @@ const isPngBuffer = (buf) => {
   return u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47
 }
 
-/** Proxy/HTML 200 responses do not fire MapLibre tile errors — verify PNG before use. */
-const verifyTileEndpoint = async (template) => {
+const LAST_LOCATION_STORAGE_KEY = 'umnaapp_last_map_location'
+const TILE_PROBE_TIMEOUT_MS = 2200
+const MAP_LOAD_SAFETY_MS = 5500
+
+/** Last GPS/map center — opens near the user instead of India-wide fly-in. */
+const readCachedMapLocation = () => {
   try {
-    const res = await fetch(sampleTileUrl(template))
+    const raw = localStorage.getItem(LAST_LOCATION_STORAGE_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw)
+    const lng = Number(parsed?.lng)
+    const lat = Number(parsed?.lat)
+    const zoom = Number(parsed?.zoom)
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return null
+    if (lng < 68 || lng > 97 || lat < 6 || lat > 37) return null
+    return {
+      lng,
+      lat,
+      zoom: Number.isFinite(zoom) ? Math.min(18, Math.max(11, zoom)) : 15,
+    }
+  } catch {
+    return null
+  }
+}
+
+const writeCachedMapLocation = (lng, lat, zoom) => {
+  try {
+    if (!Number.isFinite(lng) || !Number.isFinite(lat)) return
+    localStorage.setItem(
+      LAST_LOCATION_STORAGE_KEY,
+      JSON.stringify({
+        lng,
+        lat,
+        zoom: Number.isFinite(zoom) ? zoom : 15,
+        t: Date.now(),
+      })
+    )
+  } catch {
+    /* ignore quota / private mode */
+  }
+}
+
+/** Proxy/HTML 200 responses do not fire MapLibre tile errors — verify PNG before use. */
+const verifyTileEndpoint = async (template, timeoutMs = TILE_PROBE_TIMEOUT_MS) => {
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null
+  const timer = setTimeout(() => ctrl?.abort?.(), timeoutMs)
+  try {
+    const res = await fetch(sampleTileUrl(template), {
+      signal: ctrl?.signal,
+      cache: 'no-store',
+    })
     if (!res.ok) return false
     const ct = (res.headers.get('content-type') || '').toLowerCase()
     if (ct.includes('image')) return true
     return isPngBuffer(await res.arrayBuffer())
   } catch {
     return false
+  } finally {
+    clearTimeout(timer)
   }
 }
 
@@ -669,6 +718,7 @@ const MapComponent = forwardRef(({
   const lastValidLocationRef = useRef(null)
   const hasFlownToUserRef = useRef(false)
   const initialFlyFallbackTimerRef = useRef(null)
+  const initialGpsCenterTimerRef = useRef(null)
   const placePopupRef = useRef(null)
   const hasFittedUserPlacesRef = useRef(false)
   const userPlaceMarkersRef = useRef({})
@@ -691,11 +741,14 @@ const MapComponent = forwardRef(({
   const [measurePointCount, setMeasurePointCount] = useState(0)
 
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [loadingOverlayVisible, setLoadingOverlayVisible] = useState(true)
+  const [loadingOverlayMounted, setLoadingOverlayMounted] = useState(true)
   const [mapZoom, setMapZoom] = useState(null)
   const [mapInitError, setMapInitError] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [gpsStatus, setGpsStatus] = useState('acquiring') // 'acquiring', 'high', 'weak'
   const [currentLocation, setCurrentLocation] = useState(null)
+  const startedFromCacheRef = useRef(false)
   const [vehicles, setVehicles] = useState([])
   const [route, setRoute] = useState(null)
   const [basemapMode, setBasemapMode] = useState(readStoredBasemapMode)
@@ -706,6 +759,15 @@ const MapComponent = forwardRef(({
   const offlineMapsActiveRef = useRef(false)
   const [offlineModeActive, setOfflineModeActive] = useState(false)
   const [offlineAreaMissing, setOfflineAreaMissing] = useState(false)
+
+  // Fade out loading overlay after map style is ready (tiles may still fill in).
+  useEffect(() => {
+    if (!mapLoaded) return undefined
+    setLoadingOverlayVisible(false)
+    const t = window.setTimeout(() => setLoadingOverlayMounted(false), 280)
+    return () => window.clearTimeout(t)
+  }, [mapLoaded])
+
   useEffect(() => {
     basemapModeRef.current = basemapMode
   }, [basemapMode])
@@ -1211,8 +1273,13 @@ const MapComponent = forwardRef(({
       [68.0, 6.0],
       [97.0, 37.0],
     ]
+    const cachedLoc = readCachedMapLocation()
+    startedFromCacheRef.current = Boolean(cachedLoc)
+    const initialCenter = cachedLoc ? [cachedLoc.lng, cachedLoc.lat] : [78.5, 20.5]
+    const initialZoom = cachedLoc ? cachedLoc.zoom : 4
 
     let map
+    let loadSafetyTimer = null
     try {
       map = new maplibregl.Map({
       container: mapContainerRef.current,
@@ -1248,8 +1315,8 @@ const MapComponent = forwardRef(({
         // demotiles.maplibre.org often 404s for Open Sans; OpenMapTiles CDN is stable for glyphs
         glyphs: 'https://fonts.openmaptiles.org/{fontstack}/{range}.pbf',
       },
-      center: [78.5, 20.5], // India center
-      zoom: 4,
+      center: initialCenter,
+      zoom: initialZoom,
       minZoom: 3,
       maxZoom: 19,
       renderWorldCopies: false,
@@ -1277,22 +1344,43 @@ const MapComponent = forwardRef(({
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
 
-    map.on('load', () => {
-      // Ensure the canvas matches the real container size before fitting bounds,
-      // otherwise the India view is computed against a stale (smaller) size.
-      map.resize()
-      applyRasterTilePaint(map)
-      configureGoogleLikeZoom(map)
-      map.fitBounds(indiaBounds, {
-        padding: 20,
-        duration: 0,
-      })
-      applyBasemapToMap(map, basemapModeRef.current, tileUrl)
+    let tileFailCount = 0
+    let tileFallbackApplied = false
+    const TILE_FALLBACK_THRESHOLD = 2
+
+    let mapReadyNotified = false
+    const markMapReady = () => {
+      if (mapReadyNotified) return
+      mapReadyNotified = true
       setMapLoaded(true)
       setMapZoom(map.getZoom())
       if (typeof onMapReady === 'function') {
         onMapReady(map)
       }
+    }
+
+    map.on('load', () => {
+      // Ensure the canvas matches the real container size before any camera move.
+      map.resize()
+      applyRasterTilePaint(map)
+      configureGoogleLikeZoom(map)
+      // Only fit India overview when we have no cached local center.
+      if (!cachedLoc) {
+        map.fitBounds(indiaBounds, {
+          padding: 20,
+          duration: 0,
+        })
+      }
+      // Avoid applyBasemapToMap on street — it clears/reloads tiles and causes flicker.
+      // Satellite needs label overlay; terrain may need maxzoom sync.
+      if (initialBasemap === 'satellite' || initialBasemap === 'terrain') {
+        applyBasemapToMap(map, initialBasemap, tileUrl)
+      }
+      if (loadSafetyTimer != null) {
+        clearTimeout(loadSafetyTimer)
+        loadSafetyTimer = null
+      }
+      markMapReady()
       console.log('✅ Map loaded')
 
       // HTML/502 from a broken tile proxy returns HTTP 200 — MapLibre stays white
@@ -1314,6 +1402,14 @@ const MapComponent = forwardRef(({
       }
     })
 
+    // Never leave users stuck on "Loading map..." if load is delayed.
+    loadSafetyTimer = setTimeout(() => {
+      loadSafetyTimer = null
+      if (!mapRef.current) return
+      map.resize()
+      markMapReady()
+    }, MAP_LOAD_SAFETY_MS)
+
     // Only update zoom state when zooming ends — avoids per-frame React re-renders
     const syncMapViewport = () => {
       map.resize()
@@ -1322,10 +1418,6 @@ const MapComponent = forwardRef(({
     map.on('zoomend', syncMapViewport)
     map.on('rotateend', syncMapViewport)
     map.on('pitchend', syncMapViewport)
-
-    let tileFailCount = 0
-    let tileFallbackApplied = false
-    const TILE_FALLBACK_THRESHOLD = 2
 
     map.on('error', (e) => {
       const err = e.error
@@ -1393,6 +1485,10 @@ const MapComponent = forwardRef(({
     }
 
     return () => {
+      if (loadSafetyTimer != null) {
+        clearTimeout(loadSafetyTimer)
+        loadSafetyTimer = null
+      }
       if (resizeObserver) {
         resizeObserver.disconnect()
         resizeObserver = null
@@ -1898,12 +1994,18 @@ const MapComponent = forwardRef(({
       }
       if (hasFittedUserPlacesRef.current) return
       hasFittedUserPlacesRef.current = true
+      // Places fit owns the first camera move — don't also GPS-fly afterward.
+      hasFlownToUserRef.current = true
+      if (initialGpsCenterTimerRef.current != null) {
+        clearTimeout(initialGpsCenterTimerRef.current)
+        initialGpsCenterTimerRef.current = null
+      }
       try {
         const bounds = coordsList.reduce(
           (b, c) => b.extend(c),
           new maplibregl.LngLatBounds(coordsList[0], coordsList[0])
         )
-        map.fitBounds(bounds, { padding: 72, maxZoom: 14, duration: 800 })
+        map.fitBounds(bounds, { padding: 72, maxZoom: 14, duration: 600, essential: true })
       } catch {
         /* ignore invalid bounds */
       }
@@ -2201,8 +2303,8 @@ const MapComponent = forwardRef(({
 
     const relaxedRead = {
       enableHighAccuracy: false,
-      maximumAge: 60000,
-      timeout: 45000,
+      maximumAge: 120000,
+      timeout: 12000,
     }
     const strictWatch = {
       enableHighAccuracy: true,
@@ -2212,7 +2314,7 @@ const MapComponent = forwardRef(({
     const strictOneShotRead = {
       enableHighAccuracy: true,
       maximumAge: 0,
-      timeout: 25000,
+      timeout: 15000,
     }
 
     const applyPosition = (position) => {
@@ -2242,20 +2344,51 @@ const MapComponent = forwardRef(({
       }
 
       const map = mapRef.current
+      writeCachedMapLocation(longitude, latitude, map?.getZoom?.() ?? 16)
 
       // One-time auto center on first valid location fix when app opens.
       // After this, we keep updating the marker but avoid re-centering the map again.
       if (map && !hasFlownToUserRef.current) {
-        hasFlownToUserRef.current = true
-        if (initialFlyFallbackTimerRef.current != null) {
-          clearTimeout(initialFlyFallbackTimerRef.current)
-          initialFlyFallbackTimerRef.current = null
+        // Saved places already framed the map — keep that view.
+        if (hasFittedUserPlacesRef.current) {
+          hasFlownToUserRef.current = true
+          if (initialFlyFallbackTimerRef.current != null) {
+            clearTimeout(initialFlyFallbackTimerRef.current)
+            initialFlyFallbackTimerRef.current = null
+          }
+          if (initialGpsCenterTimerRef.current != null) {
+            clearTimeout(initialGpsCenterTimerRef.current)
+            initialGpsCenterTimerRef.current = null
+          }
+          return
         }
-        map.flyTo({
-          center: [longitude, latitude],
-          zoom: 16,
-          duration: 1200,
-        })
+        // Defer slightly so a fast places-fit can win without a second camera yank.
+        if (initialGpsCenterTimerRef.current != null) return
+        const lng = longitude
+        const lat = latitude
+        initialGpsCenterTimerRef.current = setTimeout(() => {
+          initialGpsCenterTimerRef.current = null
+          if (hasFlownToUserRef.current || hasFittedUserPlacesRef.current) return
+          const liveMap = mapRef.current
+          if (!liveMap) return
+          hasFlownToUserRef.current = true
+          if (initialFlyFallbackTimerRef.current != null) {
+            clearTimeout(initialFlyFallbackTimerRef.current)
+            initialFlyFallbackTimerRef.current = null
+          }
+          const center = liveMap.getCenter?.()
+          const alreadyNear =
+            center &&
+            Math.abs(center.lat - lat) < 0.003 &&
+            Math.abs(center.lng - lng) < 0.003
+          const fromCache = startedFromCacheRef.current
+          liveMap.flyTo({
+            center: [lng, lat],
+            zoom: Math.max(liveMap.getZoom?.() || 0, fromCache || alreadyNear ? 15 : 16),
+            duration: alreadyNear ? 0 : fromCache ? 400 : 700,
+            essential: true,
+          })
+        }, 480)
       }
     }
 
@@ -2284,9 +2417,9 @@ const MapComponent = forwardRef(({
       setGpsStatus('weak')
     }
 
-    // Fast approximate marker only — do not treat this as the “true” position for auto-fly
-    navigator.geolocation.getCurrentPosition(applyPosition, () => {}, strictOneShotRead)
+    // Fast approximate fix first, then precise — first successful applyPosition centers the map.
     navigator.geolocation.getCurrentPosition(applyPosition, () => {}, relaxedRead)
+    navigator.geolocation.getCurrentPosition(applyPosition, () => {}, strictOneShotRead)
 
     watchIdRef.current = navigator.geolocation.watchPosition(
       applyPosition,
@@ -2302,15 +2435,20 @@ const MapComponent = forwardRef(({
       hasFlownToUserRef.current = true
       map.flyTo({
         center: [loc.lng, loc.lat],
-        zoom: 16,
-        duration: 1000,
+        zoom: Math.max(map.getZoom?.() || 0, 15),
+        duration: startedFromCacheRef.current ? 350 : 700,
+        essential: true,
       })
-    }, 14000)
+    }, 8000)
 
     return () => {
       if (initialFlyFallbackTimerRef.current != null) {
         clearTimeout(initialFlyFallbackTimerRef.current)
         initialFlyFallbackTimerRef.current = null
+      }
+      if (initialGpsCenterTimerRef.current != null) {
+        clearTimeout(initialGpsCenterTimerRef.current)
+        initialGpsCenterTimerRef.current = null
       }
       if (watchIdRef.current !== null) {
         navigator.geolocation.clearWatch(watchIdRef.current)
@@ -3400,13 +3538,19 @@ const MapComponent = forwardRef(({
         </div>
       ) : (
         <>
-          <div ref={mapContainerRef} className="w-full h-full" />
+          <div ref={mapContainerRef} className="w-full h-full bg-[#e8e4df]" />
 
-          {/* Loading overlay - visible until map loads (avoids blank white screen) */}
-          {!mapLoaded && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-slate-100/90 z-[5]">
-              <div className="animate-spin rounded-full h-10 w-10 border-2 border-primary-500 border-t-transparent" />
-              <p className="text-slate-700 font-medium text-sm">Loading map...</p>
+          {/* Loading overlay — fades out once style is ready; tiles may still fill in underneath */}
+          {loadingOverlayMounted && (
+            <div
+              className={`absolute inset-0 z-[5] flex flex-col items-center justify-center gap-3 bg-[#e8e4df] transition-opacity duration-300 ease-out ${
+                loadingOverlayVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'
+              }`}
+              aria-busy={!mapLoaded}
+              aria-live="polite"
+            >
+              <div className="h-9 w-9 animate-spin rounded-full border-2 border-slate-300 border-t-slate-600" />
+              <p className="text-sm font-medium text-slate-600">Loading map…</p>
             </div>
           )}
 
