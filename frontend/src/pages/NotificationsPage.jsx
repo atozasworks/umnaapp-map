@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../hooks/useNotifications'
 
-const ITINERARY_TYPES = ['itinerary_invite', 'itinerary_joined', 'itinerary_updated']
 const LIVE_LOCATION_TYPES = ['location_share_viewed', 'location_share_ended']
 
 function formatTimeAgo(iso) {
@@ -34,9 +33,6 @@ function NotificationIcon({ type }) {
   if (type === 'festival_today') {
     return <div className={`${base} bg-fuchsia-100 text-fuchsia-600 text-lg`} aria-hidden>🎪</div>
   }
-  if (ITINERARY_TYPES.includes(type)) {
-    return <div className={`${base} bg-indigo-100 text-indigo-600 text-lg`} aria-hidden>{type === 'itinerary_joined' ? '👥' : '🗺️'}</div>
-  }
   return (
     <div className={`${base} bg-amber-100 text-amber-600`}>
       <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
@@ -63,17 +59,6 @@ export default function NotificationsPage() {
   const openNotification = useCallback(
     async (n) => {
       if (!n.read) markRead(n.id).catch(() => {})
-      if (ITINERARY_TYPES.includes(n.type)) {
-        const data = n.data || {}
-        if (n.type === 'itinerary_invite' && data.shareToken) {
-          navigate(`/home?joinTrip=${data.shareToken}`)
-        } else if (data.itineraryId) {
-          navigate(`/home?openTrip=${data.itineraryId}`)
-        } else if (data.shareToken) {
-          navigate(`/home?joinTrip=${data.shareToken}`)
-        }
-        return
-      }
       if (LIVE_LOCATION_TYPES.includes(n.type) && n.data?.shareId) {
         navigate(`/home?openLiveShare=${encodeURIComponent(n.data.shareId)}`)
         return
@@ -149,56 +134,43 @@ export default function NotificationsPage() {
               <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
             </div>
             <p className="text-base font-medium text-slate-700">No notifications</p>
-            <p className="text-sm text-slate-500 mt-1">Trip invites, place updates and approvals will appear here.</p>
+            <p className="text-sm text-slate-500 mt-1">Place updates and approvals will appear here.</p>
           </div>
         )}
 
         {!loading && !error && notifications.length > 0 && (
           <ul className="space-y-2">
-            {notifications.map((n) => {
-              const isInvite = n.type === 'itinerary_invite'
-              return (
-                <li
-                  key={n.id}
-                  onClick={() => openNotification(n)}
-                  className={`group flex gap-3 p-4 rounded-xl border transition-colors cursor-pointer ${
-                    !n.read ? 'bg-primary-50/50 border-primary-100' : 'bg-white border-slate-100 hover:bg-slate-50'
-                  }`}
-                >
-                  <NotificationIcon type={n.type} />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-2">
-                      <p className={`text-sm ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-800'}`}>{n.title}</p>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {!n.read && <span className="w-2 h-2 rounded-full bg-primary-500 mt-1.5" aria-hidden />}
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); remove(n.id).catch(() => {}) }}
-                          className="p-1 -mr-1 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
-                          aria-label="Delete notification"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        </button>
-                      </div>
-                    </div>
-                    <p className="text-sm text-slate-600 mt-0.5 leading-relaxed whitespace-pre-wrap break-words">{n.body}</p>
-                    <div className="flex items-center justify-between gap-2 mt-1.5">
-                      <p className="text-xs text-slate-400">{formatTimeAgo(n.createdAt)}</p>
-                      {isInvite && (
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); openNotification(n) }}
-                          className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3.5 py-1.5 text-xs font-semibold text-white hover:bg-indigo-500 transition-colors"
-                        >
-                          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
-                          Join trip
-                        </button>
-                      )}
+            {notifications.map((n) => (
+              <li
+                key={n.id}
+                onClick={() => openNotification(n)}
+                className={`group flex gap-3 p-4 rounded-xl border transition-colors cursor-pointer ${
+                  !n.read ? 'bg-primary-50/50 border-primary-100' : 'bg-white border-slate-100 hover:bg-slate-50'
+                }`}
+              >
+                <NotificationIcon type={n.type} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <p className={`text-sm ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-800'}`}>{n.title}</p>
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {!n.read && <span className="w-2 h-2 rounded-full bg-primary-500 mt-1.5" aria-hidden />}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); remove(n.id).catch(() => {}) }}
+                        className="p-1 -mr-1 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        aria-label="Delete notification"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
                     </div>
                   </div>
-                </li>
-              )
-            })}
+                  <p className="text-sm text-slate-600 mt-0.5 leading-relaxed whitespace-pre-wrap break-words">{n.body}</p>
+                  <div className="flex items-center justify-between gap-2 mt-1.5">
+                    <p className="text-xs text-slate-400">{formatTimeAgo(n.createdAt)}</p>
+                  </div>
+                </div>
+              </li>
+            ))}
           </ul>
         )}
 

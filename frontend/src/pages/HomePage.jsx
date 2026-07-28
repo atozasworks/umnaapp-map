@@ -18,8 +18,6 @@ import DuplicatePlaceModal, { buildDuplicatePopupPayload } from '../components/D
 import PlaceAddedSuccessModal, { buildPlaceAddedPayload } from '../components/PlaceAddedSuccessModal'
 import PolygonExplorePanel from '../components/PolygonExplorePanel'
 import UpcomingFestivalsPanel from '../components/UpcomingFestivalsPanel'
-import GroupItinerariesPanel from '../components/GroupItinerariesPanel'
-import ItineraryDetailPanel from '../components/ItineraryDetailPanel'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
 import NotificationBell from '../components/NotificationBell'
@@ -137,9 +135,6 @@ const HomePage = () => {
   const [navSaferRoute, setNavSaferRoute] = useState(null)
   const [showAskMapsPanel, setShowAskMapsPanel] = useState(false)
   const [showFestivalsPanel, setShowFestivalsPanel] = useState(false)
-  const [showItinerariesPanel, setShowItinerariesPanel] = useState(false)
-  const [openItineraryId, setOpenItineraryId] = useState(null)
-  const [itineraryJoinToken, setItineraryJoinToken] = useState(null)
   const [askMapsPlaces, setAskMapsPlaces] = useState([])
   const [currentLocation, setCurrentLocation] = useState(null)
   const [showAddPlaceModal, setShowAddPlaceModal] = useState(false)
@@ -213,7 +208,6 @@ const HomePage = () => {
   const menuPrint = useTranslate('Print')
   const menuAddMissingPlace = useTranslate('Add a missing place')
   const menuExtractPlaces = useTranslate('Extract Places')
-  const menuGroupTrips = useTranslate('Group Trips')
   const menuLanguage = useTranslate('Language')
   const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
@@ -1491,69 +1485,6 @@ const HomePage = () => {
     throw new Error('Map not ready')
   }
 
-  // Co-Edited Group Itineraries: open the list, open a specific trip, and draw
-  // a trip's stops as an optimized multi-stop route on the map.
-  const openItinerariesPanel = useCallback(() => {
-    setShowMenu(false)
-    setOpenItineraryId(null)
-    setShowItinerariesPanel(true)
-  }, [])
-
-  const handleShowItineraryOnMap = useCallback(async (stops) => {
-    const points = (stops || [])
-      .map((s) => ({ lat: Number(s.latitude), lng: Number(s.longitude), name: s.name }))
-      .filter((p) => Number.isFinite(p.lat) && Number.isFinite(p.lng))
-    if (points.length === 0) return
-
-    // Close the trip panels so the map (and route) is visible.
-    setShowItinerariesPanel(false)
-    setOpenItineraryId(null)
-
-    if (points.length === 1) {
-      setRouteStartPlace(points[0])
-      setRouteEndPlace(null)
-      setRouteStops([])
-      mapRef.current?.flyTo?.({ center: [points[0].lng, points[0].lat], zoom: 14, duration: 800 })
-      return
-    }
-
-    // Render A/B/C stop markers via the existing route-marker system.
-    setRouteStartPlace(points[0])
-    setRouteEndPlace(points[points.length - 1])
-    setRouteStops(points)
-
-    const start = points[0]
-    const end = points[points.length - 1]
-    const waypoints = points.slice(1, -1)
-
-    // Draw a straight connecting line through every stop. Always available, so
-    // the user sees *something* even when the road router is unreachable.
-    const drawStraightLine = () => {
-      mapRef.current?.setRouteGeometry?.(
-        { type: 'LineString', coordinates: points.map((p) => [p.lng, p.lat]) },
-        { fitBounds: true }
-      )
-    }
-
-    try {
-      if (mapRef.current?.calculateRoute) {
-        const result = await mapRef.current.calculateRoute(start, end, waypoints, 'driving')
-        // If the router returned no usable geometry, fall back to a straight line.
-        if (!result?.route?.geometry?.coordinates?.length) {
-          drawStraightLine()
-          setToast({ type: 'info', msg: 'Showing trip stops (road route unavailable).' })
-        }
-      } else {
-        drawStraightLine()
-      }
-    } catch (err) {
-      // Routing failed (far-apart points, rate limit, upstream down): draw the
-      // straight connecting line so the trip is still visible on the map.
-      drawStraightLine()
-      setToast({ type: 'info', msg: 'Showing trip stops (road route unavailable).' })
-    }
-  }, [])
-
   // Live location share deep links:
   //   /home?liveShare=<token>  → exchange token, then open viewer session
   //   /home?openLiveShare=<id> → open existing viewer session
@@ -1591,29 +1522,6 @@ const HomePage = () => {
     }
   }, [])
 
-  // Open a trip when arriving via a link or from the notifications page:
-  //   /home?joinTrip=<shareToken>  → join then open
-  //   /home?openTrip=<itineraryId> → open existing trip
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    const token = params.get('joinTrip')
-    const openTrip = params.get('openTrip')
-    if (token || openTrip) {
-      if (token) {
-        setItineraryJoinToken(token)
-        setOpenItineraryId(null)
-      } else {
-        setItineraryJoinToken(null)
-        setOpenItineraryId(openTrip)
-      }
-      setShowItinerariesPanel(true)
-      params.delete('joinTrip')
-      params.delete('openTrip')
-      const qs = params.toString()
-      window.history.replaceState({}, '', `${window.location.pathname}${qs ? `?${qs}` : ''}`)
-    }
-  }, [])
-
   // Focus a place when arriving from the notifications page (router state).
   useEffect(() => {
     const focusPlace = location.state?.focusPlace
@@ -1623,21 +1531,6 @@ const HomePage = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.state])
-
-  // Open/join a trip from the in-app notification bell (already on /home).
-  const handleNotificationItineraryOpen = useCallback(({ itineraryId, shareToken, join }) => {
-    setShowItinerariesPanel(true)
-    if (join && shareToken) {
-      setOpenItineraryId(null)
-      setItineraryJoinToken(shareToken)
-    } else if (itineraryId) {
-      setItineraryJoinToken(null)
-      setOpenItineraryId(itineraryId)
-    } else if (shareToken) {
-      setOpenItineraryId(null)
-      setItineraryJoinToken(shareToken)
-    }
-  }, [])
 
   const handleNotificationLiveShareOpen = useCallback(async (shareId) => {
     if (!shareId) return
@@ -2004,7 +1897,6 @@ const HomePage = () => {
           <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
             <NotificationBell
               onPlaceFocus={handleNotificationPlaceFocus}
-              onOpenItinerary={handleNotificationItineraryOpen}
               onOpenLiveShare={handleNotificationLiveShareOpen}
             />
             {/* Extract Places button */}
@@ -2247,36 +2139,6 @@ const HomePage = () => {
             setAddFestivalMode(true)
             setShowAddPlaceModal(true)
           }}
-        />
-      )}
-
-      {/* Co-Edited Group Itineraries: list panel (also handles join-via-link) */}
-      {showItinerariesPanel && !openItineraryId && (
-        <GroupItinerariesPanel
-          initialJoinToken={itineraryJoinToken}
-          onClose={() => {
-            setShowItinerariesPanel(false)
-            setItineraryJoinToken(null)
-          }}
-          onOpenItinerary={(id) => {
-            setItineraryJoinToken(null)
-            setOpenItineraryId(id)
-          }}
-        />
-      )}
-
-      {/* Co-Edited Group Itineraries: detail / co-editing view */}
-      {showItinerariesPanel && openItineraryId && (
-        <ItineraryDetailPanel
-          itineraryId={openItineraryId}
-          currentUser={user}
-          onBack={() => setOpenItineraryId(null)}
-          onClose={() => {
-            setShowItinerariesPanel(false)
-            setOpenItineraryId(null)
-            setItineraryJoinToken(null)
-          }}
-          onShowOnMap={handleShowItineraryOnMap}
         />
       )}
 
@@ -2673,16 +2535,6 @@ const HomePage = () => {
                 >
                   <span className="w-5 h-5 flex items-center justify-center text-lg leading-none" aria-hidden>🎪</span>
                   <span className="text-sm font-medium text-slate-800">Festivals &amp; Jatres</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={openItinerariesPanel}
-                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-indigo-50 active:bg-indigo-100 transition-colors text-left touch-manipulation"
-                >
-                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-                  </svg>
-                  <span className="text-sm font-medium text-slate-800">{menuGroupTrips}</span>
                 </button>
               </div>
 

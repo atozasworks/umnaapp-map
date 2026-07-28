@@ -21,9 +21,7 @@ import adminRoutes from './routes/adminRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
-import itineraryRoutes from './routes/itineraryRoutes.js'
 import liveLocationRoutes from './routes/liveLocationRoutes.js'
-import { itineraryRoom } from './services/itineraryService.js'
 import {
   pauseOwnerLiveSharesOnDisconnect,
   registerLiveLocationSockets,
@@ -113,7 +111,6 @@ app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
 app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
 app.use('/api/feedback', feedbackRoutes)
-app.use('/api/itineraries', itineraryRoutes) // Co-Edited Group Itineraries
 app.use('/api/live-location', liveLocationRoutes) // Timed live-location sharing
 
 // Health check
@@ -325,38 +322,6 @@ io.on('connection', async (socket) => {
     } catch (error) {
       console.error('Get vehicles error:', error)
       socket.emit('error', { message: 'Failed to fetch vehicles' })
-    }
-  })
-
-  // Co-Edited Group Itineraries: join a trip room for live collaboration.
-  // Membership is verified before joining so updates only reach trip members.
-  socket.on('itinerary:join', async (data) => {
-    const itineraryId = data?.itineraryId
-    if (!itineraryId) return socket.emit('error', { message: 'Itinerary ID required' })
-    try {
-      const itinerary = await prisma.itinerary.findFirst({
-        where: {
-          id: itineraryId,
-          OR: [{ ownerId: socket.userId }, { members: { some: { userId: socket.userId } } }],
-        },
-        select: { id: true },
-      })
-      if (!itinerary) {
-        return socket.emit('error', { message: 'Itinerary not found or access denied' })
-      }
-      socket.join(itineraryRoom(itineraryId))
-      socket.emit('itinerary:joined', { itineraryId })
-    } catch (err) {
-      console.error('itinerary:join error', err)
-      socket.emit('error', { message: 'Failed to join itinerary room' })
-    }
-  })
-
-  socket.on('itinerary:leave', (data) => {
-    const itineraryId = data?.itineraryId
-    if (itineraryId) {
-      socket.leave(itineraryRoom(itineraryId))
-      socket.emit('itinerary:left', { itineraryId })
     }
   })
 
