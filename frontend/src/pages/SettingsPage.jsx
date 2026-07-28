@@ -560,7 +560,7 @@ const SettingsPage = () => {
       <nav className="sticky top-0 z-30 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
         <div className="max-w-lg mx-auto flex items-center gap-3 px-4 py-3">
           <button
-            onClick={() => navigate('/home')}
+            onClick={() => navigate('/')}
             className="p-2 -ml-2 rounded-lg hover:bg-slate-100 active:bg-slate-200 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
           >
             <svg className="w-5 h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">

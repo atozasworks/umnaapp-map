@@ -163,10 +163,10 @@ const LandingPage = () => {
       const params = new URLSearchParams(window.location.search)
       const liveShare = params.get('liveShare')
       if (liveShare) {
-        navigate(sanitizeAuthRedirect(`/home?liveShare=${encodeURIComponent(liveShare)}`))
+        navigate(sanitizeAuthRedirect(`/?liveShare=${encodeURIComponent(liveShare)}`))
         return
       }
-      navigate('/home')
+      navigate('/')
     }
   }, [isAuthenticated, navigate])
 
@@ -193,7 +193,7 @@ const LandingPage = () => {
       <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0b1220]/60 backdrop-blur-2xl">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16 sm:h-[4.25rem]">
-            <Link to="/" className="flex items-center gap-2.5 min-w-0 group" aria-label="UMNAAPP home">
+            <Link to="/welcome" className="flex items-center gap-2.5 min-w-0 group" aria-label="UMNAAPP home">
               <AppLogo decorative imgClassName="h-8 w-auto max-h-9 object-contain flex-shrink-0 transition-transform group-hover:scale-110 drop-shadow-lg" />
               <span className="text-xl sm:text-2xl font-bold tracking-tight bg-gradient-to-r from-sky-300 via-cyan-200 to-primary-300 bg-clip-text text-transparent truncate">
                 UMNAAPP
@@ -628,7 +628,7 @@ const LandingPage = () => {
       <footer className="border-t border-slate-200 bg-slate-50 text-slate-900">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
           <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
-            <Link to="/" className="flex items-center gap-2.5 group">
+            <Link to="/welcome" className="flex items-center gap-2.5 group">
               <AppLogo decorative imgClassName="h-8 w-auto object-contain group-hover:scale-105 transition-transform" />
               <span className="font-bold text-lg bg-gradient-to-r from-primary-600 to-primary-800 bg-clip-text text-transparent">
                 UMNAAPP

@@ -64,7 +64,7 @@ const OpenSourcePage = () => {
             <div className="flex items-center gap-2 min-w-0">
               <button
                 type="button"
-                onClick={() => navigate('/home')}
+                onClick={() => navigate('/')}
                 className="p-2 -ml-2 rounded-xl hover:bg-white/10 active:bg-white/15 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"
                 aria-label="Back to map"
               >
@@ -156,7 +156,7 @@ const OpenSourcePage = () => {
                   </a>
                   <button
                     type="button"
-                    onClick={() => navigate('/home')}
+                    onClick={() => navigate('/')}
                     className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm px-6 sm:px-8 py-3.5 sm:py-4 text-sm sm:text-base font-semibold text-white hover:bg-white/10 transition-all min-h-[48px]"
                   >
                     Back to map
@@ -307,7 +307,7 @@ const OpenSourcePage = () => {
             <div className="flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-sm font-medium">
               <button
                 type="button"
-                onClick={() => navigate('/home')}
+                onClick={() => navigate('/')}
                 className="text-slate-600 hover:text-primary-600 transition-colors min-h-[44px] px-2"
               >
                 Back to map

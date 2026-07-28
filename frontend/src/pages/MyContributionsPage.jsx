@@ -129,7 +129,7 @@ export default function MyContributionsPage() {
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => navigate(`/home?place=${p.id}`)}
+                    onClick={() => navigate(`/?place=${p.id}`)}
                     className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 text-left hover:bg-slate-50"
                   >
                     <div className="flex-1 min-w-0">
@@ -162,7 +162,7 @@ export default function MyContributionsPage() {
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => navigate(`/home?lat=${f.latitude}&lng=${f.longitude}`)}
+                  onClick={() => navigate(`/?lat=${f.latitude}&lng=${f.longitude}`)}
                   className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 text-left hover:bg-slate-50"
                 >
                   <div className="flex-1 min-w-0">

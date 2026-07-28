@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { LanguageProvider } from 'atozas-traslate'
 import { AuthProvider as AtozasAuthProvider } from './lib/atozas-auth-kit'
 import { AuthProvider } from './contexts/AuthContext'
@@ -26,6 +26,17 @@ import './lib/i18n/fonts.css'
 function LanguageDocSync({ children }) {
   useLanguageDocAttrs()
   return children
+}
+
+/** Old /home bookmarks & share links → map at /. */
+function HomeLegacyRedirect() {
+  const location = useLocation()
+  return (
+    <Navigate
+      to={{ pathname: '/', search: location.search, hash: location.hash, state: location.state }}
+      replace
+    />
+  )
 }
 
 /**
@@ -86,8 +97,16 @@ function App() {
           <AuthProvider>
             <SocketProvider>
               <Routes>
-              <Route path="/" element={<LandingPage />} />
-              {/* Atozas only wraps login/register - avoids blocking /home render */}
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute>
+                    <HomePage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="/welcome" element={<LandingPage />} />
+              {/* Atozas only wraps login/register - avoids blocking map render */}
               <Route
                 path="/login"
                 element={
@@ -113,14 +132,8 @@ function App() {
                   </ProtectedRoute>
                 }
               />
-              <Route
-                path="/home"
-                element={
-                  <ProtectedRoute>
-                    <HomePage />
-                  </ProtectedRoute>
-                }
-              />
+              {/* Legacy path — map lives at / */}
+              <Route path="/home" element={<HomeLegacyRedirect />} />
               <Route
                 path="/settings"
                 element={

@@ -109,7 +109,7 @@ export default function NotificationBell({ onPlaceFocus, onOpenLiveShare }) {
           return
         }
         if (shareId) {
-          navigate(`/home?openLiveShare=${encodeURIComponent(shareId)}`)
+          navigate(`/?openLiveShare=${encodeURIComponent(shareId)}`)
           setOpen(false)
           return
         }

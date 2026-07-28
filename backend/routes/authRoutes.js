@@ -18,13 +18,14 @@ import passport from '../config/passport.js'
 const router = express.Router()
 
 const sanitizeAuthRedirect = (value) => {
-  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/home'
+  if (typeof value !== 'string' || !value.startsWith('/') || value.startsWith('//')) return '/'
   try {
     const parsed = new URL(value, 'http://umnaapp.local')
-    if (parsed.origin !== 'http://umnaapp.local') return '/home'
-    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+    if (parsed.origin !== 'http://umnaapp.local') return '/'
+    const pathname = parsed.pathname === '/home' ? '/' : parsed.pathname
+    return `${pathname}${parsed.search}${parsed.hash}`
   } catch {
-    return '/home'
+    return '/'
   }
 }
 
@@ -40,23 +41,23 @@ const createOAuthState = (redirect) => {
 }
 
 const readOAuthRedirect = (state) => {
-  if (typeof state !== 'string') return '/home'
+  if (typeof state !== 'string') return '/'
   const [payload, signature] = state.split('.')
-  if (!payload || !signature) return '/home'
+  if (!payload || !signature) return '/'
   const expected = crypto.createHmac('sha256', oauthStateSecret()).update(payload).digest()
   let received
   try {
     received = Buffer.from(signature, 'base64url')
   } catch {
-    return '/home'
+    return '/'
   }
-  if (received.length !== expected.length || !crypto.timingSafeEqual(received, expected)) return '/home'
+  if (received.length !== expected.length || !crypto.timingSafeEqual(received, expected)) return '/'
   try {
     const parsed = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
-    if (!Number.isFinite(parsed.issuedAt) || Date.now() - parsed.issuedAt > 15 * 60 * 1000) return '/home'
+    if (!Number.isFinite(parsed.issuedAt) || Date.now() - parsed.issuedAt > 15 * 60 * 1000) return '/'
     return sanitizeAuthRedirect(parsed.redirect)
   } catch {
-    return '/home'
+    return '/'
   }
 }
 

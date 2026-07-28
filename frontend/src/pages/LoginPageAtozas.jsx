@@ -10,7 +10,7 @@ const LoginPageAtozas = () => {
 
   // Redirect if already authenticated
   if (isAuthenticated && user) {
-    navigate('/home')
+    navigate('/')
     return null
   }
 
@@ -32,7 +32,7 @@ const LoginPageAtozas = () => {
           {/* Atozas Email OTP Login Component */}
           <EmailOtpLogin
             onSuccess={() => {
-              navigate('/home')
+              navigate('/')
             }}
             onError={(error) => {
               console.error('Login error:', error)
@@ -54,7 +54,7 @@ const LoginPageAtozas = () => {
             <div className="mt-4">
               <GoogleLoginButton
                 onSuccess={() => {
-                  navigate('/home')
+                  navigate('/')
                 }}
                 onError={(error) => {
                   console.error('Google login error:', error)

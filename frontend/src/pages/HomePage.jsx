@@ -1486,8 +1486,8 @@ const HomePage = () => {
   }
 
   // Live location share deep links:
-  //   /home?liveShare=<token>  → exchange token, then open viewer session
-  //   /home?openLiveShare=<id> → open existing viewer session
+  //   /?liveShare=<token>  → exchange token, then open viewer session
+  //   /?openLiveShare=<id> → open existing viewer session
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const token = params.get('liveShare')

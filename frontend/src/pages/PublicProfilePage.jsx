@@ -114,7 +114,7 @@ export default function PublicProfilePage() {
                     <li key={p.id}>
                       <button
                         type="button"
-                        onClick={() => navigate(`/home?place=${p.id}`)}
+                        onClick={() => navigate(`/?place=${p.id}`)}
                         className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 text-left hover:bg-slate-50"
                       >
                         <div className="flex-1 min-w-0">

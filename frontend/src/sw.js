@@ -180,7 +180,7 @@ self.addEventListener('push', (event) => {
   let payload = {
     title: 'UMNAAPP',
     body: 'You have a new notification',
-    data: { url: '/home' },
+    data: { url: '/' },
   }
   try {
     if (event.data) {
@@ -210,7 +210,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url || '/home'
+  const url = event.notification.data?.url || '/'
   const target = new URL(url, self.location.origin).href
 
   event.waitUntil(

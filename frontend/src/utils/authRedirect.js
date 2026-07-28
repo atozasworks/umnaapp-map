@@ -1,4 +1,7 @@
-const DEFAULT_AUTH_REDIRECT = '/home'
+const DEFAULT_AUTH_REDIRECT = '/'
+
+/** Map used to live at /home; keep old redirects working. */
+const normalizeMapPath = (pathname) => (pathname === '/home' ? '/' : pathname)
 
 export const sanitizeAuthRedirect = (value, fallback = DEFAULT_AUTH_REDIRECT) => {
   if (typeof value !== 'string' || !value.trim()) return fallback
@@ -12,7 +15,7 @@ export const sanitizeAuthRedirect = (value, fallback = DEFAULT_AUTH_REDIRECT) =>
     const base = typeof window !== 'undefined' ? window.location.origin : 'https://umnaapp.local'
     const url = new URL(decoded, base)
     if (url.origin !== base) return fallback
-    return `${url.pathname}${url.search}${url.hash}`
+    return `${normalizeMapPath(url.pathname)}${url.search}${url.hash}`
   } catch {
     return fallback
   }

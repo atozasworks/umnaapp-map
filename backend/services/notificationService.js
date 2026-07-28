@@ -163,7 +163,7 @@ async function sendPushToUser(userId, notification) {
       ...notification.data,
       notificationId: notification.id,
       type: notification.type,
-      url: '/home',
+      url: '/',
     },
   })
 

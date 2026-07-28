@@ -60,11 +60,11 @@ export default function NotificationsPage() {
     async (n) => {
       if (!n.read) markRead(n.id).catch(() => {})
       if (LIVE_LOCATION_TYPES.includes(n.type) && n.data?.shareId) {
-        navigate(`/home?openLiveShare=${encodeURIComponent(n.data.shareId)}`)
+        navigate(`/?openLiveShare=${encodeURIComponent(n.data.shareId)}`)
         return
       }
       if (n.data?.placeId || (n.data?.latitude != null && n.data?.longitude != null)) {
-        navigate('/home', { state: { focusPlace: n.data } })
+        navigate('/', { state: { focusPlace: n.data } })
       }
     },
     [markRead, navigate]
@@ -77,7 +77,7 @@ export default function NotificationsPage() {
         <div className="max-w-2xl mx-auto w-full flex items-center gap-3 px-4 py-3">
           <button
             type="button"
-            onClick={() => navigate('/home')}
+            onClick={() => navigate('/')}
             className="p-2 -ml-2 rounded-lg hover:bg-slate-100 text-slate-600"
             aria-label="Back"
           >
