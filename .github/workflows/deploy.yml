@@ -97,7 +97,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        # PostGIS required — Prisma schema uses geometry(Point,4326) on Place/Location.
+        image: postgis/postgis:15-3.4
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
@@ -117,19 +118,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          # Project Node (not the Actions runner runtime). No package-lock.json in
-          # backend/frontend/admin — skip cache to avoid "paths were not resolved".
+          # Project Node (not the Actions runner runtime).
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Install dependencies
         run: |
           set -euo pipefail
-          for dir in backend frontend admin; do
-            echo "── Installing $dir ──"
-            cd "$dir"
-            if [ -f package-lock.json ]; then npm ci --include=dev; else npm install --include=dev; fi
-            cd ..
-          done
+          # Root workspaces + overrides (axios/vite/etc.) must install from repo root.
+          if [ -f package-lock.json ]; then
+            npm ci --include=dev --legacy-peer-deps
+          else
+            npm install --include=dev --legacy-peer-deps
+          fi
 
       # ── 1. Linting ──────────────────────────────────────────────────────────
       - name: Lint backend
@@ -159,6 +159,19 @@ jobs:
         env:
           DATABASE_URL: ${{ env.DATABASE_URL }}
         run: npm run validate:schemas
+
+      - name: Enable PostGIS extension
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql -h localhost -U "${{ env.POSTGRES_USER }}" -d "${{ env.POSTGRES_DB }}" \
+            -v ON_ERROR_STOP=1 \
+            -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
+          psql -h localhost -U "${{ env.POSTGRES_USER }}" -d "${{ env.POSTGRES_DB }}" \
+            -c 'SELECT PostGIS_Version();'
 
       - name: Sync test database schema
         working-directory: backend
@@ -376,7 +389,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Build frontend
-        working-directory: frontend
         env:
           umna_API_URL: ${{ secrets.umna_API_URL }}
           umna_GOOGLE_CLIENT_ID: ${{ secrets.umna_GOOGLE_CLIENT_ID }}
@@ -395,8 +407,12 @@ jobs:
           export VITE_GOOGLE_CLIENT_ID="${umna_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}"
           export VITE_TILESERVER_URL="${umna_TILESERVER_URL:-}"
           export VITE_MAPS_HOST="${umna_MAPS_HOST:-}"
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-          npm run build
+          if [ -f package-lock.json ]; then
+            npm ci --include=dev --legacy-peer-deps
+          else
+            npm install --include=dev --legacy-peer-deps
+          fi
+          npm run build --workspace=umnaapp-frontend
 
       - name: Validate SSH key
         run: |
@@ -498,7 +514,6 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Build admin
-        working-directory: admin
         env:
           umna_API_URL: ${{ secrets.umna_API_URL }}
           CI: false
@@ -509,8 +524,12 @@ jobs:
             exit 1
           fi
           export VITE_API_URL="$umna_API_URL"
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-          npm run build
+          if [ -f package-lock.json ]; then
+            npm ci --include=dev --legacy-peer-deps
+          else
+            npm install --include=dev --legacy-peer-deps
+          fi
+          npm run build --workspace=umnaapp-admin
 
       - name: Upload admin build
         run: |
