@@ -5,6 +5,7 @@ import prisma from './database.js'
 import nodemailer from 'nodemailer'
 
 // Import OTP utilities directly from atozas-auth-kit-express package
+// Import OTP utilities directly from atozas-auth-kit-express package
 // Using same implementation as package (since TypeScript files can't be imported directly)
 import bcrypt from 'bcryptjs'
 
