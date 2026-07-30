@@ -319,12 +319,18 @@ export default function PlaceDetailPanel({
     const mapUrl = `https://maps.google.com/?q=${place.latitude},${place.longitude}`
     const text = `${name} (${category})`
     if (navigator.share) {
-      try { await navigator.share({ title: text, text: addrString || name, url: mapUrl }) } catch {}
+      try {
+        await navigator.share({ title: text, text: addrString || name, url: mapUrl })
+      } catch {
+        // User cancelled share sheet or share failed — ignore.
+      }
     } else {
       try {
         await navigator.clipboard.writeText(`${text}\n${addrString ? addrString + '\n' : ''}${mapUrl}`)
         setCopied(true); setTimeout(() => setCopied(false), 2500)
-      } catch {}
+      } catch {
+        // Clipboard unavailable — ignore.
+      }
     }
   }
 
@@ -452,8 +458,11 @@ export default function PlaceDetailPanel({
         setAvgRating(avg ? Math.round(avg * 10) / 10 : null)
         return updated
       })
-    } catch {}
-    finally { setDeletingReviewId(null) }
+    } catch {
+      // Delete failed — UI stays unchanged; spinner cleared in finally.
+    } finally {
+      setDeletingReviewId(null)
+    }
   }
 
   const handlePhotoFile = async (e) => {
@@ -474,8 +483,11 @@ export default function PlaceDetailPanel({
     try {
       await api.delete(`/map/places/${place.id}/photos/${photoId}`)
       setPhotos((prev) => prev.filter((p) => p.id !== photoId))
-    } catch {}
-    finally { setDeletingPhotoId(null) }
+    } catch {
+      // Delete failed — UI stays unchanged; spinner cleared in finally.
+    } finally {
+      setDeletingPhotoId(null)
+    }
   }
 
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 640

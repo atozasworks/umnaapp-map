@@ -65,15 +65,18 @@ function isPublicMapRequest() {
 }
 
 function App() {
+  // Hooks must run unconditionally (before any early return).
+  const [showSplash, setShowSplash] = useState(() => {
+    if (typeof sessionStorage === 'undefined') return false
+    return !sessionStorage.getItem('umna_splash_seen')
+  })
+
   if (isPublicMapRequest()) {
     return <PublicMapPage />
   }
 
   const authKitApiUrl = getAuthKitApiUrl()
   const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-  const [showSplash, setShowSplash] = useState(() => {
-    return !sessionStorage.getItem('umna_splash_seen')
-  })
 
   const handleSplashComplete = () => {
     sessionStorage.setItem('umna_splash_seen', '1')
