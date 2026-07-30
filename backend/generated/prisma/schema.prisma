@@ -39,10 +39,6 @@ model User {
   businessClaims         BusinessClaim[]
   placeLabels            PlaceLabel[]
 
-  ownedItineraries        Itinerary[]          @relation("ItineraryOwner")
-  itineraryMemberships    ItineraryMember[]
-  itineraryComments       ItineraryComment[]
-  itineraryVotes          ItineraryVote[]
   ownedLiveLocationShares LiveLocationShare[]  @relation("LiveLocationOwner")
   liveLocationViewerships LiveLocationViewer[]
   safetyHazardReports     SafetyHazardReport[]
@@ -405,103 +401,6 @@ model PlaceAudit {
   @@index([placeId, createdAt])
   @@index([action])
   @@index([createdAt])
-}
-
-// ---------------------------------------------------------------------------
-// Co-Edited Group Itineraries — collaborative trip planning.
-// An Itinerary is a shared trip owned by one user and co-edited by members.
-// Stops are ordered places; members vote (like/dislike) and comment on each
-// stop, and the stop order can be auto-sorted by net votes. A share token lets
-// anyone with the link join as an editor.
-// ---------------------------------------------------------------------------
-model Itinerary {
-  id          String    @id @default(uuid())
-  title       String
-  description String?   @db.Text
-  ownerId     String    @map("owner_id")
-  shareToken  String    @unique @map("share_token")
-  coverEmoji  String?   @map("cover_emoji")
-  startDate   DateTime? @map("start_date")
-  endDate     DateTime? @map("end_date")
-  autoSort    Boolean   @default(false) @map("auto_sort") // reorder stops by net votes
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
-
-  owner   User              @relation("ItineraryOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  members ItineraryMember[]
-  stops   ItineraryStop[]
-
-  @@index([ownerId])
-  @@index([shareToken])
-  @@index([updatedAt])
-}
-
-model ItineraryMember {
-  id          String   @id @default(uuid())
-  itineraryId String   @map("itinerary_id")
-  userId      String   @map("user_id")
-  role        String   @default("editor") // owner | editor | viewer
-  createdAt   DateTime @default(now()) @map("created_at")
-
-  itinerary Itinerary @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([itineraryId, userId])
-  @@index([userId])
-  @@index([itineraryId])
-}
-
-model ItineraryStop {
-  id          String   @id @default(uuid())
-  itineraryId String   @map("itinerary_id")
-  placeId     String?  @map("place_id") // optional link to an existing Place
-  name        String
-  category    String?
-  latitude    Float
-  longitude   Float
-  address     String?
-  notes       String?  @db.Text
-  position    Int      @default(0) // manual order index within the trip
-  dayIndex    Int?     @map("day_index")
-  addedById   String?  @map("added_by_id")
-  addedByName String?  @map("added_by_name")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
-
-  itinerary Itinerary          @relation(fields: [itineraryId], references: [id], onDelete: Cascade)
-  comments  ItineraryComment[]
-  votes     ItineraryVote[]
-
-  @@index([itineraryId, position])
-}
-
-model ItineraryComment {
-  id        String   @id @default(uuid())
-  stopId    String   @map("stop_id")
-  userId    String   @map("user_id")
-  userName  String?  @map("user_name")
-  body      String   @db.Text
-  createdAt DateTime @default(now()) @map("created_at")
-
-  stop ItineraryStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
-  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([stopId, createdAt])
-}
-
-model ItineraryVote {
-  id        String   @id @default(uuid())
-  stopId    String   @map("stop_id")
-  userId    String   @map("user_id")
-  value     Int // 1 = like, -1 = dislike
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
-
-  stop ItineraryStop @relation(fields: [stopId], references: [id], onDelete: Cascade)
-  user User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([stopId, userId])
-  @@index([stopId])
 }
 
 // Timed live-location sessions retain only the owner's latest point. Access is
