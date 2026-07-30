@@ -74,7 +74,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
   REGISTRY: ghcr.io
   POSTGRES_USER: test
   POSTGRES_PASSWORD: test
@@ -117,12 +117,9 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
+          # Project Node (not the Actions runner runtime). No package-lock.json in
+          # backend/frontend/admin — skip cache to avoid "paths were not resolved".
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
-            admin/package-lock.json
 
       - name: Install dependencies
         run: |
@@ -377,8 +374,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Build frontend
         working-directory: frontend
@@ -501,8 +496,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: admin/package-lock.json
 
       - name: Build admin
         working-directory: admin
@@ -880,7 +873,7 @@ jobs:
             if [ -s "$HOME/.nvm/nvm.sh" ]; then
               export NVM_DIR="$HOME/.nvm"
               . "$NVM_DIR/nvm.sh"
-              nvm use 18 || nvm install 18
+              nvm use 22 || nvm install 22
             fi
             npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
             npx prisma generate
