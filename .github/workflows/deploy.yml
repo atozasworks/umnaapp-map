@@ -187,17 +187,15 @@ jobs:
         run: npm run ci:build
 
       - name: Build frontend
-        working-directory: frontend
         env:
           CI: true
           VITE_API_URL: http://localhost:5000
-        run: npm run ci:build
+        run: npm run ci:build --workspace=umnaapp-frontend
 
       - name: Build admin
-        working-directory: admin
         env:
           CI: true
-        run: npm run ci:build
+        run: npm run ci:build --workspace=umnaapp-admin
 
       # ── 5. Automated API tests ──────────────────────────────────────────────
       - name: Start API server for integration tests
