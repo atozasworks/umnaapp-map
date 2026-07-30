@@ -744,7 +744,9 @@ jobs:
           write_kv PLACES_MIN_DELAY_MS "$umna_PLACES_MIN_DELAY_MS"
           write_kv PLACES_CELL_DELAY_MS "$umna_PLACES_CELL_DELAY_MS"
 
-          chmod 600 "$OUT"
+          # Readable on the runner so appleboy/scp-action (Docker) can tar it.
+          # Server install step still sets mode 600 on the final .env.
+          chmod 644 "$OUT"
           # Sanity: file exists, has required keys, no secret values printed.
           test -s "$OUT"
           grep -q '^NODE_ENV=' "$OUT"
