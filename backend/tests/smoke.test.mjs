@@ -57,7 +57,8 @@ test('public API sends permissive CORS headers', async () => {
   const res = await fetch(`${BASE}/api/public/config`, {
     headers: { Origin: 'https://example.com' },
   })
-  assert.equal(res.headers.get('access-control-allow-origin'), '*')
+  // publicRoutes uses cors({ origin: true }) — reflects any requesting Origin.
+  assert.equal(res.headers.get('access-control-allow-origin'), 'https://example.com')
 })
 
 test('GET /sdk.js is served as JavaScript', async () => {
