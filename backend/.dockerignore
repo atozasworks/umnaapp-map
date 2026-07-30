@@ -5,6 +5,7 @@ npm-debug.log
 uploads
 build
 dist
+generated
 *.log
 .git
 .gitignore
@@ -12,3 +13,4 @@ coverage
 tests
 eslint.config.js
 **/*.test.js
+**/*.test.mjs

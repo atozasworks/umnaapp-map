@@ -1,28 +1,37 @@
+# Backend image — Prisma client is generated at build time into ./generated/prisma
 FROM node:22-alpine AS builder
+
+RUN apk add --no-cache openssl libc6-compat
 
 WORKDIR /app
 
-COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
-
+# Schema must exist before npm install (postinstall runs `prisma generate`).
+COPY package.json ./
 COPY prisma ./prisma
-RUN npx prisma generate
+
+# Dummy URL is enough for `prisma generate` (no live DB needed).
+ENV DATABASE_URL="postgresql://build:build@127.0.0.1:5432/build"
+
+RUN npm install --no-audit --no-fund \
+  && npx prisma generate
 
 FROM node:22-alpine
 
+RUN apk add --no-cache openssl libc6-compat
+
 WORKDIR /app
 
-COPY package*.json ./
-RUN if [ -f package-lock.json ]; then npm ci --omit=dev; else npm install --omit=dev; fi
+COPY package.json ./
+# Skip postinstall here — prisma CLI is a devDependency; client comes from builder.
+RUN npm install --omit=dev --ignore-scripts --no-audit --no-fund
 
-COPY --from=builder /app/generated ./generated
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY . .
+COPY --from=builder /app/generated ./generated
 
+ENV NODE_ENV=production
 EXPOSE 5000
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:5000/api/health', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"
+  CMD node -e "fetch('http://127.0.0.1:5000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
 CMD ["node", "server.js"]

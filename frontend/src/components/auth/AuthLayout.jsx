@@ -73,7 +73,7 @@ export function GoogleSignInButton({ onClick, label = 'Continue with Google' }) 
 export default function AuthLayout({ title, subtitle, children, footer }) {
   return (
     <div className="auth-page">
-      {/* Aurora background rtyrttttttyyyui*/}
+      {/* Aurora background rtyrttttttyyyuiyui*/}
       <div className="auth-page-bg" aria-hidden>
         <div className="absolute inset-0 bg-[#0b1220]" />
         <div className="absolute top-[-20%] left-1/2 -translate-x-1/2 w-[140%] h-[70%] bg-[radial-gradient(ellipse_at_center,rgba(14,165,233,0.35),transparent_60%)]" />
