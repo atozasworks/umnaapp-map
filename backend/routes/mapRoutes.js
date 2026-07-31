@@ -172,11 +172,14 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
   try {
     const { z, x, y } = req.params
     const base = TILESERVER_URL.replace(/\/+$/, '')
-    // umnaapp nginx: /tiles/ ; TileServer GL: /data/india/
-    const tileUrls = [
-      `${base}/tiles/${z}/${x}/${y}.png`,
-      `${base}/data/india/${z}/${x}/${y}.png`,
-    ]
+    // y may be "14" or "14@2x" (HiDPI). Try requested form, then standard 1x.
+    const yVariants = y.includes('@2x') ? [y, y.replace(/@2x$/i, '')] : [y]
+
+    const tileUrls = []
+    for (const yId of yVariants) {
+      tileUrls.push(`${base}/tiles/${z}/${x}/${yId}.png`)
+      tileUrls.push(`${base}/data/india/${z}/${x}/${yId}.png`)
+    }
 
     for (const tileUrl of tileUrls) {
       try {
@@ -200,7 +203,9 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
     }
 
     try {
-      const fallbackUrl = `${CARTO_TILE_FALLBACK}/${z}/${x}/${y}.png`
+      // CARTO serves real 512px @2x tiles; keep @2x in the fallback path when requested.
+      const fallbackY = yVariants[0]
+      const fallbackUrl = `${CARTO_TILE_FALLBACK}/${z}/${x}/${fallbackY}.png`
       const tileResponse = await axios.get(fallbackUrl, {
         responseType: 'arraybuffer',
         timeout: 15000,

@@ -2,7 +2,7 @@
 # Stack: PostgreSQL, Prisma, Express, React (Vite), Node.js
 #
 # Branch → GitHub Environment (secrets / VPS target):
-#   SafeRouteNavigation  → umnaapptest  (test server)
+#   SafeRouteNavigationnn  → umnaapptest  (test server)
 #   mainnn / stage       → umnaappMain  (production)
 #
 # VPS layout (VPS_APP_DIR = site root, NOT …/backend):
@@ -40,12 +40,12 @@ on:
     branches:
       - mainnn
       - stage
-      - SafeRouteNavigation
+      - SafeRouteNavigationnn
   pull_request:
     branches:
       - mainnn
       - stage
-      - SafeRouteNavigation
+      - SafeRouteNavigationnn
   workflow_dispatch:
     inputs:
       deploy_frontend:
@@ -85,7 +85,7 @@ env:
   API_PORT: '5000'
   API_BASE_URL: http://127.0.0.1:5000
   # GitHub Environment name selected by branch (secrets + VPS target).
-  DEPLOY_ENVIRONMENT: ${{ github.ref_name == 'SafeRouteNavigation' && 'umnaapptest' || 'umnaappMain' }}
+  DEPLOY_ENVIRONMENT: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
 
 jobs:
   # ─── Single Quality Gate — all checks must pass before any deployment ───────
@@ -313,7 +313,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       admin: ${{ steps.filter.outputs.admin }}
       # Test branch always deploys all apps after quality gate passes.
-      deploy_all: ${{ github.ref_name == 'SafeRouteNavigation' && 'true' || 'false' }}
+      deploy_all: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -363,7 +363,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.ref_name == 'SafeRouteNavigation' && 'test' || 'latest' }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.ref_name == 'SafeRouteNavigationnn' && 'test' || 'latest' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -378,7 +378,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'SafeRouteNavigation' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -503,7 +503,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.admin == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_admin == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'SafeRouteNavigation' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -587,7 +587,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'SafeRouteNavigation' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4

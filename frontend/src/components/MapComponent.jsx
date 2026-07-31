@@ -24,6 +24,13 @@ import {
 } from '../utils/userPlaceLabelLayout'
 import { isPersistedPlaceId } from '../utils/placeSource'
 import { getOfflinePacksFlag, isViewportCovered } from '../utils/offlineMaps'
+import {
+  isRetinaTileUrl,
+  mapUrlsToRetina,
+  RASTER_TILE_PAINT,
+  toRetinaTileUrl,
+  toStandardTileUrl,
+} from '../utils/mapRasterTiles'
 
 const ROUTE_SOURCE_ID = 'route'
 const ROUTE_CASING_LAYER_ID = 'route-casing'
@@ -102,21 +109,24 @@ const BASEMAP_LABEL_SOURCE_ID = 'basemap-label-overlay-source'
 const BASEMAP_LABEL_LAYER_ID = 'basemap-label-overlay-layer'
 const SATELLITE_TILES = ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']
 const TERRAIN_TILES = ['https://tile.opentopomap.org/{z}/{x}/{y}.png']
-const LABEL_OVERLAY_TILES = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
+const LABEL_OVERLAY_TILES_1X = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
 /** India OSM tiles — same source as umnaapp.in/map (image 2 style). CORS: *. */
-const UMNAAPP_STREET_TILE_URL = 'https://umnaapp.in/tiles/{z}/{x}/{y}.png'
+const UMNAAPP_STREET_TILE_URL_1X = 'https://umnaapp.in/tiles/{z}/{x}/{y}.png'
 /** Detailed OSM-style fallback when India tile host is unreachable. */
-const STREET_TILE_FALLBACK_URL =
+const STREET_TILE_FALLBACK_URL_1X =
   'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
-/** Same-origin proxy when explicitly configured in env. */
-const PROXY_STREET_TILE_URL = '/api/map/tiles/{z}/{x}/{y}.png'
+/** Same-origin proxy when explicitly configured in env. Offline packs use 1x only. */
+const PROXY_STREET_TILE_URL_1X = '/api/map/tiles/{z}/{x}/{y}.png'
 const BASEMAP_STORAGE_KEY = 'umnaapp_basemap'
 
-/** Linear resampling + no tile fade = Google Maps–style smooth zoom on raster tiles. */
-const RASTER_TILE_PAINT = {
-  'raster-resampling': 'linear',
-  'raster-fade-duration': 0,
-  'raster-opacity': 1,
+const umnaappStreetTileUrl = () => toRetinaTileUrl(UMNAAPP_STREET_TILE_URL_1X)
+const streetTileFallbackUrl = () => toRetinaTileUrl(STREET_TILE_FALLBACK_URL_1X)
+const proxyStreetTileUrl = () => toRetinaTileUrl(PROXY_STREET_TILE_URL_1X)
+const labelOverlayTiles = () => mapUrlsToRetina(LABEL_OVERLAY_TILES_1X)
+
+const isStreetFallbackUrl = (url) => {
+  const n = toStandardTileUrl(url)
+  return n === STREET_TILE_FALLBACK_URL_1X || url === streetTileFallbackUrl()
 }
 
 const sampleTileUrl = (template) =>
@@ -225,16 +235,16 @@ const applyStreetTileUrl = (map, streetUrlRef, tileUrl, { reason = 'switching ti
 
 const resolveStreetTileUrl = () => {
   const env = String(import.meta.env.VITE_TILESERVER_URL || '').trim()
-  let url = UMNAAPP_STREET_TILE_URL
+  let url = UMNAAPP_STREET_TILE_URL_1X
   if (env.includes('{z}') && env.includes('{x}') && env.includes('{y}')) {
     url = env
   } else if (env) {
     url = `${env.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
   }
-  if (url.startsWith('/api/map/tiles')) {
-    return PROXY_STREET_TILE_URL
+  if (url.startsWith('/api/map/tiles') || toStandardTileUrl(url).startsWith('/api/map/tiles')) {
+    return proxyStreetTileUrl()
   }
-  return url
+  return toRetinaTileUrl(url)
 }
 
 const recoverStreetTiles = async (map, streetUrlRef, getFallbackApplied, setFallbackApplied) => {
@@ -244,32 +254,56 @@ const recoverStreetTiles = async (map, streetUrlRef, getFallbackApplied, setFall
   const currentOk = await verifyTileEndpoint(current)
   if (currentOk) return
 
+  // HiDPI @2x failed on this host — try the matching 1x URL before switching providers.
+  if (isRetinaTileUrl(current)) {
+    const standard = toStandardTileUrl(current)
+    const standardOk = await verifyTileEndpoint(standard)
+    if (standardOk) {
+      setFallbackApplied(
+        applyStreetTileUrl(map, streetUrlRef, standard, {
+          reason: 'Retina tiles unavailable — using standard tiles',
+        })
+      )
+      return
+    }
+  }
+
+  const umnaRetina = umnaappStreetTileUrl()
+  const umna1x = UMNAAPP_STREET_TILE_URL_1X
+
   if (current.startsWith('/api/map/tiles') || current.startsWith('/map-tiles')) {
-    const directOk = await verifyTileEndpoint(UMNAAPP_STREET_TILE_URL)
-    if (directOk) {
-      setFallbackApplied(
-        applyStreetTileUrl(map, streetUrlRef, UMNAAPP_STREET_TILE_URL, {
-          reason: 'Tile proxy failed — using umnaapp.in tiles directly',
-        })
-      )
-      return
+    for (const candidate of [umnaRetina, umna1x]) {
+      if (toStandardTileUrl(current) === toStandardTileUrl(candidate)) continue
+      const ok = await verifyTileEndpoint(candidate)
+      if (ok) {
+        setFallbackApplied(
+          applyStreetTileUrl(map, streetUrlRef, candidate, {
+            reason: 'Tile proxy failed — using umnaapp.in tiles directly',
+          })
+        )
+        return
+      }
     }
   }
 
-  if (current !== UMNAAPP_STREET_TILE_URL) {
-    const directOk = await verifyTileEndpoint(UMNAAPP_STREET_TILE_URL)
-    if (directOk) {
-      setFallbackApplied(
-        applyStreetTileUrl(map, streetUrlRef, UMNAAPP_STREET_TILE_URL, {
-          reason: 'Configured tile host failed — using umnaapp.in tiles',
-        })
-      )
-      return
+  if (toStandardTileUrl(current) !== umna1x) {
+    for (const candidate of [umnaRetina, umna1x]) {
+      if (current === candidate) continue
+      const ok = await verifyTileEndpoint(candidate)
+      if (ok) {
+        setFallbackApplied(
+          applyStreetTileUrl(map, streetUrlRef, candidate, {
+            reason: 'Configured tile host failed — using umnaapp.in tiles',
+          })
+        )
+        return
+      }
     }
   }
 
+  const carto = streetTileFallbackUrl()
   setFallbackApplied(
-    applyStreetTileUrl(map, streetUrlRef, STREET_TILE_FALLBACK_URL, {
+    applyStreetTileUrl(map, streetUrlRef, carto, {
       reason: 'India tile host unreachable — using detailed OSM fallback',
     })
   )
@@ -308,7 +342,7 @@ const readStoredBasemapMode = () => {
 }
 
 const getBasemapTileUrls = (mode, streetUrl) => {
-  const street = streetUrl || UMNAAPP_STREET_TILE_URL
+  const street = streetUrl || umnaappStreetTileUrl()
   if (mode === 'satellite') return SATELLITE_TILES
   if (mode === 'terrain') return TERRAIN_TILES
   return [street]
@@ -340,7 +374,7 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
     if (!map.getSource(BASEMAP_LABEL_SOURCE_ID)) {
       map.addSource(BASEMAP_LABEL_SOURCE_ID, {
         type: 'raster',
-        tiles: LABEL_OVERLAY_TILES,
+        tiles: labelOverlayTiles(),
         tileSize: 256,
         minzoom: 0,
         maxzoom: 19,
@@ -786,7 +820,7 @@ const MapComponent = forwardRef(({
     }
     const map = mapRef.current
     if (!map) return
-    const streetUrl = streetTilesUrlRef.current || UMNAAPP_STREET_TILE_URL
+    const streetUrl = streetTilesUrlRef.current || umnaappStreetTileUrl()
     const apply = () =>
       applyBasemapToMap(map, mode, streetUrl, {
         onRouteLayers: (m) => {
@@ -1284,6 +1318,8 @@ const MapComponent = forwardRef(({
       map = new maplibregl.Map({
       container: mapContainerRef.current,
       preserveDrawingBuffer: true,
+      // Match device DPR (cap 3) so the GL canvas stays sharp on phones/HiDPI laptops.
+      pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 3),
       style: {
         version: 8,
         sources: {
@@ -1436,7 +1472,7 @@ const MapComponent = forwardRef(({
           !offlineMapsActiveRef.current &&
           basemapModeRef.current === 'street' &&
           streetTilesUrlRef.current &&
-          streetTilesUrlRef.current !== STREET_TILE_FALLBACK_URL
+          !isStreetFallbackUrl(streetTilesUrlRef.current)
         ) {
           tileFailCount += 1
           if (tileFailCount >= TILE_FALLBACK_THRESHOLD) {
@@ -1729,7 +1765,8 @@ const MapComponent = forwardRef(({
       if (!onlineStreetUrlRef.current) {
         onlineStreetUrlRef.current = streetTilesUrlRef.current
       }
-      applyStreetTileUrl(map, streetTilesUrlRef, PROXY_STREET_TILE_URL, {
+      // Offline packs are cached as 1x proxy URLs — never request @2x offline.
+      applyStreetTileUrl(map, streetTilesUrlRef, PROXY_STREET_TILE_URL_1X, {
         reason: 'offline maps — using cached proxy tiles',
       })
       offlineMapsActiveRef.current = true

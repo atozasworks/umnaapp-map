@@ -19,6 +19,7 @@ import {
   resolveUserPlaceLabelCap,
   setMarkerLabelMeasureMode,
 } from '../utils/userPlaceLabelLayout'
+import { RASTER_TILE_PAINT, toRetinaTileUrl, toStandardTileUrl } from '../utils/mapRasterTiles'
 
 const USER_PLACE_LABEL_ZOOM_START = 10
 const USER_PLACE_LABEL_ZOOM_FULL = 12.5
@@ -577,9 +578,11 @@ export default function PublicMapPage() {
       } catch {
         config = null
       }
-      const tileUrl = config?.tiles?.url || '/api/map/tiles/{z}/{x}/{y}.png'
-      const fallbackTileUrl =
+      const tileUrlRaw = config?.tiles?.url || '/api/map/tiles/{z}/{x}/{y}.png'
+      const fallbackTileUrlRaw =
         config?.tiles?.fallbackUrl || 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+      const tileUrl = toRetinaTileUrl(tileUrlRaw)
+      const fallbackTileUrl = toRetinaTileUrl(fallbackTileUrlRaw)
       const center = [
         params.lng ?? config?.defaultCenter?.lng ?? 77.5946,
         params.lat ?? config?.defaultCenter?.lat ?? 12.9716,
@@ -588,6 +591,7 @@ export default function PublicMapPage() {
 
       const map = new maplibregl.Map({
         container: containerRef.current,
+        pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 3),
         style: {
           version: 8,
           sources: {
@@ -599,13 +603,35 @@ export default function PublicMapPage() {
               attribution: config?.tiles?.attribution || '© UMNAAPP · OpenStreetMap contributors',
             },
           },
-          layers: [{ id: 'basemap', type: 'raster', source: 'basemap' }],
+          layers: [
+            {
+              id: 'basemap',
+              type: 'raster',
+              source: 'basemap',
+              paint: RASTER_TILE_PAINT,
+            },
+          ],
         },
         center,
         zoom,
+        fadeDuration: 0,
         attributionControl: true,
       })
       mapRef.current = map
+
+      // If @2x tiles 404 on this host, drop back to 1x once.
+      let retinaDowngraded = false
+      map.on('error', (e) => {
+        if (retinaDowngraded || e.tile == null) return
+        const src = map.getSource('basemap')
+        if (!src || typeof src.setTiles !== 'function') return
+        const standard = [toStandardTileUrl(tileUrl), toStandardTileUrl(fallbackTileUrl)]
+          .map(toAbsolute)
+          .filter(Boolean)
+        if (standard.length === 0) return
+        retinaDowngraded = true
+        src.setTiles(standard)
+      })
 
       if (params.showControls) {
         map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right')
