@@ -1,43 +1,4 @@
-import { useState } from 'react'
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { LanguageProvider } from 'atozas-traslate'
-import { AuthProvider as AtozasAuthProvider } from './lib/atozas-auth-kit'
-import { AuthProvider } from './contexts/AuthContext'
-import { SocketProvider } from './contexts/SocketContext'
-import LandingPage from './pages/LandingPage'
-import PublicMapPage from './pages/PublicMapPage'
-import LoginPage from './pages/LoginPage'
-import RegisterPage from './pages/RegisterPage'
-import OTPVerificationPage from './pages/OTPVerificationPage'
-import HomePage from './pages/HomePage'
-import SettingsPage from './pages/SettingsPage'
-import OpenSourcePage from './pages/OpenSourcePage'
-import NotificationsPage from './pages/NotificationsPage'
-import MyContributionsPage from './pages/MyContributionsPage'
-import PublicProfilePage from './pages/PublicProfilePage'
-import ProtectedRoute from './components/ProtectedRoute'
-import LiveLocationTokenRedirect from './components/LiveLocationTokenRedirect'
-import PwaShell from './components/PwaShell'
-import SplashScreen from './components/SplashScreen'
-import { getAuthKitApiUrl } from './utils/apiBase'
-import { useLanguageDocAttrs } from './lib/i18n'
-import './lib/i18n/fonts.css'
-
-function LanguageDocSync({ children }) {
-  useLanguageDocAttrs()
-  return children
-}
-
-/** Old /home bookmarks & share links → map at /. */
-function HomeLegacyRedirect() {
-  const location = useLocation()
-  return (
-    <Navigate
-      to={{ pathname: '/', search: location.search, hash: location.hash, state: location.state }}
-      replace
-    />
-  )
-}
+import { Suspense, lazy } from 'react'
 
 /**
  * Public Map Platform detection.
@@ -49,6 +10,8 @@ function HomeLegacyRedirect() {
  * In these cases we render ONLY the map — completely outside AuthProvider,
  * SocketProvider, the splash screen, and the app router — so the UMNAAPP login,
  * register, landing, and home pages are never reachable from the map platform.
+ *
+ * Both branches are lazy so each platform only downloads its own JS graph.
  */
 function isPublicMapRequest() {
   if (typeof window === 'undefined') return false
@@ -64,129 +27,37 @@ function isPublicMapRequest() {
   return forcedMapsHost || mapsPath
 }
 
+const PublicMapPage = lazy(() => import('./pages/PublicMapPage'))
+const MainApp = lazy(() => import('./MainApp'))
+
+function BootFallback() {
+  return (
+    <div
+      style={{
+        minHeight: '100dvh',
+        width: '100%',
+        background: '#f8fafc',
+      }}
+      aria-busy="true"
+      aria-label="Loading"
+    />
+  )
+}
+
 function App() {
-  // Hooks must run unconditionally (before any early return).
-  const [showSplash, setShowSplash] = useState(() => {
-    if (typeof sessionStorage === 'undefined') return false
-    return !sessionStorage.getItem('umna_splash_seen')
-  })
-
   if (isPublicMapRequest()) {
-    return <PublicMapPage />
-  }
-
-  const authKitApiUrl = getAuthKitApiUrl()
-  const googleClientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || ''
-
-  const handleSplashComplete = () => {
-    sessionStorage.setItem('umna_splash_seen', '1')
-    setShowSplash(false)
-  }
-
-  const atozasAuthProps = {
-    apiUrl: authKitApiUrl,
-    googleClientId,
-    enableLocalStorage: true,
-    onAuthError: (error) => console.error('Atozas Auth error:', error),
+    return (
+      <Suspense fallback={<BootFallback />}>
+        <PublicMapPage />
+      </Suspense>
+    )
   }
 
   return (
-    <PwaShell>
-      {showSplash && <SplashScreen onComplete={handleSplashComplete} />}
-      <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <LanguageProvider>
-          <LanguageDocSync>
-          {/* AuthProvider & SocketProvider wrap all routes */}
-          <AuthProvider>
-            <SocketProvider>
-              <Routes>
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <HomePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="/welcome" element={<LandingPage />} />
-              {/* Atozas only wraps login/register - avoids blocking map render */}
-              <Route
-                path="/login"
-                element={
-                  <AtozasAuthProvider {...atozasAuthProps}>
-                    <LoginPage />
-                  </AtozasAuthProvider>
-                }
-              />
-              <Route
-                path="/register"
-                element={
-                  <AtozasAuthProvider {...atozasAuthProps}>
-                    <RegisterPage />
-                  </AtozasAuthProvider>
-                }
-              />
-              <Route path="/verify-otp" element={<OTPVerificationPage />} />
-              <Route
-                path="/live/:token"
-                element={
-                  <ProtectedRoute>
-                    <LiveLocationTokenRedirect />
-                  </ProtectedRoute>
-                }
-              />
-              {/* Legacy path — map lives at / */}
-              <Route path="/home" element={<HomeLegacyRedirect />} />
-              <Route
-                path="/settings"
-                element={
-                  <ProtectedRoute>
-                    <SettingsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/open-source"
-                element={
-                  <ProtectedRoute>
-                    <OpenSourcePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/notifications"
-                element={
-                  <ProtectedRoute>
-                    <NotificationsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/my-contributions"
-                element={
-                  <ProtectedRoute>
-                    <MyContributionsPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route
-                path="/users/:id"
-                element={
-                  <ProtectedRoute>
-                    <PublicProfilePage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </SocketProvider>
-          </AuthProvider>
-          </LanguageDocSync>
-        </LanguageProvider>
-      </Router>
-    </PwaShell>
+    <Suspense fallback={<BootFallback />}>
+      <MainApp />
+    </Suspense>
   )
 }
 
 export default App
-

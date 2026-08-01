@@ -18,6 +18,9 @@ export default function AppLogo({
         aria-hidden={decorative ? true : undefined}
         className={imgClassName}
         decoding="async"
+        loading="eager"
+        width={128}
+        height={128}
       />
     </span>
   )

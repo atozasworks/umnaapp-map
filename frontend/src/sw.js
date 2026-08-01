@@ -21,17 +21,6 @@ registerRoute(
 )
 
 registerRoute(
-  /^https:\/\/unpkg\.com\/maplibre-gl@/i,
-  new CacheFirst({
-    cacheName: 'maplibre-cdn',
-    plugins: [
-      new ExpirationPlugin({ maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 * 30 }),
-      new CacheableResponsePlugin({ statuses: [0, 200] }),
-    ],
-  })
-)
-
-registerRoute(
   /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/i,
   new CacheFirst({
     cacheName: 'google-fonts',
@@ -149,24 +138,37 @@ self.addEventListener('backgroundfetchsuccess', (event) => {
   )
 })
 
-// Sensitive endpoints must NEVER be cached (auth tokens, admin, user data).
-// Registered before the generic /api/ route so it matches first.
+// Sensitive / user-specific endpoints must NEVER be cached.
 registerRoute(
-  /\/api\/(auth|admin|user|me|email)(\/|$)/i,
+  /\/api\/(auth|admin|users|user|me|email|notifications|feedback|live-location|vehicles)(\/|$)/i,
   new NetworkOnly()
 )
 
+// Only cache known public/read-mostly GET map endpoints (allowlist).
 registerRoute(
-  /\/api\//i,
+  ({ url, request }) => {
+    if (request.method !== 'GET') return false
+    const path = url.pathname
+    return (
+      path.startsWith('/api/public/') ||
+      path.startsWith('/api/map/search') ||
+      path.startsWith('/api/map/reverse') ||
+      path.startsWith('/api/map/route') ||
+      path === '/api/health'
+    )
+  },
   new NetworkFirst({
     cacheName: 'api-cache',
-    networkTimeoutSeconds: 10,
+    networkTimeoutSeconds: 8,
     plugins: [
-      new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 60 * 5 }),
+      new ExpirationPlugin({ maxEntries: 40, maxAgeSeconds: 60 * 5 }),
       new CacheableResponsePlugin({ statuses: [0, 200] }),
     ],
   })
 )
+
+// All other API traffic — network only (no stale private data).
+registerRoute(/\/api\//i, new NetworkOnly())
 
 registerRoute(
   ({ request }) => request.destination === 'image',

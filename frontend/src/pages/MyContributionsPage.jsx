@@ -153,7 +153,7 @@ export default function MyContributionsPage() {
               {tab === 'photos' && (
                 <div className="grid grid-cols-3 gap-2">
                   {data.photos.map((ph) => (
-                    <img key={ph.id} src={ph.dataUrl} alt={ph.caption || ph.placeName || 'Photo'} className="aspect-square object-cover rounded-xl border border-slate-100" />
+                    <img key={ph.id} src={ph.dataUrl} alt={ph.caption || ph.placeName || 'Photo'} className="aspect-square object-cover rounded-xl border border-slate-100" loading="lazy" decoding="async" />
                   ))}
                 </div>
               )}

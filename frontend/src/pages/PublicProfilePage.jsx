@@ -69,7 +69,7 @@ export default function PublicProfilePage() {
           <>
             <section className="bg-white rounded-2xl border border-slate-100 p-5 flex items-center gap-4">
               {user.picture ? (
-                <img src={user.picture} alt={user.name} className="w-16 h-16 rounded-full object-cover" />
+                <img src={user.picture} alt={user.name} className="w-16 h-16 rounded-full object-cover" width={64} height={64} loading="lazy" decoding="async" />
               ) : (
                 <div className="w-16 h-16 rounded-full bg-primary-100 text-primary-700 flex items-center justify-center text-2xl font-bold">
                   {user.name?.charAt(0)?.toUpperCase() || '?'}

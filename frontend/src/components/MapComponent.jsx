@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle } from 'react'
+import { useEffect, useRef, useState, useCallback, forwardRef, useImperativeHandle, memo } from 'react'
 import maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { useSocket } from '../contexts/SocketContext'
@@ -3760,4 +3760,4 @@ const MapComponent = forwardRef(({
 
 MapComponent.displayName = 'MapComponent'
 
-export default MapComponent
+export default memo(MapComponent)

@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'url'
+import viteCompression from 'vite-plugin-compression'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -60,7 +61,9 @@ export default defineConfig({
       },
       manifestFilename: 'manifest.json',
       injectManifest: {
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,woff,webmanifest,json}'],
+        // Precache shell assets; large map chunks stay runtime-cached / on-demand.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,avif,woff2,woff,webmanifest,json}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
       },
       devOptions: {
         enabled: true,
@@ -68,10 +71,34 @@ export default defineConfig({
         navigateFallback: 'index.html',
       },
     }),
+    // Emit .gz / .br siblings for static hosts / nginx gzip_static / brotli_static
+    viteCompression({ algorithm: 'gzip', ext: '.gz', threshold: 1024 }),
+    viteCompression({ algorithm: 'brotliCompress', ext: '.br', threshold: 1024 }),
   ],
   build: {
     outDir: path.resolve(__dirname, 'dist'),
     emptyOutDir: true,
+    target: 'es2020',
+    cssCodeSplit: true,
+    sourcemap: false,
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return undefined
+          if (id.includes('maplibre-gl')) return 'maplibre'
+          if (id.includes('socket.io')) return 'socket'
+          if (id.includes('@turf')) return 'turf'
+          if (id.includes('atozas-traslate') || id.includes('atozas-react-auth-kit')) {
+            return 'atozas'
+          }
+          if (id.includes('react-dom') || id.includes('react-router') || id.includes('/react/')) {
+            return 'react-vendor'
+          }
+          return undefined
+        },
+      },
+    },
   },
   resolve: {
     alias: {

@@ -1,36 +1,41 @@
-import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo, Suspense, memo } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslate } from '../lib/i18n'
-import LanguagePickerModal from '../lib/i18n/LanguagePickerModal'
 import { useAuth } from '../contexts/AuthContext'
 import MapComponent from '../components/MapComponent'
 import MapContextMenu from '../components/MapContextMenu'
-import MeasureDistancePanel from '../components/MeasureDistancePanel'
-import AskMapsPanel from '../components/AskMapsPanel'
 import SearchBar from '../components/SearchBar'
-import RoutePanel from '../components/RoutePanel'
-import NavigationView from '../components/NavigationView'
-import AddPlaceModal, { PLACE_CATEGORIES } from '../components/AddPlaceModal'
-import AddPlaceMethodModal from '../components/AddPlaceMethodModal'
-import PlaceDetailPanel from '../components/PlaceDetailPanel'
-import PlaceExtractPanel from '../components/PlaceExtractPanel'
-import DuplicatePlaceModal, { buildDuplicatePopupPayload } from '../components/DuplicatePlaceModal'
-import PlaceAddedSuccessModal, { buildPlaceAddedPayload } from '../components/PlaceAddedSuccessModal'
-import PolygonExplorePanel from '../components/PolygonExplorePanel'
-import UpcomingFestivalsPanel from '../components/UpcomingFestivalsPanel'
+import {
+  RoutePanel,
+  NavigationView,
+  AskMapsPanel,
+  AddPlaceModal,
+  AddPlaceMethodModal,
+  PlaceDetailPanel,
+  PlaceExtractPanel,
+  DuplicatePlaceModal,
+  PlaceAddedSuccessModal,
+  PolygonExplorePanel,
+  UpcomingFestivalsPanel,
+  FeedbackModal,
+  OnboardingTour,
+  LiveLocationShareSheet,
+  LiveLocationViewerBar,
+  PublicUtilityFinderSheet,
+  OfflineMapsSheet,
+  HazardReportSheet,
+  MeasureDistancePanel,
+  MapAssistantChatbot,
+  LanguagePickerModal,
+} from '../components/lazyHomePanels'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
 import NotificationBell from '../components/NotificationBell'
-import MapAssistantChatbot from '../components/MapAssistantChatbot'
-import FeedbackModal from '../components/FeedbackModal'
-import OnboardingTour, { hasSeenOnboarding, markOnboardingSeen } from '../components/OnboardingTour'
-import LiveLocationShareSheet from '../components/LiveLocationShareSheet'
-import LiveLocationViewerBar from '../components/LiveLocationViewerBar'
-import PublicUtilityFinderSheet from '../components/PublicUtilityFinderSheet'
-import OfflineMapsSheet from '../components/OfflineMapsSheet'
-import HazardReportSheet from '../components/HazardReportSheet'
 import useSafeRouteMonitor from '../hooks/useSafeRouteMonitor'
 import api from '../services/api'
+import { PLACE_CATEGORIES } from '../constants/placeCategories'
+import { buildDuplicatePopupPayload, buildPlaceAddedPayload } from '../utils/placePopupPayloads'
+import { hasSeenOnboarding, markOnboardingSeen } from '../utils/onboardingStorage'
 import { getUtilityAddPlacePrefill, toUtilityOverlayPlace } from '../utils/publicUtilities'
 import {
   extractMapRenderingConfig,
@@ -1796,34 +1801,42 @@ const HomePage = () => {
         </div>
       )}
 
-      <PlaceAddedSuccessModal
-        isOpen={!!successPopup}
-        onClose={() => setSuccessPopup(null)}
-        places={successPopup?.places}
-        count={successPopup?.count}
-        skippedCount={successPopup?.skippedCount}
-        variant={successPopup?.variant}
-        onViewOnMap={
-          successPopup?.places?.[0]?.id
-            ? () => flyToExistingPlace(successPopup.places[0].id)
-            : undefined
-        }
-      />
+      {successPopup && (
+        <Suspense fallback={null}>
+          <PlaceAddedSuccessModal
+            isOpen
+            onClose={() => setSuccessPopup(null)}
+            places={successPopup.places}
+            count={successPopup.count}
+            skippedCount={successPopup.skippedCount}
+            variant={successPopup.variant}
+            onViewOnMap={
+              successPopup.places?.[0]?.id
+                ? () => flyToExistingPlace(successPopup.places[0].id)
+                : undefined
+            }
+          />
+        </Suspense>
+      )}
 
-      <DuplicatePlaceModal
-        isOpen={!!duplicatePopup}
-        onClose={() => setDuplicatePopup(null)}
-        message={duplicatePopup?.message}
-        reason={duplicatePopup?.reason}
-        placeName={duplicatePopup?.placeName}
-        existingPlaceName={duplicatePopup?.existingPlaceName}
-        skippedList={duplicatePopup?.skippedList}
-        onViewOnMap={
-          duplicatePopup?.existingPlaceId
-            ? () => flyToExistingPlace(duplicatePopup.existingPlaceId)
-            : undefined
-        }
-      />
+      {duplicatePopup && (
+        <Suspense fallback={null}>
+          <DuplicatePlaceModal
+            isOpen
+            onClose={() => setDuplicatePopup(null)}
+            message={duplicatePopup.message}
+            reason={duplicatePopup.reason}
+            placeName={duplicatePopup.placeName}
+            existingPlaceName={duplicatePopup.existingPlaceName}
+            skippedList={duplicatePopup.skippedList}
+            onViewOnMap={
+              duplicatePopup.existingPlaceId
+                ? () => flyToExistingPlace(duplicatePopup.existingPlaceId)
+                : undefined
+            }
+          />
+        </Suspense>
+      )}
 
       {/* ── Confirm modal ── */}
       {confirmModal && (
@@ -2045,157 +2058,173 @@ const HomePage = () => {
       </div>
 
       {/* Add Place Method Selection Modal */}
-      <AddPlaceMethodModal
-        isOpen={showAddPlaceMethodModal}
-        onClose={() => setShowAddPlaceMethodModal(false)}
-        currentLocation={currentLocation}
-        onSelectMapPick={() => {
-          setShowAddPlaceMethodModal(false)
-          setAddPlacePickMode(true)
-        }}
-        onUseCurrentLocation={handleUseCurrentLocationForAddPlace}
-        useCurrentLocationLoading={useCurrentLocationLoading}
-        onSelectManualCoords={() => {
-          setShowAddPlaceMethodModal(false)
-          setAddPlaceLocationMethod('manual-coords')
-          setShowAddPlaceModal(true)
-        }}
-      />
+      {showAddPlaceMethodModal && (
+        <Suspense fallback={null}>
+          <AddPlaceMethodModal
+            isOpen
+            onClose={() => setShowAddPlaceMethodModal(false)}
+            currentLocation={currentLocation}
+            onSelectMapPick={() => {
+              setShowAddPlaceMethodModal(false)
+              setAddPlacePickMode(true)
+            }}
+            onUseCurrentLocation={handleUseCurrentLocationForAddPlace}
+            useCurrentLocationLoading={useCurrentLocationLoading}
+            onSelectManualCoords={() => {
+              setShowAddPlaceMethodModal(false)
+              setAddPlaceLocationMethod('manual-coords')
+              setShowAddPlaceModal(true)
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Add Place Modal */}
-      <AddPlaceModal
-        isOpen={showAddPlaceModal}
-        onClose={() => {
-          setShowAddPlaceModal(false)
-          setMapLocation(null)
-          setAddPlacePickMode(false)
-          setAddPlaceLocationMethod(null)
-          setAddPlaceExcludeId(null)
-          setEditPlaceId(null)
-          setAddFestivalMode(false)
-          // If user cancelled an add started from Public Utility Finder, restore the sheet.
-          if (pendingUtilityAddTypeRef.current) {
-            pendingUtilityAddTypeRef.current = null
-            setShowUtilityFinder(true)
-          }
-        }}
-        initialData={null}
-        mapLocation={mapLocation}
-        currentLocation={currentLocation}
-        initialLocationMethod={addPlaceLocationMethod}
-        existingPlaces={allPlaces}
-        excludePlaceId={addPlaceExcludeId}
-        editPlaceId={editPlaceId}
-        onShowDuplicate={showDuplicatePopup}
-        festivalMode={addFestivalMode}
-        onRequestMapPick={() => {
-          setShowAddPlaceModal(false)
-          setAddPlacePickMode(true)
-        }}
-        onUseCurrentLocation={handleUseCurrentLocationForAddPlace}
-        useCurrentLocationLoading={useCurrentLocationLoading}
-        locationDetailsLoading={fetchingPlaceDetails}
-        onSaved={handlePlaceSaved}
-      />
+      {showAddPlaceModal && (
+        <Suspense fallback={null}>
+          <AddPlaceModal
+            isOpen
+            onClose={() => {
+              setShowAddPlaceModal(false)
+              setMapLocation(null)
+              setAddPlacePickMode(false)
+              setAddPlaceLocationMethod(null)
+              setAddPlaceExcludeId(null)
+              setEditPlaceId(null)
+              setAddFestivalMode(false)
+              // If user cancelled an add started from Public Utility Finder, restore the sheet.
+              if (pendingUtilityAddTypeRef.current) {
+                pendingUtilityAddTypeRef.current = null
+                setShowUtilityFinder(true)
+              }
+            }}
+            initialData={null}
+            mapLocation={mapLocation}
+            currentLocation={currentLocation}
+            initialLocationMethod={addPlaceLocationMethod}
+            existingPlaces={allPlaces}
+            excludePlaceId={addPlaceExcludeId}
+            editPlaceId={editPlaceId}
+            onShowDuplicate={showDuplicatePopup}
+            festivalMode={addFestivalMode}
+            onRequestMapPick={() => {
+              setShowAddPlaceModal(false)
+              setAddPlacePickMode(true)
+            }}
+            onUseCurrentLocation={handleUseCurrentLocationForAddPlace}
+            useCurrentLocationLoading={useCurrentLocationLoading}
+            locationDetailsLoading={fetchingPlaceDetails}
+            onSaved={handlePlaceSaved}
+          />
+        </Suspense>
+      )}
 
       {/* PlaceFinder — AI natural-language search */}
       {showAskMapsPanel && (
-        <div className="absolute inset-0 z-[45] flex pointer-events-none" style={{ top: 0 }}>
-          <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
-            onClick={handleAskMapsClose}
-          />
-          <div
-            className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
-            style={{ marginTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}
-          >
-            <AskMapsPanel
-              mapRef={mapRef}
-              currentLocation={currentLocation}
-              mapPlaces={allPlaces}
-              onClose={handleAskMapsClose}
-              onResults={handleAskMapsResults}
-              onPlaceSelect={handleAskMapsPlaceSelect}
-              onDirections={handleAskMapsDirections}
-              selectedPlaceId={selectedPlace?.id ?? null}
+        <Suspense fallback={null}>
+          <div className="absolute inset-0 z-[45] flex pointer-events-none" style={{ top: 0 }}>
+            <div
+              className="absolute inset-0 bg-black/20 backdrop-blur-sm pointer-events-auto sm:hidden"
+              onClick={handleAskMapsClose}
             />
+            <div
+              className="relative pointer-events-auto w-full max-w-[min(100vw,24rem)] sm:max-w-sm h-full bg-white shadow-2xl flex flex-col animate-fade-in pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+              style={{ marginTop: 'calc(env(safe-area-inset-top) + 3.5rem)' }}
+            >
+              <AskMapsPanel
+                mapRef={mapRef}
+                currentLocation={currentLocation}
+                mapPlaces={allPlaces}
+                onClose={handleAskMapsClose}
+                onResults={handleAskMapsResults}
+                onPlaceSelect={handleAskMapsPlaceSelect}
+                onDirections={handleAskMapsDirections}
+                selectedPlaceId={selectedPlace?.id ?? null}
+              />
+            </div>
           </div>
-        </div>
+        </Suspense>
       )}
 
       {/* Festivals & Jatres — time-bound markers with countdowns */}
       {showFestivalsPanel && (
-        <UpcomingFestivalsPanel
-          onClose={() => setShowFestivalsPanel(false)}
-          onPlaceSelect={(place) => {
-            setShowFestivalsPanel(false)
-            openPlaceDetail(place, { fly: true })
-          }}
-          onAddFestival={() => {
-            setShowFestivalsPanel(false)
-            setMapLocation(null)
-            setAddPlaceExcludeId(null)
-            setAddPlaceLocationMethod(null)
-            setAddFestivalMode(true)
-            setShowAddPlaceModal(true)
-          }}
-        />
+        <Suspense fallback={null}>
+          <UpcomingFestivalsPanel
+            onClose={() => setShowFestivalsPanel(false)}
+            onPlaceSelect={(place) => {
+              setShowFestivalsPanel(false)
+              openPlaceDetail(place, { fly: true })
+            }}
+            onAddFestival={() => {
+              setShowFestivalsPanel(false)
+              setMapLocation(null)
+              setAddPlaceExcludeId(null)
+              setAddPlaceLocationMethod(null)
+              setAddFestivalMode(true)
+              setShowAddPlaceModal(true)
+            }}
+          />
+        </Suspense>
       )}
 
       {/* Route Panel — mobile: bottom sheet; desktop: left panel */}
       {showRoutePanel && (
-        <div className="absolute inset-0 z-[45] flex pointer-events-none items-end sm:items-start justify-center sm:justify-start">
-          <div
-            className="absolute inset-0 pointer-events-auto bg-black/25 sm:hidden"
-            aria-hidden
-            onClick={closeRouteSearchAndClear}
-          />
-          <div
-            className="relative z-10 pointer-events-auto w-full sm:max-w-[400px] sm:h-full flex flex-col animate-sheet-up sm:animate-fade-in sm:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
-          >
-            <div className="sm:h-full sm:mt-[calc(env(safe-area-inset-top)+3.5rem)] sm:flex sm:flex-col">
-              <RoutePanel
-                mapRef={mapRef}
-                currentLocation={currentLocation}
-                onCalculateRoute={handleCalculateRoute}
-                initialEndPlace={routePanelEndPlace}
-                initialStartPlace={routePanelStartPlace}
-                initialSafeRoute={routePanelSafeMode}
-                onClose={closeRouteSearchAndClear}
-                onSearchResultsChange={() => {}}
-                onStartNavigation={handleStartNavigation}
-                onRoutePlacesChange={(start, end, stops) => {
-                  setRouteStartPlace(start)
-                  setRouteEndPlace(end)
-                  setRouteStops(stops || [])
-                }}
-              />
+        <Suspense fallback={null}>
+          <div className="absolute inset-0 z-[45] flex pointer-events-none items-end sm:items-start justify-center sm:justify-start">
+            <div
+              className="absolute inset-0 pointer-events-auto bg-black/25 sm:hidden"
+              aria-hidden
+              onClick={closeRouteSearchAndClear}
+            />
+            <div
+              className="relative z-10 pointer-events-auto w-full sm:max-w-[400px] sm:h-full flex flex-col animate-sheet-up sm:animate-fade-in sm:pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]"
+            >
+              <div className="sm:h-full sm:mt-[calc(env(safe-area-inset-top)+3.5rem)] sm:flex sm:flex-col">
+                <RoutePanel
+                  mapRef={mapRef}
+                  currentLocation={currentLocation}
+                  onCalculateRoute={handleCalculateRoute}
+                  initialEndPlace={routePanelEndPlace}
+                  initialStartPlace={routePanelStartPlace}
+                  initialSafeRoute={routePanelSafeMode}
+                  onClose={closeRouteSearchAndClear}
+                  onSearchResultsChange={() => {}}
+                  onStartNavigation={handleStartNavigation}
+                  onRoutePlacesChange={(start, end, stops) => {
+                    setRouteStartPlace(start)
+                    setRouteEndPlace(end)
+                    setRouteStops(stops || [])
+                  }}
+                />
+              </div>
             </div>
           </div>
-        </div>
+        </Suspense>
       )}
 
       {navigation && (
-        <NavigationView
-          mapRef={mapRef}
-          route={navigation.route}
-          currentLocation={currentLocation}
-          travelMode={navigation.travelMode}
-          destinationName={navigation.destinationName}
-          onExit={handleExitNavigation}
-          onReroute={handleNavigationReroute}
-          safetyWarning={navSafetyWarning}
-          saferRouteAvailable={Boolean(navSaferRoute)}
-          onAcceptSaferRoute={handleAcceptSaferRoute}
-          onReportHazard={
-            navigation.safeRouteEnabled
-              ? (coords) => {
-                  setHazardReportCoords(coords)
-                  setShowHazardReport(true)
-                }
-              : null
-          }
-        />
+        <Suspense fallback={null}>
+          <NavigationView
+            mapRef={mapRef}
+            route={navigation.route}
+            currentLocation={currentLocation}
+            travelMode={navigation.travelMode}
+            destinationName={navigation.destinationName}
+            onExit={handleExitNavigation}
+            onReroute={handleNavigationReroute}
+            safetyWarning={navSafetyWarning}
+            saferRouteAvailable={Boolean(navSaferRoute)}
+            onAcceptSaferRoute={handleAcceptSaferRoute}
+            onReportHazard={
+              navigation.safeRouteEnabled
+                ? (coords) => {
+                    setHazardReportCoords(coords)
+                    setShowHazardReport(true)
+                  }
+                : null
+            }
+          />
+        </Suspense>
       )}
 
       {/* Location picker crosshair + hint */}
@@ -2227,22 +2256,26 @@ const HomePage = () => {
         </>
       )}
 
-      {/* Map tools sidebar — draw area & explore by category */}
-      <PolygonExplorePanel
-        mapRef={mapRef}
-        mapReadyTick={mapReadyTick}
-        isOpen={showSidebar}
-        onClose={() => setShowSidebar(false)}
-        onInteractionChange={setPolygonMapInteraction}
-        onShapeChange={setAreaExploreFeature}
-        onPlaceSelect={(place) => openPlaceDetail(place, { fly: true })}
-        onPlacesFound={(places) => {
-          setPolygonOverlayPlaces(places)
-        }}
-        onClearPlaces={() => {
-          setPolygonOverlayPlaces([])
-        }}
-      />
+      {/* Map tools sidebar — draw area & explore by category (deferred until opened) */}
+      {(showSidebar || areaExploreFeature || polygonOverlayPlaces.length > 0) && (
+        <Suspense fallback={null}>
+          <PolygonExplorePanel
+            mapRef={mapRef}
+            mapReadyTick={mapReadyTick}
+            isOpen={showSidebar}
+            onClose={() => setShowSidebar(false)}
+            onInteractionChange={setPolygonMapInteraction}
+            onShapeChange={setAreaExploreFeature}
+            onPlaceSelect={(place) => openPlaceDetail(place, { fly: true })}
+            onPlacesFound={(places) => {
+              setPolygonOverlayPlaces(places)
+            }}
+            onClearPlaces={() => {
+              setPolygonOverlayPlaces([])
+            }}
+          />
+        </Suspense>
+      )}
 
       {/* Map Container — min-h-0 lets flex child shrink; avoids partial white canvas on zoom */}
       <div className="flex-1 min-h-0 w-full relative">
@@ -2274,15 +2307,17 @@ const HomePage = () => {
           routeStops={routeStops}
         />
         {showViewerBar && (
-          <LiveLocationViewerBar
-            share={activeViewerShare}
-            stale={viewerShareStale}
-            followEnabled={liveShareFollow}
-            onRecenter={() => mapRef.current?.flyToLiveShare?.(viewerShareId)}
-            onToggleFollow={() => setLiveShareFollow((prev) => !prev)}
-            onDirections={handleViewerDirections}
-            onStopViewing={handleViewerEnded}
-          />
+          <Suspense fallback={null}>
+            <LiveLocationViewerBar
+              share={activeViewerShare}
+              stale={viewerShareStale}
+              followEnabled={liveShareFollow}
+              onRecenter={() => mapRef.current?.flyToLiveShare?.(viewerShareId)}
+              onToggleFollow={() => setLiveShareFollow((prev) => !prev)}
+              onDirections={handleViewerDirections}
+              onStopViewing={handleViewerEnded}
+            />
+          </Suspense>
         )}
 
         {/* Public Utilities map control */}
@@ -2312,17 +2347,20 @@ const HomePage = () => {
       )}
 
       {measureDistanceActive && (
-        <MeasureDistancePanel
-          totalMeters={measureStats.totalMeters}
-          pointCount={measureStats.pointCount}
-          onClear={handleMeasureClear}
-          onClose={handleMeasureClose}
-        />
+        <Suspense fallback={null}>
+          <MeasureDistancePanel
+            totalMeters={measureStats.totalMeters}
+            pointCount={measureStats.pointCount}
+            onClear={handleMeasureClear}
+            onClose={handleMeasureClose}
+          />
+        </Suspense>
       )}
 
       {/* Place detail panel — map labels, search, PlaceFinder, filters */}
       {selectedPlace && (
         <div className={`absolute inset-0 pointer-events-none ${showAskMapsPanel ? 'z-[55]' : 'z-40'}`}>
+          <Suspense fallback={null}>
           <PlaceDetailPanel
             place={selectedPlace}
             onClose={() => setSelectedPlace(null)}
@@ -2350,6 +2388,7 @@ const HomePage = () => {
                   Math.abs(f.longitude - selectedPlace.longitude) < 0.0001)
             )}
           />
+          </Suspense>
         </div>
       )}
 
@@ -2407,6 +2446,9 @@ const HomePage = () => {
                           src={user.picture}
                           alt=""
                           className="w-full h-full object-cover"
+                          width={44}
+                          height={44}
+                          decoding="async"
                         />
                       ) : (
                         <span className="text-lg font-bold text-primary-700">
@@ -2676,66 +2718,94 @@ const HomePage = () => {
         </div>
       )}
 
-      <FeedbackModal
-        isOpen={showFeedbackModal}
-        onClose={() => setShowFeedbackModal(false)}
-        user={user}
-      />
+      {showFeedbackModal && (
+        <Suspense fallback={null}>
+          <FeedbackModal
+            isOpen
+            onClose={() => setShowFeedbackModal(false)}
+            user={user}
+          />
+        </Suspense>
+      )}
 
-      <OnboardingTour
-        isOpen={showOnboarding}
-        onComplete={handleOnboardingClose}
-        onSkip={handleOnboardingClose}
-      />
+      {showOnboarding && (
+        <Suspense fallback={null}>
+          <OnboardingTour
+            isOpen
+            onComplete={handleOnboardingClose}
+            onSkip={handleOnboardingClose}
+          />
+        </Suspense>
+      )}
 
-      <LanguagePickerModal
-        isOpen={showLanguageModal}
-        onClose={() => setShowLanguageModal(false)}
-      />
+      {showLanguageModal && (
+        <Suspense fallback={null}>
+          <LanguagePickerModal
+            isOpen
+            onClose={() => setShowLanguageModal(false)}
+          />
+        </Suspense>
+      )}
 
-      <LiveLocationShareSheet
-        isOpen={showLiveShareSheet}
-        onClose={() => setShowLiveShareSheet(false)}
-        onStarted={handleLiveShareStarted}
-        onError={(message) => {
-          setLiveShareError(message)
-          showToast(message, 'error')
-        }}
-        activeShare={senderShare?.status === 'active' ? senderShare : null}
-        shareUrl={senderShareToken ? buildLiveShareUrl(senderShareToken) : ''}
-        onStop={handleLiveShareStop}
-        presenceStatus={senderPresenceStatus}
-      />
+      {showLiveShareSheet && (
+        <Suspense fallback={null}>
+          <LiveLocationShareSheet
+            isOpen
+            onClose={() => setShowLiveShareSheet(false)}
+            onStarted={handleLiveShareStarted}
+            onError={(message) => {
+              setLiveShareError(message)
+              showToast(message, 'error')
+            }}
+            activeShare={senderShare?.status === 'active' ? senderShare : null}
+            shareUrl={senderShareToken ? buildLiveShareUrl(senderShareToken) : ''}
+            onStop={handleLiveShareStop}
+            presenceStatus={senderPresenceStatus}
+          />
+        </Suspense>
+      )}
 
-      <PublicUtilityFinderSheet
-        isOpen={showUtilityFinder}
-        onClose={handleUtilityFinderClose}
-        currentLocation={currentLocation}
-        mapRef={mapRef}
-        onResults={handleUtilityResults}
-        onClearResults={handleUtilityClear}
-        onPlaceSelect={handleUtilityPlaceSelect}
-        onDirections={handleUtilityDirections}
-        onAddPlace={handleUtilityAddPlace}
-        selectedPlaceId={selectedUtilityPlaceId}
-        injectedPlace={utilityInjectedPlace}
-      />
+      {showUtilityFinder && (
+        <Suspense fallback={null}>
+          <PublicUtilityFinderSheet
+            isOpen
+            onClose={handleUtilityFinderClose}
+            currentLocation={currentLocation}
+            mapRef={mapRef}
+            onResults={handleUtilityResults}
+            onClearResults={handleUtilityClear}
+            onPlaceSelect={handleUtilityPlaceSelect}
+            onDirections={handleUtilityDirections}
+            onAddPlace={handleUtilityAddPlace}
+            selectedPlaceId={selectedUtilityPlaceId}
+            injectedPlace={utilityInjectedPlace}
+          />
+        </Suspense>
+      )}
 
-      <OfflineMapsSheet
-        isOpen={showOfflineMaps}
-        onClose={() => setShowOfflineMaps(false)}
-        mapRef={mapRef}
-      />
+      {showOfflineMaps && (
+        <Suspense fallback={null}>
+          <OfflineMapsSheet
+            isOpen
+            onClose={() => setShowOfflineMaps(false)}
+            mapRef={mapRef}
+          />
+        </Suspense>
+      )}
 
-      <HazardReportSheet
-        isOpen={showHazardReport}
-        onClose={() => {
-          setShowHazardReport(false)
-          setHazardReportCoords(null)
-        }}
-        coordinates={hazardReportCoords}
-        onSubmitted={() => showToast('Hazard report submitted for moderation', 'success')}
-      />
+      {showHazardReport && (
+        <Suspense fallback={null}>
+          <HazardReportSheet
+            isOpen
+            onClose={() => {
+              setShowHazardReport(false)
+              setHazardReportCoords(null)
+            }}
+            coordinates={hazardReportCoords}
+            onSubmitted={() => showToast('Hazard report submitted for moderation', 'success')}
+          />
+        </Suspense>
+      )}
 
       {viewerShareError && viewerShareId && (
         <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[360] px-4 py-2 rounded-lg bg-red-50 text-red-700 text-sm border border-red-100">
@@ -2816,13 +2886,17 @@ const HomePage = () => {
       )}
 
       {/* Place Extract Panel */}
-      <PlaceExtractPanel
-        isOpen={showExtractPanel}
-        onClose={() => setShowExtractPanel(false)}
-        onAddToMap={handleAddExtractedPlaces}
-        mapPlaces={allPlaces}
-        onShowDuplicate={showDuplicatePopup}
-      />
+      {showExtractPanel && (
+        <Suspense fallback={null}>
+          <PlaceExtractPanel
+            isOpen
+            onClose={() => setShowExtractPanel(false)}
+            onAddToMap={handleAddExtractedPlaces}
+            mapPlaces={allPlaces}
+            onShowDuplicate={showDuplicatePopup}
+          />
+        </Suspense>
+      )}
 
       {/* My Places panel - slide in from left */}
       {showMyPlaces && (
@@ -3053,15 +3127,19 @@ const HomePage = () => {
         </div>
       )}
 
-      <MapAssistantChatbot
-        context={
-          currentLocation?.lat != null && currentLocation?.lng != null
-            ? { lat: currentLocation.lat, lng: currentLocation.lng }
-            : null
-        }
-      />
+      {mapReadyTick > 0 && (
+        <Suspense fallback={null}>
+          <MapAssistantChatbot
+            context={
+              currentLocation?.lat != null && currentLocation?.lng != null
+                ? { lat: currentLocation.lat, lng: currentLocation.lng }
+                : null
+            }
+          />
+        </Suspense>
+      )}
     </div>
   )
 }
 
-export default HomePage
+export default memo(HomePage)

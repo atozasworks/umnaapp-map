@@ -1,7 +1,5 @@
-/* Script-aware Noto fonts for the curated regional languages.
- * Imported once from src/main.jsx (or index.css) — Google Fonts CDN, no API key. */
-
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Kannada:wght@400;500;600;700&family=Noto+Sans+Tamil:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap');
+/* Script-aware Noto fonts — CSS variables/classes only.
+ * Font stylesheets are injected on demand by useLanguageDocAttrs (no blocking @import). */
 
 :root {
   --app-font-stack: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;

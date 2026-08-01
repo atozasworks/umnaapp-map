@@ -585,6 +585,8 @@ export default function PlaceDetailPanel({
                   alt={name}
                   className="w-full h-full object-cover cursor-pointer"
                   onClick={() => setLightboxPhoto(heroPhoto)}
+                  decoding="async"
+                  fetchPriority="high"
                 />
                 {heroPhotos.length > 1 && (
                   <>
@@ -1443,6 +1445,8 @@ export default function PlaceDetailPanel({
                           alt={photo.caption || 'Place photo'}
                           className="w-full h-full object-cover rounded-lg cursor-pointer"
                           onClick={() => setLightboxPhoto(photo.dataUrl)}
+                          loading="lazy"
+                          decoding="async"
                         />
                         {photo.userId === currentUser?.id && (
                           <button

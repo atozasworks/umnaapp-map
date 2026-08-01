@@ -1,5 +1,6 @@
 import './loadEnv.js' // Load backend/.env regardless of process cwd
 import express from 'express'
+import compression from 'compression'
 import cors from 'cors'
 import path from 'path'
 import fs from 'fs'
@@ -96,6 +97,21 @@ app.use(
     credentials: true,
   })
 )
+// Gzip (via Accept-Encoding) for JSON, JS, CSS, HTML — skip already-compressed tiles/images.
+// Precompressed .br/.gz siblings from the Vite build can also be served by nginx static modules.
+app.use(
+  compression({
+    threshold: 1024,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) return false
+      const type = res.getHeader('Content-Type')
+      if (typeof type === 'string' && /image\/(png|jpeg|webp|avif|gif)|octet-stream/i.test(type)) {
+        return false
+      }
+      return compression.filter(req, res)
+    },
+  })
+)
 app.use(express.json({ limit: '5mb' }))
 app.use(express.urlencoded({ extended: true, limit: '5mb' }))
 app.use(passport.initialize())
@@ -141,7 +157,34 @@ const adminIndexFile = path.join(adminBuildPath, 'index.html')
 console.log(
   `📁 Admin UI: ${adminBuildPath} (exists: ${fs.existsSync(adminBuildPath)}, index.html: ${fs.existsSync(adminIndexFile)})`
 )
-app.use('/admin', express.static(adminBuildPath))
+const staticCacheHeaders = (res, filePath) => {
+  const base = path.basename(filePath)
+  // HTML, SW, and manifest must revalidate so clients pick up new deploys.
+  if (
+    base === 'index.html' ||
+    base === 'sw.js' ||
+    base === 'workbox-window.js' ||
+    base.endsWith('.webmanifest') ||
+    base === 'manifest.json' ||
+    base === 'registerSW.js'
+  ) {
+    res.setHeader('Cache-Control', 'no-cache')
+    return
+  }
+  // Vite hashed assets under assets/ are content-addressed — cache long-term.
+  if (filePath.includes(`${path.sep}assets${path.sep}`) || /\.[a-f0-9]{8,}\./i.test(base)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    return
+  }
+  res.setHeader('Cache-Control', 'public, max-age=86400')
+}
+
+app.use(
+  '/admin',
+  express.static(adminBuildPath, {
+    setHeaders: staticCacheHeaders,
+  })
+)
 
 // Serve frontend build (production: set FRONTEND_BUILD_PATH)
 const buildPath = process.env.FRONTEND_BUILD_PATH || 
@@ -150,9 +193,14 @@ const buildPath = process.env.FRONTEND_BUILD_PATH ||
    path.join(__dirname, 'dist'))
 const indexFile = path.join(buildPath, 'index.html')
 console.log(`📁 Serving frontend from: ${buildPath} (exists: ${fs.existsSync(buildPath)}, index.html: ${fs.existsSync(indexFile)})`)
-app.use(express.static(buildPath))
+app.use(
+  express.static(buildPath, {
+    setHeaders: staticCacheHeaders,
+  })
+)
 // Explicit root + SPA fallback
 const serveIndex = (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache')
   res.sendFile(indexFile, (err) => {
     if (err) {
       console.error('sendFile error:', err.message)
@@ -166,6 +214,7 @@ const serveAdminIndex = (req, res, next) => {
       .status(503)
       .send('Admin build not found. Run: cd admin && npm run build (creates admin/dist), or set ADMIN_BUILD_PATH.')
   }
+  res.setHeader('Cache-Control', 'no-cache')
   res.sendFile(adminIndexFile, (err) => {
     if (err) {
       console.error('sendFile admin error:', err.message)

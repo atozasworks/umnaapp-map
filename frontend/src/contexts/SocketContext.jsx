@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { io } from 'socket.io-client'
 import { useAuth } from './AuthContext'
 import { getApiOrigin } from '../utils/apiBase'
@@ -18,39 +18,41 @@ export const SocketProvider = ({ children }) => {
   const [socket, setSocket] = useState(null)
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      const newSocket = io(getApiOrigin(), {
-        auth: {
-          token,
-        },
-        transports: ['websocket', 'polling'],
+    if (!isAuthenticated || !token) {
+      setSocket((prev) => {
+        if (prev) prev.close()
+        return null
       })
+      return undefined
+    }
 
-      newSocket.on('connect', () => {
-        console.log('Socket connected')
-      })
+    const newSocket = io(getApiOrigin(), {
+      auth: {
+        token,
+      },
+      transports: ['websocket', 'polling'],
+    })
 
-      newSocket.on('disconnect', () => {
-        console.log('Socket disconnected')
-      })
+    newSocket.on('connect', () => {
+      console.log('Socket connected')
+    })
 
-      newSocket.on('connected', (data) => {
-        console.log('Socket authenticated:', data)
-      })
+    newSocket.on('disconnect', () => {
+      console.log('Socket disconnected')
+    })
 
-      setSocket(newSocket)
+    newSocket.on('connected', (data) => {
+      console.log('Socket authenticated:', data)
+    })
 
-      return () => {
-        newSocket.close()
-      }
-    } else {
-      if (socket) {
-        socket.close()
-        setSocket(null)
-      }
+    setSocket(newSocket)
+
+    return () => {
+      newSocket.close()
     }
   }, [isAuthenticated, token])
 
-  return <SocketContext.Provider value={{ socket }}>{children}</SocketContext.Provider>
-}
+  const value = useMemo(() => ({ socket }), [socket])
 
+  return <SocketContext.Provider value={value}>{children}</SocketContext.Provider>
+}

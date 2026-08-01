@@ -261,7 +261,7 @@ const SettingsPage = () => {
               className="w-20 h-20 rounded-full overflow-hidden bg-white border-4 border-white shadow-lg flex items-center justify-center group relative disabled:opacity-60"
             >
               {user?.picture ? (
-                <img src={user.picture} alt="" className="w-full h-full object-cover" />
+                <img src={user.picture} alt="" className="w-full h-full object-cover" width={96} height={96} decoding="async" />
               ) : (
                 <div className="w-full h-full bg-primary-100 flex items-center justify-center">
                   <span className="text-2xl font-bold text-primary-700">

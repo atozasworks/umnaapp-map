@@ -13,7 +13,11 @@
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="apple-touch-startup-image" href="/splash-screen.png" />
     <link rel="manifest" href="/manifest.json" />
-    <link href="https://unpkg.com/maplibre-gl@3.6.2/dist/maplibre-gl.css" rel="stylesheet" />
+    <!-- Fonts load on demand per script; preconnect cuts RTT when regional fonts are needed -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
+    <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
     <title>UMNAAPP - Map-Based Platform</title>
   </head>
   <body>

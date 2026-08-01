@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import api from '../services/api'
 
 const AuthContext = createContext()
@@ -72,11 +72,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token, loadUser])
 
-  const login = (userData, authToken) => {
+  const login = useCallback((userData, authToken) => {
     setToken(authToken)
     setUser(userData)
     localStorage.setItem('token', authToken)
-  }
+  }, [])
 
   const updateProfile = useCallback(async (profileData) => {
     try {
@@ -105,17 +105,20 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('auth:sessionExpired', handleSessionInvalid)
   }, [logout])
 
-  const value = {
-    user,
-    token,
-    loading,
-    login,
-    logout,
-    loadUser,
-    updateProfile,
-    updateProfilePicture,
-    isAuthenticated: !!token,
-  }
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      loading,
+      login,
+      logout,
+      loadUser,
+      updateProfile,
+      updateProfilePicture,
+      isAuthenticated: !!token,
+    }),
+    [user, token, loading, login, logout, loadUser, updateProfile, updateProfilePicture]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

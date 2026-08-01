@@ -3,31 +3,9 @@ import api from '../services/api'
 import { addressFromParts, findDuplicateInList } from '../utils/placeDuplicate'
 import { extractMapRenderingConfig } from '../utils/mapRenderingConfig'
 import { sanitizePlaceName, parseOsmAddressFields } from '../utils/formatAddress'
+import { PLACE_CATEGORIES } from '../constants/placeCategories'
 
-export const PLACE_CATEGORIES = [
-  'Restaurant',
-  'Hospital',
-  'Hotel',
-  'Parking',
-  'Shop',
-  'Grocery Store',
-  'School',
-  'Temple',
-  'Bank',
-  'Post Office',
-  'Bus Stop',
-  'Police Station',
-  'Petrol Pump',
-  'Tourist Place',
-  'Transit',
-  'Museum',
-  'Pharmacy',
-  'ATM',
-  'Cinema',
-  'Gym',
-  'Salon',
-  'Other',
-]
+export { PLACE_CATEGORIES }
 
 const CATEGORY_ICONS = {
   Restaurant: '🍽️',

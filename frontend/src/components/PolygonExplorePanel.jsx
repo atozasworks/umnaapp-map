@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import maplibregl from 'maplibre-gl'
 import api from '../services/api'
-import { PLACE_CATEGORIES } from './AddPlaceModal'
+import { PLACE_CATEGORIES } from '../constants/placeCategories'
 import { CATEGORY_NAME_KEYWORDS, resolvePlaceCategory } from '../utils/googlePlaceCategory'
 import {
   pointInRing,
