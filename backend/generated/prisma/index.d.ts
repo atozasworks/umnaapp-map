@@ -113,6 +113,16 @@ export type SafetyHazardReport = $Result.DefaultSelection<Prisma.$SafetyHazardRe
  * 
  */
 export type LegalDocument = $Result.DefaultSelection<Prisma.$LegalDocumentPayload>
+/**
+ * Model AdminAllowedEmail
+ * 
+ */
+export type AdminAllowedEmail = $Result.DefaultSelection<Prisma.$AdminAllowedEmailPayload>
+/**
+ * Model AdminOtp
+ * 
+ */
+export type AdminOtp = $Result.DefaultSelection<Prisma.$AdminOtpPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -436,6 +446,26 @@ export class PrismaClient<
     * ```
     */
   get legalDocument(): Prisma.LegalDocumentDelegate<ExtArgs>;
+
+  /**
+   * `prisma.adminAllowedEmail`: Exposes CRUD operations for the **AdminAllowedEmail** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AdminAllowedEmails
+    * const adminAllowedEmails = await prisma.adminAllowedEmail.findMany()
+    * ```
+    */
+  get adminAllowedEmail(): Prisma.AdminAllowedEmailDelegate<ExtArgs>;
+
+  /**
+   * `prisma.adminOtp`: Exposes CRUD operations for the **AdminOtp** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AdminOtps
+    * const adminOtps = await prisma.adminOtp.findMany()
+    * ```
+    */
+  get adminOtp(): Prisma.AdminOtpDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -896,7 +926,9 @@ export namespace Prisma {
     LiveLocationShare: 'LiveLocationShare',
     LiveLocationViewer: 'LiveLocationViewer',
     SafetyHazardReport: 'SafetyHazardReport',
-    LegalDocument: 'LegalDocument'
+    LegalDocument: 'LegalDocument',
+    AdminAllowedEmail: 'AdminAllowedEmail',
+    AdminOtp: 'AdminOtp'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -912,7 +944,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "liveLocationShare" | "liveLocationViewer" | "safetyHazardReport" | "legalDocument"
+      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "liveLocationShare" | "liveLocationViewer" | "safetyHazardReport" | "legalDocument" | "adminAllowedEmail" | "adminOtp"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2313,6 +2345,146 @@ export namespace Prisma {
           count: {
             args: Prisma.LegalDocumentCountArgs<ExtArgs>
             result: $Utils.Optional<LegalDocumentCountAggregateOutputType> | number
+          }
+        }
+      }
+      AdminAllowedEmail: {
+        payload: Prisma.$AdminAllowedEmailPayload<ExtArgs>
+        fields: Prisma.AdminAllowedEmailFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AdminAllowedEmailFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AdminAllowedEmailFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
+          }
+          findFirst: {
+            args: Prisma.AdminAllowedEmailFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AdminAllowedEmailFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
+          }
+          findMany: {
+            args: Prisma.AdminAllowedEmailFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>[]
+          }
+          create: {
+            args: Prisma.AdminAllowedEmailCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
+          }
+          createMany: {
+            args: Prisma.AdminAllowedEmailCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AdminAllowedEmailCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>[]
+          }
+          delete: {
+            args: Prisma.AdminAllowedEmailDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
+          }
+          update: {
+            args: Prisma.AdminAllowedEmailUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
+          }
+          deleteMany: {
+            args: Prisma.AdminAllowedEmailDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AdminAllowedEmailUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AdminAllowedEmailUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
+          }
+          aggregate: {
+            args: Prisma.AdminAllowedEmailAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAdminAllowedEmail>
+          }
+          groupBy: {
+            args: Prisma.AdminAllowedEmailGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AdminAllowedEmailGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AdminAllowedEmailCountArgs<ExtArgs>
+            result: $Utils.Optional<AdminAllowedEmailCountAggregateOutputType> | number
+          }
+        }
+      }
+      AdminOtp: {
+        payload: Prisma.$AdminOtpPayload<ExtArgs>
+        fields: Prisma.AdminOtpFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AdminOtpFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AdminOtpFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          findFirst: {
+            args: Prisma.AdminOtpFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AdminOtpFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          findMany: {
+            args: Prisma.AdminOtpFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>[]
+          }
+          create: {
+            args: Prisma.AdminOtpCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          createMany: {
+            args: Prisma.AdminOtpCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AdminOtpCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>[]
+          }
+          delete: {
+            args: Prisma.AdminOtpDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          update: {
+            args: Prisma.AdminOtpUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          deleteMany: {
+            args: Prisma.AdminOtpDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AdminOtpUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AdminOtpUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          aggregate: {
+            args: Prisma.AdminOtpAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAdminOtp>
+          }
+          groupBy: {
+            args: Prisma.AdminOtpGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AdminOtpGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AdminOtpCountArgs<ExtArgs>
+            result: $Utils.Optional<AdminOtpCountAggregateOutputType> | number
           }
         }
       }
@@ -23983,6 +24155,1762 @@ export namespace Prisma {
 
 
   /**
+   * Model AdminAllowedEmail
+   */
+
+  export type AggregateAdminAllowedEmail = {
+    _count: AdminAllowedEmailCountAggregateOutputType | null
+    _min: AdminAllowedEmailMinAggregateOutputType | null
+    _max: AdminAllowedEmailMaxAggregateOutputType | null
+  }
+
+  export type AdminAllowedEmailMinAggregateOutputType = {
+    id: string | null
+    email: string | null
+    createdAt: Date | null
+    createdBy: string | null
+  }
+
+  export type AdminAllowedEmailMaxAggregateOutputType = {
+    id: string | null
+    email: string | null
+    createdAt: Date | null
+    createdBy: string | null
+  }
+
+  export type AdminAllowedEmailCountAggregateOutputType = {
+    id: number
+    email: number
+    createdAt: number
+    createdBy: number
+    _all: number
+  }
+
+
+  export type AdminAllowedEmailMinAggregateInputType = {
+    id?: true
+    email?: true
+    createdAt?: true
+    createdBy?: true
+  }
+
+  export type AdminAllowedEmailMaxAggregateInputType = {
+    id?: true
+    email?: true
+    createdAt?: true
+    createdBy?: true
+  }
+
+  export type AdminAllowedEmailCountAggregateInputType = {
+    id?: true
+    email?: true
+    createdAt?: true
+    createdBy?: true
+    _all?: true
+  }
+
+  export type AdminAllowedEmailAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AdminAllowedEmail to aggregate.
+     */
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AdminAllowedEmails
+    **/
+    _count?: true | AdminAllowedEmailCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AdminAllowedEmailMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AdminAllowedEmailMaxAggregateInputType
+  }
+
+  export type GetAdminAllowedEmailAggregateType<T extends AdminAllowedEmailAggregateArgs> = {
+        [P in keyof T & keyof AggregateAdminAllowedEmail]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAdminAllowedEmail[P]>
+      : GetScalarType<T[P], AggregateAdminAllowedEmail[P]>
+  }
+
+
+
+
+  export type AdminAllowedEmailGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AdminAllowedEmailWhereInput
+    orderBy?: AdminAllowedEmailOrderByWithAggregationInput | AdminAllowedEmailOrderByWithAggregationInput[]
+    by: AdminAllowedEmailScalarFieldEnum[] | AdminAllowedEmailScalarFieldEnum
+    having?: AdminAllowedEmailScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AdminAllowedEmailCountAggregateInputType | true
+    _min?: AdminAllowedEmailMinAggregateInputType
+    _max?: AdminAllowedEmailMaxAggregateInputType
+  }
+
+  export type AdminAllowedEmailGroupByOutputType = {
+    id: string
+    email: string
+    createdAt: Date
+    createdBy: string | null
+    _count: AdminAllowedEmailCountAggregateOutputType | null
+    _min: AdminAllowedEmailMinAggregateOutputType | null
+    _max: AdminAllowedEmailMaxAggregateOutputType | null
+  }
+
+  type GetAdminAllowedEmailGroupByPayload<T extends AdminAllowedEmailGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AdminAllowedEmailGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AdminAllowedEmailGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AdminAllowedEmailGroupByOutputType[P]>
+            : GetScalarType<T[P], AdminAllowedEmailGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AdminAllowedEmailSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    createdAt?: boolean
+    createdBy?: boolean
+  }, ExtArgs["result"]["adminAllowedEmail"]>
+
+  export type AdminAllowedEmailSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    createdAt?: boolean
+    createdBy?: boolean
+  }, ExtArgs["result"]["adminAllowedEmail"]>
+
+  export type AdminAllowedEmailSelectScalar = {
+    id?: boolean
+    email?: boolean
+    createdAt?: boolean
+    createdBy?: boolean
+  }
+
+
+  export type $AdminAllowedEmailPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AdminAllowedEmail"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      email: string
+      createdAt: Date
+      createdBy: string | null
+    }, ExtArgs["result"]["adminAllowedEmail"]>
+    composites: {}
+  }
+
+  type AdminAllowedEmailGetPayload<S extends boolean | null | undefined | AdminAllowedEmailDefaultArgs> = $Result.GetResult<Prisma.$AdminAllowedEmailPayload, S>
+
+  type AdminAllowedEmailCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AdminAllowedEmailFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AdminAllowedEmailCountAggregateInputType | true
+    }
+
+  export interface AdminAllowedEmailDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AdminAllowedEmail'], meta: { name: 'AdminAllowedEmail' } }
+    /**
+     * Find zero or one AdminAllowedEmail that matches the filter.
+     * @param {AdminAllowedEmailFindUniqueArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AdminAllowedEmailFindUniqueArgs>(args: SelectSubset<T, AdminAllowedEmailFindUniqueArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AdminAllowedEmail that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AdminAllowedEmailFindUniqueOrThrowArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AdminAllowedEmailFindUniqueOrThrowArgs>(args: SelectSubset<T, AdminAllowedEmailFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AdminAllowedEmail that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailFindFirstArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AdminAllowedEmailFindFirstArgs>(args?: SelectSubset<T, AdminAllowedEmailFindFirstArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AdminAllowedEmail that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailFindFirstOrThrowArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AdminAllowedEmailFindFirstOrThrowArgs>(args?: SelectSubset<T, AdminAllowedEmailFindFirstOrThrowArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AdminAllowedEmails that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AdminAllowedEmails
+     * const adminAllowedEmails = await prisma.adminAllowedEmail.findMany()
+     * 
+     * // Get first 10 AdminAllowedEmails
+     * const adminAllowedEmails = await prisma.adminAllowedEmail.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const adminAllowedEmailWithIdOnly = await prisma.adminAllowedEmail.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AdminAllowedEmailFindManyArgs>(args?: SelectSubset<T, AdminAllowedEmailFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AdminAllowedEmail.
+     * @param {AdminAllowedEmailCreateArgs} args - Arguments to create a AdminAllowedEmail.
+     * @example
+     * // Create one AdminAllowedEmail
+     * const AdminAllowedEmail = await prisma.adminAllowedEmail.create({
+     *   data: {
+     *     // ... data to create a AdminAllowedEmail
+     *   }
+     * })
+     * 
+     */
+    create<T extends AdminAllowedEmailCreateArgs>(args: SelectSubset<T, AdminAllowedEmailCreateArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AdminAllowedEmails.
+     * @param {AdminAllowedEmailCreateManyArgs} args - Arguments to create many AdminAllowedEmails.
+     * @example
+     * // Create many AdminAllowedEmails
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AdminAllowedEmailCreateManyArgs>(args?: SelectSubset<T, AdminAllowedEmailCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AdminAllowedEmails and returns the data saved in the database.
+     * @param {AdminAllowedEmailCreateManyAndReturnArgs} args - Arguments to create many AdminAllowedEmails.
+     * @example
+     * // Create many AdminAllowedEmails
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AdminAllowedEmails and only return the `id`
+     * const adminAllowedEmailWithIdOnly = await prisma.adminAllowedEmail.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AdminAllowedEmailCreateManyAndReturnArgs>(args?: SelectSubset<T, AdminAllowedEmailCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AdminAllowedEmail.
+     * @param {AdminAllowedEmailDeleteArgs} args - Arguments to delete one AdminAllowedEmail.
+     * @example
+     * // Delete one AdminAllowedEmail
+     * const AdminAllowedEmail = await prisma.adminAllowedEmail.delete({
+     *   where: {
+     *     // ... filter to delete one AdminAllowedEmail
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AdminAllowedEmailDeleteArgs>(args: SelectSubset<T, AdminAllowedEmailDeleteArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AdminAllowedEmail.
+     * @param {AdminAllowedEmailUpdateArgs} args - Arguments to update one AdminAllowedEmail.
+     * @example
+     * // Update one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AdminAllowedEmailUpdateArgs>(args: SelectSubset<T, AdminAllowedEmailUpdateArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AdminAllowedEmails.
+     * @param {AdminAllowedEmailDeleteManyArgs} args - Arguments to filter AdminAllowedEmails to delete.
+     * @example
+     * // Delete a few AdminAllowedEmails
+     * const { count } = await prisma.adminAllowedEmail.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AdminAllowedEmailDeleteManyArgs>(args?: SelectSubset<T, AdminAllowedEmailDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AdminAllowedEmails.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AdminAllowedEmails
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AdminAllowedEmailUpdateManyArgs>(args: SelectSubset<T, AdminAllowedEmailUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AdminAllowedEmail.
+     * @param {AdminAllowedEmailUpsertArgs} args - Arguments to update or create a AdminAllowedEmail.
+     * @example
+     * // Update or create a AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.upsert({
+     *   create: {
+     *     // ... data to create a AdminAllowedEmail
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AdminAllowedEmail we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AdminAllowedEmailUpsertArgs>(args: SelectSubset<T, AdminAllowedEmailUpsertArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AdminAllowedEmails.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailCountArgs} args - Arguments to filter AdminAllowedEmails to count.
+     * @example
+     * // Count the number of AdminAllowedEmails
+     * const count = await prisma.adminAllowedEmail.count({
+     *   where: {
+     *     // ... the filter for the AdminAllowedEmails we want to count
+     *   }
+     * })
+    **/
+    count<T extends AdminAllowedEmailCountArgs>(
+      args?: Subset<T, AdminAllowedEmailCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AdminAllowedEmailCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AdminAllowedEmail.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AdminAllowedEmailAggregateArgs>(args: Subset<T, AdminAllowedEmailAggregateArgs>): Prisma.PrismaPromise<GetAdminAllowedEmailAggregateType<T>>
+
+    /**
+     * Group by AdminAllowedEmail.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AdminAllowedEmailGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AdminAllowedEmailGroupByArgs['orderBy'] }
+        : { orderBy?: AdminAllowedEmailGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AdminAllowedEmailGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAdminAllowedEmailGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AdminAllowedEmail model
+   */
+  readonly fields: AdminAllowedEmailFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AdminAllowedEmail.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AdminAllowedEmailClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AdminAllowedEmail model
+   */ 
+  interface AdminAllowedEmailFieldRefs {
+    readonly id: FieldRef<"AdminAllowedEmail", 'String'>
+    readonly email: FieldRef<"AdminAllowedEmail", 'String'>
+    readonly createdAt: FieldRef<"AdminAllowedEmail", 'DateTime'>
+    readonly createdBy: FieldRef<"AdminAllowedEmail", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AdminAllowedEmail findUnique
+   */
+  export type AdminAllowedEmailFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail findUniqueOrThrow
+   */
+  export type AdminAllowedEmailFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail findFirst
+   */
+  export type AdminAllowedEmailFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminAllowedEmails.
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminAllowedEmails.
+     */
+    distinct?: AdminAllowedEmailScalarFieldEnum | AdminAllowedEmailScalarFieldEnum[]
+  }
+
+  /**
+   * AdminAllowedEmail findFirstOrThrow
+   */
+  export type AdminAllowedEmailFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminAllowedEmails.
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminAllowedEmails.
+     */
+    distinct?: AdminAllowedEmailScalarFieldEnum | AdminAllowedEmailScalarFieldEnum[]
+  }
+
+  /**
+   * AdminAllowedEmail findMany
+   */
+  export type AdminAllowedEmailFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmails to fetch.
+     */
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AdminAllowedEmails.
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    distinct?: AdminAllowedEmailScalarFieldEnum | AdminAllowedEmailScalarFieldEnum[]
+  }
+
+  /**
+   * AdminAllowedEmail create
+   */
+  export type AdminAllowedEmailCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AdminAllowedEmail.
+     */
+    data: XOR<AdminAllowedEmailCreateInput, AdminAllowedEmailUncheckedCreateInput>
+  }
+
+  /**
+   * AdminAllowedEmail createMany
+   */
+  export type AdminAllowedEmailCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AdminAllowedEmails.
+     */
+    data: AdminAllowedEmailCreateManyInput | AdminAllowedEmailCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminAllowedEmail createManyAndReturn
+   */
+  export type AdminAllowedEmailCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AdminAllowedEmails.
+     */
+    data: AdminAllowedEmailCreateManyInput | AdminAllowedEmailCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminAllowedEmail update
+   */
+  export type AdminAllowedEmailUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AdminAllowedEmail.
+     */
+    data: XOR<AdminAllowedEmailUpdateInput, AdminAllowedEmailUncheckedUpdateInput>
+    /**
+     * Choose, which AdminAllowedEmail to update.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail updateMany
+   */
+  export type AdminAllowedEmailUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AdminAllowedEmails.
+     */
+    data: XOR<AdminAllowedEmailUpdateManyMutationInput, AdminAllowedEmailUncheckedUpdateManyInput>
+    /**
+     * Filter which AdminAllowedEmails to update
+     */
+    where?: AdminAllowedEmailWhereInput
+  }
+
+  /**
+   * AdminAllowedEmail upsert
+   */
+  export type AdminAllowedEmailUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AdminAllowedEmail to update in case it exists.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+    /**
+     * In case the AdminAllowedEmail found by the `where` argument doesn't exist, create a new AdminAllowedEmail with this data.
+     */
+    create: XOR<AdminAllowedEmailCreateInput, AdminAllowedEmailUncheckedCreateInput>
+    /**
+     * In case the AdminAllowedEmail was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AdminAllowedEmailUpdateInput, AdminAllowedEmailUncheckedUpdateInput>
+  }
+
+  /**
+   * AdminAllowedEmail delete
+   */
+  export type AdminAllowedEmailDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter which AdminAllowedEmail to delete.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail deleteMany
+   */
+  export type AdminAllowedEmailDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AdminAllowedEmails to delete
+     */
+    where?: AdminAllowedEmailWhereInput
+  }
+
+  /**
+   * AdminAllowedEmail without action
+   */
+  export type AdminAllowedEmailDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AdminOtp
+   */
+
+  export type AggregateAdminOtp = {
+    _count: AdminOtpCountAggregateOutputType | null
+    _min: AdminOtpMinAggregateOutputType | null
+    _max: AdminOtpMaxAggregateOutputType | null
+  }
+
+  export type AdminOtpMinAggregateOutputType = {
+    id: string | null
+    email: string | null
+    otpHash: string | null
+    expiresAt: Date | null
+    verified: boolean | null
+    createdAt: Date | null
+  }
+
+  export type AdminOtpMaxAggregateOutputType = {
+    id: string | null
+    email: string | null
+    otpHash: string | null
+    expiresAt: Date | null
+    verified: boolean | null
+    createdAt: Date | null
+  }
+
+  export type AdminOtpCountAggregateOutputType = {
+    id: number
+    email: number
+    otpHash: number
+    expiresAt: number
+    verified: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type AdminOtpMinAggregateInputType = {
+    id?: true
+    email?: true
+    otpHash?: true
+    expiresAt?: true
+    verified?: true
+    createdAt?: true
+  }
+
+  export type AdminOtpMaxAggregateInputType = {
+    id?: true
+    email?: true
+    otpHash?: true
+    expiresAt?: true
+    verified?: true
+    createdAt?: true
+  }
+
+  export type AdminOtpCountAggregateInputType = {
+    id?: true
+    email?: true
+    otpHash?: true
+    expiresAt?: true
+    verified?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type AdminOtpAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AdminOtp to aggregate.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AdminOtps
+    **/
+    _count?: true | AdminOtpCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AdminOtpMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AdminOtpMaxAggregateInputType
+  }
+
+  export type GetAdminOtpAggregateType<T extends AdminOtpAggregateArgs> = {
+        [P in keyof T & keyof AggregateAdminOtp]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAdminOtp[P]>
+      : GetScalarType<T[P], AggregateAdminOtp[P]>
+  }
+
+
+
+
+  export type AdminOtpGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AdminOtpWhereInput
+    orderBy?: AdminOtpOrderByWithAggregationInput | AdminOtpOrderByWithAggregationInput[]
+    by: AdminOtpScalarFieldEnum[] | AdminOtpScalarFieldEnum
+    having?: AdminOtpScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AdminOtpCountAggregateInputType | true
+    _min?: AdminOtpMinAggregateInputType
+    _max?: AdminOtpMaxAggregateInputType
+  }
+
+  export type AdminOtpGroupByOutputType = {
+    id: string
+    email: string
+    otpHash: string
+    expiresAt: Date
+    verified: boolean
+    createdAt: Date
+    _count: AdminOtpCountAggregateOutputType | null
+    _min: AdminOtpMinAggregateOutputType | null
+    _max: AdminOtpMaxAggregateOutputType | null
+  }
+
+  type GetAdminOtpGroupByPayload<T extends AdminOtpGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AdminOtpGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AdminOtpGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AdminOtpGroupByOutputType[P]>
+            : GetScalarType<T[P], AdminOtpGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AdminOtpSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    verified?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["adminOtp"]>
+
+  export type AdminOtpSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    verified?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["adminOtp"]>
+
+  export type AdminOtpSelectScalar = {
+    id?: boolean
+    email?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    verified?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $AdminOtpPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AdminOtp"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      email: string
+      otpHash: string
+      expiresAt: Date
+      verified: boolean
+      createdAt: Date
+    }, ExtArgs["result"]["adminOtp"]>
+    composites: {}
+  }
+
+  type AdminOtpGetPayload<S extends boolean | null | undefined | AdminOtpDefaultArgs> = $Result.GetResult<Prisma.$AdminOtpPayload, S>
+
+  type AdminOtpCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AdminOtpFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AdminOtpCountAggregateInputType | true
+    }
+
+  export interface AdminOtpDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AdminOtp'], meta: { name: 'AdminOtp' } }
+    /**
+     * Find zero or one AdminOtp that matches the filter.
+     * @param {AdminOtpFindUniqueArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AdminOtpFindUniqueArgs>(args: SelectSubset<T, AdminOtpFindUniqueArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AdminOtp that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AdminOtpFindUniqueOrThrowArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AdminOtpFindUniqueOrThrowArgs>(args: SelectSubset<T, AdminOtpFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AdminOtp that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpFindFirstArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AdminOtpFindFirstArgs>(args?: SelectSubset<T, AdminOtpFindFirstArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AdminOtp that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpFindFirstOrThrowArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AdminOtpFindFirstOrThrowArgs>(args?: SelectSubset<T, AdminOtpFindFirstOrThrowArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AdminOtps that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AdminOtps
+     * const adminOtps = await prisma.adminOtp.findMany()
+     * 
+     * // Get first 10 AdminOtps
+     * const adminOtps = await prisma.adminOtp.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const adminOtpWithIdOnly = await prisma.adminOtp.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AdminOtpFindManyArgs>(args?: SelectSubset<T, AdminOtpFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AdminOtp.
+     * @param {AdminOtpCreateArgs} args - Arguments to create a AdminOtp.
+     * @example
+     * // Create one AdminOtp
+     * const AdminOtp = await prisma.adminOtp.create({
+     *   data: {
+     *     // ... data to create a AdminOtp
+     *   }
+     * })
+     * 
+     */
+    create<T extends AdminOtpCreateArgs>(args: SelectSubset<T, AdminOtpCreateArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AdminOtps.
+     * @param {AdminOtpCreateManyArgs} args - Arguments to create many AdminOtps.
+     * @example
+     * // Create many AdminOtps
+     * const adminOtp = await prisma.adminOtp.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AdminOtpCreateManyArgs>(args?: SelectSubset<T, AdminOtpCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AdminOtps and returns the data saved in the database.
+     * @param {AdminOtpCreateManyAndReturnArgs} args - Arguments to create many AdminOtps.
+     * @example
+     * // Create many AdminOtps
+     * const adminOtp = await prisma.adminOtp.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AdminOtps and only return the `id`
+     * const adminOtpWithIdOnly = await prisma.adminOtp.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AdminOtpCreateManyAndReturnArgs>(args?: SelectSubset<T, AdminOtpCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AdminOtp.
+     * @param {AdminOtpDeleteArgs} args - Arguments to delete one AdminOtp.
+     * @example
+     * // Delete one AdminOtp
+     * const AdminOtp = await prisma.adminOtp.delete({
+     *   where: {
+     *     // ... filter to delete one AdminOtp
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AdminOtpDeleteArgs>(args: SelectSubset<T, AdminOtpDeleteArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AdminOtp.
+     * @param {AdminOtpUpdateArgs} args - Arguments to update one AdminOtp.
+     * @example
+     * // Update one AdminOtp
+     * const adminOtp = await prisma.adminOtp.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AdminOtpUpdateArgs>(args: SelectSubset<T, AdminOtpUpdateArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AdminOtps.
+     * @param {AdminOtpDeleteManyArgs} args - Arguments to filter AdminOtps to delete.
+     * @example
+     * // Delete a few AdminOtps
+     * const { count } = await prisma.adminOtp.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AdminOtpDeleteManyArgs>(args?: SelectSubset<T, AdminOtpDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AdminOtps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AdminOtps
+     * const adminOtp = await prisma.adminOtp.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AdminOtpUpdateManyArgs>(args: SelectSubset<T, AdminOtpUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AdminOtp.
+     * @param {AdminOtpUpsertArgs} args - Arguments to update or create a AdminOtp.
+     * @example
+     * // Update or create a AdminOtp
+     * const adminOtp = await prisma.adminOtp.upsert({
+     *   create: {
+     *     // ... data to create a AdminOtp
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AdminOtp we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AdminOtpUpsertArgs>(args: SelectSubset<T, AdminOtpUpsertArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AdminOtps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpCountArgs} args - Arguments to filter AdminOtps to count.
+     * @example
+     * // Count the number of AdminOtps
+     * const count = await prisma.adminOtp.count({
+     *   where: {
+     *     // ... the filter for the AdminOtps we want to count
+     *   }
+     * })
+    **/
+    count<T extends AdminOtpCountArgs>(
+      args?: Subset<T, AdminOtpCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AdminOtpCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AdminOtp.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AdminOtpAggregateArgs>(args: Subset<T, AdminOtpAggregateArgs>): Prisma.PrismaPromise<GetAdminOtpAggregateType<T>>
+
+    /**
+     * Group by AdminOtp.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AdminOtpGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AdminOtpGroupByArgs['orderBy'] }
+        : { orderBy?: AdminOtpGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AdminOtpGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAdminOtpGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AdminOtp model
+   */
+  readonly fields: AdminOtpFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AdminOtp.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AdminOtpClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AdminOtp model
+   */ 
+  interface AdminOtpFieldRefs {
+    readonly id: FieldRef<"AdminOtp", 'String'>
+    readonly email: FieldRef<"AdminOtp", 'String'>
+    readonly otpHash: FieldRef<"AdminOtp", 'String'>
+    readonly expiresAt: FieldRef<"AdminOtp", 'DateTime'>
+    readonly verified: FieldRef<"AdminOtp", 'Boolean'>
+    readonly createdAt: FieldRef<"AdminOtp", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AdminOtp findUnique
+   */
+  export type AdminOtpFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp findUniqueOrThrow
+   */
+  export type AdminOtpFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp findFirst
+   */
+  export type AdminOtpFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminOtps.
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminOtps.
+     */
+    distinct?: AdminOtpScalarFieldEnum | AdminOtpScalarFieldEnum[]
+  }
+
+  /**
+   * AdminOtp findFirstOrThrow
+   */
+  export type AdminOtpFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminOtps.
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminOtps.
+     */
+    distinct?: AdminOtpScalarFieldEnum | AdminOtpScalarFieldEnum[]
+  }
+
+  /**
+   * AdminOtp findMany
+   */
+  export type AdminOtpFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtps to fetch.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AdminOtps.
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    distinct?: AdminOtpScalarFieldEnum | AdminOtpScalarFieldEnum[]
+  }
+
+  /**
+   * AdminOtp create
+   */
+  export type AdminOtpCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AdminOtp.
+     */
+    data: XOR<AdminOtpCreateInput, AdminOtpUncheckedCreateInput>
+  }
+
+  /**
+   * AdminOtp createMany
+   */
+  export type AdminOtpCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AdminOtps.
+     */
+    data: AdminOtpCreateManyInput | AdminOtpCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminOtp createManyAndReturn
+   */
+  export type AdminOtpCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AdminOtps.
+     */
+    data: AdminOtpCreateManyInput | AdminOtpCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminOtp update
+   */
+  export type AdminOtpUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AdminOtp.
+     */
+    data: XOR<AdminOtpUpdateInput, AdminOtpUncheckedUpdateInput>
+    /**
+     * Choose, which AdminOtp to update.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp updateMany
+   */
+  export type AdminOtpUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AdminOtps.
+     */
+    data: XOR<AdminOtpUpdateManyMutationInput, AdminOtpUncheckedUpdateManyInput>
+    /**
+     * Filter which AdminOtps to update
+     */
+    where?: AdminOtpWhereInput
+  }
+
+  /**
+   * AdminOtp upsert
+   */
+  export type AdminOtpUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AdminOtp to update in case it exists.
+     */
+    where: AdminOtpWhereUniqueInput
+    /**
+     * In case the AdminOtp found by the `where` argument doesn't exist, create a new AdminOtp with this data.
+     */
+    create: XOR<AdminOtpCreateInput, AdminOtpUncheckedCreateInput>
+    /**
+     * In case the AdminOtp was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AdminOtpUpdateInput, AdminOtpUncheckedUpdateInput>
+  }
+
+  /**
+   * AdminOtp delete
+   */
+  export type AdminOtpDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter which AdminOtp to delete.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp deleteMany
+   */
+  export type AdminOtpDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AdminOtps to delete
+     */
+    where?: AdminOtpWhereInput
+  }
+
+  /**
+   * AdminOtp without action
+   */
+  export type AdminOtpDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+  }
+
+
+  /**
    * Enums
    */
 
@@ -24345,6 +26273,28 @@ export namespace Prisma {
   };
 
   export type LegalDocumentScalarFieldEnum = (typeof LegalDocumentScalarFieldEnum)[keyof typeof LegalDocumentScalarFieldEnum]
+
+
+  export const AdminAllowedEmailScalarFieldEnum: {
+    id: 'id',
+    email: 'email',
+    createdAt: 'createdAt',
+    createdBy: 'createdBy'
+  };
+
+  export type AdminAllowedEmailScalarFieldEnum = (typeof AdminAllowedEmailScalarFieldEnum)[keyof typeof AdminAllowedEmailScalarFieldEnum]
+
+
+  export const AdminOtpScalarFieldEnum: {
+    id: 'id',
+    email: 'email',
+    otpHash: 'otpHash',
+    expiresAt: 'expiresAt',
+    verified: 'verified',
+    createdAt: 'createdAt'
+  };
+
+  export type AdminOtpScalarFieldEnum = (typeof AdminOtpScalarFieldEnum)[keyof typeof AdminOtpScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -26332,6 +28282,110 @@ export namespace Prisma {
     updatedBy?: StringNullableWithAggregatesFilter<"LegalDocument"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"LegalDocument"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"LegalDocument"> | Date | string
+  }
+
+  export type AdminAllowedEmailWhereInput = {
+    AND?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    OR?: AdminAllowedEmailWhereInput[]
+    NOT?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    id?: StringFilter<"AdminAllowedEmail"> | string
+    email?: StringFilter<"AdminAllowedEmail"> | string
+    createdAt?: DateTimeFilter<"AdminAllowedEmail"> | Date | string
+    createdBy?: StringNullableFilter<"AdminAllowedEmail"> | string | null
+  }
+
+  export type AdminAllowedEmailOrderByWithRelationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrderInput | SortOrder
+  }
+
+  export type AdminAllowedEmailWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    email?: string
+    AND?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    OR?: AdminAllowedEmailWhereInput[]
+    NOT?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    createdAt?: DateTimeFilter<"AdminAllowedEmail"> | Date | string
+    createdBy?: StringNullableFilter<"AdminAllowedEmail"> | string | null
+  }, "id" | "email">
+
+  export type AdminAllowedEmailOrderByWithAggregationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrderInput | SortOrder
+    _count?: AdminAllowedEmailCountOrderByAggregateInput
+    _max?: AdminAllowedEmailMaxOrderByAggregateInput
+    _min?: AdminAllowedEmailMinOrderByAggregateInput
+  }
+
+  export type AdminAllowedEmailScalarWhereWithAggregatesInput = {
+    AND?: AdminAllowedEmailScalarWhereWithAggregatesInput | AdminAllowedEmailScalarWhereWithAggregatesInput[]
+    OR?: AdminAllowedEmailScalarWhereWithAggregatesInput[]
+    NOT?: AdminAllowedEmailScalarWhereWithAggregatesInput | AdminAllowedEmailScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AdminAllowedEmail"> | string
+    email?: StringWithAggregatesFilter<"AdminAllowedEmail"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AdminAllowedEmail"> | Date | string
+    createdBy?: StringNullableWithAggregatesFilter<"AdminAllowedEmail"> | string | null
+  }
+
+  export type AdminOtpWhereInput = {
+    AND?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    OR?: AdminOtpWhereInput[]
+    NOT?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    id?: StringFilter<"AdminOtp"> | string
+    email?: StringFilter<"AdminOtp"> | string
+    otpHash?: StringFilter<"AdminOtp"> | string
+    expiresAt?: DateTimeFilter<"AdminOtp"> | Date | string
+    verified?: BoolFilter<"AdminOtp"> | boolean
+    createdAt?: DateTimeFilter<"AdminOtp"> | Date | string
+  }
+
+  export type AdminOtpOrderByWithRelationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AdminOtpWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    OR?: AdminOtpWhereInput[]
+    NOT?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    email?: StringFilter<"AdminOtp"> | string
+    otpHash?: StringFilter<"AdminOtp"> | string
+    expiresAt?: DateTimeFilter<"AdminOtp"> | Date | string
+    verified?: BoolFilter<"AdminOtp"> | boolean
+    createdAt?: DateTimeFilter<"AdminOtp"> | Date | string
+  }, "id">
+
+  export type AdminOtpOrderByWithAggregationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+    _count?: AdminOtpCountOrderByAggregateInput
+    _max?: AdminOtpMaxOrderByAggregateInput
+    _min?: AdminOtpMinOrderByAggregateInput
+  }
+
+  export type AdminOtpScalarWhereWithAggregatesInput = {
+    AND?: AdminOtpScalarWhereWithAggregatesInput | AdminOtpScalarWhereWithAggregatesInput[]
+    OR?: AdminOtpScalarWhereWithAggregatesInput[]
+    NOT?: AdminOtpScalarWhereWithAggregatesInput | AdminOtpScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AdminOtp"> | string
+    email?: StringWithAggregatesFilter<"AdminOtp"> | string
+    otpHash?: StringWithAggregatesFilter<"AdminOtp"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"AdminOtp"> | Date | string
+    verified?: BoolWithAggregatesFilter<"AdminOtp"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"AdminOtp"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -28446,6 +30500,118 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
+  export type AdminAllowedEmailCreateInput = {
+    id?: string
+    email: string
+    createdAt?: Date | string
+    createdBy?: string | null
+  }
+
+  export type AdminAllowedEmailUncheckedCreateInput = {
+    id?: string
+    email: string
+    createdAt?: Date | string
+    createdBy?: string | null
+  }
+
+  export type AdminAllowedEmailUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminAllowedEmailUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminAllowedEmailCreateManyInput = {
+    id?: string
+    email: string
+    createdAt?: Date | string
+    createdBy?: string | null
+  }
+
+  export type AdminAllowedEmailUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminAllowedEmailUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminOtpCreateInput = {
+    id?: string
+    email: string
+    otpHash: string
+    expiresAt: Date | string
+    verified?: boolean
+    createdAt?: Date | string
+  }
+
+  export type AdminOtpUncheckedCreateInput = {
+    id?: string
+    email: string
+    otpHash: string
+    expiresAt: Date | string
+    verified?: boolean
+    createdAt?: Date | string
+  }
+
+  export type AdminOtpUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AdminOtpUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AdminOtpCreateManyInput = {
+    id?: string
+    email: string
+    otpHash: string
+    expiresAt: Date | string
+    verified?: boolean
+    createdAt?: Date | string
+  }
+
+  export type AdminOtpUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AdminOtpUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
   export type StringFilter<$PrismaModel = never> = {
     equals?: string | StringFieldRefInput<$PrismaModel>
     in?: string[] | ListStringFieldRefInput<$PrismaModel>
@@ -29920,6 +32086,54 @@ export namespace Prisma {
 
   export type LegalDocumentSumOrderByAggregateInput = {
     version?: SortOrder
+  }
+
+  export type AdminAllowedEmailCountOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrder
+  }
+
+  export type AdminAllowedEmailMaxOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrder
+  }
+
+  export type AdminAllowedEmailMinOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrder
+  }
+
+  export type AdminOtpCountOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AdminOtpMaxOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AdminOtpMinOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type OTPVerificationCreateNestedManyWithoutUserInput = {
@@ -38347,6 +40561,14 @@ export namespace Prisma {
      * @deprecated Use LegalDocumentDefaultArgs instead
      */
     export type LegalDocumentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LegalDocumentDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AdminAllowedEmailDefaultArgs instead
+     */
+    export type AdminAllowedEmailArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AdminAllowedEmailDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AdminOtpDefaultArgs instead
+     */
+    export type AdminOtpArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AdminOtpDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

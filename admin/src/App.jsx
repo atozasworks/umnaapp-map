@@ -1,5 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { getToken } from './lib/api'
+import { checkAdminSession } from './lib/api'
 import Login from './pages/Login.jsx'
 import Layout from './components/Layout.jsx'
 import Dashboard from './pages/Dashboard.jsx'
@@ -10,9 +11,29 @@ import ExtractedPlaces from './pages/ExtractedPlaces.jsx'
 import BusinessClaims from './pages/BusinessClaims.jsx'
 import LegalDocs from './pages/LegalDocs.jsx'
 import SafetyHazards from './pages/SafetyHazards.jsx'
+import AdminSettings from './pages/AdminSettings.jsx'
 
 function PrivateRoute({ children }) {
-  if (!getToken()) {
+  const [state, setState] = useState('loading') // loading | ok | no
+
+  useEffect(() => {
+    let cancelled = false
+    checkAdminSession().then((ok) => {
+      if (!cancelled) setState(ok ? 'ok' : 'no')
+    })
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  if (state === 'loading') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-admin-950 text-sm text-admin-muted">
+        Checking session…
+      </div>
+    )
+  }
+  if (state === 'no') {
     return <Navigate to="/login" replace />
   }
   return children
@@ -39,6 +60,7 @@ export default function App() {
         <Route path="schema" element={<Schema />} />
         <Route path="data" element={<DataExplorer />} />
         <Route path="data/:model" element={<DataExplorer />} />
+        <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

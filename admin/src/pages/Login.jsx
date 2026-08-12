@@ -1,31 +1,42 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { api, setToken } from '../lib/api'
+import { requestAdminOtp, verifyAdminOtp } from '../lib/api'
 
 export default function Login() {
   const navigate = useNavigate()
-  const [secret, setSecret] = useState('')
+  const [step, setStep] = useState('email') // email | otp
+  const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
   const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e) {
+  async function handleRequestOtp(e) {
+    e.preventDefault()
+    setError('')
+    setInfo('')
+    setLoading(true)
+    try {
+      const data = await requestAdminOtp(email.trim())
+      setEmail(data.email || email.trim().toLowerCase())
+      setStep('otp')
+      setInfo('Verification code sent. Check your Gmail inbox (and spam).')
+    } catch (err) {
+      setError(err.response?.data?.error || 'Could not send verification code.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleVerifyOtp(e) {
     e.preventDefault()
     setError('')
     setLoading(true)
     try {
-      setToken(secret.trim())
-      await api.get('/admin/overview')
+      await verifyAdminOtp(email.trim(), otp.trim())
       navigate('/', { replace: true })
     } catch (err) {
-      setToken('')
-      let msg = err.response?.data?.error
-      if (!msg) {
-        msg =
-          err.response?.status === 503
-            ? 'Admin API unavailable or ADMIN_SECRET not configured on server.'
-            : 'Invalid secret or server error.'
-      }
-      setError(msg)
+      setError(err.response?.data?.error || 'Invalid or expired code.')
     } finally {
       setLoading(false)
     }
@@ -40,41 +51,98 @@ export default function Login() {
           </div>
           <h1 className="text-xl font-semibold text-white">UMNAAPP Admin</h1>
           <p className="mt-2 text-sm text-admin-muted">
-            Enter the backend <code className="rounded bg-admin-850 px-1.5 py-0.5 font-mono text-xs">ADMIN_SECRET</code>{' '}
-            to view schema and data.
+            Sign in with a pre-approved Gmail address. A one-time code will be emailed to you.
           </p>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label htmlFor="secret" className="mb-2 block text-sm font-medium text-slate-300">
-              Admin secret
-            </label>
-            <input
-              id="secret"
-              type="password"
-              autoComplete="off"
-              value={secret}
-              onChange={(e) => setSecret(e.target.value)}
-              className="w-full rounded-xl border border-admin-border bg-admin-950 px-4 py-3 font-mono text-sm text-slate-100 outline-none ring-admin-accent/0 transition focus:border-admin-accent/50 focus:ring-2 focus:ring-admin-accent/20"
-              placeholder="Paste ADMIN_SECRET from .env"
-              required
-            />
-          </div>
-          {error && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-              {error}
+
+        {step === 'email' ? (
+          <form onSubmit={handleRequestOtp} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-300">
+                Admin Gmail
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full rounded-xl border border-admin-border bg-admin-950 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-admin-accent/50 focus:ring-2 focus:ring-admin-accent/20"
+                placeholder="you@gmail.com"
+                required
+              />
             </div>
-          )}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-semibold text-admin-950 shadow-lg shadow-emerald-900/30 transition hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-50"
-          >
-            {loading ? 'Checking…' : 'Continue'}
-          </button>
-        </form>
+            {error && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-semibold text-admin-950 shadow-lg shadow-emerald-900/30 transition hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-50"
+            >
+              {loading ? 'Sending…' : 'Send verification code'}
+            </button>
+          </form>
+        ) : (
+          <form onSubmit={handleVerifyOtp} className="space-y-5">
+            <div>
+              <label htmlFor="otp" className="mb-2 block text-sm font-medium text-slate-300">
+                Verification code
+              </label>
+              <p className="mb-2 text-xs text-admin-muted">
+                Sent to <span className="font-mono text-slate-300">{email}</span>
+              </p>
+              <input
+                id="otp"
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="[0-9]{6}"
+                maxLength={6}
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                className="w-full rounded-xl border border-admin-border bg-admin-950 px-4 py-3 font-mono text-lg tracking-[0.35em] text-slate-100 outline-none transition focus:border-admin-accent/50 focus:ring-2 focus:ring-admin-accent/20"
+                placeholder="••••••"
+                required
+              />
+            </div>
+            {info && (
+              <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                {info}
+              </div>
+            )}
+            {error && (
+              <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+                {error}
+              </div>
+            )}
+            <button
+              type="submit"
+              disabled={loading || otp.length !== 6}
+              className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 py-3 text-sm font-semibold text-admin-950 shadow-lg shadow-emerald-900/30 transition hover:from-emerald-400 hover:to-emerald-500 disabled:opacity-50"
+            >
+              {loading ? 'Verifying…' : 'Verify & continue'}
+            </button>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => {
+                setStep('email')
+                setOtp('')
+                setError('')
+                setInfo('')
+              }}
+              className="w-full text-center text-xs text-admin-muted hover:text-slate-300"
+            >
+              Use a different email
+            </button>
+          </form>
+        )}
+
         <p className="mt-6 text-center text-xs text-admin-muted">
-          Stored only in this browser (localStorage). Use HTTPS in production.
+          Only Gmail addresses on the admin allowlist can sign in. Session uses a short-lived httpOnly cookie.
         </p>
       </div>
     </div>

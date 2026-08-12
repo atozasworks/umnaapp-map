@@ -74,7 +74,7 @@ test('GET /api/map/places without a token is rejected', async () => {
   assert.equal(res.status, 401)
 })
 
-test('GET /api/admin/places without admin secret is rejected', async () => {
+test('GET /api/admin/places without admin session is rejected', async () => {
   const res = await fetch(`${BASE}/api/admin/places`)
   assert.ok(res.status === 401 || res.status === 403)
 })

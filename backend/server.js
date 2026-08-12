@@ -28,14 +28,21 @@ import {
   registerLiveLocationSockets,
 } from './lib/liveLocationSockets.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
-import { validateAdminSecretOrExit } from './middleware/adminAuth.js'
-import { rateLimitMiddleware } from './middleware/rateLimit.js'
+import { validateAdminAuthConfigOrExit } from './middleware/adminAuth.js'
+import {
+  rateLimitMiddleware,
+  validateRedisOrExit,
+  ensureRedisReady,
+} from './middleware/rateLimit.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
+import { seedAdminBootstrapEmails } from './services/adminAllowlistService.js'
 import { setIo } from './lib/socketIo.js'
 
-// Fail fast on a weak/guessable ADMIN_SECRET before binding the port.
-validateAdminSecretOrExit()
+// Admin OTP sessions require JWT_SECRET; ADMIN_SECRET is no longer used for login.
+validateAdminAuthConfigOrExit()
+// Production requires Redis so rate limiting cannot be silently disabled.
+validateRedisOrExit()
 
 const defaultOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -119,11 +126,16 @@ app.use(passport.initialize())
 // Routes
 app.use('/api/auth', rateLimitMiddleware('auth', 40, 60), authRoutes)
 app.use('/api', atozasAuthRoutes) // Atozas Auth Kit routes (/api/email/send-otp, /api/email/verify-otp, /api/me)
-app.use('/api/test', testRoutes)
+// Dev-only SMTP/debug helpers — never mount in production.
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test', testRoutes)
+} else {
+  console.log('🔒 /api/test disabled (NODE_ENV=production)')
+}
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
 app.use('/api/map', safeRouteRoutes) // Safe Route scoring + community hazard reports
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
-app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
+app.use('/api/admin', adminRoutes) // Database admin (OTP to pre-approved Gmail + httpOnly session)
 app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
 app.use('/api/feedback', feedbackRoutes)
@@ -398,10 +410,37 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000
 
-httpServer.listen(PORT, () => {
-  startPlaceApprovalScheduler()
-  console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
-  console.log(`📡 Socket.io server ready`)
+async function startServer() {
+  // Connect Redis before accepting traffic. In production this exits on failure.
+  // In development without REDIS_URL, rate limiting stays explicitly disabled.
+  try {
+    await ensureRedisReady()
+  } catch (err) {
+    if (process.env.NODE_ENV === 'production') {
+      // ensureRedisReady already exits in production; keep as a hard stop.
+      process.exit(1)
+    }
+    console.warn(
+      '⚠️  Redis unavailable in development. Rate-limited routes will return 503 until Redis is reachable (throttling will not be bypassed).'
+    )
+  }
+
+  try {
+    await seedAdminBootstrapEmails()
+  } catch (err) {
+    console.warn('⚠️  Admin allowlist bootstrap skipped:', err.message)
+  }
+
+  httpServer.listen(PORT, () => {
+    startPlaceApprovalScheduler()
+    console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
+    console.log(`📡 Socket.io server ready`)
+  })
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start server:', err)
+  process.exit(1)
 })
 
 // Graceful shutdown

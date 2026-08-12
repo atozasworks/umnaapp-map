@@ -413,6 +413,22 @@ exports.Prisma.LegalDocumentScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.AdminAllowedEmailScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  createdAt: 'createdAt',
+  createdBy: 'createdBy'
+};
+
+exports.Prisma.AdminOtpScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  otpHash: 'otpHash',
+  expiresAt: 'expiresAt',
+  verified: 'verified',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.SortOrder = {
   asc: 'asc',
   desc: 'desc'
@@ -460,7 +476,9 @@ exports.Prisma.ModelName = {
   LiveLocationShare: 'LiveLocationShare',
   LiveLocationViewer: 'LiveLocationViewer',
   SafetyHazardReport: 'SafetyHazardReport',
-  LegalDocument: 'LegalDocument'
+  LegalDocument: 'LegalDocument',
+  AdminAllowedEmail: 'AdminAllowedEmail',
+  AdminOtp: 'AdminOtp'
 };
 
 /**

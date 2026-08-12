@@ -491,3 +491,28 @@ model LegalDocument {
 
   @@index([type])
 }
+
+// Pre-approved Gmail addresses allowed to request admin OTP login.
+model AdminAllowedEmail {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by") // email of admin who added this entry
+
+  @@index([email])
+  @@map("AdminAllowedEmail")
+}
+
+// Short-lived OTP challenges for admin panel login (hashed; never store plaintext).
+model AdminOtp {
+  id        String   @id @default(uuid())
+  email     String
+  otpHash   String   @map("otp_hash")
+  expiresAt DateTime @map("expires_at")
+  verified  Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([email])
+  @@index([expiresAt])
+  @@map("AdminOtp")
+}

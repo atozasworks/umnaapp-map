@@ -1,7 +1,26 @@
 import express from 'express'
 import { body, query, validationResult } from 'express-validator'
 import prisma from '../config/database.js'
-import { adminAuth } from '../middleware/adminAuth.js'
+import {
+  adminAuth,
+  clearAdminSessionCookie,
+  createAdminSessionToken,
+  getAdminSessionFromRequest,
+  getAdminSessionSigningSecret,
+  getAdminSessionTtl,
+  parseCookies,
+  revokeAdminSessionJti,
+  setAdminSessionCookie,
+  verifyAdminSessionToken,
+  ADMIN_SESSION_COOKIE,
+} from '../middleware/adminAuth.js'
+import { rateLimitMiddleware } from '../middleware/rateLimit.js'
+import { requestAdminOtp, verifyAdminOtp } from '../services/adminOtpService.js'
+import {
+  addAllowedAdminEmail,
+  listAllowedAdminEmails,
+  removeAllowedAdminEmail,
+} from '../services/adminAllowlistService.js'
 import {
   autoApproveExpiredPendingPlaces,
   enrichPlaceApprovalMeta,
@@ -14,7 +33,11 @@ import {
   PLACE_DETAIL_SELECT,
   sanitizePlaceName,
 } from '../utils/placePayload.js'
-import { onPlaceApproved } from '../services/notificationService.js'
+import {
+  onPlaceApproved,
+  notifyBusinessClaimApproved,
+  notifyBusinessClaimRejected,
+} from '../services/notificationService.js'
 import {
   getAllLegalDocuments,
   getLegalDocument,
@@ -33,7 +56,164 @@ import {
 } from '../services/placeAudit.js'
 
 const router = express.Router()
+
+// ── Admin OTP auth (public; must stay above adminAuth) ─────────────────────
+
+/** POST /api/admin/auth/request-otp — send OTP to a pre-approved Gmail address */
+router.post(
+  '/auth/request-otp',
+  rateLimitMiddleware('admin:otp-request', 8, 60),
+  [body('email').isString().isEmail().isLength({ max: 320 })],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'A valid email address is required' })
+    }
+    if (!getAdminSessionSigningSecret()) {
+      return res.status(503).json({
+        error: 'Admin API unavailable. Set JWT_SECRET (min 16 characters) in backend .env',
+      })
+    }
+    try {
+      const result = await requestAdminOtp(req.body.email)
+      return res.json(result)
+    } catch (e) {
+      console.error('admin request-otp', e.message)
+      return res.status(e.status || 500).json({ error: e.message || 'Failed to send OTP' })
+    }
+  }
+)
+
+/** POST /api/admin/auth/verify-otp — verify OTP and set httpOnly session cookie */
+router.post(
+  '/auth/verify-otp',
+  rateLimitMiddleware('admin:otp-verify', 12, 60),
+  [
+    body('email').isString().isEmail().isLength({ max: 320 }),
+    body('otp').isString().isLength({ min: 6, max: 6 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Email and 6-digit OTP are required' })
+    }
+    if (!getAdminSessionSigningSecret()) {
+      return res.status(503).json({
+        error: 'Admin API unavailable. Set JWT_SECRET (min 16 characters) in backend .env',
+      })
+    }
+    try {
+      const { email } = await verifyAdminOtp(req.body.email, req.body.otp)
+      const token = createAdminSessionToken(email)
+      setAdminSessionCookie(res, token)
+      return res.json({
+        success: true,
+        email,
+        expiresIn: getAdminSessionTtl(),
+      })
+    } catch (e) {
+      console.error('admin verify-otp', e.message)
+      return res.status(e.status || 500).json({ error: e.message || 'Verification failed' })
+    }
+  }
+)
+
+/** POST /api/admin/logout — clear session cookie and revoke jti */
+router.post('/logout', (req, res) => {
+  const cookies = parseCookies(req)
+  const token = cookies[ADMIN_SESSION_COOKIE]
+  if (token) {
+    const payload = verifyAdminSessionToken(token)
+    if (payload?.jti) {
+      revokeAdminSessionJti(payload.jti, payload.exp)
+    } else {
+      try {
+        const parts = String(token).split('.')
+        if (parts.length === 3) {
+          const bodyJson = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'))
+          if (bodyJson?.jti) revokeAdminSessionJti(bodyJson.jti, bodyJson.exp)
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  clearAdminSessionCookie(res)
+  return res.json({ success: true })
+})
+
+/** GET /api/admin/session — soft auth check for the admin SPA */
+router.get('/session', async (req, res) => {
+  if (!getAdminSessionSigningSecret()) {
+    return res.status(503).json({
+      authenticated: false,
+      error: 'Admin API unavailable. Set JWT_SECRET (min 16 characters) in backend .env',
+    })
+  }
+  const payload = getAdminSessionFromRequest(req)
+  if (!payload) {
+    return res.status(401).json({ authenticated: false })
+  }
+  try {
+    const { isAllowedAdminEmail } = await import('../services/adminAllowlistService.js')
+    const allowed = await isAllowedAdminEmail(payload.email)
+    if (!allowed) {
+      clearAdminSessionCookie(res)
+      return res.status(401).json({ authenticated: false })
+    }
+  } catch {
+    return res.status(503).json({ authenticated: false, error: 'Admin allowlist unavailable' })
+  }
+  return res.json({
+    authenticated: true,
+    email: payload.email,
+    expiresAt: payload.exp ? new Date(payload.exp * 1000).toISOString() : null,
+  })
+})
+
+// All remaining admin routes require a valid OTP session cookie.
 router.use(adminAuth)
+
+/** GET /api/admin/settings/allowed-emails — list pre-approved admin Gmail addresses */
+router.get('/settings/allowed-emails', async (req, res) => {
+  try {
+    const emails = await listAllowedAdminEmails()
+    res.json({ emails })
+  } catch (e) {
+    console.error('admin list allowed emails', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** POST /api/admin/settings/allowed-emails — add a Gmail address to the allowlist */
+router.post(
+  '/settings/allowed-emails',
+  [body('email').isString().isEmail().isLength({ max: 320 })],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'A valid Gmail address is required' })
+    }
+    try {
+      const row = await addAllowedAdminEmail(req.body.email, req.adminSession?.email)
+      res.status(201).json({ email: row })
+    } catch (e) {
+      res.status(e.status || 500).json({ error: e.message })
+    }
+  }
+)
+
+/** DELETE /api/admin/settings/allowed-emails/:id — remove from allowlist */
+router.delete('/settings/allowed-emails/:id', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').trim()
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    await removeAllowedAdminEmail(id)
+    res.json({ success: true })
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message })
+  }
+})
 
 /** Prisma client key -> display name */
 export const MODEL_META = [
@@ -51,6 +231,7 @@ export const MODEL_META = [
   { key: 'placeLabel', label: 'PlaceLabel' },
   { key: 'notificationPreference', label: 'NotificationPreference' },
   { key: 'legalDocument', label: 'LegalDocument' },
+  { key: 'adminAllowedEmail', label: 'AdminAllowedEmail' },
 ]
 
 const KEY_BY_LABEL = Object.fromEntries(MODEL_META.map((m) => [m.label, m.key]))
@@ -686,6 +867,12 @@ router.post('/claims/:id/approve', async (req, res) => {
     const claim = await prisma.businessClaim.findUnique({ where: { id } })
     if (!claim) return res.status(404).json({ error: 'Claim not found' })
 
+    // Capture competing pending claimants before the transaction rejects them.
+    const competing = await prisma.businessClaim.findMany({
+      where: { placeId: claim.placeId, status: 'pending', id: { not: id } },
+      select: { id: true, userId: true, placeId: true },
+    })
+
     const [updated] = await prisma.$transaction([
       prisma.businessClaim.update({
         where: { id },
@@ -702,16 +889,18 @@ router.post('/claims/:id/approve', async (req, res) => {
       }),
     ])
 
-    if (prisma.notification) {
-      prisma.notification.create({
-        data: {
-          userId: claim.userId,
-          type: 'business_claim_approved',
-          title: 'Business claim approved',
-          body: 'Your ownership claim has been verified. You now have a verified owner badge on this place.',
-          data: { placeId: claim.placeId },
-        },
-      }).catch((err) => console.error('[notify] claim approved', err))
+    // Full notification path: prefs + in-app + Socket.IO + Web Push.
+    try {
+      await notifyBusinessClaimApproved(claim)
+      await Promise.all(
+        competing.map((other) =>
+          notifyBusinessClaimRejected(other, {
+            note: 'Another claim was approved for this place.',
+          })
+        )
+      )
+    } catch (err) {
+      console.error('[notify] claim approved', err)
     }
 
     res.json({ success: true, claim: updated })
@@ -729,21 +918,16 @@ router.post('/claims/:id/reject', async (req, res) => {
     const claim = await prisma.businessClaim.findUnique({ where: { id } })
     if (!claim) return res.status(404).json({ error: 'Claim not found' })
 
+    const reviewNote = req.body?.note?.trim() || null
     const updated = await prisma.businessClaim.update({
       where: { id },
-      data: { status: 'rejected', reviewedAt: new Date(), reviewedById: 'admin', reviewNote: req.body?.note?.trim() || null },
+      data: { status: 'rejected', reviewedAt: new Date(), reviewedById: 'admin', reviewNote },
     })
 
-    if (prisma.notification) {
-      prisma.notification.create({
-        data: {
-          userId: claim.userId,
-          type: 'business_claim_rejected',
-          title: 'Business claim not approved',
-          body: req.body?.note?.trim() || 'Your ownership claim was reviewed but could not be verified.',
-          data: { placeId: claim.placeId },
-        },
-      }).catch((err) => console.error('[notify] claim rejected', err))
+    try {
+      await notifyBusinessClaimRejected(claim, { note: reviewNote })
+    } catch (err) {
+      console.error('[notify] claim rejected', err)
     }
 
     res.json({ success: true, claim: updated })
