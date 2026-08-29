@@ -694,6 +694,8 @@ const MapComponent = forwardRef(({
   const altRouteDrawStateRef = useRef(null)
   const altRouteSelectCallbackRef = useRef(null)
   const ensureRouteOnTopRef = useRef(() => {})
+  const programmaticCameraUntilRef = useRef(0)
+  const routeInflightRef = useRef(new Map())
   const safetyHazardMarkersRef = useRef([])
   const watchIdRef = useRef(null)
   const navModeRef = useRef(false)
@@ -3080,9 +3082,11 @@ const MapComponent = forwardRef(({
         )
         bounds = expandRouteBounds(bounds)
         const padding = options.padding ?? 50
+        const duration = isPreview ? 350 : 1000
+        programmaticCameraUntilRef.current = Date.now() + duration + 500
         map.fitBounds(bounds, {
           padding,
-          duration: isPreview ? 350 : 1000,
+          duration,
           maxZoom: 17,
         })
       }
@@ -3178,12 +3182,14 @@ const MapComponent = forwardRef(({
       (b, coord) => b.extend(coord),
       new maplibregl.LngLatBounds(allCoords[0], allCoords[0])
     )
+    programmaticCameraUntilRef.current = Date.now() + 1100
     map.fitBounds(bounds, { padding, duration: 600 })
   }, [])
 
   // Expose methods via ref (for parent component)
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
+    isProgrammaticCameraMove: () => Date.now() < programmaticCameraUntilRef.current,
     calculateRoute: async (start, end, waypoints = [], profile = 'driving', routeOptions = {}) => {
       const requestAlternatives = routeOptions.alternatives === true && waypoints.length === 0
       const drawOpts = { ...routeOptions, fallbackEndpoints: { start, end } }
@@ -3204,54 +3210,67 @@ const MapComponent = forwardRef(({
         params.alternatives = 'true'
       }
 
-      const response = await api.get('/map/route', { params })
-      let allRoutes
-      if (requestAlternatives && response.data?.routes) {
-        allRoutes = response.data.routes
-      } else if (Array.isArray(response.data)) {
-        allRoutes = response.data
-      } else {
-        allRoutes = [response.data]
-      }
+      const inflightKey = JSON.stringify(params)
+      const pending = routeInflightRef.current.get(inflightKey)
+      if (pending) return pending
 
-      allRoutes = allRoutes.filter((r) => {
-        const coords = r?.geometry?.coordinates
-        return Array.isArray(coords) ? coords.length >= 2 : typeof coords === 'string' && coords.length > 0
-      })
-
-      if (allRoutes.length === 0) {
-        drawRoute(null, { ...routeOptions, fallbackEndpoints: { start, end } })
-        const fallbackFeature = toFeatureGeometry(null, { start, end })
-        if (!fallbackFeature) {
-          throw new Error('No route geometry returned from route service')
+      const run = (async () => {
+        const response = await api.get('/map/route', { params })
+        let allRoutes
+        if (requestAlternatives && response.data?.routes) {
+          allRoutes = response.data.routes
+        } else if (Array.isArray(response.data)) {
+          allRoutes = response.data
+        } else {
+          allRoutes = [response.data]
         }
-        const fallbackRoute = {
-          distance: getLineDistanceMeters(fallbackFeature.geometry.coordinates),
-          duration: 60,
-          geometry: fallbackFeature.geometry,
-          legs: [],
-          steps: [],
-        }
-        setRoute(fallbackRoute)
-        return { route: fallbackRoute, alternatives: null }
-      }
 
-      if (requestAlternatives && allRoutes.length > 1) {
-        allRoutes = sortAndTagRoutes(allRoutes)
-      }
-
-      const primaryRoute = allRoutes[0]
-      drawRoute(primaryRoute, { ...drawOpts, preview: false, fitBounds: false })
-      setRoute(primaryRoute)
-
-      const map = mapRef.current
-      if (map) {
-        map.once('idle', () => {
-          if (routeLayerRef.current) ensureRouteOnTopRef.current(map)
+        allRoutes = allRoutes.filter((r) => {
+          const coords = r?.geometry?.coordinates
+          return Array.isArray(coords) ? coords.length >= 2 : typeof coords === 'string' && coords.length > 0
         })
-      }
 
-      return { route: primaryRoute, alternatives: allRoutes.length > 1 ? allRoutes : null }
+        if (allRoutes.length === 0) {
+          drawRoute(null, { ...routeOptions, fallbackEndpoints: { start, end } })
+          const fallbackFeature = toFeatureGeometry(null, { start, end })
+          if (!fallbackFeature) {
+            throw new Error('No route geometry returned from route service')
+          }
+          const fallbackRoute = {
+            distance: getLineDistanceMeters(fallbackFeature.geometry.coordinates),
+            duration: 60,
+            geometry: fallbackFeature.geometry,
+            legs: [],
+            steps: [],
+          }
+          setRoute(fallbackRoute)
+          return { route: fallbackRoute, alternatives: null }
+        }
+
+        if (requestAlternatives && allRoutes.length > 1) {
+          allRoutes = sortAndTagRoutes(allRoutes)
+        }
+
+        const primaryRoute = allRoutes[0]
+        drawRoute(primaryRoute, { ...drawOpts, preview: false, fitBounds: false })
+        setRoute(primaryRoute)
+
+        const map = mapRef.current
+        if (map) {
+          map.once('idle', () => {
+            if (routeLayerRef.current) ensureRouteOnTopRef.current(map)
+          })
+        }
+
+        return { route: primaryRoute, alternatives: allRoutes.length > 1 ? allRoutes : null }
+      })()
+
+      routeInflightRef.current.set(inflightKey, run)
+      try {
+        return await run
+      } finally {
+        routeInflightRef.current.delete(inflightKey)
+      }
     },
     ensureRouteOnTop: () => {
       const map = mapRef.current

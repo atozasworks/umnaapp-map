@@ -10,6 +10,8 @@ import {
   extractRouteSummary,
   formatDurationDelta,
   getEffectiveStartPlace,
+  stabilizeRoutingStart,
+  routeStopsSignature,
 } from '../utils/routeHelpers'
 import {
   DEFAULT_SAFE_AVOID_OPTIONS,
@@ -529,15 +531,42 @@ const RoutePanel = ({
     return () => document.removeEventListener('mousedown', onDocMouseDown)
   }, [activeSearch])
 
-  const resolvedRouteStops = useMemo(
-    () => getResolvedRouteStops(startPlace, waypoints, endPlace),
-    [startPlace, waypoints, endPlace]
-  )
-
-  const effectiveStartPlace = useMemo(
+  const liveStartPlace = useMemo(
     () => getEffectiveStartPlace(startPlace, currentLocation, tYourLocation),
     [startPlace, currentLocation, tYourLocation]
   )
+
+  // Freeze implicit GPS start so watchPosition jitter does not refetch the
+  // route (~6 API calls per calc) and blink map layers. Explicit start pins
+  // always win; GPS start only moves after a meaningful walk/drive.
+  const [frozenGpsStart, setFrozenGpsStart] = useState(() => {
+    if (initialStartPlace?.lat != null && initialStartPlace?.lng != null) return null
+    if (currentLocation?.lat == null || currentLocation?.lng == null) return null
+    return {
+      lat: currentLocation.lat,
+      lng: currentLocation.lng,
+      name: currentLocation.name || tYourLocation,
+    }
+  })
+
+  useEffect(() => {
+    if (startPlace?.lat != null && startPlace?.lng != null) {
+      setFrozenGpsStart(null)
+      return
+    }
+    if (currentLocation?.lat == null || currentLocation?.lng == null) return
+    const live = {
+      lat: currentLocation.lat,
+      lng: currentLocation.lng,
+      name: currentLocation.name || tYourLocation,
+    }
+    setFrozenGpsStart((prev) => stabilizeRoutingStart(prev, live))
+  }, [startPlace, currentLocation, tYourLocation])
+
+  const effectiveStartPlace = useMemo(() => {
+    if (startPlace?.lat != null && startPlace?.lng != null) return startPlace
+    return frozenGpsStart || liveStartPlace
+  }, [startPlace, frozenGpsStart, liveStartPlace])
 
   const effectiveRouteStops = useMemo(
     () => getResolvedRouteStops(effectiveStartPlace, waypoints, endPlace),
@@ -551,14 +580,17 @@ const RoutePanel = ({
 
   const getCalcStops = useCallback(
     (start, wps, end) => {
-      const startForCalc = getEffectiveStartPlace(start, currentLocation, tYourLocation)
+      const startForCalc =
+        start?.lat != null && start?.lng != null
+          ? start
+          : frozenGpsStart || getEffectiveStartPlace(start, currentLocation, tYourLocation)
       return getResolvedRouteStops(startForCalc, wps, end)
     },
-    [currentLocation, tYourLocation]
+    [currentLocation, tYourLocation, frozenGpsStart]
   )
 
   const resolvedStopsSignature = useMemo(
-    () => effectiveRouteStops.map((p) => `${p.lat},${p.lng}`).join('|'),
+    () => routeStopsSignature(effectiveRouteStops),
     [effectiveRouteStops]
   )
 
@@ -626,11 +658,18 @@ const RoutePanel = ({
     }
   }, [mapRef])
 
+  const lastFitKeyRef = useRef('')
   useEffect(() => {
-    if (!routeData) return
+    if (!routeData) {
+      lastFitKeyRef.current = ''
+      return undefined
+    }
+    const key = `${resolvedStopsSignature}|${mobileSheetCollapsed ? '1' : '0'}`
+    if (lastFitKeyRef.current === key) return undefined
+    lastFitKeyRef.current = key
     const timer = window.setTimeout(() => refitRouteOnMap(mobileSheetCollapsed), 180)
     return () => window.clearTimeout(timer)
-  }, [routeData, mobileSheetCollapsed, refitRouteOnMap])
+  }, [routeData, resolvedStopsSignature, mobileSheetCollapsed, refitRouteOnMap])
 
   const handleSelectRouteRef = useRef(null)
   const safeRouteEnabledRef = useRef(safeRouteEnabled)
@@ -808,8 +847,6 @@ const RoutePanel = ({
     setIsCalculating(true)
     setError(null)
     setShowSteps(false)
-    setAlternativeRoutes(null)
-    setSelectedRouteIndex(0)
 
     try {
       const { start, end, wp } = request
@@ -822,6 +859,7 @@ const RoutePanel = ({
           ...routeOpts,
           alternatives: requestAlts,
           padding,
+          fitBounds: false,
         })
 
         // A newer calculation started while we were awaiting — drop this result
@@ -833,20 +871,6 @@ const RoutePanel = ({
 
         setRouteData(primary)
         setIsRouteEdited(false)
-
-        // Ensure the final route polyline is painted on the map
-        if (primary?.geometry) {
-          mapRef.current.setRouteGeometry?.(
-            { geometry: primary.geometry },
-            {
-              fitBounds: false,
-              padding,
-              preview: false,
-              fallbackEndpoints: { start, end },
-              ...routeOpts,
-            }
-          )
-        }
         mapRef.current.ensureRouteOnTop?.()
 
         window.requestAnimationFrame(() => {
@@ -876,8 +900,6 @@ const RoutePanel = ({
 
         if (isMobileViewport) {
           setMobileSheetCollapsed(true)
-        } else {
-          refitRouteOnMap(false)
         }
       } else if (onCalculateRoute) {
         const route = await onCalculateRoute(start, end, wp, mode)
@@ -898,12 +920,16 @@ const RoutePanel = ({
     mapRef,
     isMobileViewport,
     getRouteMapPadding,
-    refitRouteOnMap,
     onCalculateRoute,
     tFailedRoute,
     paintAltRoutes,
     applySafeScoring,
   ])
+
+  const handleCalculateRef = useRef(handleCalculate)
+  handleCalculateRef.current = handleCalculate
+  const lastAutoCalcKeyRef = useRef('')
+  const lastModesKeyRef = useRef('')
 
   const recalcWithStops = useCallback(
     (stops) => {
@@ -1058,23 +1084,40 @@ const RoutePanel = ({
     [recalcWithStops]
   )
 
-  // Auto-update route when stops change (minimal debounce for typing/drag)
+  // Auto-update route when the trip actually changes (new start/end/stops).
+  // Depend only on the coordinate signature — NOT handleCalculate identity.
+  // GPS watchPosition used to recreate handleCalculate every tick and refetch
+  // /map/route in a loop (429 + blinking places/route).
+  // Travel-mode changes are handled by handleModeChange, not this effect.
   useEffect(() => {
     if (effectiveRouteStops.length < 2) return undefined
     if (skipNextAutoCalcRef.current) {
       skipNextAutoCalcRef.current = false
+      lastAutoCalcKeyRef.current = resolvedStopsSignature
       return undefined
     }
+    if (resolvedStopsSignature === lastAutoCalcKeyRef.current) return undefined
     if (autoCalcTimerRef.current) clearTimeout(autoCalcTimerRef.current)
     autoCalcTimerRef.current = setTimeout(() => {
-      handleCalculate()
-    }, 120)
+      lastAutoCalcKeyRef.current = resolvedStopsSignature
+      handleCalculateRef.current()
+    }, 280)
     return () => {
       if (autoCalcTimerRef.current) clearTimeout(autoCalcTimerRef.current)
     }
-  }, [resolvedStopsSignature, handleCalculate, effectiveRouteStops.length])
+  }, [resolvedStopsSignature, effectiveRouteStops.length])
 
   const fetchAllModes = async (start, end, wp, currentMode, currentRoute, reqId) => {
+    const modesKey = `${start.lat.toFixed(4)},${start.lng.toFixed(4)}|${end.lat.toFixed(4)},${end.lng.toFixed(4)}|${(wp || [])
+      .map((w) => `${Number(w.lat).toFixed(4)},${Number(w.lng).toFixed(4)}`)
+      .join(';')}`
+    if (lastModesKeyRef.current === modesKey) {
+      setAllModesData((prev) =>
+        prev ? { ...prev, [currentMode]: currentRoute } : { [currentMode]: currentRoute }
+      )
+      return
+    }
+    lastModesKeyRef.current = modesKey
     const modesResult = { [currentMode]: currentRoute }
     const otherModes = TRAVEL_MODES.map((m) => m.id).filter((m) => m !== currentMode)
     const promises = otherModes.map(async (mode) => {
@@ -1124,6 +1167,7 @@ const RoutePanel = ({
     // Invalidate any in-flight calculation so it can't repaint after clearing.
     calcSeqRef.current += 1
     skipNextAutoCalcRef.current = true
+    lastModesKeyRef.current = ''
     if (mapRef?.current?.clearRoute) {
       mapRef.current.clearRoute()
     }
@@ -1150,7 +1194,7 @@ const RoutePanel = ({
       travelMode,
       destinationName: endPlace?.name || '',
       destination: endPlace,
-      stops: resolvedRouteStops,
+      stops: effectiveRouteStops,
       safeRouteEnabled,
       avoidOptions: safeRouteEnabled ? avoidOptions : undefined,
     })

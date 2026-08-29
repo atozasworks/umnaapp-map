@@ -128,3 +128,47 @@ export function getEffectiveStartPlace(startPlace, currentLocation, yourLocation
   }
   return null
 }
+
+const EARTH_RADIUS_M = 6371000
+const toRad = (deg) => (deg * Math.PI) / 180
+
+/** Great-circle distance between two {lat,lng} points, in meters. */
+export function distanceMetersLatLng(a, b) {
+  if (a?.lat == null || a?.lng == null || b?.lat == null || b?.lng == null) return Infinity
+  const dLat = toRad(b.lat - a.lat)
+  const dLng = toRad(b.lng - a.lng)
+  const lat1 = toRad(a.lat)
+  const lat2 = toRad(b.lat)
+  const h =
+    Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2
+  return 2 * EARTH_RADIUS_M * Math.asin(Math.min(1, Math.sqrt(h)))
+}
+
+/**
+ * Keep the directions start pin stable while GPS jitters.
+ * Preview routing should not refetch on every watchPosition tick (~1Hz), which
+ * previously hammered /map/route (429) and made places/route layers blink.
+ * Navigation still uses live GPS; this is only for the directions sheet.
+ */
+export const ROUTING_GPS_MOVE_THRESHOLD_M = 80
+
+export function stabilizeRoutingStart(prevFrozen, livePlace, thresholdMeters = ROUTING_GPS_MOVE_THRESHOLD_M) {
+  if (livePlace?.lat == null || livePlace?.lng == null) return prevFrozen || null
+  const next = {
+    lat: livePlace.lat,
+    lng: livePlace.lng,
+    name: livePlace.name,
+  }
+  if (prevFrozen?.lat == null || prevFrozen?.lng == null) return next
+  if (distanceMetersLatLng(prevFrozen, next) < thresholdMeters) {
+    if (prevFrozen.name === next.name) return prevFrozen
+    return { ...prevFrozen, name: next.name }
+  }
+  return next
+}
+
+/** Stable key for a trip's stop coordinates (used to skip duplicate route fetches). */
+export function routeStopsSignature(stops) {
+  if (!Array.isArray(stops) || stops.length === 0) return ''
+  return stops.map((p) => `${p?.lat},${p?.lng}`).join('|')
+}

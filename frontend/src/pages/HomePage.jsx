@@ -105,6 +105,12 @@ const placeInsideBbox = (p, b) => {
   return lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng
 }
 
+const placeSetKeys = (list) => {
+  const keys = list.map(placeDedupeKey)
+  keys.sort()
+  return keys.join('\n')
+}
+
 /**
  * Merge freshly fetched viewport places with previously loaded ones (delta
  * loading): keep new results, retain prior places still inside the padded
@@ -126,7 +132,9 @@ const mergeViewportPlaces = (prev, incoming, paddedBounds, cap = MAX_RETAINED_PL
     seen.add(key)
     out.push(p)
   }
-  return out.length > cap ? out.slice(0, cap) : out
+  const next = out.length > cap ? out.slice(0, cap) : out
+  if (prev.length === next.length && placeSetKeys(prev) === placeSetKeys(next)) return prev
+  return next
 }
 
 const resizeImageToDataUrl = (file, maxSize = MAX_AVATAR_SIZE) =>
@@ -453,6 +461,7 @@ const HomePage = () => {
       if (!map?.getBounds) return
       if (osmRefreshTimerRef.current) clearTimeout(osmRefreshTimerRef.current)
       osmRefreshTimerRef.current = setTimeout(() => {
+        if (mapRef.current?.isProgrammaticCameraMove?.()) return
         const zoom = map.getZoom?.() ?? 0
         if (zoom < MIN_POI_ZOOM) {
           loadedBboxRef.current = null
@@ -1191,7 +1200,24 @@ const HomePage = () => {
   }
 
   const handleLocationUpdate = useCallback((location) => {
-    setCurrentLocation({ lat: location.lat, lng: location.lng, name: 'My location' })
+    setCurrentLocation((prev) => {
+      if (
+        prev &&
+        prev.lat === location.lat &&
+        prev.lng === location.lng &&
+        prev.speed === location.speed &&
+        prev.heading === location.heading
+      ) {
+        return prev
+      }
+      return {
+        lat: location.lat,
+        lng: location.lng,
+        name: 'My location',
+        speed: location.speed,
+        heading: location.heading,
+      }
+    })
   }, [])
 
   const fetchPlaceDetails = async (loc) => {
