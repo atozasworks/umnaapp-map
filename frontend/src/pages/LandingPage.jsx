@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppLogo from '../components/AppLogo'
 import LandingInstallPopup from '../components/LandingInstallPopup'
@@ -10,7 +10,7 @@ import { GITHUB_REPO_URL, devSetupSteps, prerequisites } from '../constants/open
 
 const features = [
   {
-    title: 'Interactive maps',
+    title: 'Interactive maps maps',
     description: 'Pan, zoom, and explore with buttery-smooth rendering.',
     gradient: 'from-sky-500 to-cyan-400',
     glow: 'group-hover:shadow-sky-500/25',
@@ -157,6 +157,7 @@ const highlights = [
 const LandingPage = () => {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const [showBhaviPopup, setShowBhaviPopup] = useState(true)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -172,6 +173,36 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0b1220] text-white overflow-x-hidden">
+      {/* bhavi popup */}
+      {showBhaviPopup && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="bhavi"
+          onClick={() => setShowBhaviPopup(false)}
+        >
+          <div
+            className="relative w-full max-w-sm rounded-3xl border border-white/15 bg-gradient-to-b from-slate-800 to-slate-900 p-8 text-center shadow-2xl shadow-black/50 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              onClick={() => setShowBhaviPopup(false)}
+              className="absolute top-4 right-4 inline-flex h-8 w-8 items-center justify-center rounded-full text-slate-400 hover:bg-white/10 hover:text-white transition-colors"
+              aria-label="Close"
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <h2 className="text-4xl font-extrabold tracking-tight bg-gradient-to-r from-sky-300 via-cyan-200 to-emerald-300 bg-clip-text text-transparent">
+              bhavi
+            </h2>
+          </div>
+        </div>
+      )}
+
       {/* Aurora background */}
       <div className="pointer-events-none fixed inset-0 -z-10" aria-hidden>
         <div className="absolute inset-0 bg-[#0b1220]" />
@@ -232,13 +263,15 @@ const LandingPage = () => {
                 </div>
 
                 <h1 className="text-[2.75rem] sm:text-5xl lg:text-[3.5rem] xl:text-6xl font-extrabold tracking-tight leading-[1.05] mb-6">
-                  <span className="text-white">Your world,</span>
+                  <span className="text-white">Every Journey,</span>
+                  <span className="text-white">Your world, ch</span>
+                  <span className="text-white">Your world,haseena</span>
                   <br />
                   <span
                     className="bg-gradient-to-r from-sky-300 via-cyan-200 to-emerald-300 bg-clip-text text-transparent animate-shimmer"
                     style={{ backgroundSize: '200% auto' }}
                   >
-                    beautifully mapped
+                    Perfectly Mapped...
                   </span>
                 </h1>
 

@@ -166,7 +166,7 @@ const resizeImageToDataUrl = (file, maxSize = MAX_AVATAR_SIZE) =>
     }
     img.src = url
   })
-
+//--------------------------------------------------------
 // Filter places to only those owned by the current user (by userId; each user sees only their own)
 const filterPlacesByUser = (placesList, currentUser) => {
   if (!currentUser) return []
@@ -1872,7 +1872,7 @@ const HomePage = () => {
       confirmText: 'Logout',
       cancelText: 'No',
       confirmClass: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 shadow-md shadow-red-500/30',
-      iconBg: 'bg-red-100',
+      iconBg: 'bg-green-100',
       icon: (
         <svg className="w-5 h-5 text-red-600" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
