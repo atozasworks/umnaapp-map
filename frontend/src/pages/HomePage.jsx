@@ -55,6 +55,80 @@ import { exchangeLiveShareToken, useLiveLocationViewer } from '../hooks/useLiveL
 
 const MAX_AVATAR_SIZE = 200
 
+// --- Viewport-based place loading (Google Maps–style) ---------------------
+// Debounce map-move fetches so requests fire only after the user stops moving.
+const VIEWPORT_DEBOUNCE_MS = 350
+// Below this zoom individual POIs are not fetched (avoids loading a whole
+// city/state/country at once — matches how Google hides POIs when zoomed out).
+const MIN_POI_ZOOM = 11
+// Pad the requested bbox beyond the visible viewport so small pans reuse the
+// already-loaded area (delta loading) instead of hitting the API again.
+const VIEWPORT_PAD_RATIO = 0.3
+// Hard cap on retained places to keep marker count / memory bounded.
+const MAX_RETAINED_PLACES = 1500
+
+/** Expand a MapLibre LngLatBounds into a plain padded bbox. */
+const padMapBounds = (bounds, ratio = VIEWPORT_PAD_RATIO) => {
+  const s = bounds.getSouth()
+  const n = bounds.getNorth()
+  const w = bounds.getWest()
+  const e = bounds.getEast()
+  const latPad = (n - s) * ratio
+  const lngPad = (e - w) * ratio
+  return { minLat: s - latPad, maxLat: n + latPad, minLng: w - lngPad, maxLng: e + lngPad }
+}
+
+/** Plain bbox from raw viewport bounds (no padding). */
+const plainMapBounds = (bounds) => ({
+  minLat: bounds.getSouth(),
+  maxLat: bounds.getNorth(),
+  minLng: bounds.getWest(),
+  maxLng: bounds.getEast(),
+})
+
+/** True when `inner` bbox is fully inside `outer` bbox. */
+const bboxContains = (outer, inner) =>
+  Boolean(outer && inner) &&
+  inner.minLat >= outer.minLat &&
+  inner.maxLat <= outer.maxLat &&
+  inner.minLng >= outer.minLng &&
+  inner.maxLng <= outer.maxLng
+
+const placeDedupeKey = (p) =>
+  p.id ??
+  `${Number(p.latitude ?? p.lat).toFixed(5)}-${Number(p.longitude ?? p.lng).toFixed(5)}`
+
+const placeInsideBbox = (p, b) => {
+  const lat = Number(p.latitude ?? p.lat)
+  const lng = Number(p.longitude ?? p.lng)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return true
+  return lat >= b.minLat && lat <= b.maxLat && lng >= b.minLng && lng <= b.maxLng
+}
+
+/**
+ * Merge freshly fetched viewport places with previously loaded ones (delta
+ * loading): keep new results, retain prior places still inside the padded
+ * viewport, drop everything else, dedupe, and cap the total.
+ */
+const mergeViewportPlaces = (prev, incoming, paddedBounds, cap = MAX_RETAINED_PLACES) => {
+  const seen = new Set()
+  const out = []
+  for (const p of incoming) {
+    const key = placeDedupeKey(p)
+    if (seen.has(key)) continue
+    seen.add(key)
+    out.push(p)
+  }
+  for (const p of prev) {
+    const key = placeDedupeKey(p)
+    if (seen.has(key)) continue
+    if (!placeInsideBbox(p, paddedBounds)) continue
+    seen.add(key)
+    out.push(p)
+  }
+  return out.length > cap ? out.slice(0, cap) : out
+}
+
 const resizeImageToDataUrl = (file, maxSize = MAX_AVATAR_SIZE) =>
   new Promise((resolve, reject) => {
     const img = new Image()
@@ -152,8 +226,14 @@ const HomePage = () => {
   const [allPlaces, setAllPlaces] = useState([])
   const [dbPlaces, setDbPlaces] = useState([])
   const osmRefreshTimerRef = useRef(null)
+  // Last padded bbox we successfully loaded — used to skip redundant fetches
+  // while panning inside already-loaded area (delta loading).
+  const loadedBboxRef = useRef(null)
   const [visiblePlaces, setVisiblePlaces] = useState([])
   const [favorites, setFavorites] = useState([])
+  // The user's own contributions (all of them, independent of the map viewport)
+  // — powers the "Your contributions" list/badge without loading the whole DB.
+  const [myContributions, setMyContributions] = useState([])
   const [availableCategories, setAvailableCategories] = useState([])
   const [selectedCategories, setSelectedCategories] = useState([])
   const [loadingCategoryPlaces, setLoadingCategoryPlaces] = useState(false)
@@ -330,35 +410,33 @@ const HomePage = () => {
     setAvailableCategories(buildCategoryOptions(allPlaces))
   }, [allPlaces])
 
+  // Fetch only the places inside the (padded) visible viewport and merge them
+  // with what we already have. Passing no bounds is a no-op: we never load the
+  // whole city/state/country at once.
   const refreshPlacesFromDb = useCallback(async (bounds = null) => {
+    if (!bounds?.getSouth) return
+    const padded = padMapBounds(bounds)
     try {
-      const params = { includeOsm: 'true' }
-      if (bounds) {
-        params.minLat = bounds.getSouth()
-        params.maxLat = bounds.getNorth()
-        params.minLng = bounds.getWest()
-        params.maxLng = bounds.getEast()
-        params.limit = 5000
-      }
-      const { data } = await api.get('/map/places', { params })
+      const { data } = await api.get('/map/places', {
+        params: {
+          includeOsm: 'true',
+          minLat: padded.minLat,
+          maxLat: padded.maxLat,
+          minLng: padded.minLng,
+          maxLng: padded.maxLng,
+          limit: 2000,
+        },
+      })
       const places = Array.isArray(data.places) ? data.places : []
-      if (bounds) {
-        setAllPlaces(places)
-      } else {
-        setDbPlaces(places)
-        setAllPlaces((prev) => {
-          const osmOnly = prev.filter((p) => p.source === 'osm' || String(p.id || '').startsWith('osm-'))
-          const seen = new Set()
-          const merged = []
-          for (const p of [...places, ...osmOnly]) {
-            const key = p.id || `${Number(p.latitude).toFixed(5)}-${Number(p.longitude).toFixed(5)}`
-            if (seen.has(key)) continue
-            seen.add(key)
-            merged.push(p)
-          }
-          return merged
-        })
-      }
+      loadedBboxRef.current = padded
+      setAllPlaces((prev) => mergeViewportPlaces(prev, places, padded))
+      setDbPlaces((prev) =>
+        mergeViewportPlaces(
+          prev,
+          places.filter((p) => p.source !== 'osm' && !String(p.id || '').startsWith('osm-')),
+          padded
+        )
+      )
       if (Array.isArray(data.availableCategories) && data.availableCategories.length > 0) {
         setAvailableCategories(data.availableCategories)
       }
@@ -367,23 +445,46 @@ const HomePage = () => {
     }
   }, [])
 
+  // Debounced viewport refresh: only fires after the user stops moving, skips
+  // fetches when the viewport is still inside the already-loaded area, and does
+  // not load POIs when zoomed too far out.
   const scheduleOsmViewportRefresh = useCallback(
     (map) => {
       if (!map?.getBounds) return
       if (osmRefreshTimerRef.current) clearTimeout(osmRefreshTimerRef.current)
       osmRefreshTimerRef.current = setTimeout(() => {
         const zoom = map.getZoom?.() ?? 0
-        if (zoom < 11) {
+        if (zoom < MIN_POI_ZOOM) {
+          loadedBboxRef.current = null
           setAllPlaces((prev) =>
             prev.filter((p) => p.source !== 'osm' && !String(p.id || '').startsWith('osm-'))
           )
           return
         }
+        const view = plainMapBounds(map.getBounds())
+        if (bboxContains(loadedBboxRef.current, view)) return
         refreshPlacesFromDb(map.getBounds())
-      }, 400)
+      }, VIEWPORT_DEBOUNCE_MS)
     },
     [refreshPlacesFromDb]
   )
+
+  // Load the user's own contributions (small, user-scoped set) for the
+  // "Your contributions" list + menu badge — kept separate from the
+  // viewport-scoped map places.
+  const refreshMyContributions = useCallback(async () => {
+    if (!isAuthenticated) {
+      setMyContributions([])
+      return
+    }
+    try {
+      const { data } = await api.get('/users/me/contributions')
+      const list = Array.isArray(data?.places?.all) ? data.places.all : []
+      setMyContributions(list)
+    } catch (err) {
+      console.error('Failed to fetch contributions:', err)
+    }
+  }, [isAuthenticated])
 
   const refreshFavoritesFromDb = useCallback(async () => {
     try {
@@ -400,33 +501,47 @@ const HomePage = () => {
     }
   }, [])
 
-  // Load saved places + favorites from DB when session is valid; clear when logged out
+  // Clear data on logout. Places/favorites are NOT fetched here — they load
+  // after the map is visible (see handleMapReady) so the map paints instantly
+  // and no API calls are made during initial map loading.
   useEffect(() => {
     if (!isAuthenticated) {
       setAllPlaces([])
       setDbPlaces([])
       setFavorites([])
-      return
+      setMyContributions([])
+      loadedBboxRef.current = null
     }
-    refreshPlacesFromDb()
-    refreshFavoritesFromDb()
-  }, [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb])
+  }, [isAuthenticated])
 
   const handleMapReady = useCallback(
     (map) => {
       setMapReadyTick((t) => t + 1)
+      // Load secondary data only once the map is on screen, and only for the
+      // area currently in view.
       if (isAuthenticated) {
-        refreshPlacesFromDb()
         refreshFavoritesFromDb()
+        refreshMyContributions()
+        const zoom = map?.getZoom?.() ?? 0
+        if (zoom >= MIN_POI_ZOOM && map?.getBounds) {
+          refreshPlacesFromDb(map.getBounds())
+        }
       }
       if (map?.on) {
         const onMove = () => scheduleOsmViewportRefresh(map)
         map.on('moveend', onMove)
-        scheduleOsmViewportRefresh(map)
       }
     },
-    [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb, scheduleOsmViewportRefresh]
+    [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb, refreshMyContributions, scheduleOsmViewportRefresh]
   )
+
+  // Refresh the contributions list whenever the user opens that panel so it
+  // always reflects the latest adds/edits.
+  useEffect(() => {
+    if (isAuthenticated && showMyPlaces && showContributionsOnly) {
+      refreshMyContributions()
+    }
+  }, [isAuthenticated, showMyPlaces, showContributionsOnly, refreshMyContributions])
 
   // Derive map markers from allPlaces only so newly added places always appear once categories align
   // (avoids overwriting visiblePlaces after bulk add / extract).
@@ -1075,9 +1190,9 @@ const HomePage = () => {
     }
   }
 
-  const handleLocationUpdate = (location) => {
+  const handleLocationUpdate = useCallback((location) => {
     setCurrentLocation({ lat: location.lat, lng: location.lng, name: 'My location' })
-  }
+  }, [])
 
   const fetchPlaceDetails = async (loc) => {
     setFetchingPlaceDetails(true)
@@ -1257,6 +1372,7 @@ const HomePage = () => {
     const upsert = (prev) => [place, ...prev.filter((item) => item.id !== place.id)]
     setDbPlaces(upsert)
     setAllPlaces(upsert)
+    if (isPlaceOwner(place, user)) setMyContributions(upsert)
     if (placeMatchesCategories(place, selectedCategories)) {
       setVisiblePlaces((prev) => [place, ...prev.filter((item) => item.id !== place.id)])
     }
@@ -1684,6 +1800,7 @@ const HomePage = () => {
       const prepend = (prev) => [...data.places, ...prev]
       setDbPlaces(prepend)
       setAllPlaces(prepend)
+      setMyContributions(prepend)
       const matchingPlaces = data.places.filter((place) => placeMatchesCategories(place, selectedCategories))
       if (matchingPlaces.length > 0) {
         setVisiblePlaces((prev) => [...matchingPlaces, ...prev])
@@ -1755,6 +1872,7 @@ const HomePage = () => {
       const remove = (prev) => prev.filter((p) => p.id !== placeId)
       setDbPlaces(remove)
       setAllPlaces(remove)
+      setMyContributions(remove)
       setVisiblePlaces((prev) => prev.filter((p) => p.id !== placeId))
       setSelectedPlace((prev) => (prev?.id === placeId ? null : prev))
       showToast('Place deleted successfully.', 'success')
@@ -1909,6 +2027,7 @@ const HomePage = () => {
           {/* Right side: Notifications + Extract Places + Add Place */}
           <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
             <NotificationBell
+              enabled={mapReadyTick > 0}
               onPlaceFocus={handleNotificationPlaceFocus}
               onOpenLiveShare={handleNotificationLiveShareOpen}
             />
@@ -2610,7 +2729,7 @@ const HomePage = () => {
                   <span className="text-sm font-medium text-slate-800">{menuYourContributions}</span>
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
                     {filterPlacesByUser(
-                      allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
+                      myContributions.filter((p) => (p.source || 'contribution') === 'contribution'),
                       user
                     ).length}
                   </span>
@@ -2921,7 +3040,7 @@ const HomePage = () => {
                 <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5">
                   {showContributionsOnly
                     ? filterPlacesByUser(
-                        allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
+                        myContributions.filter((p) => (p.source || 'contribution') === 'contribution'),
                         user
                       ).length
                     : favorites.length}
@@ -2946,7 +3065,7 @@ const HomePage = () => {
                 // the underlying Place when removed).
                 if (showContributionsOnly) {
                   const displayPlaces = filterPlacesByUser(
-                    allPlaces.filter((p) => (p.source || 'contribution') === 'contribution'),
+                    myContributions.filter((p) => (p.source || 'contribution') === 'contribution'),
                     user
                   )
                   return displayPlaces.length === 0 ? (

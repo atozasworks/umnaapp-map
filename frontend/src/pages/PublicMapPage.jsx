@@ -19,7 +19,7 @@ import {
   resolveUserPlaceLabelCap,
   setMarkerLabelMeasureMode,
 } from '../utils/userPlaceLabelLayout'
-import { RASTER_TILE_PAINT, toRetinaTileUrl, toStandardTileUrl } from '../utils/mapRasterTiles'
+import { RASTER_TILE_PAINT, toRetinaTileUrl } from '../utils/mapRasterTiles'
 
 const USER_PLACE_LABEL_ZOOM_START = 10
 const USER_PLACE_LABEL_ZOOM_FULL = 12.5
@@ -578,11 +578,20 @@ export default function PublicMapPage() {
       } catch {
         config = null
       }
-      const tileUrlRaw = config?.tiles?.url || '/api/map/tiles/{z}/{x}/{y}.png'
-      const fallbackTileUrlRaw =
-        config?.tiles?.fallbackUrl || 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
-      const tileUrl = toRetinaTileUrl(tileUrlRaw)
-      const fallbackTileUrl = toRetinaTileUrl(fallbackTileUrlRaw)
+      const cartoFallback =
+        'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+      // umnaapp.in (and the same-origin /api/map proxy) only serve tiles up to
+      // z13 and respond slowly/inconsistently, so they cannot back a zoomable
+      // viewer — zooming past z13 produced a 404 storm + blank areas. Use CARTO
+      // Voyager (full 0–20 zoom, fast CDN, retina) unless the config provides a
+      // different FULL-ZOOM host.
+      const isLimitedHost = (u) =>
+        !u || /umnaapp\.in/i.test(u) || u.startsWith('/api/map/tiles') || u.includes('/map-tiles/')
+      const configUrl = [config?.tiles?.url, config?.tiles?.fallbackUrl].find(
+        (u) => u && !isLimitedHost(u)
+      )
+      const tileUrl = toRetinaTileUrl(configUrl || cartoFallback)
+      const sourceMaxZoom = configUrl ? config?.tiles?.maxZoom || 19 : 20
       const center = [
         params.lng ?? config?.defaultCenter?.lng ?? 77.5946,
         params.lat ?? config?.defaultCenter?.lat ?? 12.9716,
@@ -592,15 +601,17 @@ export default function PublicMapPage() {
       const map = new maplibregl.Map({
         container: containerRef.current,
         pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 3),
+        refreshExpiredTiles: false,
+        maxTileCacheSize: 1000,
         style: {
           version: 8,
           sources: {
             basemap: {
               type: 'raster',
-              tiles: [toAbsolute(tileUrl), toAbsolute(fallbackTileUrl)].filter(Boolean),
+              tiles: [toAbsolute(tileUrl)].filter(Boolean),
               tileSize: 256,
-              maxzoom: config?.tiles?.maxZoom || 19,
-              attribution: config?.tiles?.attribution || '© UMNAAPP · OpenStreetMap contributors',
+              maxzoom: sourceMaxZoom,
+              attribution: config?.tiles?.attribution || '© OpenStreetMap contributors © CARTO',
             },
           },
           layers: [
@@ -614,23 +625,22 @@ export default function PublicMapPage() {
         },
         center,
         zoom,
-        fadeDuration: 0,
+        // Keep parent tiles visible / cross-faded while zooming (no blank gaps).
+        fadeDuration: 300,
         attributionControl: true,
       })
       mapRef.current = map
 
-      // If @2x tiles 404 on this host, drop back to 1x once.
-      let retinaDowngraded = false
+      // A single raster tile fetch failure is non-fatal: MapLibre keeps the
+      // existing/parent tiles visible and retries natively. We must NOT call
+      // setTiles() to swap/reload the source here — reloading the whole source
+      // on one tile error cancels in-flight requests and flashes the map blank
+      // during zoom/pan.
       map.on('error', (e) => {
-        if (retinaDowngraded || e.tile == null) return
-        const src = map.getSource('basemap')
-        if (!src || typeof src.setTiles !== 'function') return
-        const standard = [toStandardTileUrl(tileUrl), toStandardTileUrl(fallbackTileUrl)]
-          .map(toAbsolute)
-          .filter(Boolean)
-        if (standard.length === 0) return
-        retinaDowngraded = true
-        src.setTiles(standard)
+        if (e.tile != null) {
+          if (import.meta.env.DEV) console.warn('[public-map] Tile failed (non-fatal)')
+          return
+        }
       })
 
       if (params.showControls) {
@@ -754,7 +764,7 @@ export default function PublicMapPage() {
           clearTimeout(initialFlyFallbackTimerRef.current)
           initialFlyFallbackTimerRef.current = null
         }
-        map.flyTo({ center: [longitude, latitude], zoom: 16, duration: 1200 })
+        map.jumpTo({ center: [longitude, latitude], zoom: 16 })
       }
     }
 
@@ -794,7 +804,7 @@ export default function PublicMapPage() {
         const loc = lastValidLocationRef.current
         if (!map || !loc || hasFlownToUserRef.current) return
         hasFlownToUserRef.current = true
-        map.flyTo({ center: [loc.lng, loc.lat], zoom: 16, duration: 1000 })
+        map.jumpTo({ center: [loc.lng, loc.lat], zoom: 16 })
       }, 14000)
     }
 

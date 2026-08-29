@@ -61,14 +61,14 @@ function NotificationIcon({ type }) {
   )
 }
 
-export default function NotificationBell({ onPlaceFocus, onOpenLiveShare }) {
+export default function NotificationBell({ enabled = true, onPlaceFocus, onOpenLiveShare }) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef(null)
   const buttonRef = useRef(null)
   const navigate = useNavigate()
 
   const { notifications, unreadCount, loading, error, markRead, markAllRead, remove } =
-    useNotifications()
+    useNotifications({ enabled })
 
   useEffect(() => {
     if (!open) return

@@ -46,7 +46,6 @@ router.options('*', publicCors)
 const ROUTE_SERVICE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in').replace(/\/+$/, '')
 const OSRM_URL = (process.env.OSRM_URL || '').trim().replace(/\/+$/, '')
 const OSRM_PUBLIC = 'https://router.project-osrm.org'
-const TILESERVER_URL = (process.env.TILESERVER_URL || 'https://umnaapp.in').replace(/\/+$/, '')
 
 function handleValidation(req, res) {
   const errors = validationResult(req)
@@ -298,11 +297,14 @@ router.get('/config', rateLimitMiddleware('public:config', 120, 60), cacheMiddle
   res.json({
     name: 'UMNAAPP Maps',
     tiles: {
-      // Same-origin proxy keeps CORS simple for embedders; raw host as fallback.
-      url: '/api/map/tiles/{z}/{x}/{y}.png',
-      fallbackUrl: `${TILESERVER_URL}/tiles/{z}/{x}/{y}.png`,
-      maxZoom: 19,
-      attribution: '© UMNAAPP · OpenStreetMap contributors',
+      // CARTO Voyager (OSM-based) is the primary source: full 0–20 zoom, fast
+      // global CDN, retina @2x. The umnaapp.in host only serves up to z13 and is
+      // slow, so it is no longer advertised as the viewer basemap (zooming past
+      // z13 caused a 404 storm + blank areas).
+      url: 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+      fallbackUrl: 'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png',
+      maxZoom: 20,
+      attribution: '© OpenStreetMap contributors © CARTO',
     },
     defaultCenter: {
       lat: parseFloat(process.env.PUBLIC_MAP_DEFAULT_LAT) || 12.9716,

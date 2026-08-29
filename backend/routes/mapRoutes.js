@@ -99,6 +99,7 @@ const NOMINATIM_URL = process.env.NOMINATIM_URL || ''
 const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
 /** CORS-safe fallback when umnaapp tile host is down or returns HTML errors. */
 const CARTO_TILE_FALLBACK = 'https://a.basemaps.cartocdn.com/rastertiles/voyager'
+const CARTO_API_KEY = (process.env.CARTO_API_KEY || 'cb1_2ibu_1_f81be7b5227dc1beb016c42f').trim()
 
 const isValidPngBuffer = (buf) =>
   Buffer.isBuffer(buf) &&
@@ -175,17 +176,16 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
     // y may be "14" or "14@2x" (HiDPI). Try requested form, then standard 1x.
     const yVariants = y.includes('@2x') ? [y, y.replace(/@2x$/i, '')] : [y]
 
-    const tileUrls = []
-    for (const yId of yVariants) {
-      tileUrls.push(`${base}/tiles/${z}/${x}/${yId}.png`)
-      tileUrls.push(`${base}/data/india/${z}/${x}/${yId}.png`)
-    }
+    // Try the real tile host quickly, then CARTO. Long upstream timeouts stacked
+    // hundreds of in-flight proxy requests and starved the map.
+    const TILE_UPSTREAM_TIMEOUT_MS = 2500
+    const tileUrls = yVariants.map((yId) => `${base}/tiles/${z}/${x}/${yId}.png`)
 
     for (const tileUrl of tileUrls) {
       try {
         const tileResponse = await axios.get(tileUrl, {
           responseType: 'arraybuffer',
-          timeout: 15000,
+          timeout: TILE_UPSTREAM_TIMEOUT_MS,
           headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
           validateStatus: (status) => status === 200,
         })
@@ -205,10 +205,12 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
     try {
       // CARTO serves real 512px @2x tiles; keep @2x in the fallback path when requested.
       const fallbackY = yVariants[0]
-      const fallbackUrl = `${CARTO_TILE_FALLBACK}/${z}/${x}/${fallbackY}.png`
+      const fallbackUrl = `${CARTO_TILE_FALLBACK}/${z}/${x}/${fallbackY}.png${
+        CARTO_API_KEY ? `?key=${encodeURIComponent(CARTO_API_KEY)}` : ''
+      }`
       const tileResponse = await axios.get(fallbackUrl, {
         responseType: 'arraybuffer',
-        timeout: 15000,
+        timeout: TILE_UPSTREAM_TIMEOUT_MS,
         headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
       })
       const buf = Buffer.from(tileResponse.data)

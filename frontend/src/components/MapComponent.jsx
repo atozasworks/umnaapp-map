@@ -25,11 +25,9 @@ import {
 import { isPersistedPlaceId } from '../utils/placeSource'
 import { getOfflinePacksFlag, isViewportCovered } from '../utils/offlineMaps'
 import {
-  isRetinaTileUrl,
   mapUrlsToRetina,
   RASTER_TILE_PAINT,
   toRetinaTileUrl,
-  toStandardTileUrl,
 } from '../utils/mapRasterTiles'
 
 const ROUTE_SOURCE_ID = 'route'
@@ -110,36 +108,19 @@ const BASEMAP_LABEL_LAYER_ID = 'basemap-label-overlay-layer'
 const SATELLITE_TILES = ['https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}']
 const TERRAIN_TILES = ['https://tile.opentopomap.org/{z}/{x}/{y}.png']
 const LABEL_OVERLAY_TILES_1X = ['https://a.basemaps.cartocdn.com/light_only_labels/{z}/{x}/{y}.png']
-/** India OSM tiles — same source as umnaapp.in/map (image 2 style). CORS: *. */
-const UMNAAPP_STREET_TILE_URL_1X = 'https://umnaapp.in/tiles/{z}/{x}/{y}.png'
-/** Detailed OSM-style fallback when India tile host is unreachable. */
+/** Primary street basemap: CARTO Voyager (OSM-based, full 0–20 zoom, fast, retina). */
 const STREET_TILE_FALLBACK_URL_1X =
   'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
 /** Same-origin proxy when explicitly configured in env. Offline packs use 1x only. */
 const PROXY_STREET_TILE_URL_1X = '/api/map/tiles/{z}/{x}/{y}.png'
 const BASEMAP_STORAGE_KEY = 'umnaapp_basemap'
 
-const umnaappStreetTileUrl = () => toRetinaTileUrl(UMNAAPP_STREET_TILE_URL_1X)
+/** CARTO Voyager — reliable, full 0–20 zoom, fast CDN, retina — is the primary street basemap. */
 const streetTileFallbackUrl = () => toRetinaTileUrl(STREET_TILE_FALLBACK_URL_1X)
 const proxyStreetTileUrl = () => toRetinaTileUrl(PROXY_STREET_TILE_URL_1X)
 const labelOverlayTiles = () => mapUrlsToRetina(LABEL_OVERLAY_TILES_1X)
 
-const isStreetFallbackUrl = (url) => {
-  const n = toStandardTileUrl(url)
-  return n === STREET_TILE_FALLBACK_URL_1X || url === streetTileFallbackUrl()
-}
-
-const sampleTileUrl = (template) =>
-  template.replace('{z}', '5').replace('{x}', '23').replace('{y}', '14')
-
-const isPngBuffer = (buf) => {
-  if (!buf || buf.byteLength < 8) return false
-  const u8 = new Uint8Array(buf)
-  return u8[0] === 0x89 && u8[1] === 0x50 && u8[2] === 0x4e && u8[3] === 0x47
-}
-
 const LAST_LOCATION_STORAGE_KEY = 'umnaapp_last_map_location'
-const TILE_PROBE_TIMEOUT_MS = 2200
 const MAP_LOAD_SAFETY_MS = 5500
 
 /** Last GPS/map center — opens near the user instead of India-wide fly-in. */
@@ -180,47 +161,21 @@ const writeCachedMapLocation = (lng, lat, zoom) => {
   }
 }
 
-/** Proxy/HTML 200 responses do not fire MapLibre tile errors — verify PNG before use. */
-const verifyTileEndpoint = async (template, timeoutMs = TILE_PROBE_TIMEOUT_MS) => {
-  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null
-  const timer = setTimeout(() => ctrl?.abort?.(), timeoutMs)
-  try {
-    const res = await fetch(sampleTileUrl(template), {
-      signal: ctrl?.signal,
-      cache: 'no-store',
-    })
-    if (!res.ok) return false
-    const ct = (res.headers.get('content-type') || '').toLowerCase()
-    if (ct.includes('image')) return true
-    return isPngBuffer(await res.arrayBuffer())
-  } catch {
-    return false
-  } finally {
-    clearTimeout(timer)
-  }
-}
+const readSourceTiles = (source) => (Array.isArray(source?.tiles) ? source.tiles : [])
+
+const tileUrlsEqual = (a = [], b = []) =>
+  a.length === b.length && a.every((url, i) => url === b[i])
 
 /**
- * Force a raster tile source to drop its cached tiles and immediately request
- * fresh ones for the current viewport. `clearTiles()` alone empties the cache
- * but does not fetch replacements until the next map interaction, so we also
- * call `update(transform)` to request the visible tiles right away (instant
- * basemap switch instead of "changes only after you pan the map").
+ * Swap the raster URL only when it actually changed — setTiles() reloads the
+ * whole tile cache, so this is ONLY used for explicit user actions (basemap
+ * switch, offline-pack enter/exit), never in response to a tile fetch error.
  */
-const refreshRasterSourceCache = (map) => {
-  const cache = map.style?.sourceCaches?.['raster-tiles']
-  if (!cache) return
-  if (typeof cache.clearTiles === 'function') cache.clearTiles()
-  if (typeof cache.resume === 'function') cache.resume()
-  if (map.transform && typeof cache.update === 'function') cache.update(map.transform)
-  else if (typeof cache.reload === 'function') cache.reload()
-}
-
 const reloadRasterTileSource = (map, tileUrl) => {
   const src = map.getSource('raster-tiles')
   if (!src || typeof src.setTiles !== 'function') return false
+  if (tileUrlsEqual(readSourceTiles(src), [tileUrl])) return true
   src.setTiles([tileUrl])
-  refreshRasterSourceCache(map)
   map.triggerRepaint()
   return true
 }
@@ -235,78 +190,25 @@ const applyStreetTileUrl = (map, streetUrlRef, tileUrl, { reason = 'switching ti
 
 const resolveStreetTileUrl = () => {
   const env = String(import.meta.env.VITE_TILESERVER_URL || '').trim()
-  let url = UMNAAPP_STREET_TILE_URL_1X
-  if (env.includes('{z}') && env.includes('{x}') && env.includes('{y}')) {
-    url = env
-  } else if (env) {
-    url = `${env.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
+  // The bundled umnaapp.in host (and its /api/map proxy / dev /map-tiles route)
+  // only serves tiles up to z13 and responds slowly/inconsistently, so it cannot
+  // back a smoothly zoomable street map — zooming past z13 produced a 404 storm
+  // and blank areas. CARTO Voyager (full 0–20 zoom, fast global CDN, retina) is
+  // the reliable default. A different FULL-ZOOM tile server may still be supplied
+  // via VITE_TILESERVER_URL; the z13-limited hosts are intentionally ignored.
+  const isLimitedHost =
+    /umnaapp\.in/i.test(env) ||
+    env.startsWith('/api/map/tiles') ||
+    env.includes('/map-tiles/')
+  if (env && !isLimitedHost) {
+    const url =
+      env.includes('{z}') && env.includes('{x}') && env.includes('{y}')
+        ? env
+        : `${env.replace(/\/+$/, '')}/tiles/{z}/{x}/{y}.png`
+    if (url.startsWith('/api/map/tiles')) return proxyStreetTileUrl()
+    return toRetinaTileUrl(url)
   }
-  if (url.startsWith('/api/map/tiles') || toStandardTileUrl(url).startsWith('/api/map/tiles')) {
-    return proxyStreetTileUrl()
-  }
-  return toRetinaTileUrl(url)
-}
-
-const recoverStreetTiles = async (map, streetUrlRef, getFallbackApplied, setFallbackApplied) => {
-  if (getFallbackApplied() || !streetUrlRef.current) return
-
-  const current = streetUrlRef.current
-  const currentOk = await verifyTileEndpoint(current)
-  if (currentOk) return
-
-  // HiDPI @2x failed on this host — try the matching 1x URL before switching providers.
-  if (isRetinaTileUrl(current)) {
-    const standard = toStandardTileUrl(current)
-    const standardOk = await verifyTileEndpoint(standard)
-    if (standardOk) {
-      setFallbackApplied(
-        applyStreetTileUrl(map, streetUrlRef, standard, {
-          reason: 'Retina tiles unavailable — using standard tiles',
-        })
-      )
-      return
-    }
-  }
-
-  const umnaRetina = umnaappStreetTileUrl()
-  const umna1x = UMNAAPP_STREET_TILE_URL_1X
-
-  if (current.startsWith('/api/map/tiles') || current.startsWith('/map-tiles')) {
-    for (const candidate of [umnaRetina, umna1x]) {
-      if (toStandardTileUrl(current) === toStandardTileUrl(candidate)) continue
-      const ok = await verifyTileEndpoint(candidate)
-      if (ok) {
-        setFallbackApplied(
-          applyStreetTileUrl(map, streetUrlRef, candidate, {
-            reason: 'Tile proxy failed — using umnaapp.in tiles directly',
-          })
-        )
-        return
-      }
-    }
-  }
-
-  if (toStandardTileUrl(current) !== umna1x) {
-    for (const candidate of [umnaRetina, umna1x]) {
-      if (current === candidate) continue
-      const ok = await verifyTileEndpoint(candidate)
-      if (ok) {
-        setFallbackApplied(
-          applyStreetTileUrl(map, streetUrlRef, candidate, {
-            reason: 'Configured tile host failed — using umnaapp.in tiles',
-          })
-        )
-        return
-      }
-    }
-  }
-
-  const carto = streetTileFallbackUrl()
-  setFallbackApplied(
-    applyStreetTileUrl(map, streetUrlRef, carto, {
-      reason: 'India tile host unreachable — using detailed OSM fallback',
-    })
-  )
+  return streetTileFallbackUrl()
 }
 
 const applyRasterTilePaint = (map, layerIds = ['simple-tiles', BASEMAP_LABEL_LAYER_ID]) => {
@@ -342,7 +244,7 @@ const readStoredBasemapMode = () => {
 }
 
 const getBasemapTileUrls = (mode, streetUrl) => {
-  const street = streetUrl || umnaappStreetTileUrl()
+  const street = streetUrl || streetTileFallbackUrl()
   if (mode === 'satellite') return SATELLITE_TILES
   if (mode === 'terrain') return TERRAIN_TILES
   return [street]
@@ -355,10 +257,11 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
   const raster = map.getSource('raster-tiles')
   if (!raster || typeof raster.setTiles !== 'function') return false
 
-  raster.setTiles(getBasemapTileUrls(mode, streetUrl))
-
-  refreshRasterSourceCache(map)
-  map.triggerRepaint()
+  const nextTiles = getBasemapTileUrls(mode, streetUrl)
+  if (!tileUrlsEqual(readSourceTiles(raster), nextTiles)) {
+    raster.setTiles(nextTiles)
+    map.triggerRepaint()
+  }
 
   if (mode === 'street') {
     map.setMaxZoom(19)
@@ -490,6 +393,51 @@ const getPlaceLngLat = (place) => {
   const lat = Number(place?.latitude ?? place?.lat)
   if (Number.isFinite(lng) && Number.isFinite(lat)) return { lng, lat }
   return null
+}
+
+/** Cap on simultaneously-rendered place markers — keeps the DOM light and
+ *  pan/zoom smooth even in dense areas (viewport-based rendering). */
+const MAX_VIEWPORT_MARKERS = 500
+/** Screen-space cell size (px) for grid clustering / decluttering. */
+const MARKER_CLUSTER_CELL_PX = 54
+
+/**
+ * Pick which places to render for the current viewport. When the candidate set
+ * exceeds MAX_VIEWPORT_MARKERS, bin places into screen-space grid cells and keep
+ * the highest-priority representative from each cell first (grid clustering),
+ * then fill any remaining slots by priority. This bounds DOM node count while
+ * keeping coverage spatially even — the whole set is used when it is small.
+ */
+const selectMarkersForViewport = (places, map, cap = MAX_VIEWPORT_MARKERS) => {
+  if (!Array.isArray(places)) return []
+  if (places.length <= cap || !map?.project) return places
+  const zoom = map.getZoom?.() ?? 12
+  const cells = new Map()
+  for (const place of places) {
+    const ll = getPlaceLngLat(place)
+    if (!ll) continue
+    let px
+    try {
+      px = map.project([ll.lng, ll.lat])
+    } catch {
+      continue
+    }
+    const key = `${Math.floor(px.x / MARKER_CLUSTER_CELL_PX)}:${Math.floor(px.y / MARKER_CLUSTER_CELL_PX)}`
+    const priority = resolvePlaceRendering(place, zoom).priority ?? 0
+    const bucket = cells.get(key)
+    if (bucket) bucket.push({ place, priority })
+    else cells.set(key, [{ place, priority }])
+  }
+  const representatives = []
+  const overflow = []
+  for (const bucket of cells.values()) {
+    bucket.sort((a, b) => b.priority - a.priority)
+    representatives.push(bucket[0])
+    for (let i = 1; i < bucket.length; i += 1) overflow.push(bucket[i])
+  }
+  representatives.sort((a, b) => b.priority - a.priority)
+  overflow.sort((a, b) => b.priority - a.priority)
+  return [...representatives, ...overflow].slice(0, cap).map((entry) => entry.place)
 }
 
 const PLACE_LABEL_TEXT_SHADOW =
@@ -767,9 +715,13 @@ const MapComponent = forwardRef(({
   const addPlaceModeRef = useRef(addPlaceMode)
   const onMapClickRef = useRef(onMapClick)
   const onMapPlacePickRef = useRef(onMapPlacePick)
+  const onLocationUpdateRef = useRef(onLocationUpdate)
+  const onPlaceClickRef = useRef(onPlaceClick)
   addPlaceModeRef.current = addPlaceMode
   onMapClickRef.current = onMapClick
   onMapPlacePickRef.current = onMapPlacePick
+  onLocationUpdateRef.current = onLocationUpdate
+  onPlaceClickRef.current = onPlaceClick
   const { socket } = useSocket()
   const [measureTotalMeters, setMeasureTotalMeters] = useState(0)
   const [measurePointCount, setMeasurePointCount] = useState(0)
@@ -777,7 +729,6 @@ const MapComponent = forwardRef(({
   const [mapLoaded, setMapLoaded] = useState(false)
   const [loadingOverlayVisible, setLoadingOverlayVisible] = useState(true)
   const [loadingOverlayMounted, setLoadingOverlayMounted] = useState(true)
-  const [mapZoom, setMapZoom] = useState(null)
   const [mapInitError, setMapInitError] = useState(null)
   const [locationError, setLocationError] = useState(null)
   const [gpsStatus, setGpsStatus] = useState('acquiring') // 'acquiring', 'high', 'weak'
@@ -811,6 +762,14 @@ const MapComponent = forwardRef(({
 
   const selectBasemapMode = useCallback((mode) => {
     if (mode !== 'street' && mode !== 'satellite' && mode !== 'terrain') return
+    const map = mapRef.current
+    const streetUrl = streetTilesUrlRef.current || streetTileFallbackUrl()
+    const nextTiles = getBasemapTileUrls(mode, streetUrl)
+    const alreadyShowing =
+      basemapModeRef.current === mode &&
+      map &&
+      tileUrlsEqual(readSourceTiles(map.getSource?.('raster-tiles')), nextTiles)
+
     basemapModeRef.current = mode
     setBasemapMode(mode)
     try {
@@ -818,9 +777,7 @@ const MapComponent = forwardRef(({
     } catch {
       /* ignore */
     }
-    const map = mapRef.current
-    if (!map) return
-    const streetUrl = streetTilesUrlRef.current || umnaappStreetTileUrl()
+    if (!map || alreadyShowing) return
     const apply = () =>
       applyBasemapToMap(map, mode, streetUrl, {
         onRouteLayers: (m) => {
@@ -1320,6 +1277,8 @@ const MapComponent = forwardRef(({
       preserveDrawingBuffer: true,
       // Match device DPR (cap 3) so the GL canvas stays sharp on phones/HiDPI laptops.
       pixelRatio: Math.min(typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1, 3),
+      refreshExpiredTiles: false,
+      maxTileCacheSize: 1000,
       style: {
         version: 8,
         sources: {
@@ -1357,7 +1316,8 @@ const MapComponent = forwardRef(({
       maxZoom: 19,
       renderWorldCopies: false,
       antialias: true,
-      fadeDuration: 0,
+      // Keep parent tiles visible / cross-faded while zooming (no blank gaps).
+      fadeDuration: 300,
       maxBounds: indiaBounds,
       maxBoundsOptions: {
         padding: 20,
@@ -1380,16 +1340,11 @@ const MapComponent = forwardRef(({
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'top-right')
     map.addControl(new maplibregl.ScaleControl(), 'bottom-left')
 
-    let tileFailCount = 0
-    let tileFallbackApplied = false
-    const TILE_FALLBACK_THRESHOLD = 2
-
     let mapReadyNotified = false
     const markMapReady = () => {
       if (mapReadyNotified) return
       mapReadyNotified = true
       setMapLoaded(true)
-      setMapZoom(map.getZoom())
       if (typeof onMapReady === 'function') {
         onMapReady(map)
       }
@@ -1418,24 +1373,6 @@ const MapComponent = forwardRef(({
       }
       markMapReady()
       console.log('✅ Map loaded')
-
-      // HTML/502 from a broken tile proxy returns HTTP 200 — MapLibre stays white
-      // without firing tile errors. Probe once and swap to CARTO immediately.
-      // Skip when offline so we do not replace offline packs with an unreachable CDN.
-      if (
-        navigator.onLine !== false &&
-        basemapModeRef.current === 'street' &&
-        streetTilesUrlRef.current
-      ) {
-        recoverStreetTiles(
-          map,
-          streetTilesUrlRef,
-          () => tileFallbackApplied,
-          (applied) => {
-            tileFallbackApplied = applied
-          }
-        )
-      }
     })
 
     // Never leave users stuck on "Loading map..." if load is delayed.
@@ -1446,45 +1383,18 @@ const MapComponent = forwardRef(({
       markMapReady()
     }, MAP_LOAD_SAFETY_MS)
 
-    // Only update zoom state when zooming ends — avoids per-frame React re-renders
-    const syncMapViewport = () => {
-      map.resize()
-      setMapZoom(map.getZoom())
-    }
-    map.on('zoomend', syncMapViewport)
-    map.on('rotateend', syncMapViewport)
-    map.on('pitchend', syncMapViewport)
-
     map.on('error', (e) => {
       const err = e.error
       const msg = err?.message || (typeof err === 'string' ? err : '') || 'Unknown map error'
 
-      // Raster tile fetch failures (404, CORS, timeout) fire once per tile — not fatal; map still works.
+      // Individual raster tile fetch failures fire once per tile and are NOT
+      // fatal — MapLibre keeps the existing/parent tiles on screen and retries
+      // natively. We deliberately do NOT swap or reload the tile source here:
+      // reloading the whole source (setTiles) on a single tile error cancels
+      // in-flight requests and flashes the map blank during zoom/pan.
       if (e.tile != null) {
         if (import.meta.env.DEV) {
-          console.warn('[map] Tile failed:', msg)
-        }
-        // If the configured (non-CARTO) street tiles keep failing (e.g. the
-        // self-hosted tile server is down/502), swap to the CARTO CDN once so
-        // the map renders instead of staying a blank grey screen.
-        if (
-          !tileFallbackApplied &&
-          !offlineMapsActiveRef.current &&
-          basemapModeRef.current === 'street' &&
-          streetTilesUrlRef.current &&
-          !isStreetFallbackUrl(streetTilesUrlRef.current)
-        ) {
-          tileFailCount += 1
-          if (tileFailCount >= TILE_FALLBACK_THRESHOLD) {
-            recoverStreetTiles(
-              map,
-              streetTilesUrlRef,
-              () => tileFallbackApplied,
-              (applied) => {
-                tileFallbackApplied = applied
-              }
-            )
-          }
+          console.warn('[map] Tile failed (non-fatal):', msg)
         }
         return
       }
@@ -1508,14 +1418,22 @@ const MapComponent = forwardRef(({
     // loading, flex layout settling), leaving the canvas painted at the wrong
     // size (blank gap above the tiles). Observe the container and resize.
     let resizeObserver = null
+    let resizeTimer = null
     if (typeof ResizeObserver !== 'undefined' && mapContainerRef.current) {
-      let resizeRaf = null
+      let lastW = 0
+      let lastH = 0
       resizeObserver = new ResizeObserver(() => {
-        if (resizeRaf) return
-        resizeRaf = window.requestAnimationFrame(() => {
-          resizeRaf = null
+        if (resizeTimer) clearTimeout(resizeTimer)
+        resizeTimer = window.setTimeout(() => {
+          resizeTimer = null
+          const el = map.getContainer?.()
+          const w = el?.clientWidth || 0
+          const h = el?.clientHeight || 0
+          if (w === lastW && h === lastH) return
+          lastW = w
+          lastH = h
           if (mapRef.current) mapRef.current.resize()
-        })
+        }, 120)
       })
       resizeObserver.observe(mapContainerRef.current)
     }
@@ -1524,6 +1442,10 @@ const MapComponent = forwardRef(({
       if (loadSafetyTimer != null) {
         clearTimeout(loadSafetyTimer)
         loadSafetyTimer = null
+      }
+      if (resizeTimer != null) {
+        clearTimeout(resizeTimer)
+        resizeTimer = null
       }
       if (resizeObserver) {
         resizeObserver.disconnect()
@@ -1742,12 +1664,6 @@ const MapComponent = forwardRef(({
     return () => map.off('idle', onIdle)
   }, [mapLoaded, areaExploreFeature])
 
-  // Sync basemap when map becomes ready (e.g. remount) — clicks use selectBasemapMode for instant apply
-  useEffect(() => {
-    if (!mapLoaded || !mapRef.current) return
-    selectBasemapMode(basemapModeRef.current)
-  }, [mapLoaded, selectBasemapMode])
-
   // Offline Maps: when offline with downloaded packs, serve street tiles via same-origin proxy
   // so the service worker can return Cache API packs. Restore prior URL when back online.
   useEffect(() => {
@@ -1840,7 +1756,11 @@ const MapComponent = forwardRef(({
 
     const initialZoom = map.getZoom()
 
-    places.forEach((place, index) => {
+    // Viewport-based rendering: cap + grid-decluster the marker set so dense
+    // areas never flood the DOM (whole set is used when small).
+    const renderPlaces = selectMarkersForViewport(places, map)
+
+    renderPlaces.forEach((place, index) => {
       const ll = getPlaceLngLat(place)
       if (!ll) return
       const render = resolvePlaceRendering(place, initialZoom)
@@ -1855,15 +1775,15 @@ const MapComponent = forwardRef(({
           emitAddPlaceMapPick(ll.lat, ll.lng)
           return
         }
-        if (onPlaceClick) {
+        if (onPlaceClickRef.current) {
           if (placePopupRef.current) {
             placePopupRef.current.remove()
             placePopupRef.current = null
           }
-          onPlaceClick(place)
+          onPlaceClickRef.current(place)
         }
       }
-      if (onPlaceClick || onMapClick) {
+      if (onPlaceClickRef.current || onMapClickRef.current) {
         el.addEventListener('click', onMarkerClick)
       }
 
@@ -2025,13 +1945,10 @@ const MapComponent = forwardRef(({
     syncUserPlaceLabelsZoom()
 
     const fitToUserPlaces = () => {
-      if (coordsList.length === 0) {
-        hasFittedUserPlacesRef.current = false
-        return
-      }
-      if (hasFittedUserPlacesRef.current) return
+      if (hasFittedUserPlacesRef.current || hasFlownToUserRef.current) return
+      if (startedFromCacheRef.current) return
+      if (coordsList.length === 0) return
       hasFittedUserPlacesRef.current = true
-      // Places fit owns the first camera move — don't also GPS-fly afterward.
       hasFlownToUserRef.current = true
       if (initialGpsCenterTimerRef.current != null) {
         clearTimeout(initialGpsCenterTimerRef.current)
@@ -2042,7 +1959,7 @@ const MapComponent = forwardRef(({
           (b, c) => b.extend(c),
           new maplibregl.LngLatBounds(coordsList[0], coordsList[0])
         )
-        map.fitBounds(bounds, { padding: 72, maxZoom: 14, duration: 600, essential: true })
+        map.fitBounds(bounds, { padding: 72, maxZoom: 14, duration: 0, essential: true })
       } catch {
         /* ignore invalid bounds */
       }
@@ -2069,7 +1986,7 @@ const MapComponent = forwardRef(({
       Object.values(userPlaceMarkersRef.current).forEach((marker) => marker.remove())
       userPlaceMarkersRef.current = {}
     }
-  }, [mapLoaded, places, onPlaceClick, onMapClick, selectedPlaceId, emitAddPlaceMapPick])
+  }, [mapLoaded, places, selectedPlaceId, emitAddPlaceMapPick])
 
   // Search result markers (from umnaapp.in/search)'
   useEffect(() => {
@@ -2376,17 +2293,17 @@ const MapComponent = forwardRef(({
 
       updateUserLocation(location, acc <= 30)
 
-      if (onLocationUpdate) {
-        onLocationUpdate(location)
+      if (onLocationUpdateRef.current) {
+        onLocationUpdateRef.current(location)
       }
 
       const map = mapRef.current
       writeCachedMapLocation(longitude, latitude, map?.getZoom?.() ?? 16)
 
       // One-time auto center on first valid location fix when app opens.
-      // After this, we keep updating the marker but avoid re-centering the map again.
+      // Jump (no zoom animation) so MapLibre does not fetch+cancel tiles at
+      // every intermediate zoom between India overview and street level.
       if (map && !hasFlownToUserRef.current) {
-        // Saved places already framed the map — keep that view.
         if (hasFittedUserPlacesRef.current) {
           hasFlownToUserRef.current = true
           if (initialFlyFallbackTimerRef.current != null) {
@@ -2399,33 +2316,25 @@ const MapComponent = forwardRef(({
           }
           return
         }
-        // Defer slightly so a fast places-fit can win without a second camera yank.
-        if (initialGpsCenterTimerRef.current != null) return
-        const lng = longitude
-        const lat = latitude
-        initialGpsCenterTimerRef.current = setTimeout(() => {
-          initialGpsCenterTimerRef.current = null
-          if (hasFlownToUserRef.current || hasFittedUserPlacesRef.current) return
-          const liveMap = mapRef.current
-          if (!liveMap) return
+        const center = map.getCenter?.()
+        const alreadyNear =
+          center &&
+          Math.abs(center.lat - latitude) < 0.003 &&
+          Math.abs(center.lng - longitude) < 0.003
+        const fromCache = startedFromCacheRef.current
+        if (alreadyNear && fromCache) {
           hasFlownToUserRef.current = true
-          if (initialFlyFallbackTimerRef.current != null) {
-            clearTimeout(initialFlyFallbackTimerRef.current)
-            initialFlyFallbackTimerRef.current = null
-          }
-          const center = liveMap.getCenter?.()
-          const alreadyNear =
-            center &&
-            Math.abs(center.lat - lat) < 0.003 &&
-            Math.abs(center.lng - lng) < 0.003
-          const fromCache = startedFromCacheRef.current
-          liveMap.flyTo({
-            center: [lng, lat],
-            zoom: Math.max(liveMap.getZoom?.() || 0, fromCache || alreadyNear ? 15 : 16),
-            duration: alreadyNear ? 0 : fromCache ? 400 : 700,
-            essential: true,
-          })
-        }, 480)
+          return
+        }
+        hasFlownToUserRef.current = true
+        if (initialFlyFallbackTimerRef.current != null) {
+          clearTimeout(initialFlyFallbackTimerRef.current)
+          initialFlyFallbackTimerRef.current = null
+        }
+        map.jumpTo({
+          center: [longitude, latitude],
+          zoom: Math.max(map.getZoom?.() || 0, fromCache || alreadyNear ? 15 : 16),
+        })
       }
     }
 
@@ -2470,11 +2379,9 @@ const MapComponent = forwardRef(({
       const loc = lastValidLocationRef.current
       if (!map || !loc || hasFlownToUserRef.current) return
       hasFlownToUserRef.current = true
-      map.flyTo({
+      map.jumpTo({
         center: [loc.lng, loc.lat],
         zoom: Math.max(map.getZoom?.() || 0, 15),
-        duration: startedFromCacheRef.current ? 350 : 700,
-        essential: true,
       })
     }, 8000)
 
@@ -2493,7 +2400,7 @@ const MapComponent = forwardRef(({
       }
     }
     // updateUserLocation: stable useCallback below; omit from deps (declared after this hook)
-  }, [mapLoaded, onLocationUpdate])
+  }, [mapLoaded])
 
   // Update user location marker
   const updateUserLocation = useCallback((location, isHighAccuracy) => {
