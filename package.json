@@ -2,6 +2,8 @@
   "name": "umnaapp",
   "version": "1.0.0",
   "description": "UMNAAPP - Full-stack map-based web application",
+  "license": "MIT",
+  "author": "Atozas",
   "private": true,
   "workspaces": [
     "frontend",

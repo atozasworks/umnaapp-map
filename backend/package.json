@@ -1,6 +1,8 @@
 {
   "name": "umnaapp-backend",
   "version": "1.0.0",
+  "license": "MIT",
+  "author": "Atozas",
   "type": "module",
   "scripts": {
     "dev": "node --watch server.js",
