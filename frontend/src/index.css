@@ -1081,3 +1081,49 @@
   animation: blink 0.8s step-end infinite;
 }
 
+/* Settings page */
+.settings-page-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.settings-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  margin: 0 0 0.5rem 0.25rem;
+}
+
+.settings-panel {
+  border-radius: 1.25rem;
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 8px 40px -12px rgba(14, 165, 233, 0.1);
+  padding: 0.25rem;
+}
+
+.settings-menu-row {
+  animation-fill-mode: both;
+}
+
+.settings-identity {
+  box-shadow: 0 16px 48px -16px rgba(14, 165, 233, 0.45);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.settings-identity:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 20px 56px -14px rgba(14, 165, 233, 0.55);
+}
+
+.settings-identity:active {
+  transform: translateY(0);
+}
+

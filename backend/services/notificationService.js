@@ -2,12 +2,29 @@ import webpush from 'web-push'
 import prisma from '../config/database.js'
 import { getIo } from '../lib/socketIo.js'
 import { festivalStatus, isFestivalPlace } from '../utils/festival.js'
+import { haversineMeters, radiusKmToDelta } from '../utils/geo.js'
 
 export const NOTIFICATION_TYPES = {
   PLACE_SUBMITTED: 'place_submitted',
   PLACE_ADDED: 'place_added',
   PLACE_APPROVED: 'place_approved',
   FESTIVAL_TODAY: 'festival_today',
+  BUSINESS_CLAIM_APPROVED: 'business_claim_approved',
+  BUSINESS_CLAIM_REJECTED: 'business_claim_rejected',
+  LOCATION_SHARE_VIEWED: 'location_share_viewed',
+  LOCATION_SHARE_ENDED: 'location_share_ended',
+}
+
+/** Default radius for "near you" community notifications (place_added, festival). */
+export function getNotifyNearRadiusKm() {
+  const n = Number(process.env.NOTIFY_NEAR_RADIUS_KM)
+  return Number.isFinite(n) && n > 0 ? Math.min(n, 500) : 50
+}
+
+/** Pure geo check used by "near you" recipient filtering. */
+export function isWithinNotifyRadius(lat1, lng1, lat2, lng2, radiusKm = getNotifyNearRadiusKm()) {
+  if (![lat1, lng1, lat2, lng2].every(Number.isFinite)) return false
+  return haversineMeters(lat1, lng1, lat2, lng2) <= radiusKm * 1000
 }
 
 /**
@@ -21,6 +38,7 @@ const PREF_KEY_BY_TYPE = {
   festival_today: 'festival',
   business_claim_approved: 'businessClaim',
   business_claim_rejected: 'businessClaim',
+  // location_share_* are transactional (always delivered when created)
 }
 
 /** Default preferences when a user has no preference row (everything on). */
@@ -74,6 +92,127 @@ async function recipientsForCategory(prefKey, excludeUserId) {
     }
   }
   return prisma.user.findMany({ where: base, select: { id: true } })
+}
+
+/**
+ * Users with a location signal (favorite, contributed place, label, recent GPS,
+ * or active live-share) within radiusKm of the given point.
+ */
+export async function findUserIdsNearPoint(userIds, lat, lng, radiusKm = getNotifyNearRadiusKm()) {
+  const near = new Set()
+  if (!userIds?.length || !Number.isFinite(lat) || !Number.isFinite(lng)) return near
+
+  const delta = radiusKmToDelta(radiusKm)
+  const latMin = lat - delta
+  const latMax = lat + delta
+  const lngMin = lng - delta
+  const lngMax = lng + delta
+  const inCandidates = { in: userIds }
+  const inBbox = {
+    latitude: { gte: latMin, lte: latMax },
+    longitude: { gte: lngMin, lte: lngMax },
+  }
+
+  const consider = (userId, aLat, aLng) => {
+    if (!userId || near.has(userId)) return
+    if (isWithinNotifyRadius(aLat, aLng, lat, lng, radiusKm)) near.add(userId)
+  }
+
+  // Each source is isolated so a missing table/migration cannot abort the rest.
+  const runSource = async (label, fn) => {
+    try {
+      await fn()
+    } catch (e) {
+      console.warn(`[notify] geo source "${label}" skipped:`, e.message)
+    }
+  }
+
+  await runSource('favorite', async () => {
+    if (!prisma.favorite) return
+    const favs = await prisma.favorite.findMany({
+      where: { userId: inCandidates, ...inBbox },
+      select: { userId: true, latitude: true, longitude: true },
+    })
+    for (const f of favs) consider(f.userId, f.latitude, f.longitude)
+  })
+
+  await runSource('place', async () => {
+    if (!prisma.place) return
+    const places = await prisma.place.findMany({
+      where: { userId: inCandidates, ...inBbox },
+      select: { userId: true, latitude: true, longitude: true },
+    })
+    for (const p of places) consider(p.userId, p.latitude, p.longitude)
+  })
+
+  await runSource('placeLabel', async () => {
+    if (!prisma.placeLabel) return
+    const labels = await prisma.placeLabel.findMany({
+      where: {
+        userId: inCandidates,
+        latitude: { gte: latMin, lte: latMax },
+        longitude: { gte: lngMin, lte: lngMax },
+      },
+      select: { userId: true, latitude: true, longitude: true },
+    })
+    for (const l of labels) consider(l.userId, l.latitude, l.longitude)
+  })
+
+  await runSource('location', async () => {
+    if (!prisma.location) return
+    const locs = await prisma.location.findMany({
+      where: { userId: inCandidates, ...inBbox },
+      orderBy: { timestamp: 'desc' },
+      take: Math.min(userIds.length * 5, 5000),
+      select: { userId: true, latitude: true, longitude: true },
+    })
+    for (const loc of locs) consider(loc.userId, loc.latitude, loc.longitude)
+  })
+
+  await runSource('liveLocationShare', async () => {
+    if (!prisma.liveLocationShare) return
+    const shares = await prisma.liveLocationShare.findMany({
+      where: {
+        ownerId: inCandidates,
+        status: 'active',
+        lastLatitude: { gte: latMin, lte: latMax },
+        lastLongitude: { gte: lngMin, lte: lngMax },
+      },
+      select: { ownerId: true, lastLatitude: true, lastLongitude: true },
+    })
+    for (const s of shares) consider(s.ownerId, s.lastLatitude, s.lastLongitude)
+  })
+
+  return near
+}
+
+/**
+ * Preference-opted recipients who also have a geographic anchor near the place.
+ * Used for "near you" community notifications — never broadcast globally.
+ */
+async function recipientsNearPlace(place, prefKey, excludeUserId) {
+  const candidates = await recipientsForCategory(prefKey, excludeUserId)
+  if (!candidates.length) return []
+
+  const lat = Number(place?.latitude)
+  const lng = Number(place?.longitude)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    console.warn('[notify] place missing coordinates — skipping near-you broadcast')
+    return []
+  }
+
+  const radiusKm = getNotifyNearRadiusKm()
+  const nearIds = await findUserIdsNearPoint(
+    candidates.map((u) => u.id),
+    lat,
+    lng,
+    radiusKm
+  )
+  const filtered = candidates.filter((u) => nearIds.has(u.id))
+  console.log(
+    `[notify] near-you ${prefKey}: ${filtered.length}/${candidates.length} recipient(s) within ${radiusKm}km`
+  )
+  return filtered
 }
 
 let vapidConfigured = false
@@ -160,7 +299,7 @@ async function sendPushToUser(userId, notification) {
       ...notification.data,
       notificationId: notification.id,
       type: notification.type,
-      url: '/home',
+      url: '/',
     },
   })
 
@@ -240,13 +379,13 @@ export async function notifyPlaceAddedToCommunity(place, actor) {
   if (!prisma.notification || !prisma.user) return
   const name = placeDisplayName(place)
   const actorName = (actor?.name || 'Someone').trim()
-  // Targeted: only users who haven't muted the "new community place" category.
-  const recipients = await recipientsForCategory('placeAdded', place.userId)
+  // Opt-in category + geographic "near you" filter (favorites / contributions / GPS).
+  const recipients = await recipientsNearPlace(place, 'placeAdded', place.userId)
   if (!recipients.length) return
 
   const title = 'New place added'
-  const body = `${actorName} added "${name}" (${place.category || 'Place'}).`
-  const data = placePayload(place, { actorUserId: actor?.id, actorName })
+  const body = `${actorName} added "${name}" near you (${place.category || 'Place'}).`
+  const data = placePayload(place, { actorUserId: actor?.id, actorName, nearYou: true })
 
   await Promise.all(
     recipients.map((u) =>
@@ -320,18 +459,19 @@ export async function onPlacesAutoApproved(placeIds) {
   }
 }
 
-/** Broadcast "this festival is happening" to every user (in-app + push). */
+/** Notify opted-in users near the festival (in-app + push via createUserNotification). */
 export async function notifyFestivalStarting(place, status) {
   if (!prisma.notification || !prisma.user) return 0
   const name = placeDisplayName(place)
-  // Targeted: only users who haven't muted the "festival happening" category.
-  const recipients = await recipientsForCategory('festival', null)
+  // Opt-in festival category + geographic "near you" filter.
+  const recipients = await recipientsNearPlace(place, 'festival', null)
   if (!recipients.length) return 0
 
   const title = '🎪 Festival happening'
-  const body = `"${name}" is on now${place.village ? ` at ${place.village}` : ''}. Tap to see it on the map.`
+  const body = `"${name}" is happening near you${place.village ? ` (${place.village})` : ''}. Tap to see it on the map.`
   const data = placePayload(place, {
     festival: true,
+    nearYou: true,
     startISO: status?.startISO ?? null,
     endISO: status?.endISO ?? null,
   })
@@ -350,12 +490,35 @@ export async function notifyFestivalStarting(place, status) {
   return recipients.length
 }
 
+/** Business claim approved — full delivery path (prefs + socket + push). */
+export async function notifyBusinessClaimApproved(claim, { placeId } = {}) {
+  const id = placeId || claim?.placeId
+  return createUserNotification({
+    userId: claim.userId,
+    type: NOTIFICATION_TYPES.BUSINESS_CLAIM_APPROVED,
+    title: 'Business claim approved',
+    body: 'Your ownership claim has been verified. You now have a verified owner badge on this place.',
+    data: { placeId: id },
+  })
+}
+
+/** Business claim rejected — full delivery path (prefs + socket + push). */
+export async function notifyBusinessClaimRejected(claim, { placeId, note } = {}) {
+  const id = placeId || claim?.placeId
+  return createUserNotification({
+    userId: claim.userId,
+    type: NOTIFICATION_TYPES.BUSINESS_CLAIM_REJECTED,
+    title: 'Business claim not approved',
+    body: (note && String(note).trim()) || 'Your ownership claim was reviewed but could not be verified.',
+    data: { placeId: id },
+  })
+}
+
 /**
- * Find festivals whose active window has begun and broadcast a one-time
- * "festival is happening" notification to all users. festivalNotifiedAt records
- * the occurrence start we last broadcast, so each occurrence fires once (yearly
- * festivals re-fire next year). Only approved festivals are broadcast so we
- * don't spam everyone with unverified submissions.
+ * Find festivals whose active window has begun and notify nearby opted-in users
+ * once per occurrence. festivalNotifiedAt records the occurrence start we last
+ * notified, so each occurrence fires once (yearly festivals re-fire next year).
+ * Only approved festivals are considered.
  */
 export async function notifyFestivalsStartingToday() {
   if (!prisma.place) return { count: 0 }
@@ -398,4 +561,46 @@ export async function notifyFestivalsStartingToday() {
     }
   }
   return { count: notified }
+}
+
+export async function notifyLiveLocationViewed(share, viewer) {
+  if (!share?.ownerId || !viewer?.id || share.ownerId === viewer.id) return null
+  const viewerName = (viewer.name || 'Someone').trim()
+  return createUserNotification({
+    userId: share.ownerId,
+    type: NOTIFICATION_TYPES.LOCATION_SHARE_VIEWED,
+    title: 'Live location viewed',
+    body: `${viewerName} opened your live-location link.`,
+    data: {
+      shareId: share.id,
+      viewerUserId: viewer.id,
+      viewerName,
+    },
+  })
+}
+
+export async function notifyLiveLocationEnded(share, { reason = 'stopped' } = {}) {
+  if (!share?.id) return
+  const ownerName = (share.owner?.name || 'Someone').trim()
+  const viewers = await prisma.liveLocationViewer.findMany({
+    where: { shareId: share.id, userId: { not: share.ownerId } },
+    select: { userId: true },
+  })
+  const title = reason === 'expired' ? 'Live location expired' : 'Live location ended'
+  const body =
+    reason === 'expired'
+      ? `${ownerName}'s live-location share has expired.`
+      : `${ownerName} stopped sharing live location.`
+
+  await Promise.all(
+    viewers.map((viewer) =>
+      createUserNotification({
+        userId: viewer.userId,
+        type: NOTIFICATION_TYPES.LOCATION_SHARE_ENDED,
+        title,
+        body,
+        data: { shareId: share.id, reason, ownerName },
+      })
+    )
+  )
 }

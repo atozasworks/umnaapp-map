@@ -9,7 +9,8 @@ export function getCurrentPositionAsync(options = {}) {
   const { fallback = null, timeout = 25000 } = options
 
   return new Promise((resolve, reject) => {
-    const useFallback = () => {
+    // Named applyFallback (not use*) so eslint react-hooks does not treat it as a Hook.
+    const applyFallback = () => {
       if (
         fallback &&
         Number.isFinite(fallback.lat) &&
@@ -26,7 +27,7 @@ export function getCurrentPositionAsync(options = {}) {
     }
 
     if (!navigator.geolocation) {
-      if (useFallback()) return
+      if (applyFallback()) return
       reject(
         new Error(
           'Location is not supported in this browser. Pick a spot on the map or enter coordinates instead.'
@@ -45,13 +46,13 @@ export function getCurrentPositionAsync(options = {}) {
         })
         return
       }
-      if (!useFallback()) {
+      if (!applyFallback()) {
         reject(new Error('Could not read a valid GPS position. Please try again.'))
       }
     }
 
     const onFinalError = (error) => {
-      if (useFallback()) return
+      if (applyFallback()) return
       let message =
         'Could not get your location. Enable location access in your browser or device settings.'
       if (error?.code === error.PERMISSION_DENIED) {

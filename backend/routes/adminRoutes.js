@@ -1,7 +1,26 @@
 import express from 'express'
 import { body, query, validationResult } from 'express-validator'
 import prisma from '../config/database.js'
-import { adminAuth } from '../middleware/adminAuth.js'
+import {
+  adminAuth,
+  clearAdminSessionCookie,
+  createAdminSessionToken,
+  getAdminSessionFromRequest,
+  getAdminSessionSigningSecret,
+  getAdminSessionTtl,
+  parseCookies,
+  revokeAdminSessionJti,
+  setAdminSessionCookie,
+  verifyAdminSessionToken,
+  ADMIN_SESSION_COOKIE,
+} from '../middleware/adminAuth.js'
+import { rateLimitMiddleware } from '../middleware/rateLimit.js'
+import { requestAdminOtp, verifyAdminOtp } from '../services/adminOtpService.js'
+import {
+  addAllowedAdminEmail,
+  listAllowedAdminEmails,
+  removeAllowedAdminEmail,
+} from '../services/adminAllowlistService.js'
 import {
   autoApproveExpiredPendingPlaces,
   enrichPlaceApprovalMeta,
@@ -14,7 +33,18 @@ import {
   PLACE_DETAIL_SELECT,
   sanitizePlaceName,
 } from '../utils/placePayload.js'
-import { onPlaceApproved } from '../services/notificationService.js'
+import {
+  onPlaceApproved,
+  notifyBusinessClaimApproved,
+  notifyBusinessClaimRejected,
+} from '../services/notificationService.js'
+import {
+  getAllLegalDocuments,
+  getLegalDocument,
+  upsertLegalDocument,
+  sendLegalUpdateEmails,
+} from '../services/legalService.js'
+import { broadcastPlaceUpsert, broadcastPlaceRemoved, PLACE_EVENTS } from '../lib/placeEvents.js'
 import {
   recordPlaceAudit,
   recordPlaceAuditAsync,
@@ -26,7 +56,164 @@ import {
 } from '../services/placeAudit.js'
 
 const router = express.Router()
+
+// ── Admin OTP auth (public; must stay above adminAuth) ─────────────────────
+
+/** POST /api/admin/auth/request-otp — send OTP to a pre-approved Gmail address */
+router.post(
+  '/auth/request-otp',
+  rateLimitMiddleware('admin:otp-request', 8, 60),
+  [body('email').isString().isEmail().isLength({ max: 320 })],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'A valid email address is required' })
+    }
+    if (!getAdminSessionSigningSecret()) {
+      return res.status(503).json({
+        error: 'Admin API unavailable. Set JWT_SECRET (min 16 characters) in backend .env',
+      })
+    }
+    try {
+      const result = await requestAdminOtp(req.body.email)
+      return res.json(result)
+    } catch (e) {
+      console.error('admin request-otp', e.message)
+      return res.status(e.status || 500).json({ error: e.message || 'Failed to send OTP' })
+    }
+  }
+)
+
+/** POST /api/admin/auth/verify-otp — verify OTP and set httpOnly session cookie */
+router.post(
+  '/auth/verify-otp',
+  rateLimitMiddleware('admin:otp-verify', 12, 60),
+  [
+    body('email').isString().isEmail().isLength({ max: 320 }),
+    body('otp').isString().isLength({ min: 6, max: 6 }),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'Email and 6-digit OTP are required' })
+    }
+    if (!getAdminSessionSigningSecret()) {
+      return res.status(503).json({
+        error: 'Admin API unavailable. Set JWT_SECRET (min 16 characters) in backend .env',
+      })
+    }
+    try {
+      const { email } = await verifyAdminOtp(req.body.email, req.body.otp)
+      const token = createAdminSessionToken(email)
+      setAdminSessionCookie(res, token)
+      return res.json({
+        success: true,
+        email,
+        expiresIn: getAdminSessionTtl(),
+      })
+    } catch (e) {
+      console.error('admin verify-otp', e.message)
+      return res.status(e.status || 500).json({ error: e.message || 'Verification failed' })
+    }
+  }
+)
+
+/** POST /api/admin/logout — clear session cookie and revoke jti */
+router.post('/logout', (req, res) => {
+  const cookies = parseCookies(req)
+  const token = cookies[ADMIN_SESSION_COOKIE]
+  if (token) {
+    const payload = verifyAdminSessionToken(token)
+    if (payload?.jti) {
+      revokeAdminSessionJti(payload.jti, payload.exp)
+    } else {
+      try {
+        const parts = String(token).split('.')
+        if (parts.length === 3) {
+          const bodyJson = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'))
+          if (bodyJson?.jti) revokeAdminSessionJti(bodyJson.jti, bodyJson.exp)
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+  }
+  clearAdminSessionCookie(res)
+  return res.json({ success: true })
+})
+
+/** GET /api/admin/session — soft auth check for the admin SPA */
+router.get('/session', async (req, res) => {
+  if (!getAdminSessionSigningSecret()) {
+    return res.status(503).json({
+      authenticated: false,
+      error: 'Admin API unavailable. Set JWT_SECRET (min 16 characters) in backend .env',
+    })
+  }
+  const payload = getAdminSessionFromRequest(req)
+  if (!payload) {
+    return res.status(401).json({ authenticated: false })
+  }
+  try {
+    const { isAllowedAdminEmail } = await import('../services/adminAllowlistService.js')
+    const allowed = await isAllowedAdminEmail(payload.email)
+    if (!allowed) {
+      clearAdminSessionCookie(res)
+      return res.status(401).json({ authenticated: false })
+    }
+  } catch {
+    return res.status(503).json({ authenticated: false, error: 'Admin allowlist unavailable' })
+  }
+  return res.json({
+    authenticated: true,
+    email: payload.email,
+    expiresAt: payload.exp ? new Date(payload.exp * 1000).toISOString() : null,
+  })
+})
+
+// All remaining admin routes require a valid OTP session cookie.
 router.use(adminAuth)
+
+/** GET /api/admin/settings/allowed-emails — list pre-approved admin Gmail addresses */
+router.get('/settings/allowed-emails', async (req, res) => {
+  try {
+    const emails = await listAllowedAdminEmails()
+    res.json({ emails })
+  } catch (e) {
+    console.error('admin list allowed emails', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** POST /api/admin/settings/allowed-emails — add a Gmail address to the allowlist */
+router.post(
+  '/settings/allowed-emails',
+  [body('email').isString().isEmail().isLength({ max: 320 })],
+  async (req, res) => {
+    const errors = validationResult(req)
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ error: 'A valid Gmail address is required' })
+    }
+    try {
+      const row = await addAllowedAdminEmail(req.body.email, req.adminSession?.email)
+      res.status(201).json({ email: row })
+    } catch (e) {
+      res.status(e.status || 500).json({ error: e.message })
+    }
+  }
+)
+
+/** DELETE /api/admin/settings/allowed-emails/:id — remove from allowlist */
+router.delete('/settings/allowed-emails/:id', async (req, res) => {
+  try {
+    const id = String(req.params.id || '').trim()
+    if (!id) return res.status(400).json({ error: 'id is required' })
+    await removeAllowedAdminEmail(id)
+    res.json({ success: true })
+  } catch (e) {
+    res.status(e.status || 500).json({ error: e.message })
+  }
+})
 
 /** Prisma client key -> display name */
 export const MODEL_META = [
@@ -43,6 +230,8 @@ export const MODEL_META = [
   { key: 'businessClaim', label: 'BusinessClaim' },
   { key: 'placeLabel', label: 'PlaceLabel' },
   { key: 'notificationPreference', label: 'NotificationPreference' },
+  { key: 'legalDocument', label: 'LegalDocument' },
+  { key: 'adminAllowedEmail', label: 'AdminAllowedEmail' },
 ]
 
 const KEY_BY_LABEL = Object.fromEntries(MODEL_META.map((m) => [m.label, m.key]))
@@ -384,6 +573,15 @@ router.patch(
           console.error('[notify] onPlaceApproved bg error:', err)
         })
       }
+
+      // Public map live-sync
+      if (req.body.approvalStatus === 'approved' && existing.approvalStatus !== 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, place)
+      } else if (place.approvalStatus === 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.UPDATED, place)
+      } else if (existing.approvalStatus === 'approved' && place.approvalStatus !== 'approved') {
+        broadcastPlaceRemoved(place.id)
+      }
       res.json({ place: serializePlace(place) })
     } catch (e) {
       console.error('admin place patch', e)
@@ -407,6 +605,7 @@ router.delete('/places/:id', async (req, res) => {
         before: existing,
         note: 'Deleted by admin',
       })
+      if (existing.approvalStatus === 'approved') broadcastPlaceRemoved(id)
     }
     res.json({ success: true })
   } catch (e) {
@@ -437,6 +636,7 @@ router.patch('/places/:id/reject', async (req, res) => {
       after: place,
       note: 'Rejected by admin',
     })
+    broadcastPlaceRemoved(id)
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
     console.error('admin place reject', e)
@@ -474,6 +674,7 @@ router.post(
             before: p,
             note: 'Deleted by admin (bulk)',
           })
+          if (p.approvalStatus === 'approved') broadcastPlaceRemoved(p.id)
         }
         return res.json({ success: true, affected: result.count })
       }
@@ -499,6 +700,7 @@ router.post(
           onPlaceApproved({ ...p, approvalStatus: 'approved' }, { approvedBy: 'admin' }).catch((err) => {
             console.error('[notify] bulk onPlaceApproved bg error:', err)
           })
+          broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, { ...p, approvalStatus: 'approved' })
         }
         return res.json({ success: true, affected: result.count })
       }
@@ -520,6 +722,7 @@ router.post(
           after: { ...p, approvalStatus: 'rejected' },
           note: 'Rejected by admin (bulk)',
         })
+        if (p.approvalStatus === 'approved') broadcastPlaceRemoved(p.id)
       }
       res.json({ success: true, affected: result.count })
     } catch (e) {
@@ -556,6 +759,7 @@ router.patch('/places/:id/approve', async (req, res) => {
       onPlaceApproved(place, { approvedBy: 'admin' }).catch((err) => {
         console.error('[notify] onPlaceApproved bg error:', err)
       })
+      broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, place)
     }
     res.json({ success: true, place: serializePlace(place) })
   } catch (e) {
@@ -663,6 +867,12 @@ router.post('/claims/:id/approve', async (req, res) => {
     const claim = await prisma.businessClaim.findUnique({ where: { id } })
     if (!claim) return res.status(404).json({ error: 'Claim not found' })
 
+    // Capture competing pending claimants before the transaction rejects them.
+    const competing = await prisma.businessClaim.findMany({
+      where: { placeId: claim.placeId, status: 'pending', id: { not: id } },
+      select: { id: true, userId: true, placeId: true },
+    })
+
     const [updated] = await prisma.$transaction([
       prisma.businessClaim.update({
         where: { id },
@@ -679,16 +889,18 @@ router.post('/claims/:id/approve', async (req, res) => {
       }),
     ])
 
-    if (prisma.notification) {
-      prisma.notification.create({
-        data: {
-          userId: claim.userId,
-          type: 'business_claim_approved',
-          title: 'Business claim approved',
-          body: 'Your ownership claim has been verified. You now have a verified owner badge on this place.',
-          data: { placeId: claim.placeId },
-        },
-      }).catch((err) => console.error('[notify] claim approved', err))
+    // Full notification path: prefs + in-app + Socket.IO + Web Push.
+    try {
+      await notifyBusinessClaimApproved(claim)
+      await Promise.all(
+        competing.map((other) =>
+          notifyBusinessClaimRejected(other, {
+            note: 'Another claim was approved for this place.',
+          })
+        )
+      )
+    } catch (err) {
+      console.error('[notify] claim approved', err)
     }
 
     res.json({ success: true, claim: updated })
@@ -706,21 +918,16 @@ router.post('/claims/:id/reject', async (req, res) => {
     const claim = await prisma.businessClaim.findUnique({ where: { id } })
     if (!claim) return res.status(404).json({ error: 'Claim not found' })
 
+    const reviewNote = req.body?.note?.trim() || null
     const updated = await prisma.businessClaim.update({
       where: { id },
-      data: { status: 'rejected', reviewedAt: new Date(), reviewedById: 'admin', reviewNote: req.body?.note?.trim() || null },
+      data: { status: 'rejected', reviewedAt: new Date(), reviewedById: 'admin', reviewNote },
     })
 
-    if (prisma.notification) {
-      prisma.notification.create({
-        data: {
-          userId: claim.userId,
-          type: 'business_claim_rejected',
-          title: 'Business claim not approved',
-          body: req.body?.note?.trim() || 'Your ownership claim was reviewed but could not be verified.',
-          data: { placeId: claim.placeId },
-        },
-      }).catch((err) => console.error('[notify] claim rejected', err))
+    try {
+      await notifyBusinessClaimRejected(claim, { note: reviewNote })
+    } catch (err) {
+      console.error('[notify] claim rejected', err)
     }
 
     res.json({ success: true, claim: updated })
@@ -729,6 +936,75 @@ router.post('/claims/:id/reject', async (req, res) => {
     res.status(500).json({ error: e.message })
   }
 })
+
+// ── Legal documents (Privacy Policy & Terms) ──────────────────────────────
+
+/** GET /api/admin/legal — current Privacy Policy & Terms content */
+router.get('/legal', async (req, res) => {
+  try {
+    const documents = await getAllLegalDocuments()
+    res.json({ documents })
+  } catch (e) {
+    console.error('admin legal list', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** GET /api/admin/legal/:type — a single legal document */
+router.get('/legal/:type', async (req, res) => {
+  try {
+    const document = await getLegalDocument(req.params.type)
+    if (!document) return res.status(404).json({ error: 'Unknown document type' })
+    res.json({ document })
+  } catch (e) {
+    console.error('admin legal detail', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/**
+ * PUT /api/admin/legal/:type — save a legal document. On success, every user
+ * is emailed (in the background) that the policy changed.
+ */
+router.put(
+  '/legal/:type',
+  [
+    body('content').isString().trim().isLength({ min: 1, max: 100000 }),
+    body('title').optional().isString().trim().isLength({ max: 200 }),
+    body('notify').optional().isBoolean(),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+      const type = String(req.params.type || '').toLowerCase()
+      if (!['privacy', 'terms'].includes(type)) {
+        return res.status(400).json({ error: 'Invalid document type' })
+      }
+
+      const document = await upsertLegalDocument(
+        type,
+        { title: req.body.title, content: req.body.content },
+        'admin'
+      )
+
+      // Notify all users by email unless explicitly disabled. Fire-and-forget
+      // so a slow SMTP server never blocks the admin save response.
+      const notify = req.body.notify !== false && req.body.notify !== 'false'
+      if (notify) {
+        sendLegalUpdateEmails(document)
+          .then((r) => console.log('[legal] notify summary:', r))
+          .catch((err) => console.error('[legal] notify bg error:', err))
+      }
+
+      res.json({ success: true, document, notified: notify })
+    } catch (e) {
+      console.error('admin legal update', e)
+      res.status(500).json({ error: e.message })
+    }
+  }
+)
 
 /** GET /api/admin/overview — row counts per table */
 router.get('/overview', async (req, res) => {
@@ -928,6 +1204,107 @@ router.get('/records/:model', async (req, res) => {
         ? 'Run SQL prisma/add-location-table.sql or from backend: npx prisma db push'
         : undefined,
     })
+  }
+})
+
+/** GET /api/admin/safety-hazards — list hazard reports for moderation */
+router.get('/safety-hazards', async (req, res) => {
+  try {
+    if (!prisma.safetyHazardReport) {
+      return res.status(503).json({ error: 'SafetyHazardReport model unavailable' })
+    }
+    const status = String(req.query.status || 'pending').trim()
+    const where = ['pending', 'approved', 'rejected'].includes(status) ? { status } : {}
+    const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 100))
+    const rows = await prisma.safetyHazardReport.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: { user: { select: { id: true, name: true, email: true } } },
+    })
+    res.json({
+      hazards: rows.map((r) => ({
+        id: r.id,
+        type: r.type,
+        latitude: r.latitude,
+        longitude: r.longitude,
+        severity: r.severity,
+        description: r.description,
+        roadName: r.roadName,
+        status: r.status,
+        expiresAt: r.expiresAt,
+        approvedAt: r.approvedAt,
+        createdAt: r.createdAt,
+        userId: r.userId,
+        userName: r.user?.name || null,
+        userEmail: r.user?.email || null,
+      })),
+    })
+  } catch (e) {
+    console.error('admin safety-hazards', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** PATCH /api/admin/safety-hazards/:id/approve */
+router.patch('/safety-hazards/:id/approve', async (req, res) => {
+  try {
+    if (!prisma.safetyHazardReport) {
+      return res.status(503).json({ error: 'SafetyHazardReport model unavailable' })
+    }
+    const id = String(req.params.id || '').trim()
+    if (!id) return res.status(400).json({ error: 'id required' })
+    const result = await prisma.safetyHazardReport.updateMany({
+      where: { id, status: 'pending' },
+      data: {
+        status: 'approved',
+        approvedAt: new Date(),
+        moderatedBy: 'admin',
+      },
+    })
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Pending hazard not found' })
+    }
+    const row = await prisma.safetyHazardReport.findUnique({
+      where: { id },
+      include: { user: { select: { name: true, email: true } } },
+    })
+    res.json({
+      hazard: {
+        ...row,
+        userName: row?.user?.name,
+        userEmail: row?.user?.email,
+        user: undefined,
+      },
+    })
+  } catch (e) {
+    console.error('admin safety-hazards approve', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/** PATCH /api/admin/safety-hazards/:id/reject */
+router.patch('/safety-hazards/:id/reject', async (req, res) => {
+  try {
+    if (!prisma.safetyHazardReport) {
+      return res.status(503).json({ error: 'SafetyHazardReport model unavailable' })
+    }
+    const id = String(req.params.id || '').trim()
+    if (!id) return res.status(400).json({ error: 'id required' })
+    const result = await prisma.safetyHazardReport.updateMany({
+      where: { id, status: 'pending' },
+      data: {
+        status: 'rejected',
+        moderatedBy: 'admin',
+      },
+    })
+    if (result.count === 0) {
+      return res.status(404).json({ error: 'Pending hazard not found' })
+    }
+    res.json({ success: true })
+  } catch (e) {
+    console.error('admin safety-hazards reject', e)
+    res.status(500).json({ error: e.message })
   }
 })
 

@@ -54,9 +54,6 @@ POLYGON / AREA TOOLS
 - Polygon tools let users draw an area on the map to explore or extract places inside that boundary.
 - Use them to focus search, extraction or exploration on a specific region.
 
-ITINERARIES & GROUPS
-- Users can build itineraries from places and share them with groups.
-
 If you are unsure of an exact button label, give the general steps and tell the user where to look (top bar, place panel, search bar).`
 
 const SYSTEM_PROMPT = `You are "Map Assistant", the in-app support chatbot for UmnaApp Maps.
@@ -66,7 +63,7 @@ Your ONLY job is to help users understand and use UmnaApp Maps and its features.
 ${FEATURE_GUIDE}
 
 STRICT RULES:
-1. Answer ONLY questions related to UmnaApp Maps, its features, and how to use the app (registration/login, using the map, search & categories, directions/navigation, add/edit place, reviews/photos/favorites/notifications, place extraction, polygon/area tools, itineraries, and general app usage/troubleshooting).
+1. Answer ONLY questions related to UmnaApp Maps, its features, and how to use the app (registration/login, using the map, search & categories, directions/navigation, add/edit place, reviews/photos/favorites/notifications, place extraction, polygon/area tools, and general app usage/troubleshooting).
 2. If the user asks anything NOT related to UmnaApp Maps (general knowledge, coding, math, other apps, news, jokes, personal advice, etc.), you MUST refuse with EXACTLY this sentence and nothing else: "${REFUSAL_MESSAGE}"
 3. When a user asks how to do something, give clear, concise, numbered step-by-step instructions.
 4. Be friendly, short and practical. Do not invent features that are not listed above. Do not output URLs unless they are in this prompt.
@@ -83,7 +80,7 @@ const isLikelyMapTopic = (text) => {
     'add place', 'edit place', 'review', 'reviews', 'rating', 'photo', 'photos',
     'favorite', 'favourite', 'favorites', 'notification', 'notifications', 'bell',
     'extract', 'extraction', 'polygon', 'area', 'draw', 'zoom', 'pin', 'pan',
-    'itinerary', 'itineraries', 'group', 'nearby', 'near me', 'hotel', 'atm', 'temple',
+    'nearby', 'near me', 'hotel', 'atm', 'temple',
     'restaurant', 'placefinder', 'app', 'feature', 'use', 'how do i', 'how to',
   ]
   return keywords.some((k) => t.includes(k))
@@ -136,9 +133,6 @@ const fallbackAnswer = (userText) => {
   }
   if (has('gps', 'current location', 'my location', 'locate')) {
     return 'Tap the GPS / location button on the map to center it on your current location. Allow location permission if your browser/phone asks.'
-  }
-  if (has('itinerary', 'itineraries', 'group')) {
-    return 'You can build itineraries from places and share them with groups. Add places to an itinerary, then open it to view or share with your group.'
   }
 
   return 'I can help with UmnaApp Maps. You can ask me about:\n- Registration & login\n- Using the map and finding your location\n- Searching places and categories\n- Directions & navigation\n- Adding or editing a place\n- Reviews, photos, favorites and notifications\n- Place extraction and polygon/area tools\n\nWhat would you like to do?'

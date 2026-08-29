@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 import AuthLayout, { AuthError } from '../components/auth/AuthLayout'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
+import { authPageWithRedirect, sanitizeAuthRedirect } from '../utils/authRedirect'
 
 const OTPVerificationPage = () => {
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
@@ -16,10 +17,11 @@ const OTPVerificationPage = () => {
 
   const email = location.state?.email
   const type = location.state?.type || 'register'
+  const redirect = sanitizeAuthRedirect(location.state?.redirect)
 
   useEffect(() => {
     if (!email) {
-      navigate(type === 'register' ? '/register' : '/login')
+      navigate(authPageWithRedirect(type === 'register' ? '/register' : '/login', redirect))
       return
     }
 
@@ -34,7 +36,7 @@ const OTPVerificationPage = () => {
     }, 1000)
 
     return () => clearInterval(timer)
-  }, [email, type, navigate])
+  }, [email, type, navigate, redirect])
 
   const handleChange = (index, value) => {
     if (value.length > 1) return
@@ -88,7 +90,7 @@ const OTPVerificationPage = () => {
       })
 
       login(response.data.user, response.data.token)
-      navigate('/home')
+      navigate(redirect, { replace: true })
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid OTP. Please try again.')
       setOtp(['', '', '', '', '', ''])

@@ -1,7 +1,8 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthLayout, { AuthError, AuthDivider, GoogleSignInButton } from '../components/auth/AuthLayout'
 import api from '../services/api'
+import { authPageWithRedirect, sanitizeAuthRedirect } from '../utils/authRedirect'
 
 const RegisterPage = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +13,8 @@ const RegisterPage = () => {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const redirect = sanitizeAuthRedirect(searchParams.get('redirect'))
 
   const handleChange = (e) => {
     setFormData({
@@ -32,7 +35,7 @@ const RegisterPage = () => {
       }
 
       await api.post('/auth/register', payload)
-      navigate('/verify-otp', { state: { email: formData.email, type: 'register' } })
+      navigate('/verify-otp', { state: { email: formData.email, type: 'register', redirect } })
     } catch (err) {
       const errorMessage = err.response?.data?.error || err.response?.data?.errors?.[0]?.msg || 'Registration failed'
       setError(errorMessage)
@@ -42,7 +45,7 @@ const RegisterPage = () => {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google'
+    window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirect)}`
   }
 
   return (
@@ -51,8 +54,8 @@ const RegisterPage = () => {
       subtitle="Join UMNAAPP and start mapping in minutes"
       footer={
         <p className="auth-footer-text">
-          Already have an account? navya ..................{' '}
-          <Link to="/login" className="auth-footer-link">
+          Already have an account?{' '}
+          <Link to={authPageWithRedirect('/login', redirect)} className="auth-footer-link">
             Sign in
           </Link>
         </p>

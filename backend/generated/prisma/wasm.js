@@ -357,62 +357,76 @@ exports.Prisma.PlaceAuditScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
-exports.Prisma.ItineraryScalarFieldEnum = {
+exports.Prisma.LiveLocationShareScalarFieldEnum = {
   id: 'id',
-  title: 'title',
-  description: 'description',
   ownerId: 'ownerId',
-  shareToken: 'shareToken',
-  coverEmoji: 'coverEmoji',
-  startDate: 'startDate',
-  endDate: 'endDate',
-  autoSort: 'autoSort',
+  tokenHash: 'tokenHash',
+  status: 'status',
+  durationMinutes: 'durationMinutes',
+  expiresAt: 'expiresAt',
+  endedAt: 'endedAt',
+  endedReason: 'endedReason',
+  lastLatitude: 'lastLatitude',
+  lastLongitude: 'lastLongitude',
+  lastAccuracy: 'lastAccuracy',
+  lastSpeed: 'lastSpeed',
+  lastHeading: 'lastHeading',
+  lastUpdatedAt: 'lastUpdatedAt',
+  presenceStatus: 'presenceStatus',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.ItineraryMemberScalarFieldEnum = {
+exports.Prisma.LiveLocationViewerScalarFieldEnum = {
   id: 'id',
-  itineraryId: 'itineraryId',
+  shareId: 'shareId',
   userId: 'userId',
-  role: 'role',
-  createdAt: 'createdAt'
+  firstViewedAt: 'firstViewedAt',
+  lastViewedAt: 'lastViewedAt'
 };
 
-exports.Prisma.ItineraryStopScalarFieldEnum = {
+exports.Prisma.SafetyHazardReportScalarFieldEnum = {
   id: 'id',
-  itineraryId: 'itineraryId',
-  placeId: 'placeId',
-  name: 'name',
-  category: 'category',
+  userId: 'userId',
+  type: 'type',
   latitude: 'latitude',
   longitude: 'longitude',
-  address: 'address',
-  notes: 'notes',
-  position: 'position',
-  dayIndex: 'dayIndex',
-  addedById: 'addedById',
-  addedByName: 'addedByName',
+  severity: 'severity',
+  description: 'description',
+  roadName: 'roadName',
+  status: 'status',
+  expiresAt: 'expiresAt',
+  approvedAt: 'approvedAt',
+  moderatedBy: 'moderatedBy',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
 
-exports.Prisma.ItineraryCommentScalarFieldEnum = {
+exports.Prisma.LegalDocumentScalarFieldEnum = {
   id: 'id',
-  stopId: 'stopId',
-  userId: 'userId',
-  userName: 'userName',
-  body: 'body',
+  type: 'type',
+  title: 'title',
+  content: 'content',
+  version: 'version',
+  updatedBy: 'updatedBy',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt'
+};
+
+exports.Prisma.AdminAllowedEmailScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  createdAt: 'createdAt',
+  createdBy: 'createdBy'
+};
+
+exports.Prisma.AdminOtpScalarFieldEnum = {
+  id: 'id',
+  email: 'email',
+  otpHash: 'otpHash',
+  expiresAt: 'expiresAt',
+  verified: 'verified',
   createdAt: 'createdAt'
-};
-
-exports.Prisma.ItineraryVoteScalarFieldEnum = {
-  id: 'id',
-  stopId: 'stopId',
-  userId: 'userId',
-  value: 'value',
-  createdAt: 'createdAt',
-  updatedAt: 'updatedAt'
 };
 
 exports.Prisma.SortOrder = {
@@ -459,11 +473,12 @@ exports.Prisma.ModelName = {
   BusinessClaim: 'BusinessClaim',
   PlaceLabel: 'PlaceLabel',
   PlaceAudit: 'PlaceAudit',
-  Itinerary: 'Itinerary',
-  ItineraryMember: 'ItineraryMember',
-  ItineraryStop: 'ItineraryStop',
-  ItineraryComment: 'ItineraryComment',
-  ItineraryVote: 'ItineraryVote'
+  LiveLocationShare: 'LiveLocationShare',
+  LiveLocationViewer: 'LiveLocationViewer',
+  SafetyHazardReport: 'SafetyHazardReport',
+  LegalDocument: 'LegalDocument',
+  AdminAllowedEmail: 'AdminAllowedEmail',
+  AdminOtp: 'AdminOtp'
 };
 
 /**

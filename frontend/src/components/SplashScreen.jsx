@@ -236,7 +236,15 @@ export default function SplashScreen({ onComplete }) {
         <div className="relative z-10 text-center px-6">
           <div className="mb-6 animate-fade-in-up">
             <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 shadow-2xl mb-4">
-              <img src={logoUrl} alt="UmnaApp" className="w-16 h-16 object-contain" />
+              <img
+                src={logoUrl}
+                alt="UmnaApp"
+                className="w-16 h-16 object-contain"
+                width={64}
+                height={64}
+                decoding="async"
+                fetchPriority="high"
+              />
             </div>
           </div>
           <div className="flex items-center justify-center gap-2 mb-3 animate-fade-in-up">

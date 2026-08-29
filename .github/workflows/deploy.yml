@@ -1,12 +1,37 @@
 # UMNAAPP Map — CI/CD with single Quality Gate
 # Stack: PostgreSQL, Prisma, Express, React (Vite), Node.js
 #
-# Required GitHub secrets (per environment: production / stage):
+# Branch → GitHub Environment (secrets / VPS target):
+#   SafeRouteNavigationnn  → umnaapptest  (test server)
+#   mainnn / stage       → umnaappMain  (production)
+#
+# VPS layout (VPS_APP_DIR = site root, NOT …/backend):
+#   $VPS_APP_DIR/
+#     backend/                 ← Node API (PM2 cwd)
+#       build/                 ← frontend Vite build (index.html)
+#       admin/dist/            ← admin Vite build
+#       .env                   ← generated from Environment secrets
+# Example (test):
+#   VPS_APP_DIR=/home/testatozas-umnaapptst/htdocs/umnaapptst.testatozas.in
+#   → …/backend , …/backend/build , …/backend/admin/dist
+#
+# Quality Gate must succeed before any deploy (unless skip_tests on workflow_dispatch).
+# ALL runtime config is injected from the selected environment's Secrets.
+# The workflow never reads or merges the VPS's existing backend/.env —
+# it generates a fresh .env from secrets on the runner and installs it.
+#
+# Required Environment Secrets (umnaapptest / umnaappMain):
 #   VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_APP_DIR
-#   VPS_PORT (optional, default 22)
-#   DATABASE_URL, JWT_SECRET, ADMIN_SECRET, PORT
-#   VITE_API_URL (frontend build), SMTP_*, GOOGLE_*, GROQ_API_KEY, VAPID_*, etc.
-#   See backend/env.example.txt for the full list used during .env creation.
+#   umna_DATABASE_URL, umna_JWT_SECRET, umna_ADMIN_SECRET, umna_PORT, umna_FRONTEND_URL
+#   umna_API_URL (frontend/admin Vite build → VITE_API_URL)
+# Optional (set when needed): VPS_PORT, umna_JWT_EXPIRES_IN, umna_ADMIN_URL,
+#   umna_SMTP_*, umna_FEEDBACK_*, umna_GOOGLE_*, umna_GROQ_*, umna_VAPID_*,
+#   umna_ROUTE_SERVICE_URL, umna_SEARCH_SIMPLE_URL, umna_OSRM_PUBLIC_URL,
+#   umna_NODE_ENV, umna_PLACES_*, umna_GOOGLE_API_HARD_STOP,
+#   umna_TILESERVER_URL, umna_MAPS_HOST, etc.
+# Backend .env keys are written WITHOUT the umna_ prefix (e.g. umna_PORT → PORT).
+# FRONTEND_BUILD_PATH / ADMIN_BUILD_PATH are derived from VPS_APP_DIR automatically.
+# See backend/env.example.txt for variable meanings.
 
 name: CI/CD Deploy to VPS
 
@@ -15,10 +40,12 @@ on:
     branches:
       - mainnn
       - stage
+      - SafeRouteNavigationnn
   pull_request:
     branches:
       - mainnn
       - stage
+      - SafeRouteNavigationnn
   workflow_dispatch:
     inputs:
       deploy_frontend:
@@ -47,7 +74,7 @@ concurrency:
   cancel-in-progress: true
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '22'
   REGISTRY: ghcr.io
   POSTGRES_USER: test
   POSTGRES_PASSWORD: test
@@ -57,6 +84,8 @@ env:
   ADMIN_SECRET: ci-admin-secret-min-16-chars
   API_PORT: '5000'
   API_BASE_URL: http://127.0.0.1:5000
+  # GitHub Environment name selected by branch (secrets + VPS target).
+  DEPLOY_ENVIRONMENT: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
 
 jobs:
   # ─── Single Quality Gate — all checks must pass before any deployment ───────
@@ -68,7 +97,8 @@ jobs:
 
     services:
       postgres:
-        image: postgres:15-alpine
+        # PostGIS required — Prisma schema uses geometry(Point,4326) on Place/Location.
+        image: postgis/postgis:15-3.4
         env:
           POSTGRES_USER: test
           POSTGRES_PASSWORD: test
@@ -88,22 +118,18 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
+          # Project Node (not the Actions runner runtime).
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: |
-            backend/package-lock.json
-            frontend/package-lock.json
-            admin/package-lock.json
 
       - name: Install dependencies
         run: |
           set -euo pipefail
-          for dir in backend frontend admin; do
-            echo "── Installing $dir ──"
-            cd "$dir"
-            if [ -f package-lock.json ]; then npm ci --include=dev; else npm install --include=dev; fi
-            cd ..
-          done
+          # Root workspaces + overrides (axios/vite/etc.) must install from repo root.
+          if [ -f package-lock.json ]; then
+            npm ci --include=dev --legacy-peer-deps
+          else
+            npm install --include=dev --legacy-peer-deps
+          fi
 
       # ── 1. Linting ──────────────────────────────────────────────────────────
       - name: Lint backend
@@ -134,6 +160,19 @@ jobs:
           DATABASE_URL: ${{ env.DATABASE_URL }}
         run: npm run validate:schemas
 
+      - name: Enable PostGIS extension
+        env:
+          PGPASSWORD: ${{ env.POSTGRES_PASSWORD }}
+        run: |
+          set -euo pipefail
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql -h localhost -U "${{ env.POSTGRES_USER }}" -d "${{ env.POSTGRES_DB }}" \
+            -v ON_ERROR_STOP=1 \
+            -c 'CREATE EXTENSION IF NOT EXISTS postgis;'
+          psql -h localhost -U "${{ env.POSTGRES_USER }}" -d "${{ env.POSTGRES_DB }}" \
+            -c 'SELECT PostGIS_Version();'
+
       - name: Sync test database schema
         working-directory: backend
         env:
@@ -148,17 +187,15 @@ jobs:
         run: npm run ci:build
 
       - name: Build frontend
-        working-directory: frontend
         env:
           CI: true
           VITE_API_URL: http://localhost:5000
-        run: npm run ci:build
+        run: npm run ci:build --workspace=umnaapp-frontend
 
       - name: Build admin
-        working-directory: admin
         env:
           CI: true
-        run: npm run ci:build
+        run: npm run ci:build --workspace=umnaapp-admin
 
       # ── 5. Automated API tests ──────────────────────────────────────────────
       - name: Start API server for integration tests
@@ -197,7 +234,7 @@ jobs:
             --keyring /usr/share/keyrings/k6-archive-keyring.gpg \
             --keyserver hkp://keyserver.ubuntu.com:80 \
             --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
-          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable mainnn" \
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" \
             | sudo tee /etc/apt/sources.list.d/k6.list
           sudo apt-get update -qq
           sudo apt-get install -y k6
@@ -230,6 +267,7 @@ jobs:
           context: backend
           file: backend/Dockerfile
           push: false
+          load: true
           tags: umnaapp-backend:ci-${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -267,12 +305,15 @@ jobs:
     if: |
       always() &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true')
+      (needs.quality-gate.result == 'success' ||
+       (github.event.inputs.skip_tests == 'true' && needs.quality-gate.result == 'skipped'))
     runs-on: ubuntu-latest
     outputs:
       frontend: ${{ steps.filter.outputs.frontend }}
       backend: ${{ steps.filter.outputs.backend }}
       admin: ${{ steps.filter.outputs.admin }}
+      # Test branch always deploys all apps after quality gate passes.
+      deploy_all: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -287,15 +328,16 @@ jobs:
             admin:
               - admin/**
 
-  # ─── Push Docker image to GHCR (production deploy branches only) ─────────────
+  # ─── Push Docker image to GHCR ───────────────────────────────────────────────
   docker:
     name: Package Docker image
     needs: [quality-gate, changes]
     if: |
       always() &&
       (github.event_name == 'push' || github.event_name == 'workflow_dispatch') &&
-      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
-      (needs.changes.outputs.backend == 'true' || github.event_name == 'workflow_dispatch')
+      (needs.quality-gate.result == 'success' ||
+       (github.event.inputs.skip_tests == 'true' && needs.quality-gate.result == 'skipped')) &&
+      (needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy_all == 'true' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -321,7 +363,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ github.repository }}/backend:latest
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.ref_name == 'SafeRouteNavigationnn' && 'test' || 'latest' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -331,11 +373,12 @@ jobs:
     needs: [quality-gate, changes]
     if: |
       always() &&
-      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
-      ((github.event_name == 'push' && needs.changes.outputs.frontend == 'true') ||
+      (needs.quality-gate.result == 'success' ||
+       (github.event.inputs.skip_tests == 'true' && needs.quality-gate.result == 'skipped')) &&
+      ((github.event_name == 'push' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -343,18 +386,32 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Build frontend
-        working-directory: frontend
         env:
-          VITE_API_URL: ${{ secrets.VITE_API_URL }}
-          VITE_GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          umna_API_URL: ${{ secrets.umna_API_URL }}
+          umna_GOOGLE_CLIENT_ID: ${{ secrets.umna_GOOGLE_CLIENT_ID }}
+          umna_TILESERVER_URL: ${{ secrets.umna_TILESERVER_URL }}
+          umna_MAPS_HOST: ${{ secrets.umna_MAPS_HOST }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           CI: false
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-          npm run build
+          set -euo pipefail
+          if [ -z "${umna_API_URL:-}" ]; then
+            echo "Missing required Environment Secret: umna_API_URL (${{ env.DEPLOY_ENVIRONMENT }})"
+            exit 1
+          fi
+          # Map umna_* Environment Secrets → Vite VITE_* build env (Vite requires VITE_ prefix).
+          export VITE_API_URL="$umna_API_URL"
+          export VITE_GOOGLE_CLIENT_ID="${umna_GOOGLE_CLIENT_ID:-${GOOGLE_CLIENT_ID:-}}"
+          export VITE_TILESERVER_URL="${umna_TILESERVER_URL:-}"
+          export VITE_MAPS_HOST="${umna_MAPS_HOST:-}"
+          if [ -f package-lock.json ]; then
+            npm ci --include=dev --legacy-peer-deps
+          else
+            npm install --include=dev --legacy-peer-deps
+          fi
+          npm run build --workspace=umnaapp-frontend
 
       - name: Validate SSH key
         run: |
@@ -377,11 +434,19 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
+            # VPS_APP_DIR = site root → frontend lives at backend/build
             APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            BUILD_DIR="${APP_DIR}/backend/build"
+            APP_DIR="${APP_DIR%/}"
+            if [ "${APP_DIR##*/}" = "backend" ]; then
+              BACKEND_DIR="${APP_DIR}"
+            else
+              BACKEND_DIR="${APP_DIR}/backend"
+            fi
+            BUILD_DIR="${BACKEND_DIR}/build"
             mkdir -p "${BUILD_DIR}"
-            rm -rf "${BUILD_DIR:?}"/*
-            mkdir -p "${BUILD_DIR}"
+            # Clear previous frontend assets only (keep backend code / admin).
+            find "${BUILD_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+            echo "Frontend target: ${BUILD_DIR}"
 
       - name: Upload frontend build
         run: |
@@ -410,10 +475,18 @@ jobs:
           script: |
             set -euo pipefail
             APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            BUILD_DIR="${APP_DIR}/backend/build"
+            APP_DIR="${APP_DIR%/}"
+            if [ "${APP_DIR##*/}" = "backend" ]; then
+              BACKEND_DIR="${APP_DIR}"
+            else
+              BACKEND_DIR="${APP_DIR}/backend"
+            fi
+            BUILD_DIR="${BACKEND_DIR}/build"
+            mkdir -p "${BUILD_DIR}"
             tar -xzf /tmp/frontend-build.tar.gz -C "${BUILD_DIR}"
             rm -f /tmp/frontend-build.tar.gz
             test -f "${BUILD_DIR}/index.html"
+            echo "Frontend deployed to ${BUILD_DIR}"
 
       - name: Cleanup
         if: always()
@@ -425,11 +498,12 @@ jobs:
     needs: [quality-gate, changes]
     if: |
       always() &&
-      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
-      ((github.event_name == 'push' && needs.changes.outputs.admin == 'true') ||
+      (needs.quality-gate.result == 'success' ||
+       (github.event.inputs.skip_tests == 'true' && needs.quality-gate.result == 'skipped')) &&
+      ((github.event_name == 'push' && (needs.changes.outputs.admin == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_admin == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -437,14 +511,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: admin/package-lock.json
 
       - name: Build admin
-        working-directory: admin
+        env:
+          umna_API_URL: ${{ secrets.umna_API_URL }}
+          CI: false
         run: |
-          if [ -f package-lock.json ]; then npm ci; else npm install; fi
-          npm run build
+          set -euo pipefail
+          if [ -z "${umna_API_URL:-}" ]; then
+            echo "Missing required Environment Secret: umna_API_URL (${{ env.DEPLOY_ENVIRONMENT }})"
+            exit 1
+          fi
+          export VITE_API_URL="$umna_API_URL"
+          if [ -f package-lock.json ]; then
+            npm ci --include=dev --legacy-peer-deps
+          else
+            npm install --include=dev --legacy-peer-deps
+          fi
+          npm run build --workspace=umnaapp-admin
 
       - name: Upload admin build
         run: |
@@ -471,13 +555,21 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
+            # VPS_APP_DIR = site root → admin lives at backend/admin/dist
             APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            ADMIN_DIR="${APP_DIR}/backend/admin/dist"
+            APP_DIR="${APP_DIR%/}"
+            if [ "${APP_DIR##*/}" = "backend" ]; then
+              BACKEND_DIR="${APP_DIR}"
+            else
+              BACKEND_DIR="${APP_DIR}/backend"
+            fi
+            ADMIN_DIR="${BACKEND_DIR}/admin/dist"
             mkdir -p "${ADMIN_DIR}"
-            rm -rf "${ADMIN_DIR:?}"/*
+            find "${ADMIN_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
             tar -xzf /tmp/admin-build.tar.gz -C "${ADMIN_DIR}"
             rm -f /tmp/admin-build.tar.gz
             test -f "${ADMIN_DIR}/index.html"
+            echo "Admin deployed to ${ADMIN_DIR}"
 
       - name: Cleanup
         if: always()
@@ -489,12 +581,13 @@ jobs:
     needs: [quality-gate, changes, docker]
     if: |
       always() &&
-      (needs.quality-gate.result == 'success' || needs.quality-gate.result == 'skipped' || github.event.inputs.skip_tests == 'true') &&
+      (needs.quality-gate.result == 'success' ||
+       (github.event.inputs.skip_tests == 'true' && needs.quality-gate.result == 'skipped')) &&
       (needs.docker.result == 'success' || needs.docker.result == 'skipped') &&
-      ((github.event_name == 'push' && needs.changes.outputs.backend == 'true') ||
+      ((github.event_name == 'push' && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'mainnn' && 'production' || 'stage' }}
+    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -505,6 +598,7 @@ jobs:
           tar -czf ../backend-deploy.tar.gz \
             --exclude=node_modules \
             --exclude=.env \
+            --exclude=.env.* \
             --exclude=uploads \
             --exclude=build \
             --exclude=admin/dist \
@@ -512,6 +606,159 @@ jobs:
             --exclude=.git \
             .
           ls -lh ../backend-deploy.tar.gz
+
+      - name: Generate backend .env from GitHub Environment secrets
+        env:
+          VPS_APP_DIR: ${{ secrets.VPS_APP_DIR }}
+          umna_PORT: ${{ secrets.umna_PORT }}
+          umna_NODE_ENV: ${{ secrets.umna_NODE_ENV }}
+          umna_DATABASE_URL: ${{ secrets.umna_DATABASE_URL }}
+          umna_JWT_SECRET: ${{ secrets.umna_JWT_SECRET }}
+          umna_JWT_EXPIRES_IN: ${{ secrets.umna_JWT_EXPIRES_IN }}
+          umna_ADMIN_SECRET: ${{ secrets.umna_ADMIN_SECRET }}
+          umna_ADMIN_URL: ${{ secrets.umna_ADMIN_URL }}
+          umna_FRONTEND_URL: ${{ secrets.umna_FRONTEND_URL }}
+          umna_SMTP_NAME: ${{ secrets.umna_SMTP_NAME }}
+          umna_SMTP_SERVER: ${{ secrets.umna_SMTP_SERVER }}
+          umna_SMTP_PORT: ${{ secrets.umna_SMTP_PORT }}
+          umna_SMTP_SECURE: ${{ secrets.umna_SMTP_SECURE }}
+          umna_SMTP_EMAIL: ${{ secrets.umna_SMTP_EMAIL }}
+          umna_SMTP_EMAIL_PASSWORD: ${{ secrets.umna_SMTP_EMAIL_PASSWORD }}
+          umna_FEEDBACK_EMAIL: ${{ secrets.umna_FEEDBACK_EMAIL }}
+          umna_FEEDBACK_SMTP_SERVER: ${{ secrets.umna_FEEDBACK_SMTP_SERVER }}
+          umna_FEEDBACK_SMTP_PORT: ${{ secrets.umna_FEEDBACK_SMTP_PORT }}
+          umna_FEEDBACK_SMTP_SECURE: ${{ secrets.umna_FEEDBACK_SMTP_SECURE }}
+          umna_FEEDBACK_SMTP_EMAIL: ${{ secrets.umna_FEEDBACK_SMTP_EMAIL }}
+          umna_FEEDBACK_SMTP_PASSWORD: ${{ secrets.umna_FEEDBACK_SMTP_PASSWORD }}
+          umna_GOOGLE_CLIENT_ID: ${{ secrets.umna_GOOGLE_CLIENT_ID }}
+          umna_GOOGLE_CLIENT_SECRET: ${{ secrets.umna_GOOGLE_CLIENT_SECRET }}
+          umna_GOOGLE_CALLBACK_URL: ${{ secrets.umna_GOOGLE_CALLBACK_URL }}
+          umna_GOOGLE_MAPS_API_KEY: ${{ secrets.umna_GOOGLE_MAPS_API_KEY }}
+          umna_GROQ_API_KEY: ${{ secrets.umna_GROQ_API_KEY }}
+          umna_GROQ_MODEL: ${{ secrets.umna_GROQ_MODEL }}
+          umna_GROQ_TIMEOUT_MS: ${{ secrets.umna_GROQ_TIMEOUT_MS }}
+          umna_VAPID_PUBLIC_KEY: ${{ secrets.umna_VAPID_PUBLIC_KEY }}
+          umna_VAPID_PRIVATE_KEY: ${{ secrets.umna_VAPID_PRIVATE_KEY }}
+          umna_VAPID_SUBJECT: ${{ secrets.umna_VAPID_SUBJECT }}
+          umna_ROUTE_SERVICE_URL: ${{ secrets.umna_ROUTE_SERVICE_URL }}
+          umna_OSRM_PUBLIC_URL: ${{ secrets.umna_OSRM_PUBLIC_URL }}
+          umna_SEARCH_SIMPLE_URL: ${{ secrets.umna_SEARCH_SIMPLE_URL }}
+          umna_GOOGLE_API_HARD_STOP: ${{ secrets.umna_GOOGLE_API_HARD_STOP }}
+          umna_PLACES_MIN_ZOOM_NEARBY: ${{ secrets.umna_PLACES_MIN_ZOOM_NEARBY }}
+          umna_PLACES_MAX_NEARBY_PER_SESSION: ${{ secrets.umna_PLACES_MAX_NEARBY_PER_SESSION }}
+          umna_PLACES_MAX_NEARBY_PER_DAY: ${{ secrets.umna_PLACES_MAX_NEARBY_PER_DAY }}
+          umna_PLACES_BOUNDS_CACHE_MAX: ${{ secrets.umna_PLACES_BOUNDS_CACHE_MAX }}
+          umna_PLACES_BOUNDS_CACHE_TTL_MS: ${{ secrets.umna_PLACES_BOUNDS_CACHE_TTL_MS }}
+          umna_PLACES_DETAILS_CACHE_MAX: ${{ secrets.umna_PLACES_DETAILS_CACHE_MAX }}
+          umna_PLACES_DETAILS_CACHE_TTL_MS: ${{ secrets.umna_PLACES_DETAILS_CACHE_TTL_MS }}
+          umna_PLACES_MAP_IDLE_DEBOUNCE_MS: ${{ secrets.umna_PLACES_MAP_IDLE_DEBOUNCE_MS }}
+          umna_PLACES_MIN_DELAY_MS: ${{ secrets.umna_PLACES_MIN_DELAY_MS }}
+          umna_PLACES_CELL_DELAY_MS: ${{ secrets.umna_PLACES_CELL_DELAY_MS }}
+        run: |
+          set -euo pipefail
+          umask 077
+          OUT=backend.env.deploy
+          : > "$OUT"
+
+          require() {
+            local name="$1" value="$2"
+            if [ -z "${value}" ]; then
+              echo "::error::Missing required Environment Secret '${name}' in ${{ env.DEPLOY_ENVIRONMENT }}"
+              exit 1
+            fi
+          }
+
+          # Never echo secret values — only validate presence.
+          require VPS_APP_DIR "${VPS_APP_DIR:-}"
+          require umna_PORT "${umna_PORT:-}"
+          require umna_DATABASE_URL "${umna_DATABASE_URL:-}"
+          require umna_JWT_SECRET "${umna_JWT_SECRET:-}"
+          require umna_ADMIN_SECRET "${umna_ADMIN_SECRET:-}"
+          require umna_FRONTEND_URL "${umna_FRONTEND_URL:-}"
+
+          write_kv() {
+            local key="$1" value="$2"
+            # Skip empty optional secrets so dotenv does not override defaults with "".
+            if [ -z "${value}" ]; then
+              return 0
+            fi
+            printf '%s=%s\n' "$key" "$value" >> "$OUT"
+          }
+
+          # Site root → backend/build + backend/admin/dist (absolute paths for Express).
+          APP_DIR=$(echo "${VPS_APP_DIR}" | tr -d '\n\r' | xargs)
+          APP_DIR="${APP_DIR%/}"
+          if [ "${APP_DIR##*/}" = "backend" ]; then
+            BACKEND_DIR="${APP_DIR}"
+          else
+            BACKEND_DIR="${APP_DIR}/backend"
+          fi
+          FRONTEND_BUILD_PATH="${BACKEND_DIR}/build"
+          ADMIN_BUILD_PATH="${BACKEND_DIR}/admin/dist"
+
+          # Map umna_* Environment Secrets → backend .env keys (strip umna_ prefix).
+          write_kv NODE_ENV "${umna_NODE_ENV:-production}"
+          write_kv PORT "$umna_PORT"
+          write_kv DATABASE_URL "$umna_DATABASE_URL"
+          write_kv JWT_SECRET "$umna_JWT_SECRET"
+          write_kv JWT_EXPIRES_IN "${umna_JWT_EXPIRES_IN:-7d}"
+          write_kv ADMIN_SECRET "$umna_ADMIN_SECRET"
+          write_kv ADMIN_URL "$umna_ADMIN_URL"
+          write_kv FRONTEND_URL "$umna_FRONTEND_URL"
+          write_kv FRONTEND_BUILD_PATH "$FRONTEND_BUILD_PATH"
+          write_kv ADMIN_BUILD_PATH "$ADMIN_BUILD_PATH"
+          write_kv SMTP_NAME "$umna_SMTP_NAME"
+          write_kv SMTP_SERVER "$umna_SMTP_SERVER"
+          write_kv SMTP_PORT "$umna_SMTP_PORT"
+          write_kv SMTP_SECURE "$umna_SMTP_SECURE"
+          write_kv SMTP_EMAIL "$umna_SMTP_EMAIL"
+          write_kv SMTP_EMAIL_PASSWORD "$umna_SMTP_EMAIL_PASSWORD"
+          write_kv FEEDBACK_EMAIL "$umna_FEEDBACK_EMAIL"
+          write_kv FEEDBACK_SMTP_SERVER "$umna_FEEDBACK_SMTP_SERVER"
+          write_kv FEEDBACK_SMTP_PORT "$umna_FEEDBACK_SMTP_PORT"
+          write_kv FEEDBACK_SMTP_SECURE "$umna_FEEDBACK_SMTP_SECURE"
+          write_kv FEEDBACK_SMTP_EMAIL "$umna_FEEDBACK_SMTP_EMAIL"
+          write_kv FEEDBACK_SMTP_PASSWORD "$umna_FEEDBACK_SMTP_PASSWORD"
+          write_kv GOOGLE_CLIENT_ID "$umna_GOOGLE_CLIENT_ID"
+          write_kv GOOGLE_CLIENT_SECRET "$umna_GOOGLE_CLIENT_SECRET"
+          write_kv GOOGLE_CALLBACK_URL "$umna_GOOGLE_CALLBACK_URL"
+          write_kv GOOGLE_MAPS_API_KEY "$umna_GOOGLE_MAPS_API_KEY"
+          write_kv GROQ_API_KEY "$umna_GROQ_API_KEY"
+          write_kv GROQ_MODEL "$umna_GROQ_MODEL"
+          write_kv GROQ_TIMEOUT_MS "$umna_GROQ_TIMEOUT_MS"
+          write_kv VAPID_PUBLIC_KEY "$umna_VAPID_PUBLIC_KEY"
+          write_kv VAPID_PRIVATE_KEY "$umna_VAPID_PRIVATE_KEY"
+          write_kv VAPID_SUBJECT "$umna_VAPID_SUBJECT"
+          write_kv ROUTE_SERVICE_URL "$umna_ROUTE_SERVICE_URL"
+          write_kv OSRM_PUBLIC_URL "$umna_OSRM_PUBLIC_URL"
+          write_kv SEARCH_SIMPLE_URL "$umna_SEARCH_SIMPLE_URL"
+          write_kv GOOGLE_API_HARD_STOP "$umna_GOOGLE_API_HARD_STOP"
+          write_kv PLACES_MIN_ZOOM_NEARBY "$umna_PLACES_MIN_ZOOM_NEARBY"
+          write_kv PLACES_MAX_NEARBY_PER_SESSION "$umna_PLACES_MAX_NEARBY_PER_SESSION"
+          write_kv PLACES_MAX_NEARBY_PER_DAY "$umna_PLACES_MAX_NEARBY_PER_DAY"
+          write_kv PLACES_BOUNDS_CACHE_MAX "$umna_PLACES_BOUNDS_CACHE_MAX"
+          write_kv PLACES_BOUNDS_CACHE_TTL_MS "$umna_PLACES_BOUNDS_CACHE_TTL_MS"
+          write_kv PLACES_DETAILS_CACHE_MAX "$umna_PLACES_DETAILS_CACHE_MAX"
+          write_kv PLACES_DETAILS_CACHE_TTL_MS "$umna_PLACES_DETAILS_CACHE_TTL_MS"
+          write_kv PLACES_MAP_IDLE_DEBOUNCE_MS "$umna_PLACES_MAP_IDLE_DEBOUNCE_MS"
+          write_kv PLACES_MIN_DELAY_MS "$umna_PLACES_MIN_DELAY_MS"
+          write_kv PLACES_CELL_DELAY_MS "$umna_PLACES_CELL_DELAY_MS"
+
+          # Readable on the runner so appleboy/scp-action (Docker) can tar it.
+          # Server install step still sets mode 600 on the final .env.
+          chmod 644 "$OUT"
+          # Sanity: file exists, has required keys, no secret values printed.
+          test -s "$OUT"
+          grep -q '^NODE_ENV=' "$OUT"
+          grep -q '^PORT=' "$OUT"
+          grep -q '^DATABASE_URL=' "$OUT"
+          grep -q '^JWT_SECRET=' "$OUT"
+          grep -q '^ADMIN_SECRET=' "$OUT"
+          grep -q '^FRONTEND_URL=' "$OUT"
+          grep -q '^FRONTEND_BUILD_PATH=' "$OUT"
+          grep -q '^ADMIN_BUILD_PATH=' "$OUT"
+          echo "Generated backend.env.deploy ($(wc -l < "$OUT") keys) from ${{ env.DEPLOY_ENVIRONMENT }} umna_* secrets"
+          echo "Static paths: FRONTEND_BUILD_PATH=${FRONTEND_BUILD_PATH} ADMIN_BUILD_PATH=${ADMIN_BUILD_PATH}"
 
       - name: Validate SSH key
         run: |
@@ -524,14 +771,14 @@ jobs:
           chmod 600 ~/.ssh/deploy_key
           ssh-keygen -l -f ~/.ssh/deploy_key >/dev/null
 
-      - name: SCP backend archive
+      - name: SCP backend archive and env file
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT || 22 }}
-          source: backend-deploy.tar.gz
+          source: backend-deploy.tar.gz,backend.env.deploy
           target: /tmp
           timeout: 300s
 
@@ -545,20 +792,54 @@ jobs:
           command_timeout: 10m
           script: |
             set -euo pipefail
+            # VPS_APP_DIR = site root → code deploys to backend/
             APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            BACKEND_DIR="${APP_DIR}/backend"
-            mkdir -p "${BACKEND_DIR}"
+            APP_DIR="${APP_DIR%/}"
+            if [ "${APP_DIR##*/}" = "backend" ]; then
+              BACKEND_DIR="${APP_DIR}"
+            else
+              BACKEND_DIR="${APP_DIR}/backend"
+            fi
+            mkdir -p "${BACKEND_DIR}/build" "${BACKEND_DIR}/admin/dist" "${BACKEND_DIR}/uploads"
             TEMP_DIR=$(mktemp -d)
             cd "${TEMP_DIR}"
             tar -xzf /tmp/backend-deploy.tar.gz
-            [ -d "${BACKEND_DIR}/uploads" ] && cp -r "${BACKEND_DIR}/uploads" ./uploads || true
-            [ -d "${BACKEND_DIR}/build" ] && cp -r "${BACKEND_DIR}/build" ./build || true
-            [ -d "${BACKEND_DIR}/admin/dist" ] && mkdir -p ./admin/dist && cp -r "${BACKEND_DIR}/admin/dist"/* ./admin/dist/ || true
-            cp -r ./* "${BACKEND_DIR}/"
-            cp -r ./.??* "${BACKEND_DIR}/" 2>/dev/null || true
+            # Preserve runtime assets that are not in the git archive.
+            [ -d "${BACKEND_DIR}/uploads" ] && mkdir -p ./uploads && cp -a "${BACKEND_DIR}/uploads/." ./uploads/ 2>/dev/null || mkdir -p ./uploads
+            [ -d "${BACKEND_DIR}/build" ] && mkdir -p ./build && cp -a "${BACKEND_DIR}/build/." ./build/ 2>/dev/null || mkdir -p ./build
+            [ -d "${BACKEND_DIR}/admin/dist" ] && mkdir -p ./admin/dist && cp -a "${BACKEND_DIR}/admin/dist/." ./admin/dist/ 2>/dev/null || mkdir -p ./admin/dist
+            # Never carry over a server-side .env — config comes only from GitHub Secrets.
+            rm -f ./.env ./.env.* 2>/dev/null || true
+            if command -v rsync >/dev/null 2>&1; then
+              rsync -a --delete \
+                --exclude 'uploads/' \
+                --exclude 'build/' \
+                --exclude 'admin/dist/' \
+                --exclude 'node_modules/' \
+                --exclude '.env' \
+                ./ "${BACKEND_DIR}/"
+            else
+              # Fallback when rsync is unavailable: copy tree, then restore preserved dirs.
+              shopt -s dotglob nullglob
+              for item in ./*; do
+                base=$(basename "$item")
+                case "$base" in
+                  uploads|build|admin|node_modules|.env) continue ;;
+                esac
+                cp -a "$item" "${BACKEND_DIR}/"
+              done
+              shopt -u dotglob nullglob
+              mkdir -p "${BACKEND_DIR}/admin"
+            fi
+            mkdir -p "${BACKEND_DIR}/uploads" "${BACKEND_DIR}/build" "${BACKEND_DIR}/admin/dist"
+            [ -d ./uploads ] && cp -a ./uploads/. "${BACKEND_DIR}/uploads/" || true
+            [ -d ./build ] && cp -a ./build/. "${BACKEND_DIR}/build/" || true
+            [ -d ./admin/dist ] && cp -a ./admin/dist/. "${BACKEND_DIR}/admin/dist/" || true
             rm -rf "${TEMP_DIR}" /tmp/backend-deploy.tar.gz
+            echo "Backend deployed to ${BACKEND_DIR}"
+            echo "Layout: ${BACKEND_DIR}/build (frontend), ${BACKEND_DIR}/admin/dist (admin)"
 
-      - name: Create .env on VPS
+      - name: Install .env on VPS from GitHub Environment secrets
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
@@ -569,33 +850,27 @@ jobs:
           script: |
             set -euo pipefail
             APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            cd "${APP_DIR}/backend"
+            APP_DIR="${APP_DIR%/}"
+            if [ "${APP_DIR##*/}" = "backend" ]; then
+              BACKEND_DIR="${APP_DIR}"
+            else
+              BACKEND_DIR="${APP_DIR}/backend"
+            fi
+            test -f /tmp/backend.env.deploy
             umask 077
-            printf '%s\n' \
-              "NODE_ENV=production" \
-              "PORT=${{ secrets.PORT }}" \
-              "DATABASE_URL=${{ secrets.DATABASE_URL }}" \
-              "JWT_SECRET=${{ secrets.JWT_SECRET }}" \
-              "JWT_EXPIRES_IN=${{ secrets.JWT_EXPIRES_IN }}" \
-              "ADMIN_SECRET=${{ secrets.ADMIN_SECRET }}" \
-              "SMTP_NAME=${{ secrets.SMTP_NAME }}" \
-              "SMTP_SERVER=${{ secrets.SMTP_SERVER }}" \
-              "SMTP_PORT=${{ secrets.SMTP_PORT }}" \
-              "SMTP_SECURE=${{ secrets.SMTP_SECURE }}" \
-              "SMTP_EMAIL=${{ secrets.SMTP_EMAIL }}" \
-              "SMTP_EMAIL_PASSWORD=${{ secrets.SMTP_EMAIL_PASSWORD }}" \
-              "GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}" \
-              "GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}" \
-              "GOOGLE_CALLBACK_URL=${{ secrets.GOOGLE_CALLBACK_URL }}" \
-              "GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}" \
-              "GROQ_API_KEY=${{ secrets.GROQ_API_KEY }}" \
-              "VAPID_PUBLIC_KEY=${{ secrets.VAPID_PUBLIC_KEY }}" \
-              "VAPID_PRIVATE_KEY=${{ secrets.VAPID_PRIVATE_KEY }}" \
-              "VAPID_SUBJECT=${{ secrets.VAPID_SUBJECT }}" \
-              "FRONTEND_URL=${{ secrets.FRONTEND_URL }}" \
-              "ADMIN_URL=${{ secrets.ADMIN_URL }}" \
-              > .env
-            chmod 600 .env
+            mkdir -p "${BACKEND_DIR}"
+            # Replace any existing server .env entirely — do not source/merge it.
+            rm -f "${BACKEND_DIR}/.env"
+            install -m 600 /tmp/backend.env.deploy "${BACKEND_DIR}/.env"
+            rm -f /tmp/backend.env.deploy
+            # Verify required keys exist without printing values.
+            for key in NODE_ENV PORT DATABASE_URL JWT_SECRET ADMIN_SECRET FRONTEND_URL FRONTEND_BUILD_PATH ADMIN_BUILD_PATH; do
+              grep -q "^${key}=" "${BACKEND_DIR}/.env" || {
+                echo "Installed .env missing required key: ${key}"
+                exit 1
+              }
+            done
+            echo "Installed ${BACKEND_DIR}/.env from ${{ env.DEPLOY_ENVIRONMENT }} secrets ($(wc -l < "${BACKEND_DIR}/.env") lines)"
 
       - name: Install dependencies and restart PM2
         uses: appleboy/ssh-action@v1.2.0
@@ -608,28 +883,37 @@ jobs:
           script: |
             set -euo pipefail
             APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            cd "${APP_DIR}/backend"
+            APP_DIR="${APP_DIR%/}"
+            if [ "${APP_DIR##*/}" = "backend" ]; then
+              BACKEND_DIR="${APP_DIR}"
+            else
+              BACKEND_DIR="${APP_DIR}/backend"
+            fi
+            cd "${BACKEND_DIR}"
             if [ -s "$HOME/.nvm/nvm.sh" ]; then
               export NVM_DIR="$HOME/.nvm"
               . "$NVM_DIR/nvm.sh"
-              nvm use 18 || nvm install 18
+              nvm use 22 || nvm install 22
             fi
             npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
             npx prisma generate
-            if command -v pm2 >/dev/null 2>&1; then
-              if [ -f ecosystem.config.js ]; then
-                pm2 startOrReload ecosystem.config.js --update-env
-              else
-                pm2 startOrReload server.js --name umnaapp-backend --update-env
-              fi
-              pm2 save || true
-              pm2 list
-            else
+            if ! command -v pm2 >/dev/null 2>&1; then
               npm i -g pm2@latest --no-audit --no-fund
-              pm2 startOrReload server.js --name umnaapp-backend --update-env
-              pm2 save || true
             fi
+            # startOrReload only accepts an ecosystem file — never pass server.js directly.
+            if [ -f ecosystem.config.cjs ]; then
+              pm2 startOrReload ecosystem.config.cjs --update-env
+            elif [ -f ecosystem.config.js ]; then
+              pm2 startOrReload ecosystem.config.js --update-env
+            elif pm2 describe umnaapp-backend >/dev/null 2>&1; then
+              pm2 reload umnaapp-backend --update-env
+            else
+              pm2 start server.js --name umnaapp-backend
+            fi
+            pm2 save || true
+            pm2 list
+            echo "PM2 running from ${BACKEND_DIR}"
 
       - name: Cleanup
         if: always()
-        run: rm -f backend-deploy.tar.gz
+        run: rm -f backend-deploy.tar.gz backend.env.deploy

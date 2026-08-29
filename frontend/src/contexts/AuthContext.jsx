@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import api from '../services/api'
 
 const AuthContext = createContext()
@@ -55,7 +55,10 @@ export const AuthProvider = ({ children }) => {
     if (urlToken) {
       setToken(urlToken)
       localStorage.setItem('token', urlToken)
-      window.history.replaceState({}, document.title, window.location.pathname)
+      urlParams.delete('token')
+      const remainingSearch = urlParams.toString()
+      const cleanUrl = `${window.location.pathname}${remainingSearch ? `?${remainingSearch}` : ''}${window.location.hash}`
+      window.history.replaceState({}, document.title, cleanUrl)
     }
 
     // Load user from database when token exists
@@ -69,11 +72,11 @@ export const AuthProvider = ({ children }) => {
     }
   }, [token, loadUser])
 
-  const login = (userData, authToken) => {
+  const login = useCallback((userData, authToken) => {
     setToken(authToken)
     setUser(userData)
     localStorage.setItem('token', authToken)
-  }
+  }, [])
 
   const updateProfile = useCallback(async (profileData) => {
     try {
@@ -102,17 +105,20 @@ export const AuthProvider = ({ children }) => {
     return () => window.removeEventListener('auth:sessionExpired', handleSessionInvalid)
   }, [logout])
 
-  const value = {
-    user,
-    token,
-    loading,
-    login,
-    logout,
-    loadUser,
-    updateProfile,
-    updateProfilePicture,
-    isAuthenticated: !!token,
-  }
+  const value = useMemo(
+    () => ({
+      user,
+      token,
+      loading,
+      login,
+      logout,
+      loadUser,
+      updateProfile,
+      updateProfilePicture,
+      isAuthenticated: !!token,
+    }),
+    [user, token, loading, login, logout, loadUser, updateProfile, updateProfilePicture]
+  )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

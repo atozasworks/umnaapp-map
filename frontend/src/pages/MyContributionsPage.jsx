@@ -129,7 +129,7 @@ export default function MyContributionsPage() {
                   <button
                     key={p.id}
                     type="button"
-                    onClick={() => navigate(`/home?place=${p.id}`)}
+                    onClick={() => navigate(`/?place=${p.id}`)}
                     className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 text-left hover:bg-slate-50"
                   >
                     <div className="flex-1 min-w-0">
@@ -153,7 +153,7 @@ export default function MyContributionsPage() {
               {tab === 'photos' && (
                 <div className="grid grid-cols-3 gap-2">
                   {data.photos.map((ph) => (
-                    <img key={ph.id} src={ph.dataUrl} alt={ph.caption || ph.placeName || 'Photo'} className="aspect-square object-cover rounded-xl border border-slate-100" />
+                    <img key={ph.id} src={ph.dataUrl} alt={ph.caption || ph.placeName || 'Photo'} className="aspect-square object-cover rounded-xl border border-slate-100" loading="lazy" decoding="async" />
                   ))}
                 </div>
               )}
@@ -162,7 +162,7 @@ export default function MyContributionsPage() {
                 <button
                   key={f.id}
                   type="button"
-                  onClick={() => navigate(`/home?lat=${f.latitude}&lng=${f.longitude}`)}
+                  onClick={() => navigate(`/?lat=${f.latitude}&lng=${f.longitude}`)}
                   className="w-full flex items-center gap-3 p-3 bg-white rounded-xl border border-slate-100 text-left hover:bg-slate-50"
                 >
                   <div className="flex-1 min-w-0">

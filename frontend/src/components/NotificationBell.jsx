@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '../hooks/useNotifications'
 
-const ITINERARY_TYPES = ['itinerary_invite', 'itinerary_joined', 'itinerary_updated']
+const LIVE_LOCATION_TYPES = ['location_share_viewed', 'location_share_ended']
 
 function formatTimeAgo(iso) {
   const then = new Date(iso).getTime()
@@ -42,10 +42,13 @@ function NotificationIcon({ type }) {
       </div>
     )
   }
-  if (ITINERARY_TYPES.includes(type)) {
+  if (LIVE_LOCATION_TYPES.includes(type)) {
     return (
-      <div className={`${base} bg-indigo-100 text-indigo-600 text-lg`} aria-hidden>
-        {type === 'itinerary_joined' ? '👥' : '🗺️'}
+      <div className={`${base} bg-rose-100 text-rose-600`}>
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+        </svg>
       </div>
     )
   }
@@ -58,14 +61,14 @@ function NotificationIcon({ type }) {
   )
 }
 
-export default function NotificationBell({ onPlaceFocus, onOpenItinerary }) {
+export default function NotificationBell({ enabled = true, onPlaceFocus, onOpenLiveShare }) {
   const [open, setOpen] = useState(false)
   const panelRef = useRef(null)
   const buttonRef = useRef(null)
   const navigate = useNavigate()
 
   const { notifications, unreadCount, loading, error, markRead, markAllRead, remove } =
-    useNotifications()
+    useNotifications({ enabled })
 
   useEffect(() => {
     if (!open) return
@@ -89,23 +92,6 @@ export default function NotificationBell({ onPlaceFocus, onOpenItinerary }) {
     }
   }, [open])
 
-  const openItinerary = useCallback(
-    (notification, { join = false } = {}) => {
-      const data = notification.data || {}
-      if (!data.itineraryId && !data.shareToken) return
-      setOpen(false)
-      if (onOpenItinerary) {
-        // We're already on /home — open via callback (no remount needed).
-        onOpenItinerary({ itineraryId: data.itineraryId, shareToken: data.shareToken, join })
-      } else if (join && data.shareToken) {
-        navigate(`/home?joinTrip=${data.shareToken}`)
-      } else if (data.itineraryId) {
-        navigate(`/home?openTrip=${data.itineraryId}`)
-      }
-    },
-    [onOpenItinerary, navigate]
-  )
-
   const handleItemClick = useCallback(
     async (notification) => {
       if (!notification.read) {
@@ -115,10 +101,18 @@ export default function NotificationBell({ onPlaceFocus, onOpenItinerary }) {
           /* ignore */
         }
       }
-      if (ITINERARY_TYPES.includes(notification.type)) {
-        // Invites jump straight into the join flow; other trip updates just open it.
-        openItinerary(notification, { join: notification.type === 'itinerary_invite' })
-        return
+      if (LIVE_LOCATION_TYPES.includes(notification.type)) {
+        const shareId = notification.data?.shareId
+        if (shareId && onOpenLiveShare) {
+          onOpenLiveShare(shareId)
+          setOpen(false)
+          return
+        }
+        if (shareId) {
+          navigate(`/?openLiveShare=${encodeURIComponent(shareId)}`)
+          setOpen(false)
+          return
+        }
       }
       const placeId = notification.data?.placeId
       if (placeId && onPlaceFocus) {
@@ -126,7 +120,7 @@ export default function NotificationBell({ onPlaceFocus, onOpenItinerary }) {
         setOpen(false)
       }
     },
-    [markRead, onPlaceFocus, openItinerary]
+    [markRead, onPlaceFocus, onOpenLiveShare, navigate]
   )
 
   const handleDelete = useCallback(
@@ -233,62 +227,43 @@ export default function NotificationBell({ onPlaceFocus, onOpenItinerary }) {
 
               {!loading && !error && notifications.length > 0 && (
                 <ul className="divide-y divide-white/30">
-                  {notifications.map((n) => {
-                    const isInvite = n.type === 'itinerary_invite'
-                    return (
-                      <li
-                        key={n.id}
-                        onClick={() => handleItemClick(n)}
-                        className={`group w-full text-left flex gap-3 px-4 py-3 transition-colors hover:bg-white/50 cursor-pointer ${
-                          !n.read ? 'bg-primary-50/40' : ''
-                        }`}
-                      >
-                        <NotificationIcon type={n.type} />
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-2">
-                            <p className={`text-sm truncate ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-800'}`}>
-                              {n.title}
-                            </p>
-                            <div className="flex items-center gap-1.5 flex-shrink-0">
-                              {!n.read && (
-                                <span className="w-2 h-2 rounded-full bg-primary-500 mt-1.5" aria-hidden />
-                              )}
-                              <button
-                                type="button"
-                                onClick={(e) => handleDelete(e, n.id)}
-                                className="p-1 -mr-1 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
-                                aria-label="Delete notification"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
-                          </div>
-                          <p className="text-xs text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">{n.body}</p>
-                          <div className="flex items-center justify-between gap-2 mt-1">
-                            <p className="text-[10px] text-slate-400">{formatTimeAgo(n.createdAt)}</p>
-                            {isInvite && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation()
-                                  if (!n.read) markRead(n.id).catch(() => {})
-                                  openItinerary(n, { join: true })
-                                }}
-                                className="inline-flex items-center gap-1 rounded-full bg-indigo-600 px-3 py-1 text-[11px] font-semibold text-white hover:bg-indigo-500 transition-colors"
-                              >
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                                </svg>
-                                Join
-                              </button>
+                  {notifications.map((n) => (
+                    <li
+                      key={n.id}
+                      onClick={() => handleItemClick(n)}
+                      className={`group w-full text-left flex gap-3 px-4 py-3 transition-colors hover:bg-white/50 cursor-pointer ${
+                        !n.read ? 'bg-primary-50/40' : ''
+                      }`}
+                    >
+                      <NotificationIcon type={n.type} />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <p className={`text-sm truncate ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-800'}`}>
+                            {n.title}
+                          </p>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            {!n.read && (
+                              <span className="w-2 h-2 rounded-full bg-primary-500 mt-1.5" aria-hidden />
                             )}
+                            <button
+                              type="button"
+                              onClick={(e) => handleDelete(e, n.id)}
+                              className="p-1 -mr-1 rounded-md text-slate-300 hover:text-red-500 hover:bg-red-50 opacity-60 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity"
+                              aria-label="Delete notification"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
                           </div>
                         </div>
-                      </li>
-                    )
-                  })}
+                        <p className="text-xs text-slate-600 line-clamp-2 mt-0.5 leading-relaxed">{n.body}</p>
+                        <div className="flex items-center justify-between gap-2 mt-1">
+                          <p className="text-[10px] text-slate-400">{formatTimeAgo(n.createdAt)}</p>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
                 </ul>
               )}
             </div>

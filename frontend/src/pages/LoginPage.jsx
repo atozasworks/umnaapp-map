@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthLayout, { AuthError, AuthDivider, GoogleSignInButton } from '../components/auth/AuthLayout'
 import api from '../services/api'
+import { authPageWithRedirect, sanitizeAuthRedirect } from '../utils/authRedirect'
 
 const errorMessages = {
   google_not_configured: 'Google login is not configured. Please use email OTP instead.',
@@ -16,14 +17,15 @@ const LoginPage = () => {
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const redirect = sanitizeAuthRedirect(searchParams.get('redirect'))
 
   useEffect(() => {
     const err = searchParams.get('error')
     if (err) {
       setError(errorMessages[err] || 'Something went wrong. Please try again.')
-      window.history.replaceState({}, '', '/login')
+      window.history.replaceState({}, '', authPageWithRedirect('/login', redirect))
     }
-  }, [searchParams])
+  }, [searchParams, redirect])
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -32,7 +34,7 @@ const LoginPage = () => {
 
     try {
       await api.post('/auth/login', { email })
-      navigate('/verify-otp', { state: { email, type: 'login' } })
+      navigate('/verify-otp', { state: { email, type: 'login', redirect } })
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to send OTP')
     } finally {
@@ -41,7 +43,7 @@ const LoginPage = () => {
   }
 
   const handleGoogleLogin = () => {
-    window.location.href = '/api/auth/google'
+    window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirect)}`
   }
 
   return (
@@ -51,7 +53,7 @@ const LoginPage = () => {
       footer={
         <p className="auth-footer-text">
           Don&apos;t have an account?{' '}
-          <Link to="/register" className="auth-footer-link">
+          <Link to={authPageWithRedirect('/register', redirect)} className="auth-footer-link">
             Create one free
           </Link>
         </p>

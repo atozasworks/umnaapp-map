@@ -182,9 +182,15 @@ export async function unifiedTextSearch(q, { viewerId, limit = 10, lat, lng, rad
   if (term.length < 2) return { results: [], providers: [] }
 
   const [dbPlaces, osmPlaces, external] = await Promise.all([
-    searchLocalPlaces(term, { viewerId, limit }),
+    searchLocalPlaces(term, { viewerId, limit }).catch((err) => {
+      console.warn('[search] local-db failed:', err?.message || err)
+      return []
+    }),
     isOsmQueryEnabled()
-      ? searchOsmByName(term, { limit, lat, lng, radiusKm })
+      ? searchOsmByName(term, { limit, lat, lng, radiusKm }).catch((err) => {
+          console.warn('[search] osm-db failed:', err?.message || err)
+          return []
+        })
       : Promise.resolve([]),
     searchExternalProviders(term, { limit, lat, lng, radiusKm }),
   ])
@@ -212,6 +218,26 @@ export async function unifiedTextSearch(q, { viewerId, limit = 10, lat, lng, rad
     },
     upstreamError: external.error || null,
   }
+}
+
+/** Public map search: umnaapp.in/search results first, then local DB, then OSM. */
+export async function publicPlaceSearch(q, options = {}) {
+  const limit = options.limit ?? 15
+  const { results, providers, counts, upstreamError } = await unifiedTextSearch(q, {
+    viewerId: null,
+    ...options,
+    limit,
+  })
+
+  const rank = (r) => {
+    if (r.provider === 'umnaapp/search') return 0
+    if (r.isDbPlace || r.isPersisted) return 1
+    if (r.provider === 'openstreetmap') return 2
+    return 3
+  }
+  const sorted = [...results].sort((a, b) => rank(a) - rank(b)).slice(0, limit)
+
+  return { results: sorted, providers, counts, upstreamError }
 }
 
 /** Map list: local DB rows + optional OSM bbox overlay, deduplicated. */

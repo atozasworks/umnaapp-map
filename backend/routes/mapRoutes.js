@@ -1,7 +1,6 @@
 import express from 'express'
 import { URL } from 'url'
 import axios from 'axios'
-import polyline from '@mapbox/polyline'
 import { body, query, validationResult } from 'express-validator'
 import { authenticateToken, optionalAuth } from '../middleware/auth.js'
 import { cacheMiddleware } from '../middleware/cache.js'
@@ -17,6 +16,7 @@ import {
   initialApprovalFields,
 } from '../services/placeApproval.js'
 import { onPlaceCreated, onPlaceApproved } from '../services/notificationService.js'
+import { broadcastPlaceUpsert, broadcastPlaceRemoved, PLACE_EVENTS } from '../lib/placeEvents.js'
 import {
   recordPlaceAuditAsync,
   getPlaceHistory,
@@ -58,6 +58,7 @@ import {
 } from '../services/unifiedPlaceQuery.js'
 import { isPersistedSource } from '../utils/placeSource.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
+import { findPublicUtilitiesNearby } from '../services/publicUtilityService.js'
 import { buildNormalizedAddressFields } from '../utils/osmAddress.js'
 import {
   GRID_EXTRACT_MAX_PLACES,
@@ -74,12 +75,10 @@ import {
   buildDirectRoute,
 } from '../utils/routeHelpers.js'
 import {
-  osrmProfileFor,
   osrmProfileCandidates,
   buildTrainRoute,
   applyTravelModeToRoutes,
-  routeNeedsPedestrianOrCycleRefetch,
-  pickPrimaryRoute,
+  applyTrainTimingToRoute,
 } from '../utils/travelModeRouting.js'
 
 const router = express.Router()
@@ -88,10 +87,11 @@ function attachApprovalMeta(p) {
   return enrichPlaceApprovalMeta(p)
 }
 
-const ROUTE_SERVICE_URL = process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in'
-const ROUTE_BASE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in').replace(/\/+$/, '') + '/map/route'
+// Self-hosted umnaapp.in OSRM — primary routing source.
+const ROUTE_SERVICE_URL = (process.env.ROUTE_SERVICE_URL || 'https://umnaapp.in/osrm').trim().replace(/\/+$/, '')
 const OSRM_URL = (process.env.OSRM_URL || '').trim().replace(/\/+$/, '')
-const OSRM_PUBLIC = 'https://router.project-osrm.org'
+// Public OpenStreetMap routing engine (OSRM) — secondary fallback.
+const OSRM_PUBLIC = (process.env.OSRM_PUBLIC_URL || 'https://router.project-osrm.org').trim().replace(/\/+$/, '')
 const SEARCH_URL = process.env.SEARCH_URL || 'https://umnaapp.in/map/nominatim/search?q='
 const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
 const REVERSE_URL = process.env.REVERSE_URL || 'https://umnaapp.in/map/reverse'
@@ -99,6 +99,7 @@ const NOMINATIM_URL = process.env.NOMINATIM_URL || ''
 const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
 /** CORS-safe fallback when umnaapp tile host is down or returns HTML errors. */
 const CARTO_TILE_FALLBACK = 'https://a.basemaps.cartocdn.com/rastertiles/voyager'
+const CARTO_API_KEY = (process.env.CARTO_API_KEY || 'cb1_2ibu_1_f81be7b5227dc1beb016c42f').trim()
 
 const isValidPngBuffer = (buf) =>
   Buffer.isBuffer(buf) &&
@@ -172,17 +173,19 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
   try {
     const { z, x, y } = req.params
     const base = TILESERVER_URL.replace(/\/+$/, '')
-    // umnaapp nginx: /tiles/ ; TileServer GL: /data/india/
-    const tileUrls = [
-      `${base}/tiles/${z}/${x}/${y}.png`,
-      `${base}/data/india/${z}/${x}/${y}.png`,
-    ]
+    // y may be "14" or "14@2x" (HiDPI). Try requested form, then standard 1x.
+    const yVariants = y.includes('@2x') ? [y, y.replace(/@2x$/i, '')] : [y]
+
+    // Try the real tile host quickly, then CARTO. Long upstream timeouts stacked
+    // hundreds of in-flight proxy requests and starved the map.
+    const TILE_UPSTREAM_TIMEOUT_MS = 2500
+    const tileUrls = yVariants.map((yId) => `${base}/tiles/${z}/${x}/${yId}.png`)
 
     for (const tileUrl of tileUrls) {
       try {
         const tileResponse = await axios.get(tileUrl, {
           responseType: 'arraybuffer',
-          timeout: 15000,
+          timeout: TILE_UPSTREAM_TIMEOUT_MS,
           headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
           validateStatus: (status) => status === 200,
         })
@@ -200,10 +203,14 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
     }
 
     try {
-      const fallbackUrl = `${CARTO_TILE_FALLBACK}/${z}/${x}/${y}.png`
+      // CARTO serves real 512px @2x tiles; keep @2x in the fallback path when requested.
+      const fallbackY = yVariants[0]
+      const fallbackUrl = `${CARTO_TILE_FALLBACK}/${z}/${x}/${fallbackY}.png${
+        CARTO_API_KEY ? `?key=${encodeURIComponent(CARTO_API_KEY)}` : ''
+      }`
       const tileResponse = await axios.get(fallbackUrl, {
         responseType: 'arraybuffer',
-        timeout: 15000,
+        timeout: TILE_UPSTREAM_TIMEOUT_MS,
         headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
       })
       const buf = Buffer.from(tileResponse.data)
@@ -233,7 +240,7 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
 router.get(
   '/route',
   authenticateToken,
-  rateLimitMiddleware('route', 30, 60), // 30 requests per minute
+  rateLimitMiddleware('route', 120, 60), // 120/min — each directions calc fans out to ~6 calls (route + per-mode ETAs)
   [
     query('start').isString().withMessage('Start coordinates required (lat,lng)'),
     query('end').isString().withMessage('End coordinates required (lat,lng)'),
@@ -252,8 +259,6 @@ router.get(
       const { start, end, profile = 'driving', waypoints, alternatives } = req.query
       const wantAlternatives = alternatives === 'true'
 
-      const osrmProfile = osrmProfileFor(profile)
-
       // Validate coordinates (frontend sends lat,lng)
       const startCoords = start.split(',').map(Number)
       const endCoords = end.split(',').map(Number)
@@ -270,17 +275,6 @@ router.get(
         : []
 
       let routeData = null
-
-      if (profile === 'train') {
-        routeData = buildTrainRoute(
-          startCoords[0],
-          startCoords[1],
-          endCoords[0],
-          endCoords[1],
-          parsedWaypoints
-        )
-        console.log('🗺️  Route estimated for train (no OSRM transit graph)')
-      }
 
       // Build coordinates string: lon,lat;lon,lat (UMNAAPP format)
       let coordinatesStr = `${startCoords[1]},${startCoords[0]}` // lng,lat
@@ -353,88 +347,20 @@ router.get(
         return null
       }
 
-      const parseUmnaappRoute = (route, geom) => {
-        if (geom === 'geojson' && route?.geometry?.coordinates?.length > 0) {
-          return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: route.geometry, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
-        }
-        if (geom === 'polyline' && typeof route?.geometry === 'string') {
-          const dec = polyline.decode(route.geometry, 5)
-          const coordinates = dec.map(([lat, lng]) => [lng, lat])
-          return { distance: route.distance ?? 0, duration: route.duration ?? 0, geometry: { type: 'LineString', coordinates }, legs: (route.legs || []).map((leg) => ({ distance: leg.distance ?? 0, duration: leg.duration ?? 0 })), steps: route.legs?.flatMap((l) => l.steps) ?? [] }
-        }
-        return null
-      }
-
-      /** Fetch from umnaapp-style API: /map/route/{profile}/{coords} */
-      const tryUmnaapp = async () => {
-        const umnaProfile = osrmProfile || 'driving'
-        const url = `${ROUTE_BASE_URL}/${umnaProfile}/${coordinatesStr}`
-        for (const geom of ['geojson', 'polyline']) {
-          try {
-            const params = { overview: 'full', geometries: geom, steps: 'true' }
-            if (wantAlternatives) params.alternatives = 'true'
-            const res = await axios.get(url, { params, timeout: 10000 })
-            const contentType = String(res.headers?.['content-type'] || '')
-            if (contentType.includes('text/html') || typeof res.data === 'string') {
-              continue
-            }
-            const data = res.data
-            const allRoutes = data.routes || []
-            if (wantAlternatives && allRoutes.length > 0) {
-              const altParsed = allRoutes.map((r) => parseUmnaappRoute(r, geom)).filter(Boolean).slice(0, 3)
-              if (altParsed.length > 0) return altParsed
-            }
-            const route = allRoutes[0] ?? (data.geometry ? { geometry: data.geometry, distance: data.distance, duration: data.duration, legs: data.legs } : null)
-            const singleParsed = parseUmnaappRoute(route, geom)
-            if (singleParsed) return wantAlternatives ? [singleParsed] : singleParsed
-          } catch (e) {
-            if (geom === 'geojson') console.warn('Route umnaapp GeoJSON failed:', e.message)
-          }
-        }
-        return null
-      }
-
-      // 1) umnaapp.in standard OSRM — https://umnaapp.in/route/v1/{profile}/{coords}
+      // 1) umnaapp.in OSRM (self-hosted, OSM-based) — primary routing source:
+      //    real road-following geometry from our own OSRM engine.
       if (!routeData) {
         try {
           routeData = await tryOsrm(ROUTE_SERVICE_URL)
-          if (routeData) console.log('🗺️  Route from umnaapp.in/route')
+          if (routeData) console.log('🗺️  Route from umnaapp.in/osrm (primary)')
         } catch (e) {
-          console.warn('Route umnaapp.in/route failed:', e.message)
+          console.warn('Route umnaapp.in/osrm failed:', e.message)
         }
-      }
-
-      // umnaapp often accepts walk/cycle profiles but returns driving speeds — refetch from public OSRM
-      if (
-        routeData &&
-        (profile === 'walking' || profile === 'cycling') &&
-        routeNeedsPedestrianOrCycleRefetch(pickPrimaryRoute(routeData), profile)
-      ) {
-        console.warn(`Route umnaapp ${profile} looks like driving — trying public OSRM`)
-        routeData = null
       }
 
       const needsMoreAlternatives = wantAlternatives && !hasMultipleRoutes(routeData)
 
-      // 2) Legacy umnaapp /map/route/... (custom wrapper, if deployed)
-      if (!routeData || needsMoreAlternatives) {
-        try {
-          const legacy = await tryUmnaapp()
-          if (legacy) {
-            if (needsMoreAlternatives && hasMultipleRoutes(legacy)) {
-              routeData = legacy
-              console.log('🗺️  Alternative routes from umnaapp /map/route')
-            } else if (!routeData) {
-              routeData = legacy
-              console.log('🗺️  Route from umnaapp /map/route')
-            }
-          }
-        } catch (e) {
-          console.warn('Route umnaapp /map/route failed:', e.message)
-        }
-      }
-
-      // 3) OSRM_URL (Docker/local) — dev fallback or extra alternatives
+      // 2) Self-hosted OSRM (Docker/local), if configured — OSM-based fallback / extra alternatives
       if ((!routeData || needsMoreAlternatives) && OSRM_URL) {
         try {
           const osrmRoutes = await tryOsrm(OSRM_URL)
@@ -452,17 +378,18 @@ router.get(
         }
       }
 
-      // 4) Public OSRM demo
-      if (!routeData || (wantAlternatives && !hasMultipleRoutes(routeData))) {
+      // 3) Public OpenStreetMap routing (OSRM) — https://router.project-osrm.org
+      //    Secondary network fallback when the primary umnaapp.in/osrm engine is down.
+      if (!routeData || needsMoreAlternatives) {
         try {
-          const osrmRoutes = await tryOsrm(OSRM_PUBLIC)
-          if (osrmRoutes) {
-            if (wantAlternatives && hasMultipleRoutes(osrmRoutes)) {
-              routeData = osrmRoutes
-              console.log('🗺️  Alternative routes from OSRM public')
+          const publicOsrm = await tryOsrm(OSRM_PUBLIC)
+          if (publicOsrm) {
+            if (needsMoreAlternatives && hasMultipleRoutes(publicOsrm)) {
+              routeData = publicOsrm
+              console.log('🗺️  Alternative routes from OpenStreetMap (OSRM public)')
             } else if (!routeData) {
-              routeData = osrmRoutes
-              console.log('🗺️  Route from OSRM public')
+              routeData = publicOsrm
+              console.log('🗺️  Route from OpenStreetMap (OSRM public)')
             }
           }
         } catch (e) {
@@ -477,19 +404,36 @@ router.get(
 
       let primaryRoute = Array.isArray(routeData) ? routeData[0] : routeData
       if (!primaryRoute?.geometry?.coordinates?.length) {
-        const fallback = buildDirectRoute(
-          startCoords[0],
-          startCoords[1],
-          endCoords[0],
-          endCoords[1],
-          profile
-        )
+        // No road geometry available. For train, keep the multi-stop straight
+        // estimate; for everything else use a direct straight fallback.
+        const fallback =
+          profile === 'train'
+            ? buildTrainRoute(
+                startCoords[0],
+                startCoords[1],
+                endCoords[0],
+                endCoords[1],
+                parsedWaypoints
+              )
+            : buildDirectRoute(
+                startCoords[0],
+                startCoords[1],
+                endCoords[0],
+                endCoords[1],
+                profile
+              )
         routeData = wantAlternatives ? [fallback] : fallback
         primaryRoute = fallback
         console.warn('Route services unavailable — using direct fallback path')
       }
 
-      const finalRoutes = applyTravelModeToRoutes(toRouteArray(routeData), profile)
+      let finalRoutes = applyTravelModeToRoutes(toRouteArray(routeData), profile)
+      if (profile === 'train') {
+        // Keep the real road geometry but re-time it as a train estimate.
+        finalRoutes = finalRoutes.map((r) =>
+          r?.fallback ? r : applyTrainTimingToRoute(r, parsedWaypoints.length)
+        )
+      }
       routeData = wantAlternatives ? finalRoutes : finalRoutes[0]
       primaryRoute = finalRoutes[0]
 
@@ -1557,6 +1501,11 @@ router.delete(
         note: req.user?.id === place.userId ? 'Deleted by owner' : 'Deleted by admin',
       })
 
+      // Public map live-sync: drop the marker on embedded/external maps.
+      if (place.approvalStatus === 'approved') {
+        broadcastPlaceRemoved(place.id)
+      }
+
       res.json({ success: true, id: id.trim() })
     } catch (error) {
       console.error('Delete place error:', error)
@@ -1762,10 +1711,120 @@ router.patch(
         })
       }
 
+      // Public map live-sync: approval makes a place publicly visible; an edit to
+      // an already-approved place updates it; rejecting an approved place removes it.
+      if (approvedJustNow) {
+        broadcastPlaceUpsert(PLACE_EVENTS.APPROVED, place)
+      } else if (place.approvalStatus === 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.UPDATED, place)
+      } else if (existing.approvalStatus === 'approved' && place.approvalStatus !== 'approved') {
+        broadcastPlaceRemoved(place.id)
+      }
+
       res.json(attachApprovalMeta(serializePlace(place)))
     } catch (error) {
       console.error('Update place error:', error)
       res.status(500).json({ error: 'Failed to update place', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route POST /api/map/places/:id/contribute
+ * @desc Google-Maps-style crowd contribution of place info
+ *       (phone / website / opening hours). Any signed-in user may add or edit
+ *       these fields inline. Records an audit entry and live-syncs the public
+ *       map when the place is approved. Only the three contribution fields can
+ *       be touched here — full edits still go through PATCH (owner/admin).
+ * @access Private
+ */
+router.post(
+  '/places/:id/contribute',
+  authenticateToken,
+  rateLimitMiddleware('places:contribute', 30, 60),
+  [
+    body('phone').optional({ nullable: true }).trim().isLength({ max: 50 }).withMessage('Phone max 50 chars'),
+    body('website').optional({ nullable: true }).trim().isLength({ max: 500 }).withMessage('Website max 500 chars'),
+    body('weekdayHours').optional({ nullable: true }).isArray({ max: 7 }).withMessage('Hours must be an array of up to 7 lines'),
+    body('weekdayHours.*').optional().isString().trim().isLength({ max: 120 }).withMessage('Each hours line max 120 chars'),
+  ],
+  async (req, res) => {
+    try {
+      if (!prisma.place) {
+        return res.status(503).json({ error: 'Place model not available' })
+      }
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const id = String(req.params.id || '').trim()
+      if (!id) return res.status(400).json({ error: 'Place ID required' })
+      if (isOsmPlaceId(id)) {
+        return res.status(400).json({ error: 'This place cannot be edited yet.' })
+      }
+
+      const existing = await prisma.place.findUnique({ where: { id } })
+      if (!existing || !isPlaceVisibleToUser(existing, req.user.id)) {
+        return res.status(404).json({ error: 'Place not found' })
+      }
+
+      // Contributors may both add missing info and edit info they've added.
+      const data = {}
+
+      if (req.body.phone !== undefined) {
+        const phone = typeof req.body.phone === 'string' ? req.body.phone.trim() : ''
+        if (phone) data.phone = phone.slice(0, 50)
+      }
+
+      if (req.body.website !== undefined) {
+        let website = typeof req.body.website === 'string' ? req.body.website.trim() : ''
+        if (website) {
+          if (!/^https?:\/\//i.test(website)) website = `https://${website}`
+          data.website = website.slice(0, 500)
+        }
+      }
+
+      if (req.body.weekdayHours !== undefined) {
+        const weekdayHours = Array.isArray(req.body.weekdayHours)
+          ? req.body.weekdayHours.map((l) => String(l || '').trim()).filter(Boolean).slice(0, 7)
+          : []
+        if (weekdayHours.length > 0) {
+          const existingHours = existing.openingHours
+          data.openingHours = {
+            ...(existingHours && typeof existingHours === 'object' ? existingHours : {}),
+            weekday_text: weekdayHours,
+          }
+        }
+      }
+
+      if (Object.keys(data).length === 0) {
+        return res.status(400).json({ error: 'Nothing to save.' })
+      }
+
+      const place = await prisma.place.update({ where: { id }, data })
+
+      const changes = computeChanges(existing, place)
+      if (Object.keys(changes).length > 0) {
+        recordPlaceAuditAsync({
+          placeId: place.id,
+          action: PLACE_AUDIT_ACTIONS.UPDATED,
+          actor: userActor(req.user),
+          before: existing,
+          after: place,
+          changesOverride: changes,
+          note: 'Info added by contributor',
+        })
+      }
+
+      if (place.approvalStatus === 'approved') {
+        broadcastPlaceUpsert(PLACE_EVENTS.UPDATED, place)
+      }
+
+      res.json(attachApprovalMeta(serializePlace(place)))
+    } catch (error) {
+      console.error('Contribute place info error:', error)
+      res.status(500).json({ error: 'Failed to add info', message: error.message })
     }
   }
 )
@@ -2594,6 +2653,54 @@ router.post(
     } catch (error) {
       console.error('Map Assistant error:', error)
       res.status(500).json({ error: 'Assistant failed', message: error.message })
+    }
+  }
+)
+
+/**
+ * @route GET /api/map/utilities/nearby
+ * @desc Nearby public utilities (toilets, ATMs, hospitals, …) by type + radius
+ * @access Private
+ */
+router.get(
+  '/utilities/nearby',
+  authenticateToken,
+  rateLimitMiddleware('utilities:nearby', 60, 60),
+  [
+    query('lat').isFloat({ min: -90, max: 90 }).withMessage('Valid latitude required'),
+    query('lng').isFloat({ min: -180, max: 180 }).withMessage('Valid longitude required'),
+    query('type').isString().notEmpty().withMessage('Utility type required'),
+    query('radiusMeters').optional().isInt({ min: 100, max: 20000 }),
+  ],
+  async (req, res) => {
+    try {
+      const errors = validationResult(req)
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() })
+      }
+
+      const lat = parseFloat(req.query.lat)
+      const lng = parseFloat(req.query.lng)
+      const type = String(req.query.type || '').trim()
+      const radiusMeters =
+        req.query.radiusMeters != null ? parseInt(req.query.radiusMeters, 10) : undefined
+
+      const payload = await findPublicUtilitiesNearby({
+        lat,
+        lng,
+        type,
+        radiusMeters,
+        viewerId: req.user.id,
+      })
+
+      res.json(payload)
+    } catch (err) {
+      const status = err.status || 500
+      if (status === 400) {
+        return res.status(400).json({ error: err.message || 'Invalid request' })
+      }
+      console.error('[utilities/nearby]', err)
+      res.status(500).json({ error: 'Failed to find nearby utilities' })
     }
   }
 )

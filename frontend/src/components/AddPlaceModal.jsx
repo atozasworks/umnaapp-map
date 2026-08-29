@@ -3,31 +3,9 @@ import api from '../services/api'
 import { addressFromParts, findDuplicateInList } from '../utils/placeDuplicate'
 import { extractMapRenderingConfig } from '../utils/mapRenderingConfig'
 import { sanitizePlaceName, parseOsmAddressFields } from '../utils/formatAddress'
+import { PLACE_CATEGORIES } from '../constants/placeCategories'
 
-export const PLACE_CATEGORIES = [
-  'Restaurant',
-  'Hospital',
-  'Hotel',
-  'Parking',
-  'Shop',
-  'Grocery Store',
-  'School',
-  'Temple',
-  'Bank',
-  'Post Office',
-  'Bus Stop',
-  'Police Station',
-  'Petrol Pump',
-  'Tourist Place',
-  'Transit',
-  'Museum',
-  'Pharmacy',
-  'ATM',
-  'Cinema',
-  'Gym',
-  'Salon',
-  'Other',
-]
+export { PLACE_CATEGORIES }
 
 const CATEGORY_ICONS = {
   Restaurant: '🍽️',
@@ -232,6 +210,8 @@ const AddPlaceModal = ({
             initialData?.placeNameLocal ??
             (locChanged ? '' : prev.placeNameLocal),
           category: festivalMode ? 'Festival' : (fromMap?.category ?? initialData?.category ?? prev.category),
+          customCategory:
+            fromMap?.customCategory ?? initialData?.customCategory ?? prev.customCategory,
           latitude: fromMap?.latitude != null ? String(fromMap.latitude) : initialData?.latitude != null ? String(initialData.latitude) : prev.latitude,
           longitude: fromMap?.longitude != null ? String(fromMap.longitude) : initialData?.longitude != null ? String(initialData.longitude) : prev.longitude,
           zoomLevel: fromMap?.zoomLevel != null ? String(fromMap.zoomLevel) : initialData?.zoomLevel != null ? String(initialData.zoomLevel) : prev.zoomLevel ?? '15',
@@ -559,6 +539,16 @@ const AddPlaceModal = ({
     }
     if (isNaN(lng) || lng < -180 || lng > 180) {
       setError('Valid longitude is required (-180 to 180).')
+      setSaving(false)
+      return
+    }
+
+    if (
+      !festivalMode &&
+      formData.category === 'Other' &&
+      !formData.customCategory.trim()
+    ) {
+      setError('Please enter a custom category name.')
       setSaving(false)
       return
     }

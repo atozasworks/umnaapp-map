@@ -1,43 +1,86 @@
 import axios from 'axios'
 
-const TOKEN_KEY = 'umnaapp_admin_secret'
+/** Legacy key — cleared on boot so the ADMIN_SECRET never remains in localStorage. */
+const LEGACY_TOKEN_KEY = 'umnaapp_admin_secret'
 
-export function getToken() {
-  return localStorage.getItem(TOKEN_KEY) || ''
-}
-
-export function setToken(secret) {
-  if (secret) localStorage.setItem(TOKEN_KEY, secret)
-  else localStorage.removeItem(TOKEN_KEY)
+try {
+  if (typeof localStorage !== 'undefined') {
+    localStorage.removeItem(LEGACY_TOKEN_KEY)
+  }
+} catch {
+  /* ignore */
 }
 
 export const api = axios.create({
   baseURL: '/api',
   headers: { 'Content-Type': 'application/json' },
-})
-
-api.interceptors.request.use((config) => {
-  const t = getToken()
-  if (t) {
-    config.headers.Authorization = `Bearer ${t}`
-  }
-  return config
+  withCredentials: true,
 })
 
 api.interceptors.response.use(
   (r) => r,
   (err) => {
     if (err.response?.status === 401 && typeof window !== 'undefined') {
-      localStorage.removeItem(TOKEN_KEY)
       const base = import.meta.env.BASE_URL || '/'
       const loginHref = base.endsWith('/') ? `${base}login` : `${base}/login`
-      if (!window.location.pathname.endsWith('/login')) {
+      const path = window.location.pathname
+      if (!path.endsWith('/login') && !path.includes('/login')) {
         window.location.href = loginHref
       }
     }
     return Promise.reject(err)
   }
 )
+
+export async function requestAdminOtp(email) {
+  const { data } = await api.post('/admin/auth/request-otp', {
+    email: String(email || '').trim(),
+  })
+  return data
+}
+
+export async function verifyAdminOtp(email, otp) {
+  const { data } = await api.post('/admin/auth/verify-otp', {
+    email: String(email || '').trim(),
+    otp: String(otp || '').trim(),
+  })
+  return data
+}
+
+export async function logoutAdmin() {
+  try {
+    await api.post('/admin/logout')
+  } catch {
+    /* still treat as signed out client-side */
+  }
+}
+
+/** @returns {Promise<boolean>} */
+export async function checkAdminSession() {
+  try {
+    const { data } = await api.get('/admin/session')
+    return Boolean(data?.authenticated)
+  } catch {
+    return false
+  }
+}
+
+export async function fetchAllowedAdminEmails() {
+  const { data } = await api.get('/admin/settings/allowed-emails')
+  return data
+}
+
+export async function addAllowedAdminEmail(email) {
+  const { data } = await api.post('/admin/settings/allowed-emails', {
+    email: String(email || '').trim(),
+  })
+  return data
+}
+
+export async function removeAllowedAdminEmail(id) {
+  const { data } = await api.delete(`/admin/settings/allowed-emails/${encodeURIComponent(id)}`)
+  return data
+}
 
 export async function fetchModels() {
   const { data } = await api.get('/admin/models')
@@ -148,6 +191,20 @@ export async function restorePlaceVersion(id, auditId) {
   return data
 }
 
+export async function fetchLegalDocuments() {
+  const { data } = await api.get('/admin/legal')
+  return data.documents || []
+}
+
+export async function updateLegalDocument(type, { title, content, notify = true }) {
+  const { data } = await api.put(`/admin/legal/${encodeURIComponent(type)}`, {
+    title,
+    content,
+    notify,
+  })
+  return data
+}
+
 export async function fetchBusinessClaims(status = 'pending') {
   const { data } = await api.get('/admin/claims', { params: { status } })
   return data
@@ -160,5 +217,20 @@ export async function approveBusinessClaim(id, note) {
 
 export async function rejectBusinessClaim(id, note) {
   const { data } = await api.post(`/admin/claims/${encodeURIComponent(id)}/reject`, { note })
+  return data
+}
+
+export async function fetchSafetyHazards(status = 'pending') {
+  const { data } = await api.get('/admin/safety-hazards', { params: { status } })
+  return data
+}
+
+export async function approveSafetyHazard(id) {
+  const { data } = await api.patch(`/admin/safety-hazards/${encodeURIComponent(id)}/approve`)
+  return data
+}
+
+export async function rejectSafetyHazard(id) {
+  const { data } = await api.patch(`/admin/safety-hazards/${encodeURIComponent(id)}/reject`)
   return data
 }

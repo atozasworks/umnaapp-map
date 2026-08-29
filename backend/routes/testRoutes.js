@@ -3,38 +3,39 @@ import { sendEmailOtp, generateOtp } from '../config/atozasAuth.js'
 
 const router = express.Router()
 
+// Dev-only debugging helpers. Mounted only when NODE_ENV !== 'production'.
+// OTPs must never appear in API responses (even in development).
+
 // Test email endpoint (for debugging) - Direct email sending
 router.post('/test-email', async (req, res) => {
   try {
     const { email } = req.body
-    
+
     if (!email) {
       return res.status(400).json({ error: 'Email is required' })
     }
 
-    // Generate a test OTP
+    // Generate a test OTP (sent by email only — never returned in the response)
     const testOtp = generateOtp(6)
-    
+
     console.log('🧪 Test email request received')
     console.log('   Email:', email)
-    console.log('   Test OTP:', testOtp)
-    
+
     // Send email directly using sendEmailOtp
     const info = await sendEmailOtp(email, testOtp)
-    
-    res.json({ 
-      success: true, 
+
+    res.json({
+      success: true,
       message: 'Test OTP email sent successfully',
       messageId: info.messageId,
       accepted: info.accepted,
       rejected: info.rejected,
       response: info.response,
-      otp: testOtp, // Include OTP for testing (only in development)
       note: 'Check your email inbox, spam folder, and wait 1-2 minutes for delivery',
     })
   } catch (error) {
     console.error('❌ Test email error:', error)
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
       error: 'Failed to send test email',
       details: error.message,
@@ -53,7 +54,7 @@ router.get('/smtp-config', (req, res) => {
     SMTP_EMAIL: process.env.SMTP_EMAIL || 'Not set',
     SMTP_EMAIL_PASSWORD: process.env.SMTP_EMAIL_PASSWORD ? '✅ Set' : '❌ Not set',
   }
-  
+
   res.json({
     config,
     note: 'Password is hidden for security',
@@ -63,9 +64,8 @@ router.get('/smtp-config', (req, res) => {
 // SMTP connection test endpoint
 router.get('/smtp-test', async (req, res) => {
   try {
-    const { sendEmailOtp } = await import('../config/atozasAuth.js')
     const nodemailer = (await import('nodemailer')).default
-    
+
     const smtpConfig = {
       server: process.env.SMTP_SERVER || 'mail.atozas.com',
       port: parseInt(process.env.SMTP_PORT || '465'),
@@ -73,7 +73,7 @@ router.get('/smtp-test', async (req, res) => {
       email: process.env.SMTP_EMAIL || 'no-reply@atozas.com',
       password: process.env.SMTP_EMAIL_PASSWORD,
     }
-    
+
     if (!smtpConfig.password) {
       return res.status(400).json({
         error: 'SMTP_EMAIL_PASSWORD not configured',
@@ -85,7 +85,7 @@ router.get('/smtp-test', async (req, res) => {
         },
       })
     }
-    
+
     const transporter = nodemailer.createTransport({
       host: smtpConfig.server,
       port: smtpConfig.port,
@@ -97,7 +97,7 @@ router.get('/smtp-test', async (req, res) => {
       debug: true,
       logger: true,
     })
-    
+
     // Test SMTP connection
     await new Promise((resolve, reject) => {
       transporter.verify((error, success) => {
@@ -108,7 +108,7 @@ router.get('/smtp-test', async (req, res) => {
         }
       })
     })
-    
+
     res.json({
       success: true,
       message: 'SMTP connection verified successfully',
@@ -131,5 +131,3 @@ router.get('/smtp-test', async (req, res) => {
 })
 
 export default router
-
-

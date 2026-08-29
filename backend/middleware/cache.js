@@ -19,6 +19,22 @@ if (process.env.REDIS_URL) {
   redisClient.connect().catch(console.error)
 }
 
+/** Stable cache key from path + sorted query params (avoids duplicate keys). */
+function buildCacheKey(req) {
+  const params = new URLSearchParams()
+  const entries = Object.entries(req.query || {}).sort(([a], [b]) => a.localeCompare(b))
+  for (const [key, value] of entries) {
+    if (value == null) continue
+    if (Array.isArray(value)) {
+      value.forEach((v) => params.append(key, String(v)))
+    } else {
+      params.set(key, String(value))
+    }
+  }
+  const qs = params.toString()
+  return `cache:${req.path}${qs ? `?${qs}` : ''}`
+}
+
 /**
  * Cache middleware
  * @param {number} ttl - Time to live in seconds
@@ -30,12 +46,12 @@ export const cacheMiddleware = (ttl = 300) => {
     }
 
     try {
-      // Generate cache key from request
-      const cacheKey = `cache:${req.originalUrl}:${JSON.stringify(req.query)}`
+      const cacheKey = buildCacheKey(req)
 
       // Try to get from cache
       const cached = await redisClient.get(cacheKey)
       if (cached) {
+        res.setHeader('X-Cache', 'HIT')
         return res.json(JSON.parse(cached))
       }
 
@@ -48,6 +64,7 @@ export const cacheMiddleware = (ttl = 300) => {
         if (redisClient && res.statusCode === 200) {
           redisClient.setEx(cacheKey, ttl, JSON.stringify(data)).catch(console.error)
         }
+        res.setHeader('X-Cache', 'MISS')
         return originalJson(data)
       }
 
@@ -60,15 +77,22 @@ export const cacheMiddleware = (ttl = 300) => {
 }
 
 /**
- * Clear cache by pattern
+ * Clear cache by pattern using SCAN (non-blocking vs KEYS).
  */
 export const clearCache = async (pattern) => {
   if (!redisClient) return
 
   try {
-    const keys = await redisClient.keys(pattern)
-    if (keys.length > 0) {
-      await redisClient.del(keys)
+    const batch = []
+    for await (const key of redisClient.scanIterator({ MATCH: pattern, COUNT: 100 })) {
+      batch.push(key)
+      if (batch.length >= 50) {
+        await redisClient.del(batch)
+        batch.length = 0
+      }
+    }
+    if (batch.length > 0) {
+      await redisClient.del(batch)
     }
   } catch (error) {
     console.error('Clear cache error:', error)
@@ -76,4 +100,3 @@ export const clearCache = async (pattern) => {
 }
 
 export default redisClient
-

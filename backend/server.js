@@ -1,5 +1,6 @@
 import './loadEnv.js' // Load backend/.env regardless of process cwd
 import express from 'express'
+import compression from 'compression'
 import cors from 'cors'
 import path from 'path'
 import fs from 'fs'
@@ -14,22 +15,34 @@ import authRoutes from './routes/authRoutes.js'
 import atozasAuthRoutes from './routes/atozasAuthRoutes.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
+import safeRouteRoutes from './routes/safeRouteRoutes.js'
+import publicRoutes from './routes/publicRoutes.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
-import itineraryRoutes from './routes/itineraryRoutes.js'
-import { itineraryRoom } from './services/itineraryService.js'
+import liveLocationRoutes from './routes/liveLocationRoutes.js'
+import {
+  pauseOwnerLiveSharesOnDisconnect,
+  registerLiveLocationSockets,
+} from './lib/liveLocationSockets.js'
 import { authenticateSocket } from './middleware/socketAuth.js'
-import { validateAdminSecretOrExit } from './middleware/adminAuth.js'
-import { rateLimitMiddleware } from './middleware/rateLimit.js'
+import { validateAdminAuthConfigOrExit } from './middleware/adminAuth.js'
+import {
+  rateLimitMiddleware,
+  validateRedisOrExit,
+  ensureRedisReady,
+} from './middleware/rateLimit.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
+import { seedAdminBootstrapEmails } from './services/adminAllowlistService.js'
 import { setIo } from './lib/socketIo.js'
 
-// Fail fast on a weak/guessable ADMIN_SECRET before binding the port.
-validateAdminSecretOrExit()
+// Admin OTP sessions require JWT_SECRET; ADMIN_SECRET is no longer used for login.
+validateAdminAuthConfigOrExit()
+// Production requires Redis so rate limiting cannot be silently disabled.
+validateRedisOrExit()
 
 const defaultOrigins = [
   process.env.FRONTEND_URL || 'http://localhost:3000',
@@ -49,6 +62,37 @@ const io = new Server(httpServer, {
   },
 })
 
+// --- Public Map Platform (no auth, embeddable from any origin) ---
+// Mounted BEFORE the restrictive app-wide CORS so the public, read-only data
+// API can be consumed by external sites, iframes, the SDK, and mobile apps.
+// Private routes (admin/users/notifications/payments/auth) remain protected.
+app.use('/api/public', publicRoutes)
+
+// JavaScript SDK loader: <script src="https://maps.umnaapp.com/sdk.js"></script>
+const sdkFilePath = path.join(__dirname, 'public', 'sdk.js')
+app.get('/sdk.js', (req, res) => {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Content-Type', 'application/javascript; charset=utf-8')
+  res.setHeader('Cache-Control', 'public, max-age=3600')
+  res.sendFile(sdkFilePath, (err) => {
+    if (err) res.status(404).send('// UMNAAPP Maps SDK not found')
+  })
+})
+
+// Allow the public map viewer to be embedded in third-party <iframe>s.
+app.use((req, res, next) => {
+  if (
+    req.path === '/embedded-map' ||
+    req.path.startsWith('/embedded-map') ||
+    req.path === '/map' ||
+    req.path.startsWith('/map/')
+  ) {
+    res.removeHeader('X-Frame-Options')
+    res.setHeader('Content-Security-Policy', 'frame-ancestors *')
+  }
+  next()
+})
+
 // Middleware
 app.use(
   cors({
@@ -60,6 +104,21 @@ app.use(
     credentials: true,
   })
 )
+// Gzip (via Accept-Encoding) for JSON, JS, CSS, HTML — skip already-compressed tiles/images.
+// Precompressed .br/.gz siblings from the Vite build can also be served by nginx static modules.
+app.use(
+  compression({
+    threshold: 1024,
+    filter: (req, res) => {
+      if (req.headers['x-no-compression']) return false
+      const type = res.getHeader('Content-Type')
+      if (typeof type === 'string' && /image\/(png|jpeg|webp|avif|gif)|octet-stream/i.test(type)) {
+        return false
+      }
+      return compression.filter(req, res)
+    },
+  })
+)
 app.use(express.json({ limit: '5mb' }))
 app.use(express.urlencoded({ extended: true, limit: '5mb' }))
 app.use(passport.initialize())
@@ -67,14 +126,20 @@ app.use(passport.initialize())
 // Routes
 app.use('/api/auth', rateLimitMiddleware('auth', 40, 60), authRoutes)
 app.use('/api', atozasAuthRoutes) // Atozas Auth Kit routes (/api/email/send-otp, /api/email/verify-otp, /api/me)
-app.use('/api/test', testRoutes)
+// Dev-only SMTP/debug helpers — never mount in production.
+if (process.env.NODE_ENV !== 'production') {
+  app.use('/api/test', testRoutes)
+} else {
+  console.log('🔒 /api/test disabled (NODE_ENV=production)')
+}
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
+app.use('/api/map', safeRouteRoutes) // Safe Route scoring + community hazard reports
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
-app.use('/api/admin', adminRoutes) // Database admin (ADMIN_SECRET required)
+app.use('/api/admin', adminRoutes) // Database admin (OTP to pre-approved Gmail + httpOnly session)
 app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
 app.use('/api/feedback', feedbackRoutes)
-app.use('/api/itineraries', itineraryRoutes) // Co-Edited Group Itineraries
+app.use('/api/live-location', liveLocationRoutes) // Timed live-location sharing
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -104,7 +169,34 @@ const adminIndexFile = path.join(adminBuildPath, 'index.html')
 console.log(
   `📁 Admin UI: ${adminBuildPath} (exists: ${fs.existsSync(adminBuildPath)}, index.html: ${fs.existsSync(adminIndexFile)})`
 )
-app.use('/admin', express.static(adminBuildPath))
+const staticCacheHeaders = (res, filePath) => {
+  const base = path.basename(filePath)
+  // HTML, SW, and manifest must revalidate so clients pick up new deploys.
+  if (
+    base === 'index.html' ||
+    base === 'sw.js' ||
+    base === 'workbox-window.js' ||
+    base.endsWith('.webmanifest') ||
+    base === 'manifest.json' ||
+    base === 'registerSW.js'
+  ) {
+    res.setHeader('Cache-Control', 'no-cache')
+    return
+  }
+  // Vite hashed assets under assets/ are content-addressed — cache long-term.
+  if (filePath.includes(`${path.sep}assets${path.sep}`) || /\.[a-f0-9]{8,}\./i.test(base)) {
+    res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+    return
+  }
+  res.setHeader('Cache-Control', 'public, max-age=86400')
+}
+
+app.use(
+  '/admin',
+  express.static(adminBuildPath, {
+    setHeaders: staticCacheHeaders,
+  })
+)
 
 // Serve frontend build (production: set FRONTEND_BUILD_PATH)
 const buildPath = process.env.FRONTEND_BUILD_PATH || 
@@ -113,9 +205,14 @@ const buildPath = process.env.FRONTEND_BUILD_PATH ||
    path.join(__dirname, 'dist'))
 const indexFile = path.join(buildPath, 'index.html')
 console.log(`📁 Serving frontend from: ${buildPath} (exists: ${fs.existsSync(buildPath)}, index.html: ${fs.existsSync(indexFile)})`)
-app.use(express.static(buildPath))
+app.use(
+  express.static(buildPath, {
+    setHeaders: staticCacheHeaders,
+  })
+)
 // Explicit root + SPA fallback
 const serveIndex = (req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache')
   res.sendFile(indexFile, (err) => {
     if (err) {
       console.error('sendFile error:', err.message)
@@ -129,6 +226,7 @@ const serveAdminIndex = (req, res, next) => {
       .status(503)
       .send('Admin build not found. Run: cd admin && npm run build (creates admin/dist), or set ADMIN_BUILD_PATH.')
   }
+  res.setHeader('Cache-Control', 'no-cache')
   res.sendFile(adminIndexFile, (err) => {
     if (err) {
       console.error('sendFile admin error:', err.message)
@@ -146,6 +244,15 @@ app.get('*', (req, res, next) => {
 })
 
 setIo(io)
+
+// Public, anonymous real-time namespace for embedded/external maps.
+// No auth middleware here (unlike the default namespace) — it only ever
+// receives broadcasts of approved-place changes (no private data).
+const publicMapsNsp = io.of('/public-maps')
+publicMapsNsp.on('connection', (socket) => {
+  socket.emit('connected', { namespace: '/public-maps' })
+  socket.on('ping', () => socket.emit('pong', { timestamp: Date.now() }))
+})
 
 // Socket.io connection handling
 io.use(authenticateSocket)
@@ -279,40 +386,11 @@ io.on('connection', async (socket) => {
     }
   })
 
-  // Co-Edited Group Itineraries: join a trip room for live collaboration.
-  // Membership is verified before joining so updates only reach trip members.
-  socket.on('itinerary:join', async (data) => {
-    const itineraryId = data?.itineraryId
-    if (!itineraryId) return socket.emit('error', { message: 'Itinerary ID required' })
-    try {
-      const itinerary = await prisma.itinerary.findFirst({
-        where: {
-          id: itineraryId,
-          OR: [{ ownerId: socket.userId }, { members: { some: { userId: socket.userId } } }],
-        },
-        select: { id: true },
-      })
-      if (!itinerary) {
-        return socket.emit('error', { message: 'Itinerary not found or access denied' })
-      }
-      socket.join(itineraryRoom(itineraryId))
-      socket.emit('itinerary:joined', { itineraryId })
-    } catch (err) {
-      console.error('itinerary:join error', err)
-      socket.emit('error', { message: 'Failed to join itinerary room' })
-    }
-  })
-
-  socket.on('itinerary:leave', (data) => {
-    const itineraryId = data?.itineraryId
-    if (itineraryId) {
-      socket.leave(itineraryRoom(itineraryId))
-      socket.emit('itinerary:left', { itineraryId })
-    }
-  })
+  registerLiveLocationSockets(io, socket)
 
   // Handle disconnection
   socket.on('disconnect', () => {
+    pauseOwnerLiveSharesOnDisconnect(socket.userId).catch(() => {})
     console.log(`User disconnected: ${socket.userId}`)
   })
 
@@ -332,10 +410,37 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000
 
-httpServer.listen(PORT, () => {
-  startPlaceApprovalScheduler()
-  console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
-  console.log(`📡 Socket.io server ready`)
+async function startServer() {
+  // Connect Redis before accepting traffic. In production this exits on failure.
+  // In development without REDIS_URL, rate limiting stays explicitly disabled.
+  try {
+    await ensureRedisReady()
+  } catch (err) {
+    if (process.env.NODE_ENV === 'production') {
+      // ensureRedisReady already exits in production; keep as a hard stop.
+      process.exit(1)
+    }
+    console.warn(
+      '⚠️  Redis unavailable in development. Rate-limited routes will return 503 until Redis is reachable (throttling will not be bypassed).'
+    )
+  }
+
+  try {
+    await seedAdminBootstrapEmails()
+  } catch (err) {
+    console.warn('⚠️  Admin allowlist bootstrap skipped:', err.message)
+  }
+
+  httpServer.listen(PORT, () => {
+    startPlaceApprovalScheduler()
+    console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
+    console.log(`📡 Socket.io server ready`)
+  })
+}
+
+startServer().catch((err) => {
+  console.error('Failed to start server:', err)
+  process.exit(1)
 })
 
 // Graceful shutdown

@@ -152,6 +152,17 @@ export default function PlaceDetailPanel({
   const [lightboxPhoto, setLightboxPhoto] = useState(null)
   const [heroIndex, setHeroIndex] = useState(0)
 
+  // Google-Maps-style crowd contributions (fill missing info)
+  const [contribPhone, setContribPhone] = useState(null)
+  const [contribWebsite, setContribWebsite] = useState(null)
+  const [contribHours, setContribHours] = useState(null)
+  const [editingContact, setEditingContact] = useState(null) // 'phone' | 'website' | null
+  const [contactInput, setContactInput] = useState('')
+  const [savingContact, setSavingContact] = useState(false)
+  const [editingHours, setEditingHours] = useState(false)
+  const [hoursDraft, setHoursDraft] = useState(() => Array(7).fill(''))
+  const [savingHours, setSavingHours] = useState(false)
+
   const isDbPlace = isPersistedPlaceId(place?.id) && place?._isDbPlace !== false
   const placeIsOsm = isOsmPlace(place)
   const hasUnifiedDetail = isDbPlace || placeIsOsm
@@ -170,6 +181,8 @@ export default function PlaceDetailPanel({
     setClaimState({ claim: null, verified: false, claimedByMe: false }); setShowClaimModal(false)
     setHoursExpanded(false)
     setHeroIndex(0)
+    setContribPhone(null); setContribWebsite(null); setContribHours(null)
+    setEditingContact(null); setContactInput(''); setEditingHours(false); setHoursDraft(Array(7).fill(''))
 
     const hours = place.opening_hours ?? place.openingHours
     if (hours && typeof hours.open_now === 'boolean') {
@@ -278,13 +291,16 @@ export default function PlaceDetailPanel({
     || formatPlaceAddressLine(place)
     || null
   const openingHours = place.opening_hours ?? place.openingHours
-  const weekdayHours = Array.isArray(openingHours?.weekday_text) ? openingHours.weekday_text : []
+  const baseWeekdayHours = Array.isArray(openingHours?.weekday_text) ? openingHours.weekday_text : []
+  const weekdayHours = contribHours ?? baseWeekdayHours
   const hasOpenNow = typeof openingHours?.open_now === 'boolean'
   const showHoursSection = weekdayHours.length > 0
   const showStatusToggle = hasOpenNow || (isDbPlace && !showHoursSection)
   const description = place.description ? String(place.description).trim() : ''
-  const phone = place.phone ? String(place.phone).trim() : ''
-  const website = place.website ? String(place.website).trim() : ''
+  const phone = contribPhone ?? (place.phone ? String(place.phone).trim() : '')
+  const website = contribWebsite ?? (place.website ? String(place.website).trim() : '')
+  // Any signed-in user may add missing info to persisted places (Google-Maps style).
+  const canContribute = Boolean(currentUser) && isDbPlace
   const googleReviews = getGoogleReviewsList(place)
   const storedRating = getStoredRating(place)
   const storedReviewCount = getStoredReviewCount(place)
@@ -303,12 +319,18 @@ export default function PlaceDetailPanel({
     const mapUrl = `https://maps.google.com/?q=${place.latitude},${place.longitude}`
     const text = `${name} (${category})`
     if (navigator.share) {
-      try { await navigator.share({ title: text, text: addrString || name, url: mapUrl }) } catch {}
+      try {
+        await navigator.share({ title: text, text: addrString || name, url: mapUrl })
+      } catch {
+        // User cancelled share sheet or share failed — ignore.
+      }
     } else {
       try {
         await navigator.clipboard.writeText(`${text}\n${addrString ? addrString + '\n' : ''}${mapUrl}`)
         setCopied(true); setTimeout(() => setCopied(false), 2500)
-      } catch {}
+      } catch {
+        // Clipboard unavailable — ignore.
+      }
     }
   }
 
@@ -357,6 +379,69 @@ export default function PlaceDetailPanel({
     } finally { setSavingLabel(false) }
   }
 
+  const WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+
+  const openContactEditor = (field, value = '') => {
+    setEditingContact(field)
+    setContactInput(value)
+  }
+
+  const parseHoursToDraft = (lines) => {
+    const draft = Array(7).fill('')
+    ;(Array.isArray(lines) ? lines : []).forEach((line) => {
+      const text = String(line || '')
+      const idx = WEEKDAYS.findIndex((d) => text.toLowerCase().startsWith(d.toLowerCase()))
+      if (idx < 0) return
+      const colon = text.indexOf(':')
+      let val = colon >= 0 ? text.slice(colon + 1).trim() : ''
+      if (/^closed$/i.test(val)) val = ''
+      draft[idx] = val
+    })
+    return draft
+  }
+
+  const startEditHours = () => {
+    setHoursDraft(parseHoursToDraft(weekdayHours))
+    setEditingHours(true)
+  }
+
+  const handleAddContact = async (field) => {
+    const value = contactInput.trim()
+    if (!value) return
+    setSavingContact(true)
+    try {
+      const payload = field === 'phone' ? { phone: value } : { website: value }
+      const { data } = await api.post(`/map/places/${place.id}/contribute`, payload)
+      if (field === 'phone') setContribPhone(data.phone || value)
+      else setContribWebsite(data.website || value)
+      setEditingContact(null); setContactInput('')
+      showInfo('Thanks! Your contribution was saved.')
+    } catch (err) {
+      showInfo(err.response?.data?.error || 'Failed to add info.')
+    } finally { setSavingContact(false) }
+  }
+
+  const handleAddHours = async () => {
+    if (!hoursDraft.some((v) => (v || '').trim())) {
+      showInfo('Enter hours for at least one day.')
+      return
+    }
+    const lines = WEEKDAYS.map((day, i) => {
+      const v = (hoursDraft[i] || '').trim()
+      return `${day}: ${v || 'Closed'}`
+    })
+    setSavingHours(true)
+    try {
+      const { data } = await api.post(`/map/places/${place.id}/contribute`, { weekdayHours: lines })
+      const saved = data.opening_hours?.weekday_text
+      setContribHours(Array.isArray(saved) && saved.length ? saved : lines)
+      setEditingHours(false); setHoursDraft(Array(7).fill('')); setHoursExpanded(true)
+      showInfo('Thanks! Opening hours were saved.')
+    } catch (err) {
+      showInfo(err.response?.data?.error || 'Failed to add hours.')
+    } finally { setSavingHours(false) }
+  }
+
   const handleClaimSubmitted = (claim) => {
     setClaimState((prev) => ({ ...prev, claim }))
     setShowClaimModal(false)
@@ -373,8 +458,11 @@ export default function PlaceDetailPanel({
         setAvgRating(avg ? Math.round(avg * 10) / 10 : null)
         return updated
       })
-    } catch {}
-    finally { setDeletingReviewId(null) }
+    } catch {
+      // Delete failed — UI stays unchanged; spinner cleared in finally.
+    } finally {
+      setDeletingReviewId(null)
+    }
   }
 
   const handlePhotoFile = async (e) => {
@@ -395,8 +483,11 @@ export default function PlaceDetailPanel({
     try {
       await api.delete(`/map/places/${place.id}/photos/${photoId}`)
       setPhotos((prev) => prev.filter((p) => p.id !== photoId))
-    } catch {}
-    finally { setDeletingPhotoId(null) }
+    } catch {
+      // Delete failed — UI stays unchanged; spinner cleared in finally.
+    } finally {
+      setDeletingPhotoId(null)
+    }
   }
 
   const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 640
@@ -494,6 +585,8 @@ export default function PlaceDetailPanel({
                   alt={name}
                   className="w-full h-full object-cover cursor-pointer"
                   onClick={() => setLightboxPhoto(heroPhoto)}
+                  decoding="async"
+                  fetchPriority="high"
                 />
                 {heroPhotos.length > 1 && (
                   <>
@@ -648,25 +741,72 @@ export default function PlaceDetailPanel({
           {activeTab === 'overview' && (
             <div>
               {/* Status / opening hours */}
-              {showStatusToggle && (
+              {editingHours ? (
                 <div className="border-b border-slate-100">
-                  <button
-                    onClick={() => (weekdayHours.length ? setHoursExpanded((e) => !e) : setBusinessOpen((b) => !b))}
-                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${businessOpen ? 'bg-green-500' : 'bg-orange-400'}`} />
-                    <div className="flex-1">
-                      <span className={`text-sm font-semibold ${businessOpen ? 'text-green-700' : 'text-orange-600'}`}>
-                        {businessOpen ? 'Open' : 'Closed'}
-                      </span>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {weekdayHours.length ? (hoursExpanded ? 'Hide hours' : 'See opening hours') : 'Tap to toggle status'}
-                      </p>
+                  <div className="px-5 py-3.5 space-y-2">
+                    <div className="flex items-center gap-2 mb-1">
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm font-semibold text-slate-700">Opening hours</span>
                     </div>
-                    {weekdayHours.length > 0 && (
-                      <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    {WEEKDAYS.map((day, i) => (
+                      <div key={day} className="flex items-center gap-2">
+                        <span className="text-xs text-slate-500 w-20 flex-shrink-0">{day}</span>
+                        <input
+                          type="text"
+                          value={hoursDraft[i]}
+                          maxLength={60}
+                          onChange={(e) => setHoursDraft((prev) => prev.map((v, idx) => (idx === i ? e.target.value : v)))}
+                          placeholder="e.g. 9 AM–9 PM or Closed"
+                          className="flex-1 min-w-0 px-2.5 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700"
+                        />
+                      </div>
+                    ))}
+                    <p className="text-[11px] text-slate-400 pt-0.5">Leave a day blank to mark it Closed.</p>
+                    <div className="flex gap-2 pt-1">
+                      <button onClick={handleAddHours} disabled={savingHours}
+                        className="flex-1 py-2 rounded-lg text-sm font-semibold bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                        {savingHours ? 'Saving…' : 'Save hours'}
+                      </button>
+                      <button onClick={() => { setEditingHours(false); setHoursDraft(Array(7).fill('')) }}
+                        className="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ) : showStatusToggle ? (
+                <div className="border-b border-slate-100">
+                  <div className="flex items-center">
+                    <button
+                      onClick={() => (weekdayHours.length ? setHoursExpanded((e) => !e) : setBusinessOpen((b) => !b))}
+                      className="flex-1 min-w-0 flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${businessOpen ? 'bg-green-500' : 'bg-orange-400'}`} />
+                      <div className="flex-1">
+                        <span className={`text-sm font-semibold ${businessOpen ? 'text-green-700' : 'text-orange-600'}`}>
+                          {businessOpen ? 'Open' : 'Closed'}
+                        </span>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {weekdayHours.length ? (hoursExpanded ? 'Hide hours' : 'See opening hours') : 'Tap to toggle status'}
+                        </p>
+                      </div>
+                      {weekdayHours.length > 0 && (
+                        <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      )}
+                    </button>
+                    {canContribute && (
+                      <button
+                        type="button"
+                        onClick={startEditHours}
+                        className="flex-shrink-0 pr-4 pl-2 py-3.5 text-slate-300 hover:text-primary-600 transition-colors"
+                        title={weekdayHours.length ? 'Edit hours' : 'Add hours'}
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </button>
                     )}
-                  </button>
+                  </div>
                   {hoursExpanded && weekdayHours.length > 0 && (
                     <div className="px-5 pb-3 -mt-1 space-y-1">
                       {weekdayHours.map((line) => (
@@ -675,25 +815,36 @@ export default function PlaceDetailPanel({
                     </div>
                   )}
                 </div>
-              )}
-              {!showStatusToggle && showHoursSection && (
+              ) : showHoursSection ? (
                 <div className="border-b border-slate-100">
-                  <button
-                    type="button"
-                    onClick={() => setHoursExpanded((e) => !e)}
-                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
-                  >
-                    <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <div className="flex-1">
-                      <span className="text-sm font-semibold text-slate-700">Opening hours</span>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        {hoursExpanded ? 'Hide hours' : 'See opening hours'}
-                      </p>
-                    </div>
-                    <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-                  </button>
+                  <div className="flex items-center">
+                    <button
+                      type="button"
+                      onClick={() => setHoursExpanded((e) => !e)}
+                      className="flex-1 min-w-0 flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                    >
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="flex-1">
+                        <span className="text-sm font-semibold text-slate-700">Opening hours</span>
+                        <p className="text-xs text-slate-400 mt-0.5">
+                          {hoursExpanded ? 'Hide hours' : 'See opening hours'}
+                        </p>
+                      </div>
+                      <svg className={`w-4 h-4 text-slate-300 transition-transform ${hoursExpanded ? 'rotate-90' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+                    {canContribute && (
+                      <button
+                        type="button"
+                        onClick={startEditHours}
+                        className="flex-shrink-0 pr-4 pl-2 py-3.5 text-slate-300 hover:text-primary-600 transition-colors"
+                        title="Edit hours"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                      </button>
+                    )}
+                  </div>
                   {hoursExpanded && (
                     <div className="px-5 pb-3 -mt-1 space-y-1">
                       {weekdayHours.map((line) => (
@@ -702,7 +853,20 @@ export default function PlaceDetailPanel({
                     </div>
                   )}
                 </div>
-              )}
+              ) : canContribute ? (
+                <div className="border-b border-slate-100">
+                  <button
+                    type="button"
+                    onClick={startEditHours}
+                    className="w-full flex items-center gap-3 px-5 py-3.5 hover:bg-slate-50 transition-colors text-left"
+                  >
+                    <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span className="text-sm font-medium text-primary-600 flex-1">Add hours</span>
+                  </button>
+                </div>
+              ) : null}
 
               {/* Description */}
               {description && (
@@ -713,33 +877,119 @@ export default function PlaceDetailPanel({
               )}
 
               {/* Contact */}
-              {(phone || website) && (
+              {(phone || website || canContribute) && (
                 <div className="px-5 py-4 border-b border-slate-100 space-y-3">
                   <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Contact</p>
-                  {phone && (
-                    <a
-                      href={`tel:${phone.replace(/\s/g, '')}`}
-                      className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700"
-                    >
+                  {/* Phone */}
+                  {editingContact === 'phone' ? (
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0 mt-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="tel"
+                          value={contactInput}
+                          maxLength={50}
+                          onChange={(e) => setContactInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddContact('phone') }}
+                          placeholder="e.g. 094495 62674"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700"
+                          autoFocus
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={() => handleAddContact('phone')} disabled={savingContact || !contactInput.trim()}
+                            className="flex-1 py-2 rounded-lg text-sm font-semibold bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                            {savingContact ? 'Saving…' : 'Save'}
+                          </button>
+                          <button onClick={() => { setEditingContact(null); setContactInput('') }}
+                            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : phone ? (
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={`tel:${phone.replace(/\s/g, '')}`}
+                        className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700 flex-1 min-w-0"
+                      >
+                        <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <span className="truncate">{phone}</span>
+                      </a>
+                      {canContribute && (
+                        <button onClick={() => openContactEditor('phone', phone)} className="flex-shrink-0 p-1.5 text-slate-300 hover:text-primary-600 transition-colors" title="Edit phone number">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                      )}
+                    </div>
+                  ) : canContribute ? (
+                    <button onClick={() => openContactEditor('phone')} className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700 w-full text-left">
                       <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                       </svg>
-                      {phone}
-                    </a>
-                  )}
-                  {website && (
-                    <a
-                      href={website.startsWith('http') ? website : `https://${website}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700 truncate"
-                    >
+                      <span className="font-medium">Add phone number</span>
+                    </button>
+                  ) : null}
+                  {/* Website */}
+                  {editingContact === 'website' ? (
+                    <div className="flex items-start gap-3">
+                      <svg className="w-5 h-5 text-slate-400 flex-shrink-0 mt-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        <input
+                          type="url"
+                          value={contactInput}
+                          maxLength={500}
+                          onChange={(e) => setContactInput(e.target.value)}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddContact('website') }}
+                          placeholder="e.g. www.example.com"
+                          className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-slate-700"
+                          autoFocus
+                        />
+                        <div className="flex gap-2 mt-2">
+                          <button onClick={() => handleAddContact('website')} disabled={savingContact || !contactInput.trim()}
+                            className="flex-1 py-2 rounded-lg text-sm font-semibold bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 transition-colors">
+                            {savingContact ? 'Saving…' : 'Save'}
+                          </button>
+                          <button onClick={() => { setEditingContact(null); setContactInput('') }}
+                            className="px-4 py-2 rounded-lg text-sm font-medium text-slate-500 hover:bg-slate-100 transition-colors">
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : website ? (
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={website.startsWith('http') ? website : `https://${website}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700 flex-1 min-w-0"
+                      >
+                        <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
+                        </svg>
+                        <span className="truncate">{website.replace(/^https?:\/\//, '')}</span>
+                      </a>
+                      {canContribute && (
+                        <button onClick={() => openContactEditor('website', website.replace(/^https?:\/\//, ''))} className="flex-shrink-0 p-1.5 text-slate-300 hover:text-primary-600 transition-colors" title="Edit website">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+                        </button>
+                      )}
+                    </div>
+                  ) : canContribute ? (
+                    <button onClick={() => openContactEditor('website')} className="flex items-center gap-3 text-sm text-primary-600 hover:text-primary-700 w-full text-left">
                       <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" />
                       </svg>
-                      <span className="truncate">{website.replace(/^https?:\/\//, '')}</span>
-                    </a>
-                  )}
+                      <span className="font-medium">Add website</span>
+                    </button>
+                  ) : null}
                 </div>
               )}
 
@@ -1195,6 +1445,8 @@ export default function PlaceDetailPanel({
                           alt={photo.caption || 'Place photo'}
                           className="w-full h-full object-cover rounded-lg cursor-pointer"
                           onClick={() => setLightboxPhoto(photo.dataUrl)}
+                          loading="lazy"
+                          decoding="async"
                         />
                         {photo.userId === currentUser?.id && (
                           <button

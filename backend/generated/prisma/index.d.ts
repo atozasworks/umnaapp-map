@@ -94,30 +94,35 @@ export type PlaceLabel = $Result.DefaultSelection<Prisma.$PlaceLabelPayload>
  */
 export type PlaceAudit = $Result.DefaultSelection<Prisma.$PlaceAuditPayload>
 /**
- * Model Itinerary
+ * Model LiveLocationShare
  * 
  */
-export type Itinerary = $Result.DefaultSelection<Prisma.$ItineraryPayload>
+export type LiveLocationShare = $Result.DefaultSelection<Prisma.$LiveLocationSharePayload>
 /**
- * Model ItineraryMember
+ * Model LiveLocationViewer
  * 
  */
-export type ItineraryMember = $Result.DefaultSelection<Prisma.$ItineraryMemberPayload>
+export type LiveLocationViewer = $Result.DefaultSelection<Prisma.$LiveLocationViewerPayload>
 /**
- * Model ItineraryStop
+ * Model SafetyHazardReport
  * 
  */
-export type ItineraryStop = $Result.DefaultSelection<Prisma.$ItineraryStopPayload>
+export type SafetyHazardReport = $Result.DefaultSelection<Prisma.$SafetyHazardReportPayload>
 /**
- * Model ItineraryComment
+ * Model LegalDocument
  * 
  */
-export type ItineraryComment = $Result.DefaultSelection<Prisma.$ItineraryCommentPayload>
+export type LegalDocument = $Result.DefaultSelection<Prisma.$LegalDocumentPayload>
 /**
- * Model ItineraryVote
+ * Model AdminAllowedEmail
  * 
  */
-export type ItineraryVote = $Result.DefaultSelection<Prisma.$ItineraryVotePayload>
+export type AdminAllowedEmail = $Result.DefaultSelection<Prisma.$AdminAllowedEmailPayload>
+/**
+ * Model AdminOtp
+ * 
+ */
+export type AdminOtp = $Result.DefaultSelection<Prisma.$AdminOtpPayload>
 
 /**
  * ##  Prisma Client ʲˢ
@@ -403,54 +408,64 @@ export class PrismaClient<
   get placeAudit(): Prisma.PlaceAuditDelegate<ExtArgs>;
 
   /**
-   * `prisma.itinerary`: Exposes CRUD operations for the **Itinerary** model.
+   * `prisma.liveLocationShare`: Exposes CRUD operations for the **LiveLocationShare** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more Itineraries
-    * const itineraries = await prisma.itinerary.findMany()
+    * // Fetch zero or more LiveLocationShares
+    * const liveLocationShares = await prisma.liveLocationShare.findMany()
     * ```
     */
-  get itinerary(): Prisma.ItineraryDelegate<ExtArgs>;
+  get liveLocationShare(): Prisma.LiveLocationShareDelegate<ExtArgs>;
 
   /**
-   * `prisma.itineraryMember`: Exposes CRUD operations for the **ItineraryMember** model.
+   * `prisma.liveLocationViewer`: Exposes CRUD operations for the **LiveLocationViewer** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more ItineraryMembers
-    * const itineraryMembers = await prisma.itineraryMember.findMany()
+    * // Fetch zero or more LiveLocationViewers
+    * const liveLocationViewers = await prisma.liveLocationViewer.findMany()
     * ```
     */
-  get itineraryMember(): Prisma.ItineraryMemberDelegate<ExtArgs>;
+  get liveLocationViewer(): Prisma.LiveLocationViewerDelegate<ExtArgs>;
 
   /**
-   * `prisma.itineraryStop`: Exposes CRUD operations for the **ItineraryStop** model.
+   * `prisma.safetyHazardReport`: Exposes CRUD operations for the **SafetyHazardReport** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more ItineraryStops
-    * const itineraryStops = await prisma.itineraryStop.findMany()
+    * // Fetch zero or more SafetyHazardReports
+    * const safetyHazardReports = await prisma.safetyHazardReport.findMany()
     * ```
     */
-  get itineraryStop(): Prisma.ItineraryStopDelegate<ExtArgs>;
+  get safetyHazardReport(): Prisma.SafetyHazardReportDelegate<ExtArgs>;
 
   /**
-   * `prisma.itineraryComment`: Exposes CRUD operations for the **ItineraryComment** model.
+   * `prisma.legalDocument`: Exposes CRUD operations for the **LegalDocument** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more ItineraryComments
-    * const itineraryComments = await prisma.itineraryComment.findMany()
+    * // Fetch zero or more LegalDocuments
+    * const legalDocuments = await prisma.legalDocument.findMany()
     * ```
     */
-  get itineraryComment(): Prisma.ItineraryCommentDelegate<ExtArgs>;
+  get legalDocument(): Prisma.LegalDocumentDelegate<ExtArgs>;
 
   /**
-   * `prisma.itineraryVote`: Exposes CRUD operations for the **ItineraryVote** model.
+   * `prisma.adminAllowedEmail`: Exposes CRUD operations for the **AdminAllowedEmail** model.
     * Example usage:
     * ```ts
-    * // Fetch zero or more ItineraryVotes
-    * const itineraryVotes = await prisma.itineraryVote.findMany()
+    * // Fetch zero or more AdminAllowedEmails
+    * const adminAllowedEmails = await prisma.adminAllowedEmail.findMany()
     * ```
     */
-  get itineraryVote(): Prisma.ItineraryVoteDelegate<ExtArgs>;
+  get adminAllowedEmail(): Prisma.AdminAllowedEmailDelegate<ExtArgs>;
+
+  /**
+   * `prisma.adminOtp`: Exposes CRUD operations for the **AdminOtp** model.
+    * Example usage:
+    * ```ts
+    * // Fetch zero or more AdminOtps
+    * const adminOtps = await prisma.adminOtp.findMany()
+    * ```
+    */
+  get adminOtp(): Prisma.AdminOtpDelegate<ExtArgs>;
 }
 
 export namespace Prisma {
@@ -908,11 +923,12 @@ export namespace Prisma {
     BusinessClaim: 'BusinessClaim',
     PlaceLabel: 'PlaceLabel',
     PlaceAudit: 'PlaceAudit',
-    Itinerary: 'Itinerary',
-    ItineraryMember: 'ItineraryMember',
-    ItineraryStop: 'ItineraryStop',
-    ItineraryComment: 'ItineraryComment',
-    ItineraryVote: 'ItineraryVote'
+    LiveLocationShare: 'LiveLocationShare',
+    LiveLocationViewer: 'LiveLocationViewer',
+    SafetyHazardReport: 'SafetyHazardReport',
+    LegalDocument: 'LegalDocument',
+    AdminAllowedEmail: 'AdminAllowedEmail',
+    AdminOtp: 'AdminOtp'
   };
 
   export type ModelName = (typeof ModelName)[keyof typeof ModelName]
@@ -928,7 +944,7 @@ export namespace Prisma {
 
   export type TypeMap<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs, ClientOptions = {}> = {
     meta: {
-      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "itinerary" | "itineraryMember" | "itineraryStop" | "itineraryComment" | "itineraryVote"
+      modelProps: "user" | "notification" | "notificationPreference" | "pushSubscription" | "oTPVerification" | "session" | "vehicle" | "location" | "route" | "place" | "favorite" | "placeReview" | "placePhoto" | "businessClaim" | "placeLabel" | "placeAudit" | "liveLocationShare" | "liveLocationViewer" | "safetyHazardReport" | "legalDocument" | "adminAllowedEmail" | "adminOtp"
       txIsolationLevel: Prisma.TransactionIsolationLevel
     }
     model: {
@@ -2052,353 +2068,423 @@ export namespace Prisma {
           }
         }
       }
-      Itinerary: {
-        payload: Prisma.$ItineraryPayload<ExtArgs>
-        fields: Prisma.ItineraryFieldRefs
+      LiveLocationShare: {
+        payload: Prisma.$LiveLocationSharePayload<ExtArgs>
+        fields: Prisma.LiveLocationShareFieldRefs
         operations: {
           findUnique: {
-            args: Prisma.ItineraryFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload> | null
+            args: Prisma.LiveLocationShareFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload> | null
           }
           findUniqueOrThrow: {
-            args: Prisma.ItineraryFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>
+            args: Prisma.LiveLocationShareFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
           }
           findFirst: {
-            args: Prisma.ItineraryFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload> | null
+            args: Prisma.LiveLocationShareFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload> | null
           }
           findFirstOrThrow: {
-            args: Prisma.ItineraryFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>
+            args: Prisma.LiveLocationShareFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
           }
           findMany: {
-            args: Prisma.ItineraryFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>[]
+            args: Prisma.LiveLocationShareFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>[]
           }
           create: {
-            args: Prisma.ItineraryCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>
+            args: Prisma.LiveLocationShareCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
           }
           createMany: {
-            args: Prisma.ItineraryCreateManyArgs<ExtArgs>
+            args: Prisma.LiveLocationShareCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
           createManyAndReturn: {
-            args: Prisma.ItineraryCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>[]
+            args: Prisma.LiveLocationShareCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>[]
           }
           delete: {
-            args: Prisma.ItineraryDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>
+            args: Prisma.LiveLocationShareDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
           }
           update: {
-            args: Prisma.ItineraryUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>
+            args: Prisma.LiveLocationShareUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
           }
           deleteMany: {
-            args: Prisma.ItineraryDeleteManyArgs<ExtArgs>
+            args: Prisma.LiveLocationShareDeleteManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateMany: {
-            args: Prisma.ItineraryUpdateManyArgs<ExtArgs>
+            args: Prisma.LiveLocationShareUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
           upsert: {
-            args: Prisma.ItineraryUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryPayload>
+            args: Prisma.LiveLocationShareUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationSharePayload>
           }
           aggregate: {
-            args: Prisma.ItineraryAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateItinerary>
+            args: Prisma.LiveLocationShareAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLiveLocationShare>
           }
           groupBy: {
-            args: Prisma.ItineraryGroupByArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryGroupByOutputType>[]
+            args: Prisma.LiveLocationShareGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationShareGroupByOutputType>[]
           }
           count: {
-            args: Prisma.ItineraryCountArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryCountAggregateOutputType> | number
+            args: Prisma.LiveLocationShareCountArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationShareCountAggregateOutputType> | number
           }
         }
       }
-      ItineraryMember: {
-        payload: Prisma.$ItineraryMemberPayload<ExtArgs>
-        fields: Prisma.ItineraryMemberFieldRefs
+      LiveLocationViewer: {
+        payload: Prisma.$LiveLocationViewerPayload<ExtArgs>
+        fields: Prisma.LiveLocationViewerFieldRefs
         operations: {
           findUnique: {
-            args: Prisma.ItineraryMemberFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload> | null
+            args: Prisma.LiveLocationViewerFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload> | null
           }
           findUniqueOrThrow: {
-            args: Prisma.ItineraryMemberFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>
+            args: Prisma.LiveLocationViewerFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
           }
           findFirst: {
-            args: Prisma.ItineraryMemberFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload> | null
+            args: Prisma.LiveLocationViewerFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload> | null
           }
           findFirstOrThrow: {
-            args: Prisma.ItineraryMemberFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>
+            args: Prisma.LiveLocationViewerFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
           }
           findMany: {
-            args: Prisma.ItineraryMemberFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>[]
+            args: Prisma.LiveLocationViewerFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>[]
           }
           create: {
-            args: Prisma.ItineraryMemberCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>
+            args: Prisma.LiveLocationViewerCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
           }
           createMany: {
-            args: Prisma.ItineraryMemberCreateManyArgs<ExtArgs>
+            args: Prisma.LiveLocationViewerCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
           createManyAndReturn: {
-            args: Prisma.ItineraryMemberCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>[]
+            args: Prisma.LiveLocationViewerCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>[]
           }
           delete: {
-            args: Prisma.ItineraryMemberDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>
+            args: Prisma.LiveLocationViewerDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
           }
           update: {
-            args: Prisma.ItineraryMemberUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>
+            args: Prisma.LiveLocationViewerUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
           }
           deleteMany: {
-            args: Prisma.ItineraryMemberDeleteManyArgs<ExtArgs>
+            args: Prisma.LiveLocationViewerDeleteManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateMany: {
-            args: Prisma.ItineraryMemberUpdateManyArgs<ExtArgs>
+            args: Prisma.LiveLocationViewerUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
           upsert: {
-            args: Prisma.ItineraryMemberUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryMemberPayload>
+            args: Prisma.LiveLocationViewerUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LiveLocationViewerPayload>
           }
           aggregate: {
-            args: Prisma.ItineraryMemberAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateItineraryMember>
+            args: Prisma.LiveLocationViewerAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLiveLocationViewer>
           }
           groupBy: {
-            args: Prisma.ItineraryMemberGroupByArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryMemberGroupByOutputType>[]
+            args: Prisma.LiveLocationViewerGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationViewerGroupByOutputType>[]
           }
           count: {
-            args: Prisma.ItineraryMemberCountArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryMemberCountAggregateOutputType> | number
+            args: Prisma.LiveLocationViewerCountArgs<ExtArgs>
+            result: $Utils.Optional<LiveLocationViewerCountAggregateOutputType> | number
           }
         }
       }
-      ItineraryStop: {
-        payload: Prisma.$ItineraryStopPayload<ExtArgs>
-        fields: Prisma.ItineraryStopFieldRefs
+      SafetyHazardReport: {
+        payload: Prisma.$SafetyHazardReportPayload<ExtArgs>
+        fields: Prisma.SafetyHazardReportFieldRefs
         operations: {
           findUnique: {
-            args: Prisma.ItineraryStopFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload> | null
+            args: Prisma.SafetyHazardReportFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload> | null
           }
           findUniqueOrThrow: {
-            args: Prisma.ItineraryStopFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>
+            args: Prisma.SafetyHazardReportFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
           }
           findFirst: {
-            args: Prisma.ItineraryStopFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload> | null
+            args: Prisma.SafetyHazardReportFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload> | null
           }
           findFirstOrThrow: {
-            args: Prisma.ItineraryStopFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>
+            args: Prisma.SafetyHazardReportFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
           }
           findMany: {
-            args: Prisma.ItineraryStopFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>[]
+            args: Prisma.SafetyHazardReportFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>[]
           }
           create: {
-            args: Prisma.ItineraryStopCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>
+            args: Prisma.SafetyHazardReportCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
           }
           createMany: {
-            args: Prisma.ItineraryStopCreateManyArgs<ExtArgs>
+            args: Prisma.SafetyHazardReportCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
           createManyAndReturn: {
-            args: Prisma.ItineraryStopCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>[]
+            args: Prisma.SafetyHazardReportCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>[]
           }
           delete: {
-            args: Prisma.ItineraryStopDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>
+            args: Prisma.SafetyHazardReportDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
           }
           update: {
-            args: Prisma.ItineraryStopUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>
+            args: Prisma.SafetyHazardReportUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
           }
           deleteMany: {
-            args: Prisma.ItineraryStopDeleteManyArgs<ExtArgs>
+            args: Prisma.SafetyHazardReportDeleteManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateMany: {
-            args: Prisma.ItineraryStopUpdateManyArgs<ExtArgs>
+            args: Prisma.SafetyHazardReportUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
           upsert: {
-            args: Prisma.ItineraryStopUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryStopPayload>
+            args: Prisma.SafetyHazardReportUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$SafetyHazardReportPayload>
           }
           aggregate: {
-            args: Prisma.ItineraryStopAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateItineraryStop>
+            args: Prisma.SafetyHazardReportAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateSafetyHazardReport>
           }
           groupBy: {
-            args: Prisma.ItineraryStopGroupByArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryStopGroupByOutputType>[]
+            args: Prisma.SafetyHazardReportGroupByArgs<ExtArgs>
+            result: $Utils.Optional<SafetyHazardReportGroupByOutputType>[]
           }
           count: {
-            args: Prisma.ItineraryStopCountArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryStopCountAggregateOutputType> | number
+            args: Prisma.SafetyHazardReportCountArgs<ExtArgs>
+            result: $Utils.Optional<SafetyHazardReportCountAggregateOutputType> | number
           }
         }
       }
-      ItineraryComment: {
-        payload: Prisma.$ItineraryCommentPayload<ExtArgs>
-        fields: Prisma.ItineraryCommentFieldRefs
+      LegalDocument: {
+        payload: Prisma.$LegalDocumentPayload<ExtArgs>
+        fields: Prisma.LegalDocumentFieldRefs
         operations: {
           findUnique: {
-            args: Prisma.ItineraryCommentFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload> | null
+            args: Prisma.LegalDocumentFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload> | null
           }
           findUniqueOrThrow: {
-            args: Prisma.ItineraryCommentFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>
+            args: Prisma.LegalDocumentFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>
           }
           findFirst: {
-            args: Prisma.ItineraryCommentFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload> | null
+            args: Prisma.LegalDocumentFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload> | null
           }
           findFirstOrThrow: {
-            args: Prisma.ItineraryCommentFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>
+            args: Prisma.LegalDocumentFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>
           }
           findMany: {
-            args: Prisma.ItineraryCommentFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>[]
+            args: Prisma.LegalDocumentFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>[]
           }
           create: {
-            args: Prisma.ItineraryCommentCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>
+            args: Prisma.LegalDocumentCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>
           }
           createMany: {
-            args: Prisma.ItineraryCommentCreateManyArgs<ExtArgs>
+            args: Prisma.LegalDocumentCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
           createManyAndReturn: {
-            args: Prisma.ItineraryCommentCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>[]
+            args: Prisma.LegalDocumentCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>[]
           }
           delete: {
-            args: Prisma.ItineraryCommentDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>
+            args: Prisma.LegalDocumentDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>
           }
           update: {
-            args: Prisma.ItineraryCommentUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>
+            args: Prisma.LegalDocumentUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>
           }
           deleteMany: {
-            args: Prisma.ItineraryCommentDeleteManyArgs<ExtArgs>
+            args: Prisma.LegalDocumentDeleteManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateMany: {
-            args: Prisma.ItineraryCommentUpdateManyArgs<ExtArgs>
+            args: Prisma.LegalDocumentUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
           upsert: {
-            args: Prisma.ItineraryCommentUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryCommentPayload>
+            args: Prisma.LegalDocumentUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$LegalDocumentPayload>
           }
           aggregate: {
-            args: Prisma.ItineraryCommentAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateItineraryComment>
+            args: Prisma.LegalDocumentAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateLegalDocument>
           }
           groupBy: {
-            args: Prisma.ItineraryCommentGroupByArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryCommentGroupByOutputType>[]
+            args: Prisma.LegalDocumentGroupByArgs<ExtArgs>
+            result: $Utils.Optional<LegalDocumentGroupByOutputType>[]
           }
           count: {
-            args: Prisma.ItineraryCommentCountArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryCommentCountAggregateOutputType> | number
+            args: Prisma.LegalDocumentCountArgs<ExtArgs>
+            result: $Utils.Optional<LegalDocumentCountAggregateOutputType> | number
           }
         }
       }
-      ItineraryVote: {
-        payload: Prisma.$ItineraryVotePayload<ExtArgs>
-        fields: Prisma.ItineraryVoteFieldRefs
+      AdminAllowedEmail: {
+        payload: Prisma.$AdminAllowedEmailPayload<ExtArgs>
+        fields: Prisma.AdminAllowedEmailFieldRefs
         operations: {
           findUnique: {
-            args: Prisma.ItineraryVoteFindUniqueArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload> | null
+            args: Prisma.AdminAllowedEmailFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload> | null
           }
           findUniqueOrThrow: {
-            args: Prisma.ItineraryVoteFindUniqueOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>
+            args: Prisma.AdminAllowedEmailFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
           }
           findFirst: {
-            args: Prisma.ItineraryVoteFindFirstArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload> | null
+            args: Prisma.AdminAllowedEmailFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload> | null
           }
           findFirstOrThrow: {
-            args: Prisma.ItineraryVoteFindFirstOrThrowArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>
+            args: Prisma.AdminAllowedEmailFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
           }
           findMany: {
-            args: Prisma.ItineraryVoteFindManyArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>[]
+            args: Prisma.AdminAllowedEmailFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>[]
           }
           create: {
-            args: Prisma.ItineraryVoteCreateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>
+            args: Prisma.AdminAllowedEmailCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
           }
           createMany: {
-            args: Prisma.ItineraryVoteCreateManyArgs<ExtArgs>
+            args: Prisma.AdminAllowedEmailCreateManyArgs<ExtArgs>
             result: BatchPayload
           }
           createManyAndReturn: {
-            args: Prisma.ItineraryVoteCreateManyAndReturnArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>[]
+            args: Prisma.AdminAllowedEmailCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>[]
           }
           delete: {
-            args: Prisma.ItineraryVoteDeleteArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>
+            args: Prisma.AdminAllowedEmailDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
           }
           update: {
-            args: Prisma.ItineraryVoteUpdateArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>
+            args: Prisma.AdminAllowedEmailUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
           }
           deleteMany: {
-            args: Prisma.ItineraryVoteDeleteManyArgs<ExtArgs>
+            args: Prisma.AdminAllowedEmailDeleteManyArgs<ExtArgs>
             result: BatchPayload
           }
           updateMany: {
-            args: Prisma.ItineraryVoteUpdateManyArgs<ExtArgs>
+            args: Prisma.AdminAllowedEmailUpdateManyArgs<ExtArgs>
             result: BatchPayload
           }
           upsert: {
-            args: Prisma.ItineraryVoteUpsertArgs<ExtArgs>
-            result: $Utils.PayloadToResult<Prisma.$ItineraryVotePayload>
+            args: Prisma.AdminAllowedEmailUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminAllowedEmailPayload>
           }
           aggregate: {
-            args: Prisma.ItineraryVoteAggregateArgs<ExtArgs>
-            result: $Utils.Optional<AggregateItineraryVote>
+            args: Prisma.AdminAllowedEmailAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAdminAllowedEmail>
           }
           groupBy: {
-            args: Prisma.ItineraryVoteGroupByArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryVoteGroupByOutputType>[]
+            args: Prisma.AdminAllowedEmailGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AdminAllowedEmailGroupByOutputType>[]
           }
           count: {
-            args: Prisma.ItineraryVoteCountArgs<ExtArgs>
-            result: $Utils.Optional<ItineraryVoteCountAggregateOutputType> | number
+            args: Prisma.AdminAllowedEmailCountArgs<ExtArgs>
+            result: $Utils.Optional<AdminAllowedEmailCountAggregateOutputType> | number
+          }
+        }
+      }
+      AdminOtp: {
+        payload: Prisma.$AdminOtpPayload<ExtArgs>
+        fields: Prisma.AdminOtpFieldRefs
+        operations: {
+          findUnique: {
+            args: Prisma.AdminOtpFindUniqueArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload> | null
+          }
+          findUniqueOrThrow: {
+            args: Prisma.AdminOtpFindUniqueOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          findFirst: {
+            args: Prisma.AdminOtpFindFirstArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload> | null
+          }
+          findFirstOrThrow: {
+            args: Prisma.AdminOtpFindFirstOrThrowArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          findMany: {
+            args: Prisma.AdminOtpFindManyArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>[]
+          }
+          create: {
+            args: Prisma.AdminOtpCreateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          createMany: {
+            args: Prisma.AdminOtpCreateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          createManyAndReturn: {
+            args: Prisma.AdminOtpCreateManyAndReturnArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>[]
+          }
+          delete: {
+            args: Prisma.AdminOtpDeleteArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          update: {
+            args: Prisma.AdminOtpUpdateArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          deleteMany: {
+            args: Prisma.AdminOtpDeleteManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          updateMany: {
+            args: Prisma.AdminOtpUpdateManyArgs<ExtArgs>
+            result: BatchPayload
+          }
+          upsert: {
+            args: Prisma.AdminOtpUpsertArgs<ExtArgs>
+            result: $Utils.PayloadToResult<Prisma.$AdminOtpPayload>
+          }
+          aggregate: {
+            args: Prisma.AdminOtpAggregateArgs<ExtArgs>
+            result: $Utils.Optional<AggregateAdminOtp>
+          }
+          groupBy: {
+            args: Prisma.AdminOtpGroupByArgs<ExtArgs>
+            result: $Utils.Optional<AdminOtpGroupByOutputType>[]
+          }
+          count: {
+            args: Prisma.AdminOtpCountArgs<ExtArgs>
+            result: $Utils.Optional<AdminOtpCountAggregateOutputType> | number
           }
         }
       }
@@ -2576,10 +2662,9 @@ export namespace Prisma {
     pushSubscriptions: number
     businessClaims: number
     placeLabels: number
-    ownedItineraries: number
-    itineraryMemberships: number
-    itineraryComments: number
-    itineraryVotes: number
+    ownedLiveLocationShares: number
+    liveLocationViewerships: number
+    safetyHazardReports: number
   }
 
   export type UserCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
@@ -2596,10 +2681,9 @@ export namespace Prisma {
     pushSubscriptions?: boolean | UserCountOutputTypeCountPushSubscriptionsArgs
     businessClaims?: boolean | UserCountOutputTypeCountBusinessClaimsArgs
     placeLabels?: boolean | UserCountOutputTypeCountPlaceLabelsArgs
-    ownedItineraries?: boolean | UserCountOutputTypeCountOwnedItinerariesArgs
-    itineraryMemberships?: boolean | UserCountOutputTypeCountItineraryMembershipsArgs
-    itineraryComments?: boolean | UserCountOutputTypeCountItineraryCommentsArgs
-    itineraryVotes?: boolean | UserCountOutputTypeCountItineraryVotesArgs
+    ownedLiveLocationShares?: boolean | UserCountOutputTypeCountOwnedLiveLocationSharesArgs
+    liveLocationViewerships?: boolean | UserCountOutputTypeCountLiveLocationViewershipsArgs
+    safetyHazardReports?: boolean | UserCountOutputTypeCountSafetyHazardReportsArgs
   }
 
   // Custom InputTypes
@@ -2707,29 +2791,22 @@ export namespace Prisma {
   /**
    * UserCountOutputType without action
    */
-  export type UserCountOutputTypeCountOwnedItinerariesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryWhereInput
+  export type UserCountOutputTypeCountOwnedLiveLocationSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationShareWhereInput
   }
 
   /**
    * UserCountOutputType without action
    */
-  export type UserCountOutputTypeCountItineraryMembershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryMemberWhereInput
+  export type UserCountOutputTypeCountLiveLocationViewershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationViewerWhereInput
   }
 
   /**
    * UserCountOutputType without action
    */
-  export type UserCountOutputTypeCountItineraryCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryCommentWhereInput
-  }
-
-  /**
-   * UserCountOutputType without action
-   */
-  export type UserCountOutputTypeCountItineraryVotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryVoteWhereInput
+  export type UserCountOutputTypeCountSafetyHazardReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SafetyHazardReportWhereInput
   }
 
 
@@ -2841,82 +2918,33 @@ export namespace Prisma {
 
 
   /**
-   * Count Type ItineraryCountOutputType
+   * Count Type LiveLocationShareCountOutputType
    */
 
-  export type ItineraryCountOutputType = {
-    members: number
-    stops: number
+  export type LiveLocationShareCountOutputType = {
+    viewers: number
   }
 
-  export type ItineraryCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    members?: boolean | ItineraryCountOutputTypeCountMembersArgs
-    stops?: boolean | ItineraryCountOutputTypeCountStopsArgs
+  export type LiveLocationShareCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    viewers?: boolean | LiveLocationShareCountOutputTypeCountViewersArgs
   }
 
   // Custom InputTypes
   /**
-   * ItineraryCountOutputType without action
+   * LiveLocationShareCountOutputType without action
    */
-  export type ItineraryCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryCountOutputType
+     * Select specific fields to fetch from the LiveLocationShareCountOutputType
      */
-    select?: ItineraryCountOutputTypeSelect<ExtArgs> | null
+    select?: LiveLocationShareCountOutputTypeSelect<ExtArgs> | null
   }
 
   /**
-   * ItineraryCountOutputType without action
+   * LiveLocationShareCountOutputType without action
    */
-  export type ItineraryCountOutputTypeCountMembersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryMemberWhereInput
-  }
-
-  /**
-   * ItineraryCountOutputType without action
-   */
-  export type ItineraryCountOutputTypeCountStopsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryStopWhereInput
-  }
-
-
-  /**
-   * Count Type ItineraryStopCountOutputType
-   */
-
-  export type ItineraryStopCountOutputType = {
-    comments: number
-    votes: number
-  }
-
-  export type ItineraryStopCountOutputTypeSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    comments?: boolean | ItineraryStopCountOutputTypeCountCommentsArgs
-    votes?: boolean | ItineraryStopCountOutputTypeCountVotesArgs
-  }
-
-  // Custom InputTypes
-  /**
-   * ItineraryStopCountOutputType without action
-   */
-  export type ItineraryStopCountOutputTypeDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStopCountOutputType
-     */
-    select?: ItineraryStopCountOutputTypeSelect<ExtArgs> | null
-  }
-
-  /**
-   * ItineraryStopCountOutputType without action
-   */
-  export type ItineraryStopCountOutputTypeCountCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryCommentWhereInput
-  }
-
-  /**
-   * ItineraryStopCountOutputType without action
-   */
-  export type ItineraryStopCountOutputTypeCountVotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryVoteWhereInput
+  export type LiveLocationShareCountOutputTypeCountViewersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationViewerWhereInput
   }
 
 
@@ -3150,10 +3178,9 @@ export namespace Prisma {
     notificationPreference?: boolean | User$notificationPreferenceArgs<ExtArgs>
     businessClaims?: boolean | User$businessClaimsArgs<ExtArgs>
     placeLabels?: boolean | User$placeLabelsArgs<ExtArgs>
-    ownedItineraries?: boolean | User$ownedItinerariesArgs<ExtArgs>
-    itineraryMemberships?: boolean | User$itineraryMembershipsArgs<ExtArgs>
-    itineraryComments?: boolean | User$itineraryCommentsArgs<ExtArgs>
-    itineraryVotes?: boolean | User$itineraryVotesArgs<ExtArgs>
+    ownedLiveLocationShares?: boolean | User$ownedLiveLocationSharesArgs<ExtArgs>
+    liveLocationViewerships?: boolean | User$liveLocationViewershipsArgs<ExtArgs>
+    safetyHazardReports?: boolean | User$safetyHazardReportsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["user"]>
 
@@ -3200,10 +3227,9 @@ export namespace Prisma {
     notificationPreference?: boolean | User$notificationPreferenceArgs<ExtArgs>
     businessClaims?: boolean | User$businessClaimsArgs<ExtArgs>
     placeLabels?: boolean | User$placeLabelsArgs<ExtArgs>
-    ownedItineraries?: boolean | User$ownedItinerariesArgs<ExtArgs>
-    itineraryMemberships?: boolean | User$itineraryMembershipsArgs<ExtArgs>
-    itineraryComments?: boolean | User$itineraryCommentsArgs<ExtArgs>
-    itineraryVotes?: boolean | User$itineraryVotesArgs<ExtArgs>
+    ownedLiveLocationShares?: boolean | User$ownedLiveLocationSharesArgs<ExtArgs>
+    liveLocationViewerships?: boolean | User$liveLocationViewershipsArgs<ExtArgs>
+    safetyHazardReports?: boolean | User$safetyHazardReportsArgs<ExtArgs>
     _count?: boolean | UserCountOutputTypeDefaultArgs<ExtArgs>
   }
   export type UserIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {}
@@ -3225,10 +3251,9 @@ export namespace Prisma {
       notificationPreference: Prisma.$NotificationPreferencePayload<ExtArgs> | null
       businessClaims: Prisma.$BusinessClaimPayload<ExtArgs>[]
       placeLabels: Prisma.$PlaceLabelPayload<ExtArgs>[]
-      ownedItineraries: Prisma.$ItineraryPayload<ExtArgs>[]
-      itineraryMemberships: Prisma.$ItineraryMemberPayload<ExtArgs>[]
-      itineraryComments: Prisma.$ItineraryCommentPayload<ExtArgs>[]
-      itineraryVotes: Prisma.$ItineraryVotePayload<ExtArgs>[]
+      ownedLiveLocationShares: Prisma.$LiveLocationSharePayload<ExtArgs>[]
+      liveLocationViewerships: Prisma.$LiveLocationViewerPayload<ExtArgs>[]
+      safetyHazardReports: Prisma.$SafetyHazardReportPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
@@ -3620,10 +3645,9 @@ export namespace Prisma {
     notificationPreference<T extends User$notificationPreferenceArgs<ExtArgs> = {}>(args?: Subset<T, User$notificationPreferenceArgs<ExtArgs>>): Prisma__NotificationPreferenceClient<$Result.GetResult<Prisma.$NotificationPreferencePayload<ExtArgs>, T, "findUniqueOrThrow"> | null, null, ExtArgs>
     businessClaims<T extends User$businessClaimsArgs<ExtArgs> = {}>(args?: Subset<T, User$businessClaimsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$BusinessClaimPayload<ExtArgs>, T, "findMany"> | Null>
     placeLabels<T extends User$placeLabelsArgs<ExtArgs> = {}>(args?: Subset<T, User$placeLabelsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$PlaceLabelPayload<ExtArgs>, T, "findMany"> | Null>
-    ownedItineraries<T extends User$ownedItinerariesArgs<ExtArgs> = {}>(args?: Subset<T, User$ownedItinerariesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findMany"> | Null>
-    itineraryMemberships<T extends User$itineraryMembershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryMembershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findMany"> | Null>
-    itineraryComments<T extends User$itineraryCommentsArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryCommentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findMany"> | Null>
-    itineraryVotes<T extends User$itineraryVotesArgs<ExtArgs> = {}>(args?: Subset<T, User$itineraryVotesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findMany"> | Null>
+    ownedLiveLocationShares<T extends User$ownedLiveLocationSharesArgs<ExtArgs> = {}>(args?: Subset<T, User$ownedLiveLocationSharesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findMany"> | Null>
+    liveLocationViewerships<T extends User$liveLocationViewershipsArgs<ExtArgs> = {}>(args?: Subset<T, User$liveLocationViewershipsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findMany"> | Null>
+    safetyHazardReports<T extends User$safetyHazardReportsArgs<ExtArgs> = {}>(args?: Subset<T, User$safetyHazardReportsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -4253,83 +4277,63 @@ export namespace Prisma {
   }
 
   /**
-   * User.ownedItineraries
+   * User.ownedLiveLocationShares
    */
-  export type User$ownedItinerariesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type User$ownedLiveLocationSharesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
-    where?: ItineraryWhereInput
-    orderBy?: ItineraryOrderByWithRelationInput | ItineraryOrderByWithRelationInput[]
-    cursor?: ItineraryWhereUniqueInput
+    include?: LiveLocationShareInclude<ExtArgs> | null
+    where?: LiveLocationShareWhereInput
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
+    cursor?: LiveLocationShareWhereUniqueInput
     take?: number
     skip?: number
-    distinct?: ItineraryScalarFieldEnum | ItineraryScalarFieldEnum[]
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
   }
 
   /**
-   * User.itineraryMemberships
+   * User.liveLocationViewerships
    */
-  export type User$itineraryMembershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type User$liveLocationViewershipsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
-    where?: ItineraryMemberWhereInput
-    orderBy?: ItineraryMemberOrderByWithRelationInput | ItineraryMemberOrderByWithRelationInput[]
-    cursor?: ItineraryMemberWhereUniqueInput
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    where?: LiveLocationViewerWhereInput
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    cursor?: LiveLocationViewerWhereUniqueInput
     take?: number
     skip?: number
-    distinct?: ItineraryMemberScalarFieldEnum | ItineraryMemberScalarFieldEnum[]
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
   }
 
   /**
-   * User.itineraryComments
+   * User.safetyHazardReports
    */
-  export type User$itineraryCommentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type User$safetyHazardReportsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
-    where?: ItineraryCommentWhereInput
-    orderBy?: ItineraryCommentOrderByWithRelationInput | ItineraryCommentOrderByWithRelationInput[]
-    cursor?: ItineraryCommentWhereUniqueInput
+    include?: SafetyHazardReportInclude<ExtArgs> | null
+    where?: SafetyHazardReportWhereInput
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
+    cursor?: SafetyHazardReportWhereUniqueInput
     take?: number
     skip?: number
-    distinct?: ItineraryCommentScalarFieldEnum | ItineraryCommentScalarFieldEnum[]
-  }
-
-  /**
-   * User.itineraryVotes
-   */
-  export type User$itineraryVotesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryVote
-     */
-    select?: ItineraryVoteSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    where?: ItineraryVoteWhereInput
-    orderBy?: ItineraryVoteOrderByWithRelationInput | ItineraryVoteOrderByWithRelationInput[]
-    cursor?: ItineraryVoteWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: ItineraryVoteScalarFieldEnum | ItineraryVoteScalarFieldEnum[]
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
   }
 
   /**
@@ -20024,411 +20028,528 @@ export namespace Prisma {
 
 
   /**
-   * Model Itinerary
+   * Model LiveLocationShare
    */
 
-  export type AggregateItinerary = {
-    _count: ItineraryCountAggregateOutputType | null
-    _min: ItineraryMinAggregateOutputType | null
-    _max: ItineraryMaxAggregateOutputType | null
+  export type AggregateLiveLocationShare = {
+    _count: LiveLocationShareCountAggregateOutputType | null
+    _avg: LiveLocationShareAvgAggregateOutputType | null
+    _sum: LiveLocationShareSumAggregateOutputType | null
+    _min: LiveLocationShareMinAggregateOutputType | null
+    _max: LiveLocationShareMaxAggregateOutputType | null
   }
 
-  export type ItineraryMinAggregateOutputType = {
+  export type LiveLocationShareAvgAggregateOutputType = {
+    durationMinutes: number | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+  }
+
+  export type LiveLocationShareSumAggregateOutputType = {
+    durationMinutes: number | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+  }
+
+  export type LiveLocationShareMinAggregateOutputType = {
     id: string | null
-    title: string | null
-    description: string | null
     ownerId: string | null
-    shareToken: string | null
-    coverEmoji: string | null
-    startDate: Date | null
-    endDate: Date | null
-    autoSort: boolean | null
+    tokenHash: string | null
+    status: string | null
+    durationMinutes: number | null
+    expiresAt: Date | null
+    endedAt: Date | null
+    endedReason: string | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+    lastUpdatedAt: Date | null
+    presenceStatus: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
 
-  export type ItineraryMaxAggregateOutputType = {
+  export type LiveLocationShareMaxAggregateOutputType = {
     id: string | null
-    title: string | null
-    description: string | null
     ownerId: string | null
-    shareToken: string | null
-    coverEmoji: string | null
-    startDate: Date | null
-    endDate: Date | null
-    autoSort: boolean | null
+    tokenHash: string | null
+    status: string | null
+    durationMinutes: number | null
+    expiresAt: Date | null
+    endedAt: Date | null
+    endedReason: string | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+    lastUpdatedAt: Date | null
+    presenceStatus: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
 
-  export type ItineraryCountAggregateOutputType = {
+  export type LiveLocationShareCountAggregateOutputType = {
     id: number
-    title: number
-    description: number
     ownerId: number
-    shareToken: number
-    coverEmoji: number
-    startDate: number
-    endDate: number
-    autoSort: number
+    tokenHash: number
+    status: number
+    durationMinutes: number
+    expiresAt: number
+    endedAt: number
+    endedReason: number
+    lastLatitude: number
+    lastLongitude: number
+    lastAccuracy: number
+    lastSpeed: number
+    lastHeading: number
+    lastUpdatedAt: number
+    presenceStatus: number
     createdAt: number
     updatedAt: number
     _all: number
   }
 
 
-  export type ItineraryMinAggregateInputType = {
+  export type LiveLocationShareAvgAggregateInputType = {
+    durationMinutes?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+  }
+
+  export type LiveLocationShareSumAggregateInputType = {
+    durationMinutes?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+  }
+
+  export type LiveLocationShareMinAggregateInputType = {
     id?: true
-    title?: true
-    description?: true
     ownerId?: true
-    shareToken?: true
-    coverEmoji?: true
-    startDate?: true
-    endDate?: true
-    autoSort?: true
+    tokenHash?: true
+    status?: true
+    durationMinutes?: true
+    expiresAt?: true
+    endedAt?: true
+    endedReason?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+    lastUpdatedAt?: true
+    presenceStatus?: true
     createdAt?: true
     updatedAt?: true
   }
 
-  export type ItineraryMaxAggregateInputType = {
+  export type LiveLocationShareMaxAggregateInputType = {
     id?: true
-    title?: true
-    description?: true
     ownerId?: true
-    shareToken?: true
-    coverEmoji?: true
-    startDate?: true
-    endDate?: true
-    autoSort?: true
+    tokenHash?: true
+    status?: true
+    durationMinutes?: true
+    expiresAt?: true
+    endedAt?: true
+    endedReason?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+    lastUpdatedAt?: true
+    presenceStatus?: true
     createdAt?: true
     updatedAt?: true
   }
 
-  export type ItineraryCountAggregateInputType = {
+  export type LiveLocationShareCountAggregateInputType = {
     id?: true
-    title?: true
-    description?: true
     ownerId?: true
-    shareToken?: true
-    coverEmoji?: true
-    startDate?: true
-    endDate?: true
-    autoSort?: true
+    tokenHash?: true
+    status?: true
+    durationMinutes?: true
+    expiresAt?: true
+    endedAt?: true
+    endedReason?: true
+    lastLatitude?: true
+    lastLongitude?: true
+    lastAccuracy?: true
+    lastSpeed?: true
+    lastHeading?: true
+    lastUpdatedAt?: true
+    presenceStatus?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
   }
 
-  export type ItineraryAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which Itinerary to aggregate.
+     * Filter which LiveLocationShare to aggregate.
      */
-    where?: ItineraryWhereInput
+    where?: LiveLocationShareWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of Itineraries to fetch.
+     * Determine the order of LiveLocationShares to fetch.
      */
-    orderBy?: ItineraryOrderByWithRelationInput | ItineraryOrderByWithRelationInput[]
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
      * Sets the start position
      */
-    cursor?: ItineraryWhereUniqueInput
+    cursor?: LiveLocationShareWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` Itineraries from the position of the cursor.
+     * Take `±n` LiveLocationShares from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` Itineraries.
+     * Skip the first `n` LiveLocationShares.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Count returned Itineraries
+     * Count returned LiveLocationShares
     **/
-    _count?: true | ItineraryCountAggregateInputType
+    _count?: true | LiveLocationShareCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to average
+    **/
+    _avg?: LiveLocationShareAvgAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to sum
+    **/
+    _sum?: LiveLocationShareSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the minimum value
     **/
-    _min?: ItineraryMinAggregateInputType
+    _min?: LiveLocationShareMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the maximum value
     **/
-    _max?: ItineraryMaxAggregateInputType
+    _max?: LiveLocationShareMaxAggregateInputType
   }
 
-  export type GetItineraryAggregateType<T extends ItineraryAggregateArgs> = {
-        [P in keyof T & keyof AggregateItinerary]: P extends '_count' | 'count'
+  export type GetLiveLocationShareAggregateType<T extends LiveLocationShareAggregateArgs> = {
+        [P in keyof T & keyof AggregateLiveLocationShare]: P extends '_count' | 'count'
       ? T[P] extends true
         ? number
-        : GetScalarType<T[P], AggregateItinerary[P]>
-      : GetScalarType<T[P], AggregateItinerary[P]>
+        : GetScalarType<T[P], AggregateLiveLocationShare[P]>
+      : GetScalarType<T[P], AggregateLiveLocationShare[P]>
   }
 
 
 
 
-  export type ItineraryGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryWhereInput
-    orderBy?: ItineraryOrderByWithAggregationInput | ItineraryOrderByWithAggregationInput[]
-    by: ItineraryScalarFieldEnum[] | ItineraryScalarFieldEnum
-    having?: ItineraryScalarWhereWithAggregatesInput
+  export type LiveLocationShareGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationShareWhereInput
+    orderBy?: LiveLocationShareOrderByWithAggregationInput | LiveLocationShareOrderByWithAggregationInput[]
+    by: LiveLocationShareScalarFieldEnum[] | LiveLocationShareScalarFieldEnum
+    having?: LiveLocationShareScalarWhereWithAggregatesInput
     take?: number
     skip?: number
-    _count?: ItineraryCountAggregateInputType | true
-    _min?: ItineraryMinAggregateInputType
-    _max?: ItineraryMaxAggregateInputType
+    _count?: LiveLocationShareCountAggregateInputType | true
+    _avg?: LiveLocationShareAvgAggregateInputType
+    _sum?: LiveLocationShareSumAggregateInputType
+    _min?: LiveLocationShareMinAggregateInputType
+    _max?: LiveLocationShareMaxAggregateInputType
   }
 
-  export type ItineraryGroupByOutputType = {
+  export type LiveLocationShareGroupByOutputType = {
     id: string
-    title: string
-    description: string | null
     ownerId: string
-    shareToken: string
-    coverEmoji: string | null
-    startDate: Date | null
-    endDate: Date | null
-    autoSort: boolean
+    tokenHash: string
+    status: string
+    durationMinutes: number
+    expiresAt: Date
+    endedAt: Date | null
+    endedReason: string | null
+    lastLatitude: number | null
+    lastLongitude: number | null
+    lastAccuracy: number | null
+    lastSpeed: number | null
+    lastHeading: number | null
+    lastUpdatedAt: Date | null
+    presenceStatus: string
     createdAt: Date
     updatedAt: Date
-    _count: ItineraryCountAggregateOutputType | null
-    _min: ItineraryMinAggregateOutputType | null
-    _max: ItineraryMaxAggregateOutputType | null
+    _count: LiveLocationShareCountAggregateOutputType | null
+    _avg: LiveLocationShareAvgAggregateOutputType | null
+    _sum: LiveLocationShareSumAggregateOutputType | null
+    _min: LiveLocationShareMinAggregateOutputType | null
+    _max: LiveLocationShareMaxAggregateOutputType | null
   }
 
-  type GetItineraryGroupByPayload<T extends ItineraryGroupByArgs> = Prisma.PrismaPromise<
+  type GetLiveLocationShareGroupByPayload<T extends LiveLocationShareGroupByArgs> = Prisma.PrismaPromise<
     Array<
-      PickEnumerable<ItineraryGroupByOutputType, T['by']> &
+      PickEnumerable<LiveLocationShareGroupByOutputType, T['by']> &
         {
-          [P in ((keyof T) & (keyof ItineraryGroupByOutputType))]: P extends '_count'
+          [P in ((keyof T) & (keyof LiveLocationShareGroupByOutputType))]: P extends '_count'
             ? T[P] extends boolean
               ? number
-              : GetScalarType<T[P], ItineraryGroupByOutputType[P]>
-            : GetScalarType<T[P], ItineraryGroupByOutputType[P]>
+              : GetScalarType<T[P], LiveLocationShareGroupByOutputType[P]>
+            : GetScalarType<T[P], LiveLocationShareGroupByOutputType[P]>
         }
       >
     >
 
 
-  export type ItinerarySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type LiveLocationShareSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    title?: boolean
-    description?: boolean
     ownerId?: boolean
-    shareToken?: boolean
-    coverEmoji?: boolean
-    startDate?: boolean
-    endDate?: boolean
-    autoSort?: boolean
+    tokenHash?: boolean
+    status?: boolean
+    durationMinutes?: boolean
+    expiresAt?: boolean
+    endedAt?: boolean
+    endedReason?: boolean
+    lastLatitude?: boolean
+    lastLongitude?: boolean
+    lastAccuracy?: boolean
+    lastSpeed?: boolean
+    lastHeading?: boolean
+    lastUpdatedAt?: boolean
+    presenceStatus?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
-    members?: boolean | Itinerary$membersArgs<ExtArgs>
-    stops?: boolean | Itinerary$stopsArgs<ExtArgs>
-    _count?: boolean | ItineraryCountOutputTypeDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itinerary"]>
+    viewers?: boolean | LiveLocationShare$viewersArgs<ExtArgs>
+    _count?: boolean | LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["liveLocationShare"]>
 
-  export type ItinerarySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type LiveLocationShareSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    title?: boolean
-    description?: boolean
     ownerId?: boolean
-    shareToken?: boolean
-    coverEmoji?: boolean
-    startDate?: boolean
-    endDate?: boolean
-    autoSort?: boolean
+    tokenHash?: boolean
+    status?: boolean
+    durationMinutes?: boolean
+    expiresAt?: boolean
+    endedAt?: boolean
+    endedReason?: boolean
+    lastLatitude?: boolean
+    lastLongitude?: boolean
+    lastAccuracy?: boolean
+    lastSpeed?: boolean
+    lastHeading?: boolean
+    lastUpdatedAt?: boolean
+    presenceStatus?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     owner?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itinerary"]>
+  }, ExtArgs["result"]["liveLocationShare"]>
 
-  export type ItinerarySelectScalar = {
+  export type LiveLocationShareSelectScalar = {
     id?: boolean
-    title?: boolean
-    description?: boolean
     ownerId?: boolean
-    shareToken?: boolean
-    coverEmoji?: boolean
-    startDate?: boolean
-    endDate?: boolean
-    autoSort?: boolean
+    tokenHash?: boolean
+    status?: boolean
+    durationMinutes?: boolean
+    expiresAt?: boolean
+    endedAt?: boolean
+    endedReason?: boolean
+    lastLatitude?: boolean
+    lastLongitude?: boolean
+    lastAccuracy?: boolean
+    lastSpeed?: boolean
+    lastHeading?: boolean
+    lastUpdatedAt?: boolean
+    presenceStatus?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ItineraryInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     owner?: boolean | UserDefaultArgs<ExtArgs>
-    members?: boolean | Itinerary$membersArgs<ExtArgs>
-    stops?: boolean | Itinerary$stopsArgs<ExtArgs>
-    _count?: boolean | ItineraryCountOutputTypeDefaultArgs<ExtArgs>
+    viewers?: boolean | LiveLocationShare$viewersArgs<ExtArgs>
+    _count?: boolean | LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs>
   }
-  export type ItineraryIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     owner?: boolean | UserDefaultArgs<ExtArgs>
   }
 
-  export type $ItineraryPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "Itinerary"
+  export type $LiveLocationSharePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LiveLocationShare"
     objects: {
       owner: Prisma.$UserPayload<ExtArgs>
-      members: Prisma.$ItineraryMemberPayload<ExtArgs>[]
-      stops: Prisma.$ItineraryStopPayload<ExtArgs>[]
+      viewers: Prisma.$LiveLocationViewerPayload<ExtArgs>[]
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      title: string
-      description: string | null
       ownerId: string
-      shareToken: string
-      coverEmoji: string | null
-      startDate: Date | null
-      endDate: Date | null
-      autoSort: boolean
+      tokenHash: string
+      status: string
+      durationMinutes: number
+      expiresAt: Date
+      endedAt: Date | null
+      endedReason: string | null
+      lastLatitude: number | null
+      lastLongitude: number | null
+      lastAccuracy: number | null
+      lastSpeed: number | null
+      lastHeading: number | null
+      lastUpdatedAt: Date | null
+      presenceStatus: string
       createdAt: Date
       updatedAt: Date
-    }, ExtArgs["result"]["itinerary"]>
+    }, ExtArgs["result"]["liveLocationShare"]>
     composites: {}
   }
 
-  type ItineraryGetPayload<S extends boolean | null | undefined | ItineraryDefaultArgs> = $Result.GetResult<Prisma.$ItineraryPayload, S>
+  type LiveLocationShareGetPayload<S extends boolean | null | undefined | LiveLocationShareDefaultArgs> = $Result.GetResult<Prisma.$LiveLocationSharePayload, S>
 
-  type ItineraryCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
-    Omit<ItineraryFindManyArgs, 'select' | 'include' | 'distinct'> & {
-      select?: ItineraryCountAggregateInputType | true
+  type LiveLocationShareCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LiveLocationShareFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LiveLocationShareCountAggregateInputType | true
     }
 
-  export interface ItineraryDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['Itinerary'], meta: { name: 'Itinerary' } }
+  export interface LiveLocationShareDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LiveLocationShare'], meta: { name: 'LiveLocationShare' } }
     /**
-     * Find zero or one Itinerary that matches the filter.
-     * @param {ItineraryFindUniqueArgs} args - Arguments to find a Itinerary
+     * Find zero or one LiveLocationShare that matches the filter.
+     * @param {LiveLocationShareFindUniqueArgs} args - Arguments to find a LiveLocationShare
      * @example
-     * // Get one Itinerary
-     * const itinerary = await prisma.itinerary.findUnique({
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findUnique({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUnique<T extends ItineraryFindUniqueArgs>(args: SelectSubset<T, ItineraryFindUniqueArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+    findUnique<T extends LiveLocationShareFindUniqueArgs>(args: SelectSubset<T, LiveLocationShareFindUniqueArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one Itinerary that matches the filter or throw an error with `error.code='P2025'` 
+     * Find one LiveLocationShare that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
-     * @param {ItineraryFindUniqueOrThrowArgs} args - Arguments to find a Itinerary
+     * @param {LiveLocationShareFindUniqueOrThrowArgs} args - Arguments to find a LiveLocationShare
      * @example
-     * // Get one Itinerary
-     * const itinerary = await prisma.itinerary.findUniqueOrThrow({
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findUniqueOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUniqueOrThrow<T extends ItineraryFindUniqueOrThrowArgs>(args: SelectSubset<T, ItineraryFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+    findUniqueOrThrow<T extends LiveLocationShareFindUniqueOrThrowArgs>(args: SelectSubset<T, LiveLocationShareFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
 
     /**
-     * Find the first Itinerary that matches the filter.
+     * Find the first LiveLocationShare that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryFindFirstArgs} args - Arguments to find a Itinerary
+     * @param {LiveLocationShareFindFirstArgs} args - Arguments to find a LiveLocationShare
      * @example
-     * // Get one Itinerary
-     * const itinerary = await prisma.itinerary.findFirst({
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findFirst({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirst<T extends ItineraryFindFirstArgs>(args?: SelectSubset<T, ItineraryFindFirstArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+    findFirst<T extends LiveLocationShareFindFirstArgs>(args?: SelectSubset<T, LiveLocationShareFindFirstArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
 
     /**
-     * Find the first Itinerary that matches the filter or
+     * Find the first LiveLocationShare that matches the filter or
      * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryFindFirstOrThrowArgs} args - Arguments to find a Itinerary
+     * @param {LiveLocationShareFindFirstOrThrowArgs} args - Arguments to find a LiveLocationShare
      * @example
-     * // Get one Itinerary
-     * const itinerary = await prisma.itinerary.findFirstOrThrow({
+     * // Get one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.findFirstOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirstOrThrow<T extends ItineraryFindFirstOrThrowArgs>(args?: SelectSubset<T, ItineraryFindFirstOrThrowArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+    findFirstOrThrow<T extends LiveLocationShareFindFirstOrThrowArgs>(args?: SelectSubset<T, LiveLocationShareFindFirstOrThrowArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
 
     /**
-     * Find zero or more Itineraries that matches the filter.
+     * Find zero or more LiveLocationShares that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @param {LiveLocationShareFindManyArgs} args - Arguments to filter and select certain fields only.
      * @example
-     * // Get all Itineraries
-     * const itineraries = await prisma.itinerary.findMany()
+     * // Get all LiveLocationShares
+     * const liveLocationShares = await prisma.liveLocationShare.findMany()
      * 
-     * // Get first 10 Itineraries
-     * const itineraries = await prisma.itinerary.findMany({ take: 10 })
+     * // Get first 10 LiveLocationShares
+     * const liveLocationShares = await prisma.liveLocationShare.findMany({ take: 10 })
      * 
      * // Only select the `id`
-     * const itineraryWithIdOnly = await prisma.itinerary.findMany({ select: { id: true } })
+     * const liveLocationShareWithIdOnly = await prisma.liveLocationShare.findMany({ select: { id: true } })
      * 
      */
-    findMany<T extends ItineraryFindManyArgs>(args?: SelectSubset<T, ItineraryFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findMany">>
+    findMany<T extends LiveLocationShareFindManyArgs>(args?: SelectSubset<T, LiveLocationShareFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findMany">>
 
     /**
-     * Create a Itinerary.
-     * @param {ItineraryCreateArgs} args - Arguments to create a Itinerary.
+     * Create a LiveLocationShare.
+     * @param {LiveLocationShareCreateArgs} args - Arguments to create a LiveLocationShare.
      * @example
-     * // Create one Itinerary
-     * const Itinerary = await prisma.itinerary.create({
+     * // Create one LiveLocationShare
+     * const LiveLocationShare = await prisma.liveLocationShare.create({
      *   data: {
-     *     // ... data to create a Itinerary
+     *     // ... data to create a LiveLocationShare
      *   }
      * })
      * 
      */
-    create<T extends ItineraryCreateArgs>(args: SelectSubset<T, ItineraryCreateArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "create">, never, ExtArgs>
+    create<T extends LiveLocationShareCreateArgs>(args: SelectSubset<T, LiveLocationShareCreateArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "create">, never, ExtArgs>
 
     /**
-     * Create many Itineraries.
-     * @param {ItineraryCreateManyArgs} args - Arguments to create many Itineraries.
+     * Create many LiveLocationShares.
+     * @param {LiveLocationShareCreateManyArgs} args - Arguments to create many LiveLocationShares.
      * @example
-     * // Create many Itineraries
-     * const itinerary = await prisma.itinerary.createMany({
+     * // Create many LiveLocationShares
+     * const liveLocationShare = await prisma.liveLocationShare.createMany({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      *     
      */
-    createMany<T extends ItineraryCreateManyArgs>(args?: SelectSubset<T, ItineraryCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    createMany<T extends LiveLocationShareCreateManyArgs>(args?: SelectSubset<T, LiveLocationShareCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many Itineraries and returns the data saved in the database.
-     * @param {ItineraryCreateManyAndReturnArgs} args - Arguments to create many Itineraries.
+     * Create many LiveLocationShares and returns the data saved in the database.
+     * @param {LiveLocationShareCreateManyAndReturnArgs} args - Arguments to create many LiveLocationShares.
      * @example
-     * // Create many Itineraries
-     * const itinerary = await prisma.itinerary.createManyAndReturn({
+     * // Create many LiveLocationShares
+     * const liveLocationShare = await prisma.liveLocationShare.createManyAndReturn({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      * 
-     * // Create many Itineraries and only return the `id`
-     * const itineraryWithIdOnly = await prisma.itinerary.createManyAndReturn({ 
+     * // Create many LiveLocationShares and only return the `id`
+     * const liveLocationShareWithIdOnly = await prisma.liveLocationShare.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -20438,28 +20559,28 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    createManyAndReturn<T extends ItineraryCreateManyAndReturnArgs>(args?: SelectSubset<T, ItineraryCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "createManyAndReturn">>
+    createManyAndReturn<T extends LiveLocationShareCreateManyAndReturnArgs>(args?: SelectSubset<T, LiveLocationShareCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "createManyAndReturn">>
 
     /**
-     * Delete a Itinerary.
-     * @param {ItineraryDeleteArgs} args - Arguments to delete one Itinerary.
+     * Delete a LiveLocationShare.
+     * @param {LiveLocationShareDeleteArgs} args - Arguments to delete one LiveLocationShare.
      * @example
-     * // Delete one Itinerary
-     * const Itinerary = await prisma.itinerary.delete({
+     * // Delete one LiveLocationShare
+     * const LiveLocationShare = await prisma.liveLocationShare.delete({
      *   where: {
-     *     // ... filter to delete one Itinerary
+     *     // ... filter to delete one LiveLocationShare
      *   }
      * })
      * 
      */
-    delete<T extends ItineraryDeleteArgs>(args: SelectSubset<T, ItineraryDeleteArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+    delete<T extends LiveLocationShareDeleteArgs>(args: SelectSubset<T, LiveLocationShareDeleteArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
     /**
-     * Update one Itinerary.
-     * @param {ItineraryUpdateArgs} args - Arguments to update one Itinerary.
+     * Update one LiveLocationShare.
+     * @param {LiveLocationShareUpdateArgs} args - Arguments to update one LiveLocationShare.
      * @example
-     * // Update one Itinerary
-     * const itinerary = await prisma.itinerary.update({
+     * // Update one LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.update({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -20469,30 +20590,30 @@ export namespace Prisma {
      * })
      * 
      */
-    update<T extends ItineraryUpdateArgs>(args: SelectSubset<T, ItineraryUpdateArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "update">, never, ExtArgs>
+    update<T extends LiveLocationShareUpdateArgs>(args: SelectSubset<T, LiveLocationShareUpdateArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "update">, never, ExtArgs>
 
     /**
-     * Delete zero or more Itineraries.
-     * @param {ItineraryDeleteManyArgs} args - Arguments to filter Itineraries to delete.
+     * Delete zero or more LiveLocationShares.
+     * @param {LiveLocationShareDeleteManyArgs} args - Arguments to filter LiveLocationShares to delete.
      * @example
-     * // Delete a few Itineraries
-     * const { count } = await prisma.itinerary.deleteMany({
+     * // Delete a few LiveLocationShares
+     * const { count } = await prisma.liveLocationShare.deleteMany({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      * 
      */
-    deleteMany<T extends ItineraryDeleteManyArgs>(args?: SelectSubset<T, ItineraryDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    deleteMany<T extends LiveLocationShareDeleteManyArgs>(args?: SelectSubset<T, LiveLocationShareDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more Itineraries.
+     * Update zero or more LiveLocationShares.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryUpdateManyArgs} args - Arguments to update one or more rows.
+     * @param {LiveLocationShareUpdateManyArgs} args - Arguments to update one or more rows.
      * @example
-     * // Update many Itineraries
-     * const itinerary = await prisma.itinerary.updateMany({
+     * // Update many LiveLocationShares
+     * const liveLocationShare = await prisma.liveLocationShare.updateMany({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -20502,56 +20623,56 @@ export namespace Prisma {
      * })
      * 
      */
-    updateMany<T extends ItineraryUpdateManyArgs>(args: SelectSubset<T, ItineraryUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    updateMany<T extends LiveLocationShareUpdateManyArgs>(args: SelectSubset<T, LiveLocationShareUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create or update one Itinerary.
-     * @param {ItineraryUpsertArgs} args - Arguments to update or create a Itinerary.
+     * Create or update one LiveLocationShare.
+     * @param {LiveLocationShareUpsertArgs} args - Arguments to update or create a LiveLocationShare.
      * @example
-     * // Update or create a Itinerary
-     * const itinerary = await prisma.itinerary.upsert({
+     * // Update or create a LiveLocationShare
+     * const liveLocationShare = await prisma.liveLocationShare.upsert({
      *   create: {
-     *     // ... data to create a Itinerary
+     *     // ... data to create a LiveLocationShare
      *   },
      *   update: {
      *     // ... in case it already exists, update
      *   },
      *   where: {
-     *     // ... the filter for the Itinerary we want to update
+     *     // ... the filter for the LiveLocationShare we want to update
      *   }
      * })
      */
-    upsert<T extends ItineraryUpsertArgs>(args: SelectSubset<T, ItineraryUpsertArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+    upsert<T extends LiveLocationShareUpsertArgs>(args: SelectSubset<T, LiveLocationShareUpsertArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
 
 
     /**
-     * Count the number of Itineraries.
+     * Count the number of LiveLocationShares.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCountArgs} args - Arguments to filter Itineraries to count.
+     * @param {LiveLocationShareCountArgs} args - Arguments to filter LiveLocationShares to count.
      * @example
-     * // Count the number of Itineraries
-     * const count = await prisma.itinerary.count({
+     * // Count the number of LiveLocationShares
+     * const count = await prisma.liveLocationShare.count({
      *   where: {
-     *     // ... the filter for the Itineraries we want to count
+     *     // ... the filter for the LiveLocationShares we want to count
      *   }
      * })
     **/
-    count<T extends ItineraryCountArgs>(
-      args?: Subset<T, ItineraryCountArgs>,
+    count<T extends LiveLocationShareCountArgs>(
+      args?: Subset<T, LiveLocationShareCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
         ? T['select'] extends true
           ? number
-          : GetScalarType<T['select'], ItineraryCountAggregateOutputType>
+          : GetScalarType<T['select'], LiveLocationShareCountAggregateOutputType>
         : number
     >
 
     /**
-     * Allows you to perform aggregations operations on a Itinerary.
+     * Allows you to perform aggregations operations on a LiveLocationShare.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @param {LiveLocationShareAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
      * @example
      * // Ordered by age ascending
      * // Where email contains prisma.io
@@ -20571,13 +20692,13 @@ export namespace Prisma {
      *   take: 10,
      * })
     **/
-    aggregate<T extends ItineraryAggregateArgs>(args: Subset<T, ItineraryAggregateArgs>): Prisma.PrismaPromise<GetItineraryAggregateType<T>>
+    aggregate<T extends LiveLocationShareAggregateArgs>(args: Subset<T, LiveLocationShareAggregateArgs>): Prisma.PrismaPromise<GetLiveLocationShareAggregateType<T>>
 
     /**
-     * Group by Itinerary.
+     * Group by LiveLocationShare.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryGroupByArgs} args - Group by arguments.
+     * @param {LiveLocationShareGroupByArgs} args - Group by arguments.
      * @example
      * // Group by city, order by createdAt, get count
      * const result = await prisma.user.groupBy({
@@ -20592,14 +20713,14 @@ export namespace Prisma {
      * 
     **/
     groupBy<
-      T extends ItineraryGroupByArgs,
+      T extends LiveLocationShareGroupByArgs,
       HasSelectOrTake extends Or<
         Extends<'skip', Keys<T>>,
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: ItineraryGroupByArgs['orderBy'] }
-        : { orderBy?: ItineraryGroupByArgs['orderBy'] },
+        ? { orderBy: LiveLocationShareGroupByArgs['orderBy'] }
+        : { orderBy?: LiveLocationShareGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -20648,24 +20769,23 @@ export namespace Prisma {
             ? never
             : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
         }[OrderFields]
-    >(args: SubsetIntersection<T, ItineraryGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetItineraryGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+    >(args: SubsetIntersection<T, LiveLocationShareGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLiveLocationShareGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
   /**
-   * Fields of the Itinerary model
+   * Fields of the LiveLocationShare model
    */
-  readonly fields: ItineraryFieldRefs;
+  readonly fields: LiveLocationShareFieldRefs;
   }
 
   /**
-   * The delegate class that acts as a "Promise-like" for Itinerary.
+   * The delegate class that acts as a "Promise-like" for LiveLocationShare.
    * Why is this prefixed with `Prisma__`?
    * Because we want to prevent naming conflicts as mentioned in
    * https://github.com/prisma/prisma-client-js/issues/707
    */
-  export interface Prisma__ItineraryClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+  export interface Prisma__LiveLocationShareClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
     owner<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
-    members<T extends Itinerary$membersArgs<ExtArgs> = {}>(args?: Subset<T, Itinerary$membersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findMany"> | Null>
-    stops<T extends Itinerary$stopsArgs<ExtArgs> = {}>(args?: Subset<T, Itinerary$stopsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findMany"> | Null>
+    viewers<T extends LiveLocationShare$viewersArgs<ExtArgs> = {}>(args?: Subset<T, LiveLocationShare$viewersArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findMany"> | Null>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -20692,729 +20812,715 @@ export namespace Prisma {
 
 
   /**
-   * Fields of the Itinerary model
+   * Fields of the LiveLocationShare model
    */ 
-  interface ItineraryFieldRefs {
-    readonly id: FieldRef<"Itinerary", 'String'>
-    readonly title: FieldRef<"Itinerary", 'String'>
-    readonly description: FieldRef<"Itinerary", 'String'>
-    readonly ownerId: FieldRef<"Itinerary", 'String'>
-    readonly shareToken: FieldRef<"Itinerary", 'String'>
-    readonly coverEmoji: FieldRef<"Itinerary", 'String'>
-    readonly startDate: FieldRef<"Itinerary", 'DateTime'>
-    readonly endDate: FieldRef<"Itinerary", 'DateTime'>
-    readonly autoSort: FieldRef<"Itinerary", 'Boolean'>
-    readonly createdAt: FieldRef<"Itinerary", 'DateTime'>
-    readonly updatedAt: FieldRef<"Itinerary", 'DateTime'>
+  interface LiveLocationShareFieldRefs {
+    readonly id: FieldRef<"LiveLocationShare", 'String'>
+    readonly ownerId: FieldRef<"LiveLocationShare", 'String'>
+    readonly tokenHash: FieldRef<"LiveLocationShare", 'String'>
+    readonly status: FieldRef<"LiveLocationShare", 'String'>
+    readonly durationMinutes: FieldRef<"LiveLocationShare", 'Int'>
+    readonly expiresAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly endedAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly endedReason: FieldRef<"LiveLocationShare", 'String'>
+    readonly lastLatitude: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastLongitude: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastAccuracy: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastSpeed: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastHeading: FieldRef<"LiveLocationShare", 'Float'>
+    readonly lastUpdatedAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly presenceStatus: FieldRef<"LiveLocationShare", 'String'>
+    readonly createdAt: FieldRef<"LiveLocationShare", 'DateTime'>
+    readonly updatedAt: FieldRef<"LiveLocationShare", 'DateTime'>
   }
     
 
   // Custom InputTypes
   /**
-   * Itinerary findUnique
+   * LiveLocationShare findUnique
    */
-  export type ItineraryFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * Filter, which Itinerary to fetch.
+     * Filter, which LiveLocationShare to fetch.
      */
-    where: ItineraryWhereUniqueInput
+    where: LiveLocationShareWhereUniqueInput
   }
 
   /**
-   * Itinerary findUniqueOrThrow
+   * LiveLocationShare findUniqueOrThrow
    */
-  export type ItineraryFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * Filter, which Itinerary to fetch.
+     * Filter, which LiveLocationShare to fetch.
      */
-    where: ItineraryWhereUniqueInput
+    where: LiveLocationShareWhereUniqueInput
   }
 
   /**
-   * Itinerary findFirst
+   * LiveLocationShare findFirst
    */
-  export type ItineraryFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * Filter, which Itinerary to fetch.
+     * Filter, which LiveLocationShare to fetch.
      */
-    where?: ItineraryWhereInput
+    where?: LiveLocationShareWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of Itineraries to fetch.
+     * Determine the order of LiveLocationShares to fetch.
      */
-    orderBy?: ItineraryOrderByWithRelationInput | ItineraryOrderByWithRelationInput[]
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for Itineraries.
+     * Sets the position for searching for LiveLocationShares.
      */
-    cursor?: ItineraryWhereUniqueInput
+    cursor?: LiveLocationShareWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` Itineraries from the position of the cursor.
+     * Take `±n` LiveLocationShares from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` Itineraries.
+     * Skip the first `n` LiveLocationShares.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of Itineraries.
+     * Filter by unique combinations of LiveLocationShares.
      */
-    distinct?: ItineraryScalarFieldEnum | ItineraryScalarFieldEnum[]
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
   }
 
   /**
-   * Itinerary findFirstOrThrow
+   * LiveLocationShare findFirstOrThrow
    */
-  export type ItineraryFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * Filter, which Itinerary to fetch.
+     * Filter, which LiveLocationShare to fetch.
      */
-    where?: ItineraryWhereInput
+    where?: LiveLocationShareWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of Itineraries to fetch.
+     * Determine the order of LiveLocationShares to fetch.
      */
-    orderBy?: ItineraryOrderByWithRelationInput | ItineraryOrderByWithRelationInput[]
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for Itineraries.
+     * Sets the position for searching for LiveLocationShares.
      */
-    cursor?: ItineraryWhereUniqueInput
+    cursor?: LiveLocationShareWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` Itineraries from the position of the cursor.
+     * Take `±n` LiveLocationShares from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` Itineraries.
+     * Skip the first `n` LiveLocationShares.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of Itineraries.
+     * Filter by unique combinations of LiveLocationShares.
      */
-    distinct?: ItineraryScalarFieldEnum | ItineraryScalarFieldEnum[]
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
   }
 
   /**
-   * Itinerary findMany
+   * LiveLocationShare findMany
    */
-  export type ItineraryFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * Filter, which Itineraries to fetch.
+     * Filter, which LiveLocationShares to fetch.
      */
-    where?: ItineraryWhereInput
+    where?: LiveLocationShareWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of Itineraries to fetch.
+     * Determine the order of LiveLocationShares to fetch.
      */
-    orderBy?: ItineraryOrderByWithRelationInput | ItineraryOrderByWithRelationInput[]
+    orderBy?: LiveLocationShareOrderByWithRelationInput | LiveLocationShareOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for listing Itineraries.
+     * Sets the position for listing LiveLocationShares.
      */
-    cursor?: ItineraryWhereUniqueInput
+    cursor?: LiveLocationShareWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` Itineraries from the position of the cursor.
+     * Take `±n` LiveLocationShares from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` Itineraries.
+     * Skip the first `n` LiveLocationShares.
      */
     skip?: number
-    distinct?: ItineraryScalarFieldEnum | ItineraryScalarFieldEnum[]
+    distinct?: LiveLocationShareScalarFieldEnum | LiveLocationShareScalarFieldEnum[]
   }
 
   /**
-   * Itinerary create
+   * LiveLocationShare create
    */
-  export type ItineraryCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * The data needed to create a Itinerary.
+     * The data needed to create a LiveLocationShare.
      */
-    data: XOR<ItineraryCreateInput, ItineraryUncheckedCreateInput>
+    data: XOR<LiveLocationShareCreateInput, LiveLocationShareUncheckedCreateInput>
   }
 
   /**
-   * Itinerary createMany
+   * LiveLocationShare createMany
    */
-  export type ItineraryCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to create many Itineraries.
+     * The data used to create many LiveLocationShares.
      */
-    data: ItineraryCreateManyInput | ItineraryCreateManyInput[]
+    data: LiveLocationShareCreateManyInput | LiveLocationShareCreateManyInput[]
     skipDuplicates?: boolean
   }
 
   /**
-   * Itinerary createManyAndReturn
+   * LiveLocationShare createManyAndReturn
    */
-  export type ItineraryCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelectCreateManyAndReturn<ExtArgs> | null
+    select?: LiveLocationShareSelectCreateManyAndReturn<ExtArgs> | null
     /**
-     * The data used to create many Itineraries.
+     * The data used to create many LiveLocationShares.
      */
-    data: ItineraryCreateManyInput | ItineraryCreateManyInput[]
+    data: LiveLocationShareCreateManyInput | LiveLocationShareCreateManyInput[]
     skipDuplicates?: boolean
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryIncludeCreateManyAndReturn<ExtArgs> | null
+    include?: LiveLocationShareIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
-   * Itinerary update
+   * LiveLocationShare update
    */
-  export type ItineraryUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * The data needed to update a Itinerary.
+     * The data needed to update a LiveLocationShare.
      */
-    data: XOR<ItineraryUpdateInput, ItineraryUncheckedUpdateInput>
+    data: XOR<LiveLocationShareUpdateInput, LiveLocationShareUncheckedUpdateInput>
     /**
-     * Choose, which Itinerary to update.
+     * Choose, which LiveLocationShare to update.
      */
-    where: ItineraryWhereUniqueInput
+    where: LiveLocationShareWhereUniqueInput
   }
 
   /**
-   * Itinerary updateMany
+   * LiveLocationShare updateMany
    */
-  export type ItineraryUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to update Itineraries.
+     * The data used to update LiveLocationShares.
      */
-    data: XOR<ItineraryUpdateManyMutationInput, ItineraryUncheckedUpdateManyInput>
+    data: XOR<LiveLocationShareUpdateManyMutationInput, LiveLocationShareUncheckedUpdateManyInput>
     /**
-     * Filter which Itineraries to update
+     * Filter which LiveLocationShares to update
      */
-    where?: ItineraryWhereInput
+    where?: LiveLocationShareWhereInput
   }
 
   /**
-   * Itinerary upsert
+   * LiveLocationShare upsert
    */
-  export type ItineraryUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * The filter to search for the Itinerary to update in case it exists.
+     * The filter to search for the LiveLocationShare to update in case it exists.
      */
-    where: ItineraryWhereUniqueInput
+    where: LiveLocationShareWhereUniqueInput
     /**
-     * In case the Itinerary found by the `where` argument doesn't exist, create a new Itinerary with this data.
+     * In case the LiveLocationShare found by the `where` argument doesn't exist, create a new LiveLocationShare with this data.
      */
-    create: XOR<ItineraryCreateInput, ItineraryUncheckedCreateInput>
+    create: XOR<LiveLocationShareCreateInput, LiveLocationShareUncheckedCreateInput>
     /**
-     * In case the Itinerary was found with the provided `where` argument, update it with this data.
+     * In case the LiveLocationShare was found with the provided `where` argument, update it with this data.
      */
-    update: XOR<ItineraryUpdateInput, ItineraryUncheckedUpdateInput>
+    update: XOR<LiveLocationShareUpdateInput, LiveLocationShareUncheckedUpdateInput>
   }
 
   /**
-   * Itinerary delete
+   * LiveLocationShare delete
    */
-  export type ItineraryDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the Itinerary
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItinerarySelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
     /**
-     * Filter which Itinerary to delete.
+     * Filter which LiveLocationShare to delete.
      */
-    where: ItineraryWhereUniqueInput
+    where: LiveLocationShareWhereUniqueInput
   }
 
   /**
-   * Itinerary deleteMany
+   * LiveLocationShare deleteMany
    */
-  export type ItineraryDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which Itineraries to delete
+     * Filter which LiveLocationShares to delete
      */
-    where?: ItineraryWhereInput
+    where?: LiveLocationShareWhereInput
   }
 
   /**
-   * Itinerary.members
+   * LiveLocationShare.viewers
    */
-  export type Itinerary$membersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShare$viewersArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
-    where?: ItineraryMemberWhereInput
-    orderBy?: ItineraryMemberOrderByWithRelationInput | ItineraryMemberOrderByWithRelationInput[]
-    cursor?: ItineraryMemberWhereUniqueInput
+    include?: LiveLocationViewerInclude<ExtArgs> | null
+    where?: LiveLocationViewerWhereInput
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
+    cursor?: LiveLocationViewerWhereUniqueInput
     take?: number
     skip?: number
-    distinct?: ItineraryMemberScalarFieldEnum | ItineraryMemberScalarFieldEnum[]
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
   }
 
   /**
-   * Itinerary.stops
+   * LiveLocationShare without action
    */
-  export type Itinerary$stopsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationShareDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryStop
+     * Select specific fields to fetch from the LiveLocationShare
      */
-    select?: ItineraryStopSelect<ExtArgs> | null
+    select?: LiveLocationShareSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    where?: ItineraryStopWhereInput
-    orderBy?: ItineraryStopOrderByWithRelationInput | ItineraryStopOrderByWithRelationInput[]
-    cursor?: ItineraryStopWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: ItineraryStopScalarFieldEnum | ItineraryStopScalarFieldEnum[]
-  }
-
-  /**
-   * Itinerary without action
-   */
-  export type ItineraryDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the Itinerary
-     */
-    select?: ItinerarySelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryInclude<ExtArgs> | null
+    include?: LiveLocationShareInclude<ExtArgs> | null
   }
 
 
   /**
-   * Model ItineraryMember
+   * Model LiveLocationViewer
    */
 
-  export type AggregateItineraryMember = {
-    _count: ItineraryMemberCountAggregateOutputType | null
-    _min: ItineraryMemberMinAggregateOutputType | null
-    _max: ItineraryMemberMaxAggregateOutputType | null
+  export type AggregateLiveLocationViewer = {
+    _count: LiveLocationViewerCountAggregateOutputType | null
+    _min: LiveLocationViewerMinAggregateOutputType | null
+    _max: LiveLocationViewerMaxAggregateOutputType | null
   }
 
-  export type ItineraryMemberMinAggregateOutputType = {
+  export type LiveLocationViewerMinAggregateOutputType = {
     id: string | null
-    itineraryId: string | null
+    shareId: string | null
     userId: string | null
-    role: string | null
-    createdAt: Date | null
+    firstViewedAt: Date | null
+    lastViewedAt: Date | null
   }
 
-  export type ItineraryMemberMaxAggregateOutputType = {
+  export type LiveLocationViewerMaxAggregateOutputType = {
     id: string | null
-    itineraryId: string | null
+    shareId: string | null
     userId: string | null
-    role: string | null
-    createdAt: Date | null
+    firstViewedAt: Date | null
+    lastViewedAt: Date | null
   }
 
-  export type ItineraryMemberCountAggregateOutputType = {
+  export type LiveLocationViewerCountAggregateOutputType = {
     id: number
-    itineraryId: number
+    shareId: number
     userId: number
-    role: number
-    createdAt: number
+    firstViewedAt: number
+    lastViewedAt: number
     _all: number
   }
 
 
-  export type ItineraryMemberMinAggregateInputType = {
+  export type LiveLocationViewerMinAggregateInputType = {
     id?: true
-    itineraryId?: true
+    shareId?: true
     userId?: true
-    role?: true
-    createdAt?: true
+    firstViewedAt?: true
+    lastViewedAt?: true
   }
 
-  export type ItineraryMemberMaxAggregateInputType = {
+  export type LiveLocationViewerMaxAggregateInputType = {
     id?: true
-    itineraryId?: true
+    shareId?: true
     userId?: true
-    role?: true
-    createdAt?: true
+    firstViewedAt?: true
+    lastViewedAt?: true
   }
 
-  export type ItineraryMemberCountAggregateInputType = {
+  export type LiveLocationViewerCountAggregateInputType = {
     id?: true
-    itineraryId?: true
+    shareId?: true
     userId?: true
-    role?: true
-    createdAt?: true
+    firstViewedAt?: true
+    lastViewedAt?: true
     _all?: true
   }
 
-  export type ItineraryMemberAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which ItineraryMember to aggregate.
+     * Filter which LiveLocationViewer to aggregate.
      */
-    where?: ItineraryMemberWhereInput
+    where?: LiveLocationViewerWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryMembers to fetch.
+     * Determine the order of LiveLocationViewers to fetch.
      */
-    orderBy?: ItineraryMemberOrderByWithRelationInput | ItineraryMemberOrderByWithRelationInput[]
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
      * Sets the start position
      */
-    cursor?: ItineraryMemberWhereUniqueInput
+    cursor?: LiveLocationViewerWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryMembers from the position of the cursor.
+     * Take `±n` LiveLocationViewers from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryMembers.
+     * Skip the first `n` LiveLocationViewers.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Count returned ItineraryMembers
+     * Count returned LiveLocationViewers
     **/
-    _count?: true | ItineraryMemberCountAggregateInputType
+    _count?: true | LiveLocationViewerCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the minimum value
     **/
-    _min?: ItineraryMemberMinAggregateInputType
+    _min?: LiveLocationViewerMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the maximum value
     **/
-    _max?: ItineraryMemberMaxAggregateInputType
+    _max?: LiveLocationViewerMaxAggregateInputType
   }
 
-  export type GetItineraryMemberAggregateType<T extends ItineraryMemberAggregateArgs> = {
-        [P in keyof T & keyof AggregateItineraryMember]: P extends '_count' | 'count'
+  export type GetLiveLocationViewerAggregateType<T extends LiveLocationViewerAggregateArgs> = {
+        [P in keyof T & keyof AggregateLiveLocationViewer]: P extends '_count' | 'count'
       ? T[P] extends true
         ? number
-        : GetScalarType<T[P], AggregateItineraryMember[P]>
-      : GetScalarType<T[P], AggregateItineraryMember[P]>
+        : GetScalarType<T[P], AggregateLiveLocationViewer[P]>
+      : GetScalarType<T[P], AggregateLiveLocationViewer[P]>
   }
 
 
 
 
-  export type ItineraryMemberGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryMemberWhereInput
-    orderBy?: ItineraryMemberOrderByWithAggregationInput | ItineraryMemberOrderByWithAggregationInput[]
-    by: ItineraryMemberScalarFieldEnum[] | ItineraryMemberScalarFieldEnum
-    having?: ItineraryMemberScalarWhereWithAggregatesInput
+  export type LiveLocationViewerGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LiveLocationViewerWhereInput
+    orderBy?: LiveLocationViewerOrderByWithAggregationInput | LiveLocationViewerOrderByWithAggregationInput[]
+    by: LiveLocationViewerScalarFieldEnum[] | LiveLocationViewerScalarFieldEnum
+    having?: LiveLocationViewerScalarWhereWithAggregatesInput
     take?: number
     skip?: number
-    _count?: ItineraryMemberCountAggregateInputType | true
-    _min?: ItineraryMemberMinAggregateInputType
-    _max?: ItineraryMemberMaxAggregateInputType
+    _count?: LiveLocationViewerCountAggregateInputType | true
+    _min?: LiveLocationViewerMinAggregateInputType
+    _max?: LiveLocationViewerMaxAggregateInputType
   }
 
-  export type ItineraryMemberGroupByOutputType = {
+  export type LiveLocationViewerGroupByOutputType = {
     id: string
-    itineraryId: string
+    shareId: string
     userId: string
-    role: string
-    createdAt: Date
-    _count: ItineraryMemberCountAggregateOutputType | null
-    _min: ItineraryMemberMinAggregateOutputType | null
-    _max: ItineraryMemberMaxAggregateOutputType | null
+    firstViewedAt: Date
+    lastViewedAt: Date
+    _count: LiveLocationViewerCountAggregateOutputType | null
+    _min: LiveLocationViewerMinAggregateOutputType | null
+    _max: LiveLocationViewerMaxAggregateOutputType | null
   }
 
-  type GetItineraryMemberGroupByPayload<T extends ItineraryMemberGroupByArgs> = Prisma.PrismaPromise<
+  type GetLiveLocationViewerGroupByPayload<T extends LiveLocationViewerGroupByArgs> = Prisma.PrismaPromise<
     Array<
-      PickEnumerable<ItineraryMemberGroupByOutputType, T['by']> &
+      PickEnumerable<LiveLocationViewerGroupByOutputType, T['by']> &
         {
-          [P in ((keyof T) & (keyof ItineraryMemberGroupByOutputType))]: P extends '_count'
+          [P in ((keyof T) & (keyof LiveLocationViewerGroupByOutputType))]: P extends '_count'
             ? T[P] extends boolean
               ? number
-              : GetScalarType<T[P], ItineraryMemberGroupByOutputType[P]>
-            : GetScalarType<T[P], ItineraryMemberGroupByOutputType[P]>
+              : GetScalarType<T[P], LiveLocationViewerGroupByOutputType[P]>
+            : GetScalarType<T[P], LiveLocationViewerGroupByOutputType[P]>
         }
       >
     >
 
 
-  export type ItineraryMemberSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type LiveLocationViewerSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    itineraryId?: boolean
+    shareId?: boolean
     userId?: boolean
-    role?: boolean
-    createdAt?: boolean
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
+    firstViewedAt?: boolean
+    lastViewedAt?: boolean
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryMember"]>
+  }, ExtArgs["result"]["liveLocationViewer"]>
 
-  export type ItineraryMemberSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type LiveLocationViewerSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    itineraryId?: boolean
+    shareId?: boolean
     userId?: boolean
-    role?: boolean
-    createdAt?: boolean
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
+    firstViewedAt?: boolean
+    lastViewedAt?: boolean
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryMember"]>
+  }, ExtArgs["result"]["liveLocationViewer"]>
 
-  export type ItineraryMemberSelectScalar = {
+  export type LiveLocationViewerSelectScalar = {
     id?: boolean
-    itineraryId?: boolean
+    shareId?: boolean
     userId?: boolean
-    role?: boolean
-    createdAt?: boolean
+    firstViewedAt?: boolean
+    lastViewedAt?: boolean
   }
 
-  export type ItineraryMemberInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
+  export type LiveLocationViewerInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
-  export type ItineraryMemberIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
+  export type LiveLocationViewerIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    share?: boolean | LiveLocationShareDefaultArgs<ExtArgs>
     user?: boolean | UserDefaultArgs<ExtArgs>
   }
 
-  export type $ItineraryMemberPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "ItineraryMember"
+  export type $LiveLocationViewerPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LiveLocationViewer"
     objects: {
-      itinerary: Prisma.$ItineraryPayload<ExtArgs>
+      share: Prisma.$LiveLocationSharePayload<ExtArgs>
       user: Prisma.$UserPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      itineraryId: string
+      shareId: string
       userId: string
-      role: string
-      createdAt: Date
-    }, ExtArgs["result"]["itineraryMember"]>
+      firstViewedAt: Date
+      lastViewedAt: Date
+    }, ExtArgs["result"]["liveLocationViewer"]>
     composites: {}
   }
 
-  type ItineraryMemberGetPayload<S extends boolean | null | undefined | ItineraryMemberDefaultArgs> = $Result.GetResult<Prisma.$ItineraryMemberPayload, S>
+  type LiveLocationViewerGetPayload<S extends boolean | null | undefined | LiveLocationViewerDefaultArgs> = $Result.GetResult<Prisma.$LiveLocationViewerPayload, S>
 
-  type ItineraryMemberCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
-    Omit<ItineraryMemberFindManyArgs, 'select' | 'include' | 'distinct'> & {
-      select?: ItineraryMemberCountAggregateInputType | true
+  type LiveLocationViewerCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LiveLocationViewerFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LiveLocationViewerCountAggregateInputType | true
     }
 
-  export interface ItineraryMemberDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ItineraryMember'], meta: { name: 'ItineraryMember' } }
+  export interface LiveLocationViewerDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LiveLocationViewer'], meta: { name: 'LiveLocationViewer' } }
     /**
-     * Find zero or one ItineraryMember that matches the filter.
-     * @param {ItineraryMemberFindUniqueArgs} args - Arguments to find a ItineraryMember
+     * Find zero or one LiveLocationViewer that matches the filter.
+     * @param {LiveLocationViewerFindUniqueArgs} args - Arguments to find a LiveLocationViewer
      * @example
-     * // Get one ItineraryMember
-     * const itineraryMember = await prisma.itineraryMember.findUnique({
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findUnique({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUnique<T extends ItineraryMemberFindUniqueArgs>(args: SelectSubset<T, ItineraryMemberFindUniqueArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+    findUnique<T extends LiveLocationViewerFindUniqueArgs>(args: SelectSubset<T, LiveLocationViewerFindUniqueArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one ItineraryMember that matches the filter or throw an error with `error.code='P2025'` 
+     * Find one LiveLocationViewer that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
-     * @param {ItineraryMemberFindUniqueOrThrowArgs} args - Arguments to find a ItineraryMember
+     * @param {LiveLocationViewerFindUniqueOrThrowArgs} args - Arguments to find a LiveLocationViewer
      * @example
-     * // Get one ItineraryMember
-     * const itineraryMember = await prisma.itineraryMember.findUniqueOrThrow({
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findUniqueOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUniqueOrThrow<T extends ItineraryMemberFindUniqueOrThrowArgs>(args: SelectSubset<T, ItineraryMemberFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+    findUniqueOrThrow<T extends LiveLocationViewerFindUniqueOrThrowArgs>(args: SelectSubset<T, LiveLocationViewerFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
 
     /**
-     * Find the first ItineraryMember that matches the filter.
+     * Find the first LiveLocationViewer that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryMemberFindFirstArgs} args - Arguments to find a ItineraryMember
+     * @param {LiveLocationViewerFindFirstArgs} args - Arguments to find a LiveLocationViewer
      * @example
-     * // Get one ItineraryMember
-     * const itineraryMember = await prisma.itineraryMember.findFirst({
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findFirst({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirst<T extends ItineraryMemberFindFirstArgs>(args?: SelectSubset<T, ItineraryMemberFindFirstArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+    findFirst<T extends LiveLocationViewerFindFirstArgs>(args?: SelectSubset<T, LiveLocationViewerFindFirstArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
 
     /**
-     * Find the first ItineraryMember that matches the filter or
+     * Find the first LiveLocationViewer that matches the filter or
      * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryMemberFindFirstOrThrowArgs} args - Arguments to find a ItineraryMember
+     * @param {LiveLocationViewerFindFirstOrThrowArgs} args - Arguments to find a LiveLocationViewer
      * @example
-     * // Get one ItineraryMember
-     * const itineraryMember = await prisma.itineraryMember.findFirstOrThrow({
+     * // Get one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.findFirstOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirstOrThrow<T extends ItineraryMemberFindFirstOrThrowArgs>(args?: SelectSubset<T, ItineraryMemberFindFirstOrThrowArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+    findFirstOrThrow<T extends LiveLocationViewerFindFirstOrThrowArgs>(args?: SelectSubset<T, LiveLocationViewerFindFirstOrThrowArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
 
     /**
-     * Find zero or more ItineraryMembers that matches the filter.
+     * Find zero or more LiveLocationViewers that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryMemberFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @param {LiveLocationViewerFindManyArgs} args - Arguments to filter and select certain fields only.
      * @example
-     * // Get all ItineraryMembers
-     * const itineraryMembers = await prisma.itineraryMember.findMany()
+     * // Get all LiveLocationViewers
+     * const liveLocationViewers = await prisma.liveLocationViewer.findMany()
      * 
-     * // Get first 10 ItineraryMembers
-     * const itineraryMembers = await prisma.itineraryMember.findMany({ take: 10 })
+     * // Get first 10 LiveLocationViewers
+     * const liveLocationViewers = await prisma.liveLocationViewer.findMany({ take: 10 })
      * 
      * // Only select the `id`
-     * const itineraryMemberWithIdOnly = await prisma.itineraryMember.findMany({ select: { id: true } })
+     * const liveLocationViewerWithIdOnly = await prisma.liveLocationViewer.findMany({ select: { id: true } })
      * 
      */
-    findMany<T extends ItineraryMemberFindManyArgs>(args?: SelectSubset<T, ItineraryMemberFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "findMany">>
+    findMany<T extends LiveLocationViewerFindManyArgs>(args?: SelectSubset<T, LiveLocationViewerFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "findMany">>
 
     /**
-     * Create a ItineraryMember.
-     * @param {ItineraryMemberCreateArgs} args - Arguments to create a ItineraryMember.
+     * Create a LiveLocationViewer.
+     * @param {LiveLocationViewerCreateArgs} args - Arguments to create a LiveLocationViewer.
      * @example
-     * // Create one ItineraryMember
-     * const ItineraryMember = await prisma.itineraryMember.create({
+     * // Create one LiveLocationViewer
+     * const LiveLocationViewer = await prisma.liveLocationViewer.create({
      *   data: {
-     *     // ... data to create a ItineraryMember
+     *     // ... data to create a LiveLocationViewer
      *   }
      * })
      * 
      */
-    create<T extends ItineraryMemberCreateArgs>(args: SelectSubset<T, ItineraryMemberCreateArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "create">, never, ExtArgs>
+    create<T extends LiveLocationViewerCreateArgs>(args: SelectSubset<T, LiveLocationViewerCreateArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
     /**
-     * Create many ItineraryMembers.
-     * @param {ItineraryMemberCreateManyArgs} args - Arguments to create many ItineraryMembers.
+     * Create many LiveLocationViewers.
+     * @param {LiveLocationViewerCreateManyArgs} args - Arguments to create many LiveLocationViewers.
      * @example
-     * // Create many ItineraryMembers
-     * const itineraryMember = await prisma.itineraryMember.createMany({
+     * // Create many LiveLocationViewers
+     * const liveLocationViewer = await prisma.liveLocationViewer.createMany({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      *     
      */
-    createMany<T extends ItineraryMemberCreateManyArgs>(args?: SelectSubset<T, ItineraryMemberCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    createMany<T extends LiveLocationViewerCreateManyArgs>(args?: SelectSubset<T, LiveLocationViewerCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many ItineraryMembers and returns the data saved in the database.
-     * @param {ItineraryMemberCreateManyAndReturnArgs} args - Arguments to create many ItineraryMembers.
+     * Create many LiveLocationViewers and returns the data saved in the database.
+     * @param {LiveLocationViewerCreateManyAndReturnArgs} args - Arguments to create many LiveLocationViewers.
      * @example
-     * // Create many ItineraryMembers
-     * const itineraryMember = await prisma.itineraryMember.createManyAndReturn({
+     * // Create many LiveLocationViewers
+     * const liveLocationViewer = await prisma.liveLocationViewer.createManyAndReturn({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      * 
-     * // Create many ItineraryMembers and only return the `id`
-     * const itineraryMemberWithIdOnly = await prisma.itineraryMember.createManyAndReturn({ 
+     * // Create many LiveLocationViewers and only return the `id`
+     * const liveLocationViewerWithIdOnly = await prisma.liveLocationViewer.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -21424,28 +21530,28 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    createManyAndReturn<T extends ItineraryMemberCreateManyAndReturnArgs>(args?: SelectSubset<T, ItineraryMemberCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "createManyAndReturn">>
+    createManyAndReturn<T extends LiveLocationViewerCreateManyAndReturnArgs>(args?: SelectSubset<T, LiveLocationViewerCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "createManyAndReturn">>
 
     /**
-     * Delete a ItineraryMember.
-     * @param {ItineraryMemberDeleteArgs} args - Arguments to delete one ItineraryMember.
+     * Delete a LiveLocationViewer.
+     * @param {LiveLocationViewerDeleteArgs} args - Arguments to delete one LiveLocationViewer.
      * @example
-     * // Delete one ItineraryMember
-     * const ItineraryMember = await prisma.itineraryMember.delete({
+     * // Delete one LiveLocationViewer
+     * const LiveLocationViewer = await prisma.liveLocationViewer.delete({
      *   where: {
-     *     // ... filter to delete one ItineraryMember
+     *     // ... filter to delete one LiveLocationViewer
      *   }
      * })
      * 
      */
-    delete<T extends ItineraryMemberDeleteArgs>(args: SelectSubset<T, ItineraryMemberDeleteArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+    delete<T extends LiveLocationViewerDeleteArgs>(args: SelectSubset<T, LiveLocationViewerDeleteArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
     /**
-     * Update one ItineraryMember.
-     * @param {ItineraryMemberUpdateArgs} args - Arguments to update one ItineraryMember.
+     * Update one LiveLocationViewer.
+     * @param {LiveLocationViewerUpdateArgs} args - Arguments to update one LiveLocationViewer.
      * @example
-     * // Update one ItineraryMember
-     * const itineraryMember = await prisma.itineraryMember.update({
+     * // Update one LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.update({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -21455,30 +21561,30 @@ export namespace Prisma {
      * })
      * 
      */
-    update<T extends ItineraryMemberUpdateArgs>(args: SelectSubset<T, ItineraryMemberUpdateArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "update">, never, ExtArgs>
+    update<T extends LiveLocationViewerUpdateArgs>(args: SelectSubset<T, LiveLocationViewerUpdateArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
     /**
-     * Delete zero or more ItineraryMembers.
-     * @param {ItineraryMemberDeleteManyArgs} args - Arguments to filter ItineraryMembers to delete.
+     * Delete zero or more LiveLocationViewers.
+     * @param {LiveLocationViewerDeleteManyArgs} args - Arguments to filter LiveLocationViewers to delete.
      * @example
-     * // Delete a few ItineraryMembers
-     * const { count } = await prisma.itineraryMember.deleteMany({
+     * // Delete a few LiveLocationViewers
+     * const { count } = await prisma.liveLocationViewer.deleteMany({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      * 
      */
-    deleteMany<T extends ItineraryMemberDeleteManyArgs>(args?: SelectSubset<T, ItineraryMemberDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    deleteMany<T extends LiveLocationViewerDeleteManyArgs>(args?: SelectSubset<T, LiveLocationViewerDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more ItineraryMembers.
+     * Update zero or more LiveLocationViewers.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryMemberUpdateManyArgs} args - Arguments to update one or more rows.
+     * @param {LiveLocationViewerUpdateManyArgs} args - Arguments to update one or more rows.
      * @example
-     * // Update many ItineraryMembers
-     * const itineraryMember = await prisma.itineraryMember.updateMany({
+     * // Update many LiveLocationViewers
+     * const liveLocationViewer = await prisma.liveLocationViewer.updateMany({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -21488,56 +21594,56 @@ export namespace Prisma {
      * })
      * 
      */
-    updateMany<T extends ItineraryMemberUpdateManyArgs>(args: SelectSubset<T, ItineraryMemberUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    updateMany<T extends LiveLocationViewerUpdateManyArgs>(args: SelectSubset<T, LiveLocationViewerUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create or update one ItineraryMember.
-     * @param {ItineraryMemberUpsertArgs} args - Arguments to update or create a ItineraryMember.
+     * Create or update one LiveLocationViewer.
+     * @param {LiveLocationViewerUpsertArgs} args - Arguments to update or create a LiveLocationViewer.
      * @example
-     * // Update or create a ItineraryMember
-     * const itineraryMember = await prisma.itineraryMember.upsert({
+     * // Update or create a LiveLocationViewer
+     * const liveLocationViewer = await prisma.liveLocationViewer.upsert({
      *   create: {
-     *     // ... data to create a ItineraryMember
+     *     // ... data to create a LiveLocationViewer
      *   },
      *   update: {
      *     // ... in case it already exists, update
      *   },
      *   where: {
-     *     // ... the filter for the ItineraryMember we want to update
+     *     // ... the filter for the LiveLocationViewer we want to update
      *   }
      * })
      */
-    upsert<T extends ItineraryMemberUpsertArgs>(args: SelectSubset<T, ItineraryMemberUpsertArgs<ExtArgs>>): Prisma__ItineraryMemberClient<$Result.GetResult<Prisma.$ItineraryMemberPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+    upsert<T extends LiveLocationViewerUpsertArgs>(args: SelectSubset<T, LiveLocationViewerUpsertArgs<ExtArgs>>): Prisma__LiveLocationViewerClient<$Result.GetResult<Prisma.$LiveLocationViewerPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
 
 
     /**
-     * Count the number of ItineraryMembers.
+     * Count the number of LiveLocationViewers.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryMemberCountArgs} args - Arguments to filter ItineraryMembers to count.
+     * @param {LiveLocationViewerCountArgs} args - Arguments to filter LiveLocationViewers to count.
      * @example
-     * // Count the number of ItineraryMembers
-     * const count = await prisma.itineraryMember.count({
+     * // Count the number of LiveLocationViewers
+     * const count = await prisma.liveLocationViewer.count({
      *   where: {
-     *     // ... the filter for the ItineraryMembers we want to count
+     *     // ... the filter for the LiveLocationViewers we want to count
      *   }
      * })
     **/
-    count<T extends ItineraryMemberCountArgs>(
-      args?: Subset<T, ItineraryMemberCountArgs>,
+    count<T extends LiveLocationViewerCountArgs>(
+      args?: Subset<T, LiveLocationViewerCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
         ? T['select'] extends true
           ? number
-          : GetScalarType<T['select'], ItineraryMemberCountAggregateOutputType>
+          : GetScalarType<T['select'], LiveLocationViewerCountAggregateOutputType>
         : number
     >
 
     /**
-     * Allows you to perform aggregations operations on a ItineraryMember.
+     * Allows you to perform aggregations operations on a LiveLocationViewer.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryMemberAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @param {LiveLocationViewerAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
      * @example
      * // Ordered by age ascending
      * // Where email contains prisma.io
@@ -21557,13 +21663,13 @@ export namespace Prisma {
      *   take: 10,
      * })
     **/
-    aggregate<T extends ItineraryMemberAggregateArgs>(args: Subset<T, ItineraryMemberAggregateArgs>): Prisma.PrismaPromise<GetItineraryMemberAggregateType<T>>
+    aggregate<T extends LiveLocationViewerAggregateArgs>(args: Subset<T, LiveLocationViewerAggregateArgs>): Prisma.PrismaPromise<GetLiveLocationViewerAggregateType<T>>
 
     /**
-     * Group by ItineraryMember.
+     * Group by LiveLocationViewer.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryMemberGroupByArgs} args - Group by arguments.
+     * @param {LiveLocationViewerGroupByArgs} args - Group by arguments.
      * @example
      * // Group by city, order by createdAt, get count
      * const result = await prisma.user.groupBy({
@@ -21578,14 +21684,14 @@ export namespace Prisma {
      * 
     **/
     groupBy<
-      T extends ItineraryMemberGroupByArgs,
+      T extends LiveLocationViewerGroupByArgs,
       HasSelectOrTake extends Or<
         Extends<'skip', Keys<T>>,
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: ItineraryMemberGroupByArgs['orderBy'] }
-        : { orderBy?: ItineraryMemberGroupByArgs['orderBy'] },
+        ? { orderBy: LiveLocationViewerGroupByArgs['orderBy'] }
+        : { orderBy?: LiveLocationViewerGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -21634,22 +21740,22 @@ export namespace Prisma {
             ? never
             : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
         }[OrderFields]
-    >(args: SubsetIntersection<T, ItineraryMemberGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetItineraryMemberGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+    >(args: SubsetIntersection<T, LiveLocationViewerGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLiveLocationViewerGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
   /**
-   * Fields of the ItineraryMember model
+   * Fields of the LiveLocationViewer model
    */
-  readonly fields: ItineraryMemberFieldRefs;
+  readonly fields: LiveLocationViewerFieldRefs;
   }
 
   /**
-   * The delegate class that acts as a "Promise-like" for ItineraryMember.
+   * The delegate class that acts as a "Promise-like" for LiveLocationViewer.
    * Why is this prefixed with `Prisma__`?
    * Because we want to prevent naming conflicts as mentioned in
    * https://github.com/prisma/prisma-client-js/issues/707
    */
-  export interface Prisma__ItineraryMemberClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+  export interface Prisma__LiveLocationViewerClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    itinerary<T extends ItineraryDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ItineraryDefaultArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
+    share<T extends LiveLocationShareDefaultArgs<ExtArgs> = {}>(args?: Subset<T, LiveLocationShareDefaultArgs<ExtArgs>>): Prisma__LiveLocationShareClient<$Result.GetResult<Prisma.$LiveLocationSharePayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -21677,842 +21783,819 @@ export namespace Prisma {
 
 
   /**
-   * Fields of the ItineraryMember model
+   * Fields of the LiveLocationViewer model
    */ 
-  interface ItineraryMemberFieldRefs {
-    readonly id: FieldRef<"ItineraryMember", 'String'>
-    readonly itineraryId: FieldRef<"ItineraryMember", 'String'>
-    readonly userId: FieldRef<"ItineraryMember", 'String'>
-    readonly role: FieldRef<"ItineraryMember", 'String'>
-    readonly createdAt: FieldRef<"ItineraryMember", 'DateTime'>
+  interface LiveLocationViewerFieldRefs {
+    readonly id: FieldRef<"LiveLocationViewer", 'String'>
+    readonly shareId: FieldRef<"LiveLocationViewer", 'String'>
+    readonly userId: FieldRef<"LiveLocationViewer", 'String'>
+    readonly firstViewedAt: FieldRef<"LiveLocationViewer", 'DateTime'>
+    readonly lastViewedAt: FieldRef<"LiveLocationViewer", 'DateTime'>
   }
     
 
   // Custom InputTypes
   /**
-   * ItineraryMember findUnique
+   * LiveLocationViewer findUnique
    */
-  export type ItineraryMemberFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryMember to fetch.
+     * Filter, which LiveLocationViewer to fetch.
      */
-    where: ItineraryMemberWhereUniqueInput
+    where: LiveLocationViewerWhereUniqueInput
   }
 
   /**
-   * ItineraryMember findUniqueOrThrow
+   * LiveLocationViewer findUniqueOrThrow
    */
-  export type ItineraryMemberFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryMember to fetch.
+     * Filter, which LiveLocationViewer to fetch.
      */
-    where: ItineraryMemberWhereUniqueInput
+    where: LiveLocationViewerWhereUniqueInput
   }
 
   /**
-   * ItineraryMember findFirst
+   * LiveLocationViewer findFirst
    */
-  export type ItineraryMemberFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryMember to fetch.
+     * Filter, which LiveLocationViewer to fetch.
      */
-    where?: ItineraryMemberWhereInput
+    where?: LiveLocationViewerWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryMembers to fetch.
+     * Determine the order of LiveLocationViewers to fetch.
      */
-    orderBy?: ItineraryMemberOrderByWithRelationInput | ItineraryMemberOrderByWithRelationInput[]
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for ItineraryMembers.
+     * Sets the position for searching for LiveLocationViewers.
      */
-    cursor?: ItineraryMemberWhereUniqueInput
+    cursor?: LiveLocationViewerWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryMembers from the position of the cursor.
+     * Take `±n` LiveLocationViewers from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryMembers.
+     * Skip the first `n` LiveLocationViewers.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of ItineraryMembers.
+     * Filter by unique combinations of LiveLocationViewers.
      */
-    distinct?: ItineraryMemberScalarFieldEnum | ItineraryMemberScalarFieldEnum[]
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
   }
 
   /**
-   * ItineraryMember findFirstOrThrow
+   * LiveLocationViewer findFirstOrThrow
    */
-  export type ItineraryMemberFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryMember to fetch.
+     * Filter, which LiveLocationViewer to fetch.
      */
-    where?: ItineraryMemberWhereInput
+    where?: LiveLocationViewerWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryMembers to fetch.
+     * Determine the order of LiveLocationViewers to fetch.
      */
-    orderBy?: ItineraryMemberOrderByWithRelationInput | ItineraryMemberOrderByWithRelationInput[]
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for ItineraryMembers.
+     * Sets the position for searching for LiveLocationViewers.
      */
-    cursor?: ItineraryMemberWhereUniqueInput
+    cursor?: LiveLocationViewerWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryMembers from the position of the cursor.
+     * Take `±n` LiveLocationViewers from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryMembers.
+     * Skip the first `n` LiveLocationViewers.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of ItineraryMembers.
+     * Filter by unique combinations of LiveLocationViewers.
      */
-    distinct?: ItineraryMemberScalarFieldEnum | ItineraryMemberScalarFieldEnum[]
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
   }
 
   /**
-   * ItineraryMember findMany
+   * LiveLocationViewer findMany
    */
-  export type ItineraryMemberFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryMembers to fetch.
+     * Filter, which LiveLocationViewers to fetch.
      */
-    where?: ItineraryMemberWhereInput
+    where?: LiveLocationViewerWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryMembers to fetch.
+     * Determine the order of LiveLocationViewers to fetch.
      */
-    orderBy?: ItineraryMemberOrderByWithRelationInput | ItineraryMemberOrderByWithRelationInput[]
+    orderBy?: LiveLocationViewerOrderByWithRelationInput | LiveLocationViewerOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for listing ItineraryMembers.
+     * Sets the position for listing LiveLocationViewers.
      */
-    cursor?: ItineraryMemberWhereUniqueInput
+    cursor?: LiveLocationViewerWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryMembers from the position of the cursor.
+     * Take `±n` LiveLocationViewers from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryMembers.
+     * Skip the first `n` LiveLocationViewers.
      */
     skip?: number
-    distinct?: ItineraryMemberScalarFieldEnum | ItineraryMemberScalarFieldEnum[]
+    distinct?: LiveLocationViewerScalarFieldEnum | LiveLocationViewerScalarFieldEnum[]
   }
 
   /**
-   * ItineraryMember create
+   * LiveLocationViewer create
    */
-  export type ItineraryMemberCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * The data needed to create a ItineraryMember.
+     * The data needed to create a LiveLocationViewer.
      */
-    data: XOR<ItineraryMemberCreateInput, ItineraryMemberUncheckedCreateInput>
+    data: XOR<LiveLocationViewerCreateInput, LiveLocationViewerUncheckedCreateInput>
   }
 
   /**
-   * ItineraryMember createMany
+   * LiveLocationViewer createMany
    */
-  export type ItineraryMemberCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to create many ItineraryMembers.
+     * The data used to create many LiveLocationViewers.
      */
-    data: ItineraryMemberCreateManyInput | ItineraryMemberCreateManyInput[]
+    data: LiveLocationViewerCreateManyInput | LiveLocationViewerCreateManyInput[]
     skipDuplicates?: boolean
   }
 
   /**
-   * ItineraryMember createManyAndReturn
+   * LiveLocationViewer createManyAndReturn
    */
-  export type ItineraryMemberCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelectCreateManyAndReturn<ExtArgs> | null
+    select?: LiveLocationViewerSelectCreateManyAndReturn<ExtArgs> | null
     /**
-     * The data used to create many ItineraryMembers.
+     * The data used to create many LiveLocationViewers.
      */
-    data: ItineraryMemberCreateManyInput | ItineraryMemberCreateManyInput[]
+    data: LiveLocationViewerCreateManyInput | LiveLocationViewerCreateManyInput[]
     skipDuplicates?: boolean
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberIncludeCreateManyAndReturn<ExtArgs> | null
+    include?: LiveLocationViewerIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
-   * ItineraryMember update
+   * LiveLocationViewer update
    */
-  export type ItineraryMemberUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * The data needed to update a ItineraryMember.
+     * The data needed to update a LiveLocationViewer.
      */
-    data: XOR<ItineraryMemberUpdateInput, ItineraryMemberUncheckedUpdateInput>
+    data: XOR<LiveLocationViewerUpdateInput, LiveLocationViewerUncheckedUpdateInput>
     /**
-     * Choose, which ItineraryMember to update.
+     * Choose, which LiveLocationViewer to update.
      */
-    where: ItineraryMemberWhereUniqueInput
+    where: LiveLocationViewerWhereUniqueInput
   }
 
   /**
-   * ItineraryMember updateMany
+   * LiveLocationViewer updateMany
    */
-  export type ItineraryMemberUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to update ItineraryMembers.
+     * The data used to update LiveLocationViewers.
      */
-    data: XOR<ItineraryMemberUpdateManyMutationInput, ItineraryMemberUncheckedUpdateManyInput>
+    data: XOR<LiveLocationViewerUpdateManyMutationInput, LiveLocationViewerUncheckedUpdateManyInput>
     /**
-     * Filter which ItineraryMembers to update
+     * Filter which LiveLocationViewers to update
      */
-    where?: ItineraryMemberWhereInput
+    where?: LiveLocationViewerWhereInput
   }
 
   /**
-   * ItineraryMember upsert
+   * LiveLocationViewer upsert
    */
-  export type ItineraryMemberUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * The filter to search for the ItineraryMember to update in case it exists.
+     * The filter to search for the LiveLocationViewer to update in case it exists.
      */
-    where: ItineraryMemberWhereUniqueInput
+    where: LiveLocationViewerWhereUniqueInput
     /**
-     * In case the ItineraryMember found by the `where` argument doesn't exist, create a new ItineraryMember with this data.
+     * In case the LiveLocationViewer found by the `where` argument doesn't exist, create a new LiveLocationViewer with this data.
      */
-    create: XOR<ItineraryMemberCreateInput, ItineraryMemberUncheckedCreateInput>
+    create: XOR<LiveLocationViewerCreateInput, LiveLocationViewerUncheckedCreateInput>
     /**
-     * In case the ItineraryMember was found with the provided `where` argument, update it with this data.
+     * In case the LiveLocationViewer was found with the provided `where` argument, update it with this data.
      */
-    update: XOR<ItineraryMemberUpdateInput, ItineraryMemberUncheckedUpdateInput>
+    update: XOR<LiveLocationViewerUpdateInput, LiveLocationViewerUncheckedUpdateInput>
   }
 
   /**
-   * ItineraryMember delete
+   * LiveLocationViewer delete
    */
-  export type ItineraryMemberDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
     /**
-     * Filter which ItineraryMember to delete.
+     * Filter which LiveLocationViewer to delete.
      */
-    where: ItineraryMemberWhereUniqueInput
+    where: LiveLocationViewerWhereUniqueInput
   }
 
   /**
-   * ItineraryMember deleteMany
+   * LiveLocationViewer deleteMany
    */
-  export type ItineraryMemberDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which ItineraryMembers to delete
+     * Filter which LiveLocationViewers to delete
      */
-    where?: ItineraryMemberWhereInput
+    where?: LiveLocationViewerWhereInput
   }
 
   /**
-   * ItineraryMember without action
+   * LiveLocationViewer without action
    */
-  export type ItineraryMemberDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LiveLocationViewerDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryMember
+     * Select specific fields to fetch from the LiveLocationViewer
      */
-    select?: ItineraryMemberSelect<ExtArgs> | null
+    select?: LiveLocationViewerSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryMemberInclude<ExtArgs> | null
+    include?: LiveLocationViewerInclude<ExtArgs> | null
   }
 
 
   /**
-   * Model ItineraryStop
+   * Model SafetyHazardReport
    */
 
-  export type AggregateItineraryStop = {
-    _count: ItineraryStopCountAggregateOutputType | null
-    _avg: ItineraryStopAvgAggregateOutputType | null
-    _sum: ItineraryStopSumAggregateOutputType | null
-    _min: ItineraryStopMinAggregateOutputType | null
-    _max: ItineraryStopMaxAggregateOutputType | null
+  export type AggregateSafetyHazardReport = {
+    _count: SafetyHazardReportCountAggregateOutputType | null
+    _avg: SafetyHazardReportAvgAggregateOutputType | null
+    _sum: SafetyHazardReportSumAggregateOutputType | null
+    _min: SafetyHazardReportMinAggregateOutputType | null
+    _max: SafetyHazardReportMaxAggregateOutputType | null
   }
 
-  export type ItineraryStopAvgAggregateOutputType = {
+  export type SafetyHazardReportAvgAggregateOutputType = {
     latitude: number | null
     longitude: number | null
-    position: number | null
-    dayIndex: number | null
+    severity: number | null
   }
 
-  export type ItineraryStopSumAggregateOutputType = {
+  export type SafetyHazardReportSumAggregateOutputType = {
     latitude: number | null
     longitude: number | null
-    position: number | null
-    dayIndex: number | null
+    severity: number | null
   }
 
-  export type ItineraryStopMinAggregateOutputType = {
+  export type SafetyHazardReportMinAggregateOutputType = {
     id: string | null
-    itineraryId: string | null
-    placeId: string | null
-    name: string | null
-    category: string | null
+    userId: string | null
+    type: string | null
     latitude: number | null
     longitude: number | null
-    address: string | null
-    notes: string | null
-    position: number | null
-    dayIndex: number | null
-    addedById: string | null
-    addedByName: string | null
+    severity: number | null
+    description: string | null
+    roadName: string | null
+    status: string | null
+    expiresAt: Date | null
+    approvedAt: Date | null
+    moderatedBy: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
 
-  export type ItineraryStopMaxAggregateOutputType = {
+  export type SafetyHazardReportMaxAggregateOutputType = {
     id: string | null
-    itineraryId: string | null
-    placeId: string | null
-    name: string | null
-    category: string | null
+    userId: string | null
+    type: string | null
     latitude: number | null
     longitude: number | null
-    address: string | null
-    notes: string | null
-    position: number | null
-    dayIndex: number | null
-    addedById: string | null
-    addedByName: string | null
+    severity: number | null
+    description: string | null
+    roadName: string | null
+    status: string | null
+    expiresAt: Date | null
+    approvedAt: Date | null
+    moderatedBy: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
 
-  export type ItineraryStopCountAggregateOutputType = {
+  export type SafetyHazardReportCountAggregateOutputType = {
     id: number
-    itineraryId: number
-    placeId: number
-    name: number
-    category: number
+    userId: number
+    type: number
     latitude: number
     longitude: number
-    address: number
-    notes: number
-    position: number
-    dayIndex: number
-    addedById: number
-    addedByName: number
+    severity: number
+    description: number
+    roadName: number
+    status: number
+    expiresAt: number
+    approvedAt: number
+    moderatedBy: number
     createdAt: number
     updatedAt: number
     _all: number
   }
 
 
-  export type ItineraryStopAvgAggregateInputType = {
+  export type SafetyHazardReportAvgAggregateInputType = {
     latitude?: true
     longitude?: true
-    position?: true
-    dayIndex?: true
+    severity?: true
   }
 
-  export type ItineraryStopSumAggregateInputType = {
+  export type SafetyHazardReportSumAggregateInputType = {
     latitude?: true
     longitude?: true
-    position?: true
-    dayIndex?: true
+    severity?: true
   }
 
-  export type ItineraryStopMinAggregateInputType = {
+  export type SafetyHazardReportMinAggregateInputType = {
     id?: true
-    itineraryId?: true
-    placeId?: true
-    name?: true
-    category?: true
+    userId?: true
+    type?: true
     latitude?: true
     longitude?: true
-    address?: true
-    notes?: true
-    position?: true
-    dayIndex?: true
-    addedById?: true
-    addedByName?: true
+    severity?: true
+    description?: true
+    roadName?: true
+    status?: true
+    expiresAt?: true
+    approvedAt?: true
+    moderatedBy?: true
     createdAt?: true
     updatedAt?: true
   }
 
-  export type ItineraryStopMaxAggregateInputType = {
+  export type SafetyHazardReportMaxAggregateInputType = {
     id?: true
-    itineraryId?: true
-    placeId?: true
-    name?: true
-    category?: true
+    userId?: true
+    type?: true
     latitude?: true
     longitude?: true
-    address?: true
-    notes?: true
-    position?: true
-    dayIndex?: true
-    addedById?: true
-    addedByName?: true
+    severity?: true
+    description?: true
+    roadName?: true
+    status?: true
+    expiresAt?: true
+    approvedAt?: true
+    moderatedBy?: true
     createdAt?: true
     updatedAt?: true
   }
 
-  export type ItineraryStopCountAggregateInputType = {
+  export type SafetyHazardReportCountAggregateInputType = {
     id?: true
-    itineraryId?: true
-    placeId?: true
-    name?: true
-    category?: true
+    userId?: true
+    type?: true
     latitude?: true
     longitude?: true
-    address?: true
-    notes?: true
-    position?: true
-    dayIndex?: true
-    addedById?: true
-    addedByName?: true
+    severity?: true
+    description?: true
+    roadName?: true
+    status?: true
+    expiresAt?: true
+    approvedAt?: true
+    moderatedBy?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
   }
 
-  export type ItineraryStopAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which ItineraryStop to aggregate.
+     * Filter which SafetyHazardReport to aggregate.
      */
-    where?: ItineraryStopWhereInput
+    where?: SafetyHazardReportWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryStops to fetch.
+     * Determine the order of SafetyHazardReports to fetch.
      */
-    orderBy?: ItineraryStopOrderByWithRelationInput | ItineraryStopOrderByWithRelationInput[]
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
      * Sets the start position
      */
-    cursor?: ItineraryStopWhereUniqueInput
+    cursor?: SafetyHazardReportWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryStops from the position of the cursor.
+     * Take `±n` SafetyHazardReports from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryStops.
+     * Skip the first `n` SafetyHazardReports.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Count returned ItineraryStops
+     * Count returned SafetyHazardReports
     **/
-    _count?: true | ItineraryStopCountAggregateInputType
+    _count?: true | SafetyHazardReportCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to average
     **/
-    _avg?: ItineraryStopAvgAggregateInputType
+    _avg?: SafetyHazardReportAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to sum
     **/
-    _sum?: ItineraryStopSumAggregateInputType
+    _sum?: SafetyHazardReportSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the minimum value
     **/
-    _min?: ItineraryStopMinAggregateInputType
+    _min?: SafetyHazardReportMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the maximum value
     **/
-    _max?: ItineraryStopMaxAggregateInputType
+    _max?: SafetyHazardReportMaxAggregateInputType
   }
 
-  export type GetItineraryStopAggregateType<T extends ItineraryStopAggregateArgs> = {
-        [P in keyof T & keyof AggregateItineraryStop]: P extends '_count' | 'count'
+  export type GetSafetyHazardReportAggregateType<T extends SafetyHazardReportAggregateArgs> = {
+        [P in keyof T & keyof AggregateSafetyHazardReport]: P extends '_count' | 'count'
       ? T[P] extends true
         ? number
-        : GetScalarType<T[P], AggregateItineraryStop[P]>
-      : GetScalarType<T[P], AggregateItineraryStop[P]>
+        : GetScalarType<T[P], AggregateSafetyHazardReport[P]>
+      : GetScalarType<T[P], AggregateSafetyHazardReport[P]>
   }
 
 
 
 
-  export type ItineraryStopGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryStopWhereInput
-    orderBy?: ItineraryStopOrderByWithAggregationInput | ItineraryStopOrderByWithAggregationInput[]
-    by: ItineraryStopScalarFieldEnum[] | ItineraryStopScalarFieldEnum
-    having?: ItineraryStopScalarWhereWithAggregatesInput
+  export type SafetyHazardReportGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: SafetyHazardReportWhereInput
+    orderBy?: SafetyHazardReportOrderByWithAggregationInput | SafetyHazardReportOrderByWithAggregationInput[]
+    by: SafetyHazardReportScalarFieldEnum[] | SafetyHazardReportScalarFieldEnum
+    having?: SafetyHazardReportScalarWhereWithAggregatesInput
     take?: number
     skip?: number
-    _count?: ItineraryStopCountAggregateInputType | true
-    _avg?: ItineraryStopAvgAggregateInputType
-    _sum?: ItineraryStopSumAggregateInputType
-    _min?: ItineraryStopMinAggregateInputType
-    _max?: ItineraryStopMaxAggregateInputType
+    _count?: SafetyHazardReportCountAggregateInputType | true
+    _avg?: SafetyHazardReportAvgAggregateInputType
+    _sum?: SafetyHazardReportSumAggregateInputType
+    _min?: SafetyHazardReportMinAggregateInputType
+    _max?: SafetyHazardReportMaxAggregateInputType
   }
 
-  export type ItineraryStopGroupByOutputType = {
+  export type SafetyHazardReportGroupByOutputType = {
     id: string
-    itineraryId: string
-    placeId: string | null
-    name: string
-    category: string | null
+    userId: string
+    type: string
     latitude: number
     longitude: number
-    address: string | null
-    notes: string | null
-    position: number
-    dayIndex: number | null
-    addedById: string | null
-    addedByName: string | null
+    severity: number
+    description: string | null
+    roadName: string | null
+    status: string
+    expiresAt: Date | null
+    approvedAt: Date | null
+    moderatedBy: string | null
     createdAt: Date
     updatedAt: Date
-    _count: ItineraryStopCountAggregateOutputType | null
-    _avg: ItineraryStopAvgAggregateOutputType | null
-    _sum: ItineraryStopSumAggregateOutputType | null
-    _min: ItineraryStopMinAggregateOutputType | null
-    _max: ItineraryStopMaxAggregateOutputType | null
+    _count: SafetyHazardReportCountAggregateOutputType | null
+    _avg: SafetyHazardReportAvgAggregateOutputType | null
+    _sum: SafetyHazardReportSumAggregateOutputType | null
+    _min: SafetyHazardReportMinAggregateOutputType | null
+    _max: SafetyHazardReportMaxAggregateOutputType | null
   }
 
-  type GetItineraryStopGroupByPayload<T extends ItineraryStopGroupByArgs> = Prisma.PrismaPromise<
+  type GetSafetyHazardReportGroupByPayload<T extends SafetyHazardReportGroupByArgs> = Prisma.PrismaPromise<
     Array<
-      PickEnumerable<ItineraryStopGroupByOutputType, T['by']> &
+      PickEnumerable<SafetyHazardReportGroupByOutputType, T['by']> &
         {
-          [P in ((keyof T) & (keyof ItineraryStopGroupByOutputType))]: P extends '_count'
+          [P in ((keyof T) & (keyof SafetyHazardReportGroupByOutputType))]: P extends '_count'
             ? T[P] extends boolean
               ? number
-              : GetScalarType<T[P], ItineraryStopGroupByOutputType[P]>
-            : GetScalarType<T[P], ItineraryStopGroupByOutputType[P]>
+              : GetScalarType<T[P], SafetyHazardReportGroupByOutputType[P]>
+            : GetScalarType<T[P], SafetyHazardReportGroupByOutputType[P]>
         }
       >
     >
 
 
-  export type ItineraryStopSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type SafetyHazardReportSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    itineraryId?: boolean
-    placeId?: boolean
-    name?: boolean
-    category?: boolean
+    userId?: boolean
+    type?: boolean
     latitude?: boolean
     longitude?: boolean
-    address?: boolean
-    notes?: boolean
-    position?: boolean
-    dayIndex?: boolean
-    addedById?: boolean
-    addedByName?: boolean
+    severity?: boolean
+    description?: boolean
+    roadName?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    approvedAt?: boolean
+    moderatedBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
-    comments?: boolean | ItineraryStop$commentsArgs<ExtArgs>
-    votes?: boolean | ItineraryStop$votesArgs<ExtArgs>
-    _count?: boolean | ItineraryStopCountOutputTypeDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryStop"]>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["safetyHazardReport"]>
 
-  export type ItineraryStopSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type SafetyHazardReportSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    itineraryId?: boolean
-    placeId?: boolean
-    name?: boolean
-    category?: boolean
+    userId?: boolean
+    type?: boolean
     latitude?: boolean
     longitude?: boolean
-    address?: boolean
-    notes?: boolean
-    position?: boolean
-    dayIndex?: boolean
-    addedById?: boolean
-    addedByName?: boolean
+    severity?: boolean
+    description?: boolean
+    roadName?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    approvedAt?: boolean
+    moderatedBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryStop"]>
+    user?: boolean | UserDefaultArgs<ExtArgs>
+  }, ExtArgs["result"]["safetyHazardReport"]>
 
-  export type ItineraryStopSelectScalar = {
+  export type SafetyHazardReportSelectScalar = {
     id?: boolean
-    itineraryId?: boolean
-    placeId?: boolean
-    name?: boolean
-    category?: boolean
+    userId?: boolean
+    type?: boolean
     latitude?: boolean
     longitude?: boolean
-    address?: boolean
-    notes?: boolean
-    position?: boolean
-    dayIndex?: boolean
-    addedById?: boolean
-    addedByName?: boolean
+    severity?: boolean
+    description?: boolean
+    roadName?: boolean
+    status?: boolean
+    expiresAt?: boolean
+    approvedAt?: boolean
+    moderatedBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ItineraryStopInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
-    comments?: boolean | ItineraryStop$commentsArgs<ExtArgs>
-    votes?: boolean | ItineraryStop$votesArgs<ExtArgs>
-    _count?: boolean | ItineraryStopCountOutputTypeDefaultArgs<ExtArgs>
+  export type SafetyHazardReportInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
   }
-  export type ItineraryStopIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    itinerary?: boolean | ItineraryDefaultArgs<ExtArgs>
+  export type SafetyHazardReportIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    user?: boolean | UserDefaultArgs<ExtArgs>
   }
 
-  export type $ItineraryStopPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "ItineraryStop"
+  export type $SafetyHazardReportPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "SafetyHazardReport"
     objects: {
-      itinerary: Prisma.$ItineraryPayload<ExtArgs>
-      comments: Prisma.$ItineraryCommentPayload<ExtArgs>[]
-      votes: Prisma.$ItineraryVotePayload<ExtArgs>[]
+      user: Prisma.$UserPayload<ExtArgs>
     }
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      itineraryId: string
-      placeId: string | null
-      name: string
-      category: string | null
+      userId: string
+      type: string
       latitude: number
       longitude: number
-      address: string | null
-      notes: string | null
-      position: number
-      dayIndex: number | null
-      addedById: string | null
-      addedByName: string | null
+      severity: number
+      description: string | null
+      roadName: string | null
+      status: string
+      expiresAt: Date | null
+      approvedAt: Date | null
+      moderatedBy: string | null
       createdAt: Date
       updatedAt: Date
-    }, ExtArgs["result"]["itineraryStop"]>
+    }, ExtArgs["result"]["safetyHazardReport"]>
     composites: {}
   }
 
-  type ItineraryStopGetPayload<S extends boolean | null | undefined | ItineraryStopDefaultArgs> = $Result.GetResult<Prisma.$ItineraryStopPayload, S>
+  type SafetyHazardReportGetPayload<S extends boolean | null | undefined | SafetyHazardReportDefaultArgs> = $Result.GetResult<Prisma.$SafetyHazardReportPayload, S>
 
-  type ItineraryStopCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
-    Omit<ItineraryStopFindManyArgs, 'select' | 'include' | 'distinct'> & {
-      select?: ItineraryStopCountAggregateInputType | true
+  type SafetyHazardReportCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<SafetyHazardReportFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: SafetyHazardReportCountAggregateInputType | true
     }
 
-  export interface ItineraryStopDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ItineraryStop'], meta: { name: 'ItineraryStop' } }
+  export interface SafetyHazardReportDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['SafetyHazardReport'], meta: { name: 'SafetyHazardReport' } }
     /**
-     * Find zero or one ItineraryStop that matches the filter.
-     * @param {ItineraryStopFindUniqueArgs} args - Arguments to find a ItineraryStop
+     * Find zero or one SafetyHazardReport that matches the filter.
+     * @param {SafetyHazardReportFindUniqueArgs} args - Arguments to find a SafetyHazardReport
      * @example
-     * // Get one ItineraryStop
-     * const itineraryStop = await prisma.itineraryStop.findUnique({
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findUnique({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUnique<T extends ItineraryStopFindUniqueArgs>(args: SelectSubset<T, ItineraryStopFindUniqueArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+    findUnique<T extends SafetyHazardReportFindUniqueArgs>(args: SelectSubset<T, SafetyHazardReportFindUniqueArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one ItineraryStop that matches the filter or throw an error with `error.code='P2025'` 
+     * Find one SafetyHazardReport that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
-     * @param {ItineraryStopFindUniqueOrThrowArgs} args - Arguments to find a ItineraryStop
+     * @param {SafetyHazardReportFindUniqueOrThrowArgs} args - Arguments to find a SafetyHazardReport
      * @example
-     * // Get one ItineraryStop
-     * const itineraryStop = await prisma.itineraryStop.findUniqueOrThrow({
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findUniqueOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUniqueOrThrow<T extends ItineraryStopFindUniqueOrThrowArgs>(args: SelectSubset<T, ItineraryStopFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+    findUniqueOrThrow<T extends SafetyHazardReportFindUniqueOrThrowArgs>(args: SelectSubset<T, SafetyHazardReportFindUniqueOrThrowArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
 
     /**
-     * Find the first ItineraryStop that matches the filter.
+     * Find the first SafetyHazardReport that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryStopFindFirstArgs} args - Arguments to find a ItineraryStop
+     * @param {SafetyHazardReportFindFirstArgs} args - Arguments to find a SafetyHazardReport
      * @example
-     * // Get one ItineraryStop
-     * const itineraryStop = await prisma.itineraryStop.findFirst({
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findFirst({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirst<T extends ItineraryStopFindFirstArgs>(args?: SelectSubset<T, ItineraryStopFindFirstArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+    findFirst<T extends SafetyHazardReportFindFirstArgs>(args?: SelectSubset<T, SafetyHazardReportFindFirstArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
 
     /**
-     * Find the first ItineraryStop that matches the filter or
+     * Find the first SafetyHazardReport that matches the filter or
      * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryStopFindFirstOrThrowArgs} args - Arguments to find a ItineraryStop
+     * @param {SafetyHazardReportFindFirstOrThrowArgs} args - Arguments to find a SafetyHazardReport
      * @example
-     * // Get one ItineraryStop
-     * const itineraryStop = await prisma.itineraryStop.findFirstOrThrow({
+     * // Get one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.findFirstOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirstOrThrow<T extends ItineraryStopFindFirstOrThrowArgs>(args?: SelectSubset<T, ItineraryStopFindFirstOrThrowArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+    findFirstOrThrow<T extends SafetyHazardReportFindFirstOrThrowArgs>(args?: SelectSubset<T, SafetyHazardReportFindFirstOrThrowArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
 
     /**
-     * Find zero or more ItineraryStops that matches the filter.
+     * Find zero or more SafetyHazardReports that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryStopFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @param {SafetyHazardReportFindManyArgs} args - Arguments to filter and select certain fields only.
      * @example
-     * // Get all ItineraryStops
-     * const itineraryStops = await prisma.itineraryStop.findMany()
+     * // Get all SafetyHazardReports
+     * const safetyHazardReports = await prisma.safetyHazardReport.findMany()
      * 
-     * // Get first 10 ItineraryStops
-     * const itineraryStops = await prisma.itineraryStop.findMany({ take: 10 })
+     * // Get first 10 SafetyHazardReports
+     * const safetyHazardReports = await prisma.safetyHazardReport.findMany({ take: 10 })
      * 
      * // Only select the `id`
-     * const itineraryStopWithIdOnly = await prisma.itineraryStop.findMany({ select: { id: true } })
+     * const safetyHazardReportWithIdOnly = await prisma.safetyHazardReport.findMany({ select: { id: true } })
      * 
      */
-    findMany<T extends ItineraryStopFindManyArgs>(args?: SelectSubset<T, ItineraryStopFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findMany">>
+    findMany<T extends SafetyHazardReportFindManyArgs>(args?: SelectSubset<T, SafetyHazardReportFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "findMany">>
 
     /**
-     * Create a ItineraryStop.
-     * @param {ItineraryStopCreateArgs} args - Arguments to create a ItineraryStop.
+     * Create a SafetyHazardReport.
+     * @param {SafetyHazardReportCreateArgs} args - Arguments to create a SafetyHazardReport.
      * @example
-     * // Create one ItineraryStop
-     * const ItineraryStop = await prisma.itineraryStop.create({
+     * // Create one SafetyHazardReport
+     * const SafetyHazardReport = await prisma.safetyHazardReport.create({
      *   data: {
-     *     // ... data to create a ItineraryStop
+     *     // ... data to create a SafetyHazardReport
      *   }
      * })
      * 
      */
-    create<T extends ItineraryStopCreateArgs>(args: SelectSubset<T, ItineraryStopCreateArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "create">, never, ExtArgs>
+    create<T extends SafetyHazardReportCreateArgs>(args: SelectSubset<T, SafetyHazardReportCreateArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
     /**
-     * Create many ItineraryStops.
-     * @param {ItineraryStopCreateManyArgs} args - Arguments to create many ItineraryStops.
+     * Create many SafetyHazardReports.
+     * @param {SafetyHazardReportCreateManyArgs} args - Arguments to create many SafetyHazardReports.
      * @example
-     * // Create many ItineraryStops
-     * const itineraryStop = await prisma.itineraryStop.createMany({
+     * // Create many SafetyHazardReports
+     * const safetyHazardReport = await prisma.safetyHazardReport.createMany({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      *     
      */
-    createMany<T extends ItineraryStopCreateManyArgs>(args?: SelectSubset<T, ItineraryStopCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    createMany<T extends SafetyHazardReportCreateManyArgs>(args?: SelectSubset<T, SafetyHazardReportCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many ItineraryStops and returns the data saved in the database.
-     * @param {ItineraryStopCreateManyAndReturnArgs} args - Arguments to create many ItineraryStops.
+     * Create many SafetyHazardReports and returns the data saved in the database.
+     * @param {SafetyHazardReportCreateManyAndReturnArgs} args - Arguments to create many SafetyHazardReports.
      * @example
-     * // Create many ItineraryStops
-     * const itineraryStop = await prisma.itineraryStop.createManyAndReturn({
+     * // Create many SafetyHazardReports
+     * const safetyHazardReport = await prisma.safetyHazardReport.createManyAndReturn({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      * 
-     * // Create many ItineraryStops and only return the `id`
-     * const itineraryStopWithIdOnly = await prisma.itineraryStop.createManyAndReturn({ 
+     * // Create many SafetyHazardReports and only return the `id`
+     * const safetyHazardReportWithIdOnly = await prisma.safetyHazardReport.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -22522,28 +22605,28 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    createManyAndReturn<T extends ItineraryStopCreateManyAndReturnArgs>(args?: SelectSubset<T, ItineraryStopCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "createManyAndReturn">>
+    createManyAndReturn<T extends SafetyHazardReportCreateManyAndReturnArgs>(args?: SelectSubset<T, SafetyHazardReportCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "createManyAndReturn">>
 
     /**
-     * Delete a ItineraryStop.
-     * @param {ItineraryStopDeleteArgs} args - Arguments to delete one ItineraryStop.
+     * Delete a SafetyHazardReport.
+     * @param {SafetyHazardReportDeleteArgs} args - Arguments to delete one SafetyHazardReport.
      * @example
-     * // Delete one ItineraryStop
-     * const ItineraryStop = await prisma.itineraryStop.delete({
+     * // Delete one SafetyHazardReport
+     * const SafetyHazardReport = await prisma.safetyHazardReport.delete({
      *   where: {
-     *     // ... filter to delete one ItineraryStop
+     *     // ... filter to delete one SafetyHazardReport
      *   }
      * })
      * 
      */
-    delete<T extends ItineraryStopDeleteArgs>(args: SelectSubset<T, ItineraryStopDeleteArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+    delete<T extends SafetyHazardReportDeleteArgs>(args: SelectSubset<T, SafetyHazardReportDeleteArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
     /**
-     * Update one ItineraryStop.
-     * @param {ItineraryStopUpdateArgs} args - Arguments to update one ItineraryStop.
+     * Update one SafetyHazardReport.
+     * @param {SafetyHazardReportUpdateArgs} args - Arguments to update one SafetyHazardReport.
      * @example
-     * // Update one ItineraryStop
-     * const itineraryStop = await prisma.itineraryStop.update({
+     * // Update one SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.update({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -22553,30 +22636,30 @@ export namespace Prisma {
      * })
      * 
      */
-    update<T extends ItineraryStopUpdateArgs>(args: SelectSubset<T, ItineraryStopUpdateArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "update">, never, ExtArgs>
+    update<T extends SafetyHazardReportUpdateArgs>(args: SelectSubset<T, SafetyHazardReportUpdateArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
     /**
-     * Delete zero or more ItineraryStops.
-     * @param {ItineraryStopDeleteManyArgs} args - Arguments to filter ItineraryStops to delete.
+     * Delete zero or more SafetyHazardReports.
+     * @param {SafetyHazardReportDeleteManyArgs} args - Arguments to filter SafetyHazardReports to delete.
      * @example
-     * // Delete a few ItineraryStops
-     * const { count } = await prisma.itineraryStop.deleteMany({
+     * // Delete a few SafetyHazardReports
+     * const { count } = await prisma.safetyHazardReport.deleteMany({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      * 
      */
-    deleteMany<T extends ItineraryStopDeleteManyArgs>(args?: SelectSubset<T, ItineraryStopDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    deleteMany<T extends SafetyHazardReportDeleteManyArgs>(args?: SelectSubset<T, SafetyHazardReportDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more ItineraryStops.
+     * Update zero or more SafetyHazardReports.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryStopUpdateManyArgs} args - Arguments to update one or more rows.
+     * @param {SafetyHazardReportUpdateManyArgs} args - Arguments to update one or more rows.
      * @example
-     * // Update many ItineraryStops
-     * const itineraryStop = await prisma.itineraryStop.updateMany({
+     * // Update many SafetyHazardReports
+     * const safetyHazardReport = await prisma.safetyHazardReport.updateMany({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -22586,56 +22669,56 @@ export namespace Prisma {
      * })
      * 
      */
-    updateMany<T extends ItineraryStopUpdateManyArgs>(args: SelectSubset<T, ItineraryStopUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    updateMany<T extends SafetyHazardReportUpdateManyArgs>(args: SelectSubset<T, SafetyHazardReportUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create or update one ItineraryStop.
-     * @param {ItineraryStopUpsertArgs} args - Arguments to update or create a ItineraryStop.
+     * Create or update one SafetyHazardReport.
+     * @param {SafetyHazardReportUpsertArgs} args - Arguments to update or create a SafetyHazardReport.
      * @example
-     * // Update or create a ItineraryStop
-     * const itineraryStop = await prisma.itineraryStop.upsert({
+     * // Update or create a SafetyHazardReport
+     * const safetyHazardReport = await prisma.safetyHazardReport.upsert({
      *   create: {
-     *     // ... data to create a ItineraryStop
+     *     // ... data to create a SafetyHazardReport
      *   },
      *   update: {
      *     // ... in case it already exists, update
      *   },
      *   where: {
-     *     // ... the filter for the ItineraryStop we want to update
+     *     // ... the filter for the SafetyHazardReport we want to update
      *   }
      * })
      */
-    upsert<T extends ItineraryStopUpsertArgs>(args: SelectSubset<T, ItineraryStopUpsertArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+    upsert<T extends SafetyHazardReportUpsertArgs>(args: SelectSubset<T, SafetyHazardReportUpsertArgs<ExtArgs>>): Prisma__SafetyHazardReportClient<$Result.GetResult<Prisma.$SafetyHazardReportPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
 
 
     /**
-     * Count the number of ItineraryStops.
+     * Count the number of SafetyHazardReports.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryStopCountArgs} args - Arguments to filter ItineraryStops to count.
+     * @param {SafetyHazardReportCountArgs} args - Arguments to filter SafetyHazardReports to count.
      * @example
-     * // Count the number of ItineraryStops
-     * const count = await prisma.itineraryStop.count({
+     * // Count the number of SafetyHazardReports
+     * const count = await prisma.safetyHazardReport.count({
      *   where: {
-     *     // ... the filter for the ItineraryStops we want to count
+     *     // ... the filter for the SafetyHazardReports we want to count
      *   }
      * })
     **/
-    count<T extends ItineraryStopCountArgs>(
-      args?: Subset<T, ItineraryStopCountArgs>,
+    count<T extends SafetyHazardReportCountArgs>(
+      args?: Subset<T, SafetyHazardReportCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
         ? T['select'] extends true
           ? number
-          : GetScalarType<T['select'], ItineraryStopCountAggregateOutputType>
+          : GetScalarType<T['select'], SafetyHazardReportCountAggregateOutputType>
         : number
     >
 
     /**
-     * Allows you to perform aggregations operations on a ItineraryStop.
+     * Allows you to perform aggregations operations on a SafetyHazardReport.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryStopAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @param {SafetyHazardReportAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
      * @example
      * // Ordered by age ascending
      * // Where email contains prisma.io
@@ -22655,13 +22738,13 @@ export namespace Prisma {
      *   take: 10,
      * })
     **/
-    aggregate<T extends ItineraryStopAggregateArgs>(args: Subset<T, ItineraryStopAggregateArgs>): Prisma.PrismaPromise<GetItineraryStopAggregateType<T>>
+    aggregate<T extends SafetyHazardReportAggregateArgs>(args: Subset<T, SafetyHazardReportAggregateArgs>): Prisma.PrismaPromise<GetSafetyHazardReportAggregateType<T>>
 
     /**
-     * Group by ItineraryStop.
+     * Group by SafetyHazardReport.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryStopGroupByArgs} args - Group by arguments.
+     * @param {SafetyHazardReportGroupByArgs} args - Group by arguments.
      * @example
      * // Group by city, order by createdAt, get count
      * const result = await prisma.user.groupBy({
@@ -22676,14 +22759,14 @@ export namespace Prisma {
      * 
     **/
     groupBy<
-      T extends ItineraryStopGroupByArgs,
+      T extends SafetyHazardReportGroupByArgs,
       HasSelectOrTake extends Or<
         Extends<'skip', Keys<T>>,
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: ItineraryStopGroupByArgs['orderBy'] }
-        : { orderBy?: ItineraryStopGroupByArgs['orderBy'] },
+        ? { orderBy: SafetyHazardReportGroupByArgs['orderBy'] }
+        : { orderBy?: SafetyHazardReportGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -22732,1023 +22815,21 @@ export namespace Prisma {
             ? never
             : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
         }[OrderFields]
-    >(args: SubsetIntersection<T, ItineraryStopGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetItineraryStopGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+    >(args: SubsetIntersection<T, SafetyHazardReportGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetSafetyHazardReportGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
   /**
-   * Fields of the ItineraryStop model
+   * Fields of the SafetyHazardReport model
    */
-  readonly fields: ItineraryStopFieldRefs;
+  readonly fields: SafetyHazardReportFieldRefs;
   }
 
   /**
-   * The delegate class that acts as a "Promise-like" for ItineraryStop.
+   * The delegate class that acts as a "Promise-like" for SafetyHazardReport.
    * Why is this prefixed with `Prisma__`?
    * Because we want to prevent naming conflicts as mentioned in
    * https://github.com/prisma/prisma-client-js/issues/707
    */
-  export interface Prisma__ItineraryStopClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+  export interface Prisma__SafetyHazardReportClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    itinerary<T extends ItineraryDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ItineraryDefaultArgs<ExtArgs>>): Prisma__ItineraryClient<$Result.GetResult<Prisma.$ItineraryPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
-    comments<T extends ItineraryStop$commentsArgs<ExtArgs> = {}>(args?: Subset<T, ItineraryStop$commentsArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findMany"> | Null>
-    votes<T extends ItineraryStop$votesArgs<ExtArgs> = {}>(args?: Subset<T, ItineraryStop$votesArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findMany"> | Null>
-    /**
-     * Attaches callbacks for the resolution and/or rejection of the Promise.
-     * @param onfulfilled The callback to execute when the Promise is resolved.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of which ever callback is executed.
-     */
-    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
-    /**
-     * Attaches a callback for only the rejection of the Promise.
-     * @param onrejected The callback to execute when the Promise is rejected.
-     * @returns A Promise for the completion of the callback.
-     */
-    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
-    /**
-     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
-     * resolved value cannot be modified from the callback.
-     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
-     * @returns A Promise for the completion of the callback.
-     */
-    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
-  }
-
-
-
-
-  /**
-   * Fields of the ItineraryStop model
-   */ 
-  interface ItineraryStopFieldRefs {
-    readonly id: FieldRef<"ItineraryStop", 'String'>
-    readonly itineraryId: FieldRef<"ItineraryStop", 'String'>
-    readonly placeId: FieldRef<"ItineraryStop", 'String'>
-    readonly name: FieldRef<"ItineraryStop", 'String'>
-    readonly category: FieldRef<"ItineraryStop", 'String'>
-    readonly latitude: FieldRef<"ItineraryStop", 'Float'>
-    readonly longitude: FieldRef<"ItineraryStop", 'Float'>
-    readonly address: FieldRef<"ItineraryStop", 'String'>
-    readonly notes: FieldRef<"ItineraryStop", 'String'>
-    readonly position: FieldRef<"ItineraryStop", 'Int'>
-    readonly dayIndex: FieldRef<"ItineraryStop", 'Int'>
-    readonly addedById: FieldRef<"ItineraryStop", 'String'>
-    readonly addedByName: FieldRef<"ItineraryStop", 'String'>
-    readonly createdAt: FieldRef<"ItineraryStop", 'DateTime'>
-    readonly updatedAt: FieldRef<"ItineraryStop", 'DateTime'>
-  }
-    
-
-  // Custom InputTypes
-  /**
-   * ItineraryStop findUnique
-   */
-  export type ItineraryStopFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryStop to fetch.
-     */
-    where: ItineraryStopWhereUniqueInput
-  }
-
-  /**
-   * ItineraryStop findUniqueOrThrow
-   */
-  export type ItineraryStopFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryStop to fetch.
-     */
-    where: ItineraryStopWhereUniqueInput
-  }
-
-  /**
-   * ItineraryStop findFirst
-   */
-  export type ItineraryStopFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryStop to fetch.
-     */
-    where?: ItineraryStopWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ItineraryStops to fetch.
-     */
-    orderBy?: ItineraryStopOrderByWithRelationInput | ItineraryStopOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for ItineraryStops.
-     */
-    cursor?: ItineraryStopWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ItineraryStops from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ItineraryStops.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of ItineraryStops.
-     */
-    distinct?: ItineraryStopScalarFieldEnum | ItineraryStopScalarFieldEnum[]
-  }
-
-  /**
-   * ItineraryStop findFirstOrThrow
-   */
-  export type ItineraryStopFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryStop to fetch.
-     */
-    where?: ItineraryStopWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ItineraryStops to fetch.
-     */
-    orderBy?: ItineraryStopOrderByWithRelationInput | ItineraryStopOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for searching for ItineraryStops.
-     */
-    cursor?: ItineraryStopWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ItineraryStops from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ItineraryStops.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
-     * 
-     * Filter by unique combinations of ItineraryStops.
-     */
-    distinct?: ItineraryStopScalarFieldEnum | ItineraryStopScalarFieldEnum[]
-  }
-
-  /**
-   * ItineraryStop findMany
-   */
-  export type ItineraryStopFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryStops to fetch.
-     */
-    where?: ItineraryStopWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ItineraryStops to fetch.
-     */
-    orderBy?: ItineraryStopOrderByWithRelationInput | ItineraryStopOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the position for listing ItineraryStops.
-     */
-    cursor?: ItineraryStopWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ItineraryStops from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ItineraryStops.
-     */
-    skip?: number
-    distinct?: ItineraryStopScalarFieldEnum | ItineraryStopScalarFieldEnum[]
-  }
-
-  /**
-   * ItineraryStop create
-   */
-  export type ItineraryStopCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * The data needed to create a ItineraryStop.
-     */
-    data: XOR<ItineraryStopCreateInput, ItineraryStopUncheckedCreateInput>
-  }
-
-  /**
-   * ItineraryStop createMany
-   */
-  export type ItineraryStopCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to create many ItineraryStops.
-     */
-    data: ItineraryStopCreateManyInput | ItineraryStopCreateManyInput[]
-    skipDuplicates?: boolean
-  }
-
-  /**
-   * ItineraryStop createManyAndReturn
-   */
-  export type ItineraryStopCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelectCreateManyAndReturn<ExtArgs> | null
-    /**
-     * The data used to create many ItineraryStops.
-     */
-    data: ItineraryStopCreateManyInput | ItineraryStopCreateManyInput[]
-    skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopIncludeCreateManyAndReturn<ExtArgs> | null
-  }
-
-  /**
-   * ItineraryStop update
-   */
-  export type ItineraryStopUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * The data needed to update a ItineraryStop.
-     */
-    data: XOR<ItineraryStopUpdateInput, ItineraryStopUncheckedUpdateInput>
-    /**
-     * Choose, which ItineraryStop to update.
-     */
-    where: ItineraryStopWhereUniqueInput
-  }
-
-  /**
-   * ItineraryStop updateMany
-   */
-  export type ItineraryStopUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * The data used to update ItineraryStops.
-     */
-    data: XOR<ItineraryStopUpdateManyMutationInput, ItineraryStopUncheckedUpdateManyInput>
-    /**
-     * Filter which ItineraryStops to update
-     */
-    where?: ItineraryStopWhereInput
-  }
-
-  /**
-   * ItineraryStop upsert
-   */
-  export type ItineraryStopUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * The filter to search for the ItineraryStop to update in case it exists.
-     */
-    where: ItineraryStopWhereUniqueInput
-    /**
-     * In case the ItineraryStop found by the `where` argument doesn't exist, create a new ItineraryStop with this data.
-     */
-    create: XOR<ItineraryStopCreateInput, ItineraryStopUncheckedCreateInput>
-    /**
-     * In case the ItineraryStop was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<ItineraryStopUpdateInput, ItineraryStopUncheckedUpdateInput>
-  }
-
-  /**
-   * ItineraryStop delete
-   */
-  export type ItineraryStopDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-    /**
-     * Filter which ItineraryStop to delete.
-     */
-    where: ItineraryStopWhereUniqueInput
-  }
-
-  /**
-   * ItineraryStop deleteMany
-   */
-  export type ItineraryStopDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which ItineraryStops to delete
-     */
-    where?: ItineraryStopWhereInput
-  }
-
-  /**
-   * ItineraryStop.comments
-   */
-  export type ItineraryStop$commentsArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryComment
-     */
-    select?: ItineraryCommentSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryCommentInclude<ExtArgs> | null
-    where?: ItineraryCommentWhereInput
-    orderBy?: ItineraryCommentOrderByWithRelationInput | ItineraryCommentOrderByWithRelationInput[]
-    cursor?: ItineraryCommentWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: ItineraryCommentScalarFieldEnum | ItineraryCommentScalarFieldEnum[]
-  }
-
-  /**
-   * ItineraryStop.votes
-   */
-  export type ItineraryStop$votesArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryVote
-     */
-    select?: ItineraryVoteSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    where?: ItineraryVoteWhereInput
-    orderBy?: ItineraryVoteOrderByWithRelationInput | ItineraryVoteOrderByWithRelationInput[]
-    cursor?: ItineraryVoteWhereUniqueInput
-    take?: number
-    skip?: number
-    distinct?: ItineraryVoteScalarFieldEnum | ItineraryVoteScalarFieldEnum[]
-  }
-
-  /**
-   * ItineraryStop without action
-   */
-  export type ItineraryStopDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Select specific fields to fetch from the ItineraryStop
-     */
-    select?: ItineraryStopSelect<ExtArgs> | null
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryStopInclude<ExtArgs> | null
-  }
-
-
-  /**
-   * Model ItineraryComment
-   */
-
-  export type AggregateItineraryComment = {
-    _count: ItineraryCommentCountAggregateOutputType | null
-    _min: ItineraryCommentMinAggregateOutputType | null
-    _max: ItineraryCommentMaxAggregateOutputType | null
-  }
-
-  export type ItineraryCommentMinAggregateOutputType = {
-    id: string | null
-    stopId: string | null
-    userId: string | null
-    userName: string | null
-    body: string | null
-    createdAt: Date | null
-  }
-
-  export type ItineraryCommentMaxAggregateOutputType = {
-    id: string | null
-    stopId: string | null
-    userId: string | null
-    userName: string | null
-    body: string | null
-    createdAt: Date | null
-  }
-
-  export type ItineraryCommentCountAggregateOutputType = {
-    id: number
-    stopId: number
-    userId: number
-    userName: number
-    body: number
-    createdAt: number
-    _all: number
-  }
-
-
-  export type ItineraryCommentMinAggregateInputType = {
-    id?: true
-    stopId?: true
-    userId?: true
-    userName?: true
-    body?: true
-    createdAt?: true
-  }
-
-  export type ItineraryCommentMaxAggregateInputType = {
-    id?: true
-    stopId?: true
-    userId?: true
-    userName?: true
-    body?: true
-    createdAt?: true
-  }
-
-  export type ItineraryCommentCountAggregateInputType = {
-    id?: true
-    stopId?: true
-    userId?: true
-    userName?: true
-    body?: true
-    createdAt?: true
-    _all?: true
-  }
-
-  export type ItineraryCommentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    /**
-     * Filter which ItineraryComment to aggregate.
-     */
-    where?: ItineraryCommentWhereInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
-     * 
-     * Determine the order of ItineraryComments to fetch.
-     */
-    orderBy?: ItineraryCommentOrderByWithRelationInput | ItineraryCommentOrderByWithRelationInput[]
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
-     * 
-     * Sets the start position
-     */
-    cursor?: ItineraryCommentWhereUniqueInput
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Take `±n` ItineraryComments from the position of the cursor.
-     */
-    take?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
-     * 
-     * Skip the first `n` ItineraryComments.
-     */
-    skip?: number
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Count returned ItineraryComments
-    **/
-    _count?: true | ItineraryCommentCountAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the minimum value
-    **/
-    _min?: ItineraryCommentMinAggregateInputType
-    /**
-     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
-     * 
-     * Select which fields to find the maximum value
-    **/
-    _max?: ItineraryCommentMaxAggregateInputType
-  }
-
-  export type GetItineraryCommentAggregateType<T extends ItineraryCommentAggregateArgs> = {
-        [P in keyof T & keyof AggregateItineraryComment]: P extends '_count' | 'count'
-      ? T[P] extends true
-        ? number
-        : GetScalarType<T[P], AggregateItineraryComment[P]>
-      : GetScalarType<T[P], AggregateItineraryComment[P]>
-  }
-
-
-
-
-  export type ItineraryCommentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryCommentWhereInput
-    orderBy?: ItineraryCommentOrderByWithAggregationInput | ItineraryCommentOrderByWithAggregationInput[]
-    by: ItineraryCommentScalarFieldEnum[] | ItineraryCommentScalarFieldEnum
-    having?: ItineraryCommentScalarWhereWithAggregatesInput
-    take?: number
-    skip?: number
-    _count?: ItineraryCommentCountAggregateInputType | true
-    _min?: ItineraryCommentMinAggregateInputType
-    _max?: ItineraryCommentMaxAggregateInputType
-  }
-
-  export type ItineraryCommentGroupByOutputType = {
-    id: string
-    stopId: string
-    userId: string
-    userName: string | null
-    body: string
-    createdAt: Date
-    _count: ItineraryCommentCountAggregateOutputType | null
-    _min: ItineraryCommentMinAggregateOutputType | null
-    _max: ItineraryCommentMaxAggregateOutputType | null
-  }
-
-  type GetItineraryCommentGroupByPayload<T extends ItineraryCommentGroupByArgs> = Prisma.PrismaPromise<
-    Array<
-      PickEnumerable<ItineraryCommentGroupByOutputType, T['by']> &
-        {
-          [P in ((keyof T) & (keyof ItineraryCommentGroupByOutputType))]: P extends '_count'
-            ? T[P] extends boolean
-              ? number
-              : GetScalarType<T[P], ItineraryCommentGroupByOutputType[P]>
-            : GetScalarType<T[P], ItineraryCommentGroupByOutputType[P]>
-        }
-      >
-    >
-
-
-  export type ItineraryCommentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    stopId?: boolean
-    userId?: boolean
-    userName?: boolean
-    body?: boolean
-    createdAt?: boolean
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryComment"]>
-
-  export type ItineraryCommentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
-    id?: boolean
-    stopId?: boolean
-    userId?: boolean
-    userName?: boolean
-    body?: boolean
-    createdAt?: boolean
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryComment"]>
-
-  export type ItineraryCommentSelectScalar = {
-    id?: boolean
-    stopId?: boolean
-    userId?: boolean
-    userName?: boolean
-    body?: boolean
-    createdAt?: boolean
-  }
-
-  export type ItineraryCommentInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type ItineraryCommentIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }
-
-  export type $ItineraryCommentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "ItineraryComment"
-    objects: {
-      stop: Prisma.$ItineraryStopPayload<ExtArgs>
-      user: Prisma.$UserPayload<ExtArgs>
-    }
-    scalars: $Extensions.GetPayloadResult<{
-      id: string
-      stopId: string
-      userId: string
-      userName: string | null
-      body: string
-      createdAt: Date
-    }, ExtArgs["result"]["itineraryComment"]>
-    composites: {}
-  }
-
-  type ItineraryCommentGetPayload<S extends boolean | null | undefined | ItineraryCommentDefaultArgs> = $Result.GetResult<Prisma.$ItineraryCommentPayload, S>
-
-  type ItineraryCommentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
-    Omit<ItineraryCommentFindManyArgs, 'select' | 'include' | 'distinct'> & {
-      select?: ItineraryCommentCountAggregateInputType | true
-    }
-
-  export interface ItineraryCommentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ItineraryComment'], meta: { name: 'ItineraryComment' } }
-    /**
-     * Find zero or one ItineraryComment that matches the filter.
-     * @param {ItineraryCommentFindUniqueArgs} args - Arguments to find a ItineraryComment
-     * @example
-     * // Get one ItineraryComment
-     * const itineraryComment = await prisma.itineraryComment.findUnique({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUnique<T extends ItineraryCommentFindUniqueArgs>(args: SelectSubset<T, ItineraryCommentFindUniqueArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
-
-    /**
-     * Find one ItineraryComment that matches the filter or throw an error with `error.code='P2025'` 
-     * if no matches were found.
-     * @param {ItineraryCommentFindUniqueOrThrowArgs} args - Arguments to find a ItineraryComment
-     * @example
-     * // Get one ItineraryComment
-     * const itineraryComment = await prisma.itineraryComment.findUniqueOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findUniqueOrThrow<T extends ItineraryCommentFindUniqueOrThrowArgs>(args: SelectSubset<T, ItineraryCommentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
-
-    /**
-     * Find the first ItineraryComment that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCommentFindFirstArgs} args - Arguments to find a ItineraryComment
-     * @example
-     * // Get one ItineraryComment
-     * const itineraryComment = await prisma.itineraryComment.findFirst({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirst<T extends ItineraryCommentFindFirstArgs>(args?: SelectSubset<T, ItineraryCommentFindFirstArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
-
-    /**
-     * Find the first ItineraryComment that matches the filter or
-     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCommentFindFirstOrThrowArgs} args - Arguments to find a ItineraryComment
-     * @example
-     * // Get one ItineraryComment
-     * const itineraryComment = await prisma.itineraryComment.findFirstOrThrow({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     */
-    findFirstOrThrow<T extends ItineraryCommentFindFirstOrThrowArgs>(args?: SelectSubset<T, ItineraryCommentFindFirstOrThrowArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
-
-    /**
-     * Find zero or more ItineraryComments that matches the filter.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCommentFindManyArgs} args - Arguments to filter and select certain fields only.
-     * @example
-     * // Get all ItineraryComments
-     * const itineraryComments = await prisma.itineraryComment.findMany()
-     * 
-     * // Get first 10 ItineraryComments
-     * const itineraryComments = await prisma.itineraryComment.findMany({ take: 10 })
-     * 
-     * // Only select the `id`
-     * const itineraryCommentWithIdOnly = await prisma.itineraryComment.findMany({ select: { id: true } })
-     * 
-     */
-    findMany<T extends ItineraryCommentFindManyArgs>(args?: SelectSubset<T, ItineraryCommentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "findMany">>
-
-    /**
-     * Create a ItineraryComment.
-     * @param {ItineraryCommentCreateArgs} args - Arguments to create a ItineraryComment.
-     * @example
-     * // Create one ItineraryComment
-     * const ItineraryComment = await prisma.itineraryComment.create({
-     *   data: {
-     *     // ... data to create a ItineraryComment
-     *   }
-     * })
-     * 
-     */
-    create<T extends ItineraryCommentCreateArgs>(args: SelectSubset<T, ItineraryCommentCreateArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "create">, never, ExtArgs>
-
-    /**
-     * Create many ItineraryComments.
-     * @param {ItineraryCommentCreateManyArgs} args - Arguments to create many ItineraryComments.
-     * @example
-     * // Create many ItineraryComments
-     * const itineraryComment = await prisma.itineraryComment.createMany({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     *     
-     */
-    createMany<T extends ItineraryCommentCreateManyArgs>(args?: SelectSubset<T, ItineraryCommentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create many ItineraryComments and returns the data saved in the database.
-     * @param {ItineraryCommentCreateManyAndReturnArgs} args - Arguments to create many ItineraryComments.
-     * @example
-     * // Create many ItineraryComments
-     * const itineraryComment = await prisma.itineraryComment.createManyAndReturn({
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * 
-     * // Create many ItineraryComments and only return the `id`
-     * const itineraryCommentWithIdOnly = await prisma.itineraryComment.createManyAndReturn({ 
-     *   select: { id: true },
-     *   data: [
-     *     // ... provide data here
-     *   ]
-     * })
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * 
-     */
-    createManyAndReturn<T extends ItineraryCommentCreateManyAndReturnArgs>(args?: SelectSubset<T, ItineraryCommentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "createManyAndReturn">>
-
-    /**
-     * Delete a ItineraryComment.
-     * @param {ItineraryCommentDeleteArgs} args - Arguments to delete one ItineraryComment.
-     * @example
-     * // Delete one ItineraryComment
-     * const ItineraryComment = await prisma.itineraryComment.delete({
-     *   where: {
-     *     // ... filter to delete one ItineraryComment
-     *   }
-     * })
-     * 
-     */
-    delete<T extends ItineraryCommentDeleteArgs>(args: SelectSubset<T, ItineraryCommentDeleteArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
-
-    /**
-     * Update one ItineraryComment.
-     * @param {ItineraryCommentUpdateArgs} args - Arguments to update one ItineraryComment.
-     * @example
-     * // Update one ItineraryComment
-     * const itineraryComment = await prisma.itineraryComment.update({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    update<T extends ItineraryCommentUpdateArgs>(args: SelectSubset<T, ItineraryCommentUpdateArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "update">, never, ExtArgs>
-
-    /**
-     * Delete zero or more ItineraryComments.
-     * @param {ItineraryCommentDeleteManyArgs} args - Arguments to filter ItineraryComments to delete.
-     * @example
-     * // Delete a few ItineraryComments
-     * const { count } = await prisma.itineraryComment.deleteMany({
-     *   where: {
-     *     // ... provide filter here
-     *   }
-     * })
-     * 
-     */
-    deleteMany<T extends ItineraryCommentDeleteManyArgs>(args?: SelectSubset<T, ItineraryCommentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Update zero or more ItineraryComments.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCommentUpdateManyArgs} args - Arguments to update one or more rows.
-     * @example
-     * // Update many ItineraryComments
-     * const itineraryComment = await prisma.itineraryComment.updateMany({
-     *   where: {
-     *     // ... provide filter here
-     *   },
-     *   data: {
-     *     // ... provide data here
-     *   }
-     * })
-     * 
-     */
-    updateMany<T extends ItineraryCommentUpdateManyArgs>(args: SelectSubset<T, ItineraryCommentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
-
-    /**
-     * Create or update one ItineraryComment.
-     * @param {ItineraryCommentUpsertArgs} args - Arguments to update or create a ItineraryComment.
-     * @example
-     * // Update or create a ItineraryComment
-     * const itineraryComment = await prisma.itineraryComment.upsert({
-     *   create: {
-     *     // ... data to create a ItineraryComment
-     *   },
-     *   update: {
-     *     // ... in case it already exists, update
-     *   },
-     *   where: {
-     *     // ... the filter for the ItineraryComment we want to update
-     *   }
-     * })
-     */
-    upsert<T extends ItineraryCommentUpsertArgs>(args: SelectSubset<T, ItineraryCommentUpsertArgs<ExtArgs>>): Prisma__ItineraryCommentClient<$Result.GetResult<Prisma.$ItineraryCommentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
-
-
-    /**
-     * Count the number of ItineraryComments.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCommentCountArgs} args - Arguments to filter ItineraryComments to count.
-     * @example
-     * // Count the number of ItineraryComments
-     * const count = await prisma.itineraryComment.count({
-     *   where: {
-     *     // ... the filter for the ItineraryComments we want to count
-     *   }
-     * })
-    **/
-    count<T extends ItineraryCommentCountArgs>(
-      args?: Subset<T, ItineraryCommentCountArgs>,
-    ): Prisma.PrismaPromise<
-      T extends $Utils.Record<'select', any>
-        ? T['select'] extends true
-          ? number
-          : GetScalarType<T['select'], ItineraryCommentCountAggregateOutputType>
-        : number
-    >
-
-    /**
-     * Allows you to perform aggregations operations on a ItineraryComment.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCommentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
-     * @example
-     * // Ordered by age ascending
-     * // Where email contains prisma.io
-     * // Limited to the 10 users
-     * const aggregations = await prisma.user.aggregate({
-     *   _avg: {
-     *     age: true,
-     *   },
-     *   where: {
-     *     email: {
-     *       contains: "prisma.io",
-     *     },
-     *   },
-     *   orderBy: {
-     *     age: "asc",
-     *   },
-     *   take: 10,
-     * })
-    **/
-    aggregate<T extends ItineraryCommentAggregateArgs>(args: Subset<T, ItineraryCommentAggregateArgs>): Prisma.PrismaPromise<GetItineraryCommentAggregateType<T>>
-
-    /**
-     * Group by ItineraryComment.
-     * Note, that providing `undefined` is treated as the value not being there.
-     * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryCommentGroupByArgs} args - Group by arguments.
-     * @example
-     * // Group by city, order by createdAt, get count
-     * const result = await prisma.user.groupBy({
-     *   by: ['city', 'createdAt'],
-     *   orderBy: {
-     *     createdAt: true
-     *   },
-     *   _count: {
-     *     _all: true
-     *   },
-     * })
-     * 
-    **/
-    groupBy<
-      T extends ItineraryCommentGroupByArgs,
-      HasSelectOrTake extends Or<
-        Extends<'skip', Keys<T>>,
-        Extends<'take', Keys<T>>
-      >,
-      OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: ItineraryCommentGroupByArgs['orderBy'] }
-        : { orderBy?: ItineraryCommentGroupByArgs['orderBy'] },
-      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
-      ByFields extends MaybeTupleToUnion<T['by']>,
-      ByValid extends Has<ByFields, OrderFields>,
-      HavingFields extends GetHavingFields<T['having']>,
-      HavingValid extends Has<ByFields, HavingFields>,
-      ByEmpty extends T['by'] extends never[] ? True : False,
-      InputErrors extends ByEmpty extends True
-      ? `Error: "by" must not be empty.`
-      : HavingValid extends False
-      ? {
-          [P in HavingFields]: P extends ByFields
-            ? never
-            : P extends string
-            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
-            : [
-                Error,
-                'Field ',
-                P,
-                ` in "having" needs to be provided in "by"`,
-              ]
-        }[HavingFields]
-      : 'take' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "take", you also need to provide "orderBy"'
-      : 'skip' extends Keys<T>
-      ? 'orderBy' extends Keys<T>
-        ? ByValid extends True
-          ? {}
-          : {
-              [P in OrderFields]: P extends ByFields
-                ? never
-                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-            }[OrderFields]
-        : 'Error: If you provide "skip", you also need to provide "orderBy"'
-      : ByValid extends True
-      ? {}
-      : {
-          [P in OrderFields]: P extends ByFields
-            ? never
-            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
-        }[OrderFields]
-    >(args: SubsetIntersection<T, ItineraryCommentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetItineraryCommentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
-  /**
-   * Fields of the ItineraryComment model
-   */
-  readonly fields: ItineraryCommentFieldRefs;
-  }
-
-  /**
-   * The delegate class that acts as a "Promise-like" for ItineraryComment.
-   * Why is this prefixed with `Prisma__`?
-   * Because we want to prevent naming conflicts as mentioned in
-   * https://github.com/prisma/prisma-client-js/issues/707
-   */
-  export interface Prisma__ItineraryCommentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
-    readonly [Symbol.toStringTag]: "PrismaPromise"
-    stop<T extends ItineraryStopDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ItineraryStopDefaultArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
@@ -23776,729 +22857,744 @@ export namespace Prisma {
 
 
   /**
-   * Fields of the ItineraryComment model
+   * Fields of the SafetyHazardReport model
    */ 
-  interface ItineraryCommentFieldRefs {
-    readonly id: FieldRef<"ItineraryComment", 'String'>
-    readonly stopId: FieldRef<"ItineraryComment", 'String'>
-    readonly userId: FieldRef<"ItineraryComment", 'String'>
-    readonly userName: FieldRef<"ItineraryComment", 'String'>
-    readonly body: FieldRef<"ItineraryComment", 'String'>
-    readonly createdAt: FieldRef<"ItineraryComment", 'DateTime'>
+  interface SafetyHazardReportFieldRefs {
+    readonly id: FieldRef<"SafetyHazardReport", 'String'>
+    readonly userId: FieldRef<"SafetyHazardReport", 'String'>
+    readonly type: FieldRef<"SafetyHazardReport", 'String'>
+    readonly latitude: FieldRef<"SafetyHazardReport", 'Float'>
+    readonly longitude: FieldRef<"SafetyHazardReport", 'Float'>
+    readonly severity: FieldRef<"SafetyHazardReport", 'Int'>
+    readonly description: FieldRef<"SafetyHazardReport", 'String'>
+    readonly roadName: FieldRef<"SafetyHazardReport", 'String'>
+    readonly status: FieldRef<"SafetyHazardReport", 'String'>
+    readonly expiresAt: FieldRef<"SafetyHazardReport", 'DateTime'>
+    readonly approvedAt: FieldRef<"SafetyHazardReport", 'DateTime'>
+    readonly moderatedBy: FieldRef<"SafetyHazardReport", 'String'>
+    readonly createdAt: FieldRef<"SafetyHazardReport", 'DateTime'>
+    readonly updatedAt: FieldRef<"SafetyHazardReport", 'DateTime'>
   }
     
 
   // Custom InputTypes
   /**
-   * ItineraryComment findUnique
+   * SafetyHazardReport findUnique
    */
-  export type ItineraryCommentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryComment to fetch.
+     * Filter, which SafetyHazardReport to fetch.
      */
-    where: ItineraryCommentWhereUniqueInput
+    where: SafetyHazardReportWhereUniqueInput
   }
 
   /**
-   * ItineraryComment findUniqueOrThrow
+   * SafetyHazardReport findUniqueOrThrow
    */
-  export type ItineraryCommentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryComment to fetch.
+     * Filter, which SafetyHazardReport to fetch.
      */
-    where: ItineraryCommentWhereUniqueInput
+    where: SafetyHazardReportWhereUniqueInput
   }
 
   /**
-   * ItineraryComment findFirst
+   * SafetyHazardReport findFirst
    */
-  export type ItineraryCommentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryComment to fetch.
+     * Filter, which SafetyHazardReport to fetch.
      */
-    where?: ItineraryCommentWhereInput
+    where?: SafetyHazardReportWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryComments to fetch.
+     * Determine the order of SafetyHazardReports to fetch.
      */
-    orderBy?: ItineraryCommentOrderByWithRelationInput | ItineraryCommentOrderByWithRelationInput[]
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for ItineraryComments.
+     * Sets the position for searching for SafetyHazardReports.
      */
-    cursor?: ItineraryCommentWhereUniqueInput
+    cursor?: SafetyHazardReportWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryComments from the position of the cursor.
+     * Take `±n` SafetyHazardReports from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryComments.
+     * Skip the first `n` SafetyHazardReports.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of ItineraryComments.
+     * Filter by unique combinations of SafetyHazardReports.
      */
-    distinct?: ItineraryCommentScalarFieldEnum | ItineraryCommentScalarFieldEnum[]
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
   }
 
   /**
-   * ItineraryComment findFirstOrThrow
+   * SafetyHazardReport findFirstOrThrow
    */
-  export type ItineraryCommentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryComment to fetch.
+     * Filter, which SafetyHazardReport to fetch.
      */
-    where?: ItineraryCommentWhereInput
+    where?: SafetyHazardReportWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryComments to fetch.
+     * Determine the order of SafetyHazardReports to fetch.
      */
-    orderBy?: ItineraryCommentOrderByWithRelationInput | ItineraryCommentOrderByWithRelationInput[]
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for ItineraryComments.
+     * Sets the position for searching for SafetyHazardReports.
      */
-    cursor?: ItineraryCommentWhereUniqueInput
+    cursor?: SafetyHazardReportWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryComments from the position of the cursor.
+     * Take `±n` SafetyHazardReports from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryComments.
+     * Skip the first `n` SafetyHazardReports.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of ItineraryComments.
+     * Filter by unique combinations of SafetyHazardReports.
      */
-    distinct?: ItineraryCommentScalarFieldEnum | ItineraryCommentScalarFieldEnum[]
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
   }
 
   /**
-   * ItineraryComment findMany
+   * SafetyHazardReport findMany
    */
-  export type ItineraryCommentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * Filter, which ItineraryComments to fetch.
+     * Filter, which SafetyHazardReports to fetch.
      */
-    where?: ItineraryCommentWhereInput
+    where?: SafetyHazardReportWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryComments to fetch.
+     * Determine the order of SafetyHazardReports to fetch.
      */
-    orderBy?: ItineraryCommentOrderByWithRelationInput | ItineraryCommentOrderByWithRelationInput[]
+    orderBy?: SafetyHazardReportOrderByWithRelationInput | SafetyHazardReportOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for listing ItineraryComments.
+     * Sets the position for listing SafetyHazardReports.
      */
-    cursor?: ItineraryCommentWhereUniqueInput
+    cursor?: SafetyHazardReportWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryComments from the position of the cursor.
+     * Take `±n` SafetyHazardReports from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryComments.
+     * Skip the first `n` SafetyHazardReports.
      */
     skip?: number
-    distinct?: ItineraryCommentScalarFieldEnum | ItineraryCommentScalarFieldEnum[]
+    distinct?: SafetyHazardReportScalarFieldEnum | SafetyHazardReportScalarFieldEnum[]
   }
 
   /**
-   * ItineraryComment create
+   * SafetyHazardReport create
    */
-  export type ItineraryCommentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * The data needed to create a ItineraryComment.
+     * The data needed to create a SafetyHazardReport.
      */
-    data: XOR<ItineraryCommentCreateInput, ItineraryCommentUncheckedCreateInput>
+    data: XOR<SafetyHazardReportCreateInput, SafetyHazardReportUncheckedCreateInput>
   }
 
   /**
-   * ItineraryComment createMany
+   * SafetyHazardReport createMany
    */
-  export type ItineraryCommentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to create many ItineraryComments.
+     * The data used to create many SafetyHazardReports.
      */
-    data: ItineraryCommentCreateManyInput | ItineraryCommentCreateManyInput[]
+    data: SafetyHazardReportCreateManyInput | SafetyHazardReportCreateManyInput[]
     skipDuplicates?: boolean
   }
 
   /**
-   * ItineraryComment createManyAndReturn
+   * SafetyHazardReport createManyAndReturn
    */
-  export type ItineraryCommentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelectCreateManyAndReturn<ExtArgs> | null
+    select?: SafetyHazardReportSelectCreateManyAndReturn<ExtArgs> | null
     /**
-     * The data used to create many ItineraryComments.
+     * The data used to create many SafetyHazardReports.
      */
-    data: ItineraryCommentCreateManyInput | ItineraryCommentCreateManyInput[]
+    data: SafetyHazardReportCreateManyInput | SafetyHazardReportCreateManyInput[]
     skipDuplicates?: boolean
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentIncludeCreateManyAndReturn<ExtArgs> | null
+    include?: SafetyHazardReportIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
-   * ItineraryComment update
+   * SafetyHazardReport update
    */
-  export type ItineraryCommentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * The data needed to update a ItineraryComment.
+     * The data needed to update a SafetyHazardReport.
      */
-    data: XOR<ItineraryCommentUpdateInput, ItineraryCommentUncheckedUpdateInput>
+    data: XOR<SafetyHazardReportUpdateInput, SafetyHazardReportUncheckedUpdateInput>
     /**
-     * Choose, which ItineraryComment to update.
+     * Choose, which SafetyHazardReport to update.
      */
-    where: ItineraryCommentWhereUniqueInput
+    where: SafetyHazardReportWhereUniqueInput
   }
 
   /**
-   * ItineraryComment updateMany
+   * SafetyHazardReport updateMany
    */
-  export type ItineraryCommentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to update ItineraryComments.
+     * The data used to update SafetyHazardReports.
      */
-    data: XOR<ItineraryCommentUpdateManyMutationInput, ItineraryCommentUncheckedUpdateManyInput>
+    data: XOR<SafetyHazardReportUpdateManyMutationInput, SafetyHazardReportUncheckedUpdateManyInput>
     /**
-     * Filter which ItineraryComments to update
+     * Filter which SafetyHazardReports to update
      */
-    where?: ItineraryCommentWhereInput
+    where?: SafetyHazardReportWhereInput
   }
 
   /**
-   * ItineraryComment upsert
+   * SafetyHazardReport upsert
    */
-  export type ItineraryCommentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * The filter to search for the ItineraryComment to update in case it exists.
+     * The filter to search for the SafetyHazardReport to update in case it exists.
      */
-    where: ItineraryCommentWhereUniqueInput
+    where: SafetyHazardReportWhereUniqueInput
     /**
-     * In case the ItineraryComment found by the `where` argument doesn't exist, create a new ItineraryComment with this data.
+     * In case the SafetyHazardReport found by the `where` argument doesn't exist, create a new SafetyHazardReport with this data.
      */
-    create: XOR<ItineraryCommentCreateInput, ItineraryCommentUncheckedCreateInput>
+    create: XOR<SafetyHazardReportCreateInput, SafetyHazardReportUncheckedCreateInput>
     /**
-     * In case the ItineraryComment was found with the provided `where` argument, update it with this data.
+     * In case the SafetyHazardReport was found with the provided `where` argument, update it with this data.
      */
-    update: XOR<ItineraryCommentUpdateInput, ItineraryCommentUncheckedUpdateInput>
+    update: XOR<SafetyHazardReportUpdateInput, SafetyHazardReportUncheckedUpdateInput>
   }
 
   /**
-   * ItineraryComment delete
+   * SafetyHazardReport delete
    */
-  export type ItineraryCommentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
     /**
-     * Filter which ItineraryComment to delete.
+     * Filter which SafetyHazardReport to delete.
      */
-    where: ItineraryCommentWhereUniqueInput
+    where: SafetyHazardReportWhereUniqueInput
   }
 
   /**
-   * ItineraryComment deleteMany
+   * SafetyHazardReport deleteMany
    */
-  export type ItineraryCommentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which ItineraryComments to delete
+     * Filter which SafetyHazardReports to delete
      */
-    where?: ItineraryCommentWhereInput
+    where?: SafetyHazardReportWhereInput
   }
 
   /**
-   * ItineraryComment without action
+   * SafetyHazardReport without action
    */
-  export type ItineraryCommentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type SafetyHazardReportDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryComment
+     * Select specific fields to fetch from the SafetyHazardReport
      */
-    select?: ItineraryCommentSelect<ExtArgs> | null
+    select?: SafetyHazardReportSelect<ExtArgs> | null
     /**
      * Choose, which related nodes to fetch as well
      */
-    include?: ItineraryCommentInclude<ExtArgs> | null
+    include?: SafetyHazardReportInclude<ExtArgs> | null
   }
 
 
   /**
-   * Model ItineraryVote
+   * Model LegalDocument
    */
 
-  export type AggregateItineraryVote = {
-    _count: ItineraryVoteCountAggregateOutputType | null
-    _avg: ItineraryVoteAvgAggregateOutputType | null
-    _sum: ItineraryVoteSumAggregateOutputType | null
-    _min: ItineraryVoteMinAggregateOutputType | null
-    _max: ItineraryVoteMaxAggregateOutputType | null
+  export type AggregateLegalDocument = {
+    _count: LegalDocumentCountAggregateOutputType | null
+    _avg: LegalDocumentAvgAggregateOutputType | null
+    _sum: LegalDocumentSumAggregateOutputType | null
+    _min: LegalDocumentMinAggregateOutputType | null
+    _max: LegalDocumentMaxAggregateOutputType | null
   }
 
-  export type ItineraryVoteAvgAggregateOutputType = {
-    value: number | null
+  export type LegalDocumentAvgAggregateOutputType = {
+    version: number | null
   }
 
-  export type ItineraryVoteSumAggregateOutputType = {
-    value: number | null
+  export type LegalDocumentSumAggregateOutputType = {
+    version: number | null
   }
 
-  export type ItineraryVoteMinAggregateOutputType = {
+  export type LegalDocumentMinAggregateOutputType = {
     id: string | null
-    stopId: string | null
-    userId: string | null
-    value: number | null
+    type: string | null
+    title: string | null
+    content: string | null
+    version: number | null
+    updatedBy: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
 
-  export type ItineraryVoteMaxAggregateOutputType = {
+  export type LegalDocumentMaxAggregateOutputType = {
     id: string | null
-    stopId: string | null
-    userId: string | null
-    value: number | null
+    type: string | null
+    title: string | null
+    content: string | null
+    version: number | null
+    updatedBy: string | null
     createdAt: Date | null
     updatedAt: Date | null
   }
 
-  export type ItineraryVoteCountAggregateOutputType = {
+  export type LegalDocumentCountAggregateOutputType = {
     id: number
-    stopId: number
-    userId: number
-    value: number
+    type: number
+    title: number
+    content: number
+    version: number
+    updatedBy: number
     createdAt: number
     updatedAt: number
     _all: number
   }
 
 
-  export type ItineraryVoteAvgAggregateInputType = {
-    value?: true
+  export type LegalDocumentAvgAggregateInputType = {
+    version?: true
   }
 
-  export type ItineraryVoteSumAggregateInputType = {
-    value?: true
+  export type LegalDocumentSumAggregateInputType = {
+    version?: true
   }
 
-  export type ItineraryVoteMinAggregateInputType = {
+  export type LegalDocumentMinAggregateInputType = {
     id?: true
-    stopId?: true
-    userId?: true
-    value?: true
+    type?: true
+    title?: true
+    content?: true
+    version?: true
+    updatedBy?: true
     createdAt?: true
     updatedAt?: true
   }
 
-  export type ItineraryVoteMaxAggregateInputType = {
+  export type LegalDocumentMaxAggregateInputType = {
     id?: true
-    stopId?: true
-    userId?: true
-    value?: true
+    type?: true
+    title?: true
+    content?: true
+    version?: true
+    updatedBy?: true
     createdAt?: true
     updatedAt?: true
   }
 
-  export type ItineraryVoteCountAggregateInputType = {
+  export type LegalDocumentCountAggregateInputType = {
     id?: true
-    stopId?: true
-    userId?: true
-    value?: true
+    type?: true
+    title?: true
+    content?: true
+    version?: true
+    updatedBy?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
   }
 
-  export type ItineraryVoteAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which ItineraryVote to aggregate.
+     * Filter which LegalDocument to aggregate.
      */
-    where?: ItineraryVoteWhereInput
+    where?: LegalDocumentWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryVotes to fetch.
+     * Determine the order of LegalDocuments to fetch.
      */
-    orderBy?: ItineraryVoteOrderByWithRelationInput | ItineraryVoteOrderByWithRelationInput[]
+    orderBy?: LegalDocumentOrderByWithRelationInput | LegalDocumentOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
      * Sets the start position
      */
-    cursor?: ItineraryVoteWhereUniqueInput
+    cursor?: LegalDocumentWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryVotes from the position of the cursor.
+     * Take `±n` LegalDocuments from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryVotes.
+     * Skip the first `n` LegalDocuments.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
-     * Count returned ItineraryVotes
+     * Count returned LegalDocuments
     **/
-    _count?: true | ItineraryVoteCountAggregateInputType
+    _count?: true | LegalDocumentCountAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to average
     **/
-    _avg?: ItineraryVoteAvgAggregateInputType
+    _avg?: LegalDocumentAvgAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to sum
     **/
-    _sum?: ItineraryVoteSumAggregateInputType
+    _sum?: LegalDocumentSumAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the minimum value
     **/
-    _min?: ItineraryVoteMinAggregateInputType
+    _min?: LegalDocumentMinAggregateInputType
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
      * 
      * Select which fields to find the maximum value
     **/
-    _max?: ItineraryVoteMaxAggregateInputType
+    _max?: LegalDocumentMaxAggregateInputType
   }
 
-  export type GetItineraryVoteAggregateType<T extends ItineraryVoteAggregateArgs> = {
-        [P in keyof T & keyof AggregateItineraryVote]: P extends '_count' | 'count'
+  export type GetLegalDocumentAggregateType<T extends LegalDocumentAggregateArgs> = {
+        [P in keyof T & keyof AggregateLegalDocument]: P extends '_count' | 'count'
       ? T[P] extends true
         ? number
-        : GetScalarType<T[P], AggregateItineraryVote[P]>
-      : GetScalarType<T[P], AggregateItineraryVote[P]>
+        : GetScalarType<T[P], AggregateLegalDocument[P]>
+      : GetScalarType<T[P], AggregateLegalDocument[P]>
   }
 
 
 
 
-  export type ItineraryVoteGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    where?: ItineraryVoteWhereInput
-    orderBy?: ItineraryVoteOrderByWithAggregationInput | ItineraryVoteOrderByWithAggregationInput[]
-    by: ItineraryVoteScalarFieldEnum[] | ItineraryVoteScalarFieldEnum
-    having?: ItineraryVoteScalarWhereWithAggregatesInput
+  export type LegalDocumentGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: LegalDocumentWhereInput
+    orderBy?: LegalDocumentOrderByWithAggregationInput | LegalDocumentOrderByWithAggregationInput[]
+    by: LegalDocumentScalarFieldEnum[] | LegalDocumentScalarFieldEnum
+    having?: LegalDocumentScalarWhereWithAggregatesInput
     take?: number
     skip?: number
-    _count?: ItineraryVoteCountAggregateInputType | true
-    _avg?: ItineraryVoteAvgAggregateInputType
-    _sum?: ItineraryVoteSumAggregateInputType
-    _min?: ItineraryVoteMinAggregateInputType
-    _max?: ItineraryVoteMaxAggregateInputType
+    _count?: LegalDocumentCountAggregateInputType | true
+    _avg?: LegalDocumentAvgAggregateInputType
+    _sum?: LegalDocumentSumAggregateInputType
+    _min?: LegalDocumentMinAggregateInputType
+    _max?: LegalDocumentMaxAggregateInputType
   }
 
-  export type ItineraryVoteGroupByOutputType = {
+  export type LegalDocumentGroupByOutputType = {
     id: string
-    stopId: string
-    userId: string
-    value: number
+    type: string
+    title: string
+    content: string
+    version: number
+    updatedBy: string | null
     createdAt: Date
     updatedAt: Date
-    _count: ItineraryVoteCountAggregateOutputType | null
-    _avg: ItineraryVoteAvgAggregateOutputType | null
-    _sum: ItineraryVoteSumAggregateOutputType | null
-    _min: ItineraryVoteMinAggregateOutputType | null
-    _max: ItineraryVoteMaxAggregateOutputType | null
+    _count: LegalDocumentCountAggregateOutputType | null
+    _avg: LegalDocumentAvgAggregateOutputType | null
+    _sum: LegalDocumentSumAggregateOutputType | null
+    _min: LegalDocumentMinAggregateOutputType | null
+    _max: LegalDocumentMaxAggregateOutputType | null
   }
 
-  type GetItineraryVoteGroupByPayload<T extends ItineraryVoteGroupByArgs> = Prisma.PrismaPromise<
+  type GetLegalDocumentGroupByPayload<T extends LegalDocumentGroupByArgs> = Prisma.PrismaPromise<
     Array<
-      PickEnumerable<ItineraryVoteGroupByOutputType, T['by']> &
+      PickEnumerable<LegalDocumentGroupByOutputType, T['by']> &
         {
-          [P in ((keyof T) & (keyof ItineraryVoteGroupByOutputType))]: P extends '_count'
+          [P in ((keyof T) & (keyof LegalDocumentGroupByOutputType))]: P extends '_count'
             ? T[P] extends boolean
               ? number
-              : GetScalarType<T[P], ItineraryVoteGroupByOutputType[P]>
-            : GetScalarType<T[P], ItineraryVoteGroupByOutputType[P]>
+              : GetScalarType<T[P], LegalDocumentGroupByOutputType[P]>
+            : GetScalarType<T[P], LegalDocumentGroupByOutputType[P]>
         }
       >
     >
 
 
-  export type ItineraryVoteSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type LegalDocumentSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    stopId?: boolean
-    userId?: boolean
-    value?: boolean
+    type?: boolean
+    title?: boolean
+    content?: boolean
+    version?: boolean
+    updatedBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryVote"]>
+  }, ExtArgs["result"]["legalDocument"]>
 
-  export type ItineraryVoteSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+  export type LegalDocumentSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
-    stopId?: boolean
-    userId?: boolean
-    value?: boolean
+    type?: boolean
+    title?: boolean
+    content?: boolean
+    version?: boolean
+    updatedBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }, ExtArgs["result"]["itineraryVote"]>
+  }, ExtArgs["result"]["legalDocument"]>
 
-  export type ItineraryVoteSelectScalar = {
+  export type LegalDocumentSelectScalar = {
     id?: boolean
-    stopId?: boolean
-    userId?: boolean
-    value?: boolean
+    type?: boolean
+    title?: boolean
+    content?: boolean
+    version?: boolean
+    updatedBy?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
 
-  export type ItineraryVoteInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }
-  export type ItineraryVoteIncludeCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    stop?: boolean | ItineraryStopDefaultArgs<ExtArgs>
-    user?: boolean | UserDefaultArgs<ExtArgs>
-  }
 
-  export type $ItineraryVotePayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
-    name: "ItineraryVote"
-    objects: {
-      stop: Prisma.$ItineraryStopPayload<ExtArgs>
-      user: Prisma.$UserPayload<ExtArgs>
-    }
+  export type $LegalDocumentPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "LegalDocument"
+    objects: {}
     scalars: $Extensions.GetPayloadResult<{
       id: string
-      stopId: string
-      userId: string
-      value: number
+      type: string
+      title: string
+      content: string
+      version: number
+      updatedBy: string | null
       createdAt: Date
       updatedAt: Date
-    }, ExtArgs["result"]["itineraryVote"]>
+    }, ExtArgs["result"]["legalDocument"]>
     composites: {}
   }
 
-  type ItineraryVoteGetPayload<S extends boolean | null | undefined | ItineraryVoteDefaultArgs> = $Result.GetResult<Prisma.$ItineraryVotePayload, S>
+  type LegalDocumentGetPayload<S extends boolean | null | undefined | LegalDocumentDefaultArgs> = $Result.GetResult<Prisma.$LegalDocumentPayload, S>
 
-  type ItineraryVoteCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
-    Omit<ItineraryVoteFindManyArgs, 'select' | 'include' | 'distinct'> & {
-      select?: ItineraryVoteCountAggregateInputType | true
+  type LegalDocumentCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<LegalDocumentFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: LegalDocumentCountAggregateInputType | true
     }
 
-  export interface ItineraryVoteDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
-    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['ItineraryVote'], meta: { name: 'ItineraryVote' } }
+  export interface LegalDocumentDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['LegalDocument'], meta: { name: 'LegalDocument' } }
     /**
-     * Find zero or one ItineraryVote that matches the filter.
-     * @param {ItineraryVoteFindUniqueArgs} args - Arguments to find a ItineraryVote
+     * Find zero or one LegalDocument that matches the filter.
+     * @param {LegalDocumentFindUniqueArgs} args - Arguments to find a LegalDocument
      * @example
-     * // Get one ItineraryVote
-     * const itineraryVote = await prisma.itineraryVote.findUnique({
+     * // Get one LegalDocument
+     * const legalDocument = await prisma.legalDocument.findUnique({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUnique<T extends ItineraryVoteFindUniqueArgs>(args: SelectSubset<T, ItineraryVoteFindUniqueArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+    findUnique<T extends LegalDocumentFindUniqueArgs>(args: SelectSubset<T, LegalDocumentFindUniqueArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
 
     /**
-     * Find one ItineraryVote that matches the filter or throw an error with `error.code='P2025'` 
+     * Find one LegalDocument that matches the filter or throw an error with `error.code='P2025'` 
      * if no matches were found.
-     * @param {ItineraryVoteFindUniqueOrThrowArgs} args - Arguments to find a ItineraryVote
+     * @param {LegalDocumentFindUniqueOrThrowArgs} args - Arguments to find a LegalDocument
      * @example
-     * // Get one ItineraryVote
-     * const itineraryVote = await prisma.itineraryVote.findUniqueOrThrow({
+     * // Get one LegalDocument
+     * const legalDocument = await prisma.legalDocument.findUniqueOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findUniqueOrThrow<T extends ItineraryVoteFindUniqueOrThrowArgs>(args: SelectSubset<T, ItineraryVoteFindUniqueOrThrowArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+    findUniqueOrThrow<T extends LegalDocumentFindUniqueOrThrowArgs>(args: SelectSubset<T, LegalDocumentFindUniqueOrThrowArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
 
     /**
-     * Find the first ItineraryVote that matches the filter.
+     * Find the first LegalDocument that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryVoteFindFirstArgs} args - Arguments to find a ItineraryVote
+     * @param {LegalDocumentFindFirstArgs} args - Arguments to find a LegalDocument
      * @example
-     * // Get one ItineraryVote
-     * const itineraryVote = await prisma.itineraryVote.findFirst({
+     * // Get one LegalDocument
+     * const legalDocument = await prisma.legalDocument.findFirst({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirst<T extends ItineraryVoteFindFirstArgs>(args?: SelectSubset<T, ItineraryVoteFindFirstArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+    findFirst<T extends LegalDocumentFindFirstArgs>(args?: SelectSubset<T, LegalDocumentFindFirstArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
 
     /**
-     * Find the first ItineraryVote that matches the filter or
+     * Find the first LegalDocument that matches the filter or
      * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryVoteFindFirstOrThrowArgs} args - Arguments to find a ItineraryVote
+     * @param {LegalDocumentFindFirstOrThrowArgs} args - Arguments to find a LegalDocument
      * @example
-     * // Get one ItineraryVote
-     * const itineraryVote = await prisma.itineraryVote.findFirstOrThrow({
+     * // Get one LegalDocument
+     * const legalDocument = await prisma.legalDocument.findFirstOrThrow({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      */
-    findFirstOrThrow<T extends ItineraryVoteFindFirstOrThrowArgs>(args?: SelectSubset<T, ItineraryVoteFindFirstOrThrowArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+    findFirstOrThrow<T extends LegalDocumentFindFirstOrThrowArgs>(args?: SelectSubset<T, LegalDocumentFindFirstOrThrowArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
 
     /**
-     * Find zero or more ItineraryVotes that matches the filter.
+     * Find zero or more LegalDocuments that matches the filter.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryVoteFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @param {LegalDocumentFindManyArgs} args - Arguments to filter and select certain fields only.
      * @example
-     * // Get all ItineraryVotes
-     * const itineraryVotes = await prisma.itineraryVote.findMany()
+     * // Get all LegalDocuments
+     * const legalDocuments = await prisma.legalDocument.findMany()
      * 
-     * // Get first 10 ItineraryVotes
-     * const itineraryVotes = await prisma.itineraryVote.findMany({ take: 10 })
+     * // Get first 10 LegalDocuments
+     * const legalDocuments = await prisma.legalDocument.findMany({ take: 10 })
      * 
      * // Only select the `id`
-     * const itineraryVoteWithIdOnly = await prisma.itineraryVote.findMany({ select: { id: true } })
+     * const legalDocumentWithIdOnly = await prisma.legalDocument.findMany({ select: { id: true } })
      * 
      */
-    findMany<T extends ItineraryVoteFindManyArgs>(args?: SelectSubset<T, ItineraryVoteFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "findMany">>
+    findMany<T extends LegalDocumentFindManyArgs>(args?: SelectSubset<T, LegalDocumentFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "findMany">>
 
     /**
-     * Create a ItineraryVote.
-     * @param {ItineraryVoteCreateArgs} args - Arguments to create a ItineraryVote.
+     * Create a LegalDocument.
+     * @param {LegalDocumentCreateArgs} args - Arguments to create a LegalDocument.
      * @example
-     * // Create one ItineraryVote
-     * const ItineraryVote = await prisma.itineraryVote.create({
+     * // Create one LegalDocument
+     * const LegalDocument = await prisma.legalDocument.create({
      *   data: {
-     *     // ... data to create a ItineraryVote
+     *     // ... data to create a LegalDocument
      *   }
      * })
      * 
      */
-    create<T extends ItineraryVoteCreateArgs>(args: SelectSubset<T, ItineraryVoteCreateArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "create">, never, ExtArgs>
+    create<T extends LegalDocumentCreateArgs>(args: SelectSubset<T, LegalDocumentCreateArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "create">, never, ExtArgs>
 
     /**
-     * Create many ItineraryVotes.
-     * @param {ItineraryVoteCreateManyArgs} args - Arguments to create many ItineraryVotes.
+     * Create many LegalDocuments.
+     * @param {LegalDocumentCreateManyArgs} args - Arguments to create many LegalDocuments.
      * @example
-     * // Create many ItineraryVotes
-     * const itineraryVote = await prisma.itineraryVote.createMany({
+     * // Create many LegalDocuments
+     * const legalDocument = await prisma.legalDocument.createMany({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      *     
      */
-    createMany<T extends ItineraryVoteCreateManyArgs>(args?: SelectSubset<T, ItineraryVoteCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    createMany<T extends LegalDocumentCreateManyArgs>(args?: SelectSubset<T, LegalDocumentCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create many ItineraryVotes and returns the data saved in the database.
-     * @param {ItineraryVoteCreateManyAndReturnArgs} args - Arguments to create many ItineraryVotes.
+     * Create many LegalDocuments and returns the data saved in the database.
+     * @param {LegalDocumentCreateManyAndReturnArgs} args - Arguments to create many LegalDocuments.
      * @example
-     * // Create many ItineraryVotes
-     * const itineraryVote = await prisma.itineraryVote.createManyAndReturn({
+     * // Create many LegalDocuments
+     * const legalDocument = await prisma.legalDocument.createManyAndReturn({
      *   data: [
      *     // ... provide data here
      *   ]
      * })
      * 
-     * // Create many ItineraryVotes and only return the `id`
-     * const itineraryVoteWithIdOnly = await prisma.itineraryVote.createManyAndReturn({ 
+     * // Create many LegalDocuments and only return the `id`
+     * const legalDocumentWithIdOnly = await prisma.legalDocument.createManyAndReturn({ 
      *   select: { id: true },
      *   data: [
      *     // ... provide data here
@@ -24508,28 +23604,28 @@ export namespace Prisma {
      * Read more here: https://pris.ly/d/null-undefined
      * 
      */
-    createManyAndReturn<T extends ItineraryVoteCreateManyAndReturnArgs>(args?: SelectSubset<T, ItineraryVoteCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "createManyAndReturn">>
+    createManyAndReturn<T extends LegalDocumentCreateManyAndReturnArgs>(args?: SelectSubset<T, LegalDocumentCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "createManyAndReturn">>
 
     /**
-     * Delete a ItineraryVote.
-     * @param {ItineraryVoteDeleteArgs} args - Arguments to delete one ItineraryVote.
+     * Delete a LegalDocument.
+     * @param {LegalDocumentDeleteArgs} args - Arguments to delete one LegalDocument.
      * @example
-     * // Delete one ItineraryVote
-     * const ItineraryVote = await prisma.itineraryVote.delete({
+     * // Delete one LegalDocument
+     * const LegalDocument = await prisma.legalDocument.delete({
      *   where: {
-     *     // ... filter to delete one ItineraryVote
+     *     // ... filter to delete one LegalDocument
      *   }
      * })
      * 
      */
-    delete<T extends ItineraryVoteDeleteArgs>(args: SelectSubset<T, ItineraryVoteDeleteArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "delete">, never, ExtArgs>
+    delete<T extends LegalDocumentDeleteArgs>(args: SelectSubset<T, LegalDocumentDeleteArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "delete">, never, ExtArgs>
 
     /**
-     * Update one ItineraryVote.
-     * @param {ItineraryVoteUpdateArgs} args - Arguments to update one ItineraryVote.
+     * Update one LegalDocument.
+     * @param {LegalDocumentUpdateArgs} args - Arguments to update one LegalDocument.
      * @example
-     * // Update one ItineraryVote
-     * const itineraryVote = await prisma.itineraryVote.update({
+     * // Update one LegalDocument
+     * const legalDocument = await prisma.legalDocument.update({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -24539,30 +23635,30 @@ export namespace Prisma {
      * })
      * 
      */
-    update<T extends ItineraryVoteUpdateArgs>(args: SelectSubset<T, ItineraryVoteUpdateArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "update">, never, ExtArgs>
+    update<T extends LegalDocumentUpdateArgs>(args: SelectSubset<T, LegalDocumentUpdateArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "update">, never, ExtArgs>
 
     /**
-     * Delete zero or more ItineraryVotes.
-     * @param {ItineraryVoteDeleteManyArgs} args - Arguments to filter ItineraryVotes to delete.
+     * Delete zero or more LegalDocuments.
+     * @param {LegalDocumentDeleteManyArgs} args - Arguments to filter LegalDocuments to delete.
      * @example
-     * // Delete a few ItineraryVotes
-     * const { count } = await prisma.itineraryVote.deleteMany({
+     * // Delete a few LegalDocuments
+     * const { count } = await prisma.legalDocument.deleteMany({
      *   where: {
      *     // ... provide filter here
      *   }
      * })
      * 
      */
-    deleteMany<T extends ItineraryVoteDeleteManyArgs>(args?: SelectSubset<T, ItineraryVoteDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    deleteMany<T extends LegalDocumentDeleteManyArgs>(args?: SelectSubset<T, LegalDocumentDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Update zero or more ItineraryVotes.
+     * Update zero or more LegalDocuments.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryVoteUpdateManyArgs} args - Arguments to update one or more rows.
+     * @param {LegalDocumentUpdateManyArgs} args - Arguments to update one or more rows.
      * @example
-     * // Update many ItineraryVotes
-     * const itineraryVote = await prisma.itineraryVote.updateMany({
+     * // Update many LegalDocuments
+     * const legalDocument = await prisma.legalDocument.updateMany({
      *   where: {
      *     // ... provide filter here
      *   },
@@ -24572,56 +23668,56 @@ export namespace Prisma {
      * })
      * 
      */
-    updateMany<T extends ItineraryVoteUpdateManyArgs>(args: SelectSubset<T, ItineraryVoteUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+    updateMany<T extends LegalDocumentUpdateManyArgs>(args: SelectSubset<T, LegalDocumentUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
 
     /**
-     * Create or update one ItineraryVote.
-     * @param {ItineraryVoteUpsertArgs} args - Arguments to update or create a ItineraryVote.
+     * Create or update one LegalDocument.
+     * @param {LegalDocumentUpsertArgs} args - Arguments to update or create a LegalDocument.
      * @example
-     * // Update or create a ItineraryVote
-     * const itineraryVote = await prisma.itineraryVote.upsert({
+     * // Update or create a LegalDocument
+     * const legalDocument = await prisma.legalDocument.upsert({
      *   create: {
-     *     // ... data to create a ItineraryVote
+     *     // ... data to create a LegalDocument
      *   },
      *   update: {
      *     // ... in case it already exists, update
      *   },
      *   where: {
-     *     // ... the filter for the ItineraryVote we want to update
+     *     // ... the filter for the LegalDocument we want to update
      *   }
      * })
      */
-    upsert<T extends ItineraryVoteUpsertArgs>(args: SelectSubset<T, ItineraryVoteUpsertArgs<ExtArgs>>): Prisma__ItineraryVoteClient<$Result.GetResult<Prisma.$ItineraryVotePayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+    upsert<T extends LegalDocumentUpsertArgs>(args: SelectSubset<T, LegalDocumentUpsertArgs<ExtArgs>>): Prisma__LegalDocumentClient<$Result.GetResult<Prisma.$LegalDocumentPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
 
 
     /**
-     * Count the number of ItineraryVotes.
+     * Count the number of LegalDocuments.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryVoteCountArgs} args - Arguments to filter ItineraryVotes to count.
+     * @param {LegalDocumentCountArgs} args - Arguments to filter LegalDocuments to count.
      * @example
-     * // Count the number of ItineraryVotes
-     * const count = await prisma.itineraryVote.count({
+     * // Count the number of LegalDocuments
+     * const count = await prisma.legalDocument.count({
      *   where: {
-     *     // ... the filter for the ItineraryVotes we want to count
+     *     // ... the filter for the LegalDocuments we want to count
      *   }
      * })
     **/
-    count<T extends ItineraryVoteCountArgs>(
-      args?: Subset<T, ItineraryVoteCountArgs>,
+    count<T extends LegalDocumentCountArgs>(
+      args?: Subset<T, LegalDocumentCountArgs>,
     ): Prisma.PrismaPromise<
       T extends $Utils.Record<'select', any>
         ? T['select'] extends true
           ? number
-          : GetScalarType<T['select'], ItineraryVoteCountAggregateOutputType>
+          : GetScalarType<T['select'], LegalDocumentCountAggregateOutputType>
         : number
     >
 
     /**
-     * Allows you to perform aggregations operations on a ItineraryVote.
+     * Allows you to perform aggregations operations on a LegalDocument.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryVoteAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @param {LegalDocumentAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
      * @example
      * // Ordered by age ascending
      * // Where email contains prisma.io
@@ -24641,13 +23737,13 @@ export namespace Prisma {
      *   take: 10,
      * })
     **/
-    aggregate<T extends ItineraryVoteAggregateArgs>(args: Subset<T, ItineraryVoteAggregateArgs>): Prisma.PrismaPromise<GetItineraryVoteAggregateType<T>>
+    aggregate<T extends LegalDocumentAggregateArgs>(args: Subset<T, LegalDocumentAggregateArgs>): Prisma.PrismaPromise<GetLegalDocumentAggregateType<T>>
 
     /**
-     * Group by ItineraryVote.
+     * Group by LegalDocument.
      * Note, that providing `undefined` is treated as the value not being there.
      * Read more here: https://pris.ly/d/null-undefined
-     * @param {ItineraryVoteGroupByArgs} args - Group by arguments.
+     * @param {LegalDocumentGroupByArgs} args - Group by arguments.
      * @example
      * // Group by city, order by createdAt, get count
      * const result = await prisma.user.groupBy({
@@ -24662,14 +23758,14 @@ export namespace Prisma {
      * 
     **/
     groupBy<
-      T extends ItineraryVoteGroupByArgs,
+      T extends LegalDocumentGroupByArgs,
       HasSelectOrTake extends Or<
         Extends<'skip', Keys<T>>,
         Extends<'take', Keys<T>>
       >,
       OrderByArg extends True extends HasSelectOrTake
-        ? { orderBy: ItineraryVoteGroupByArgs['orderBy'] }
-        : { orderBy?: ItineraryVoteGroupByArgs['orderBy'] },
+        ? { orderBy: LegalDocumentGroupByArgs['orderBy'] }
+        : { orderBy?: LegalDocumentGroupByArgs['orderBy'] },
       OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
       ByFields extends MaybeTupleToUnion<T['by']>,
       ByValid extends Has<ByFields, OrderFields>,
@@ -24718,23 +23814,21 @@ export namespace Prisma {
             ? never
             : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
         }[OrderFields]
-    >(args: SubsetIntersection<T, ItineraryVoteGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetItineraryVoteGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+    >(args: SubsetIntersection<T, LegalDocumentGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetLegalDocumentGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
   /**
-   * Fields of the ItineraryVote model
+   * Fields of the LegalDocument model
    */
-  readonly fields: ItineraryVoteFieldRefs;
+  readonly fields: LegalDocumentFieldRefs;
   }
 
   /**
-   * The delegate class that acts as a "Promise-like" for ItineraryVote.
+   * The delegate class that acts as a "Promise-like" for LegalDocument.
    * Why is this prefixed with `Prisma__`?
    * Because we want to prevent naming conflicts as mentioned in
    * https://github.com/prisma/prisma-client-js/issues/707
    */
-  export interface Prisma__ItineraryVoteClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+  export interface Prisma__LegalDocumentClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
     readonly [Symbol.toStringTag]: "PrismaPromise"
-    stop<T extends ItineraryStopDefaultArgs<ExtArgs> = {}>(args?: Subset<T, ItineraryStopDefaultArgs<ExtArgs>>): Prisma__ItineraryStopClient<$Result.GetResult<Prisma.$ItineraryStopPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
-    user<T extends UserDefaultArgs<ExtArgs> = {}>(args?: Subset<T, UserDefaultArgs<ExtArgs>>): Prisma__UserClient<$Result.GetResult<Prisma.$UserPayload<ExtArgs>, T, "findUniqueOrThrow"> | Null, Null, ExtArgs>
     /**
      * Attaches callbacks for the resolution and/or rejection of the Promise.
      * @param onfulfilled The callback to execute when the Promise is resolved.
@@ -24761,344 +23855,2058 @@ export namespace Prisma {
 
 
   /**
-   * Fields of the ItineraryVote model
+   * Fields of the LegalDocument model
    */ 
-  interface ItineraryVoteFieldRefs {
-    readonly id: FieldRef<"ItineraryVote", 'String'>
-    readonly stopId: FieldRef<"ItineraryVote", 'String'>
-    readonly userId: FieldRef<"ItineraryVote", 'String'>
-    readonly value: FieldRef<"ItineraryVote", 'Int'>
-    readonly createdAt: FieldRef<"ItineraryVote", 'DateTime'>
-    readonly updatedAt: FieldRef<"ItineraryVote", 'DateTime'>
+  interface LegalDocumentFieldRefs {
+    readonly id: FieldRef<"LegalDocument", 'String'>
+    readonly type: FieldRef<"LegalDocument", 'String'>
+    readonly title: FieldRef<"LegalDocument", 'String'>
+    readonly content: FieldRef<"LegalDocument", 'String'>
+    readonly version: FieldRef<"LegalDocument", 'Int'>
+    readonly updatedBy: FieldRef<"LegalDocument", 'String'>
+    readonly createdAt: FieldRef<"LegalDocument", 'DateTime'>
+    readonly updatedAt: FieldRef<"LegalDocument", 'DateTime'>
   }
     
 
   // Custom InputTypes
   /**
-   * ItineraryVote findUnique
+   * LegalDocument findUnique
    */
-  export type ItineraryVoteFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * Filter, which LegalDocument to fetch.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryVote to fetch.
-     */
-    where: ItineraryVoteWhereUniqueInput
+    where: LegalDocumentWhereUniqueInput
   }
 
   /**
-   * ItineraryVote findUniqueOrThrow
+   * LegalDocument findUniqueOrThrow
    */
-  export type ItineraryVoteFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * Filter, which LegalDocument to fetch.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryVote to fetch.
-     */
-    where: ItineraryVoteWhereUniqueInput
+    where: LegalDocumentWhereUniqueInput
   }
 
   /**
-   * ItineraryVote findFirst
+   * LegalDocument findFirst
    */
-  export type ItineraryVoteFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * Filter, which LegalDocument to fetch.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryVote to fetch.
-     */
-    where?: ItineraryVoteWhereInput
+    where?: LegalDocumentWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryVotes to fetch.
+     * Determine the order of LegalDocuments to fetch.
      */
-    orderBy?: ItineraryVoteOrderByWithRelationInput | ItineraryVoteOrderByWithRelationInput[]
+    orderBy?: LegalDocumentOrderByWithRelationInput | LegalDocumentOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for ItineraryVotes.
+     * Sets the position for searching for LegalDocuments.
      */
-    cursor?: ItineraryVoteWhereUniqueInput
+    cursor?: LegalDocumentWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryVotes from the position of the cursor.
+     * Take `±n` LegalDocuments from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryVotes.
+     * Skip the first `n` LegalDocuments.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of ItineraryVotes.
+     * Filter by unique combinations of LegalDocuments.
      */
-    distinct?: ItineraryVoteScalarFieldEnum | ItineraryVoteScalarFieldEnum[]
+    distinct?: LegalDocumentScalarFieldEnum | LegalDocumentScalarFieldEnum[]
   }
 
   /**
-   * ItineraryVote findFirstOrThrow
+   * LegalDocument findFirstOrThrow
    */
-  export type ItineraryVoteFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * Filter, which LegalDocument to fetch.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryVote to fetch.
-     */
-    where?: ItineraryVoteWhereInput
+    where?: LegalDocumentWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryVotes to fetch.
+     * Determine the order of LegalDocuments to fetch.
      */
-    orderBy?: ItineraryVoteOrderByWithRelationInput | ItineraryVoteOrderByWithRelationInput[]
+    orderBy?: LegalDocumentOrderByWithRelationInput | LegalDocumentOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for searching for ItineraryVotes.
+     * Sets the position for searching for LegalDocuments.
      */
-    cursor?: ItineraryVoteWhereUniqueInput
+    cursor?: LegalDocumentWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryVotes from the position of the cursor.
+     * Take `±n` LegalDocuments from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryVotes.
+     * Skip the first `n` LegalDocuments.
      */
     skip?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
      * 
-     * Filter by unique combinations of ItineraryVotes.
+     * Filter by unique combinations of LegalDocuments.
      */
-    distinct?: ItineraryVoteScalarFieldEnum | ItineraryVoteScalarFieldEnum[]
+    distinct?: LegalDocumentScalarFieldEnum | LegalDocumentScalarFieldEnum[]
   }
 
   /**
-   * ItineraryVote findMany
+   * LegalDocument findMany
    */
-  export type ItineraryVoteFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * Filter, which LegalDocuments to fetch.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    /**
-     * Filter, which ItineraryVotes to fetch.
-     */
-    where?: ItineraryVoteWhereInput
+    where?: LegalDocumentWhereInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
      * 
-     * Determine the order of ItineraryVotes to fetch.
+     * Determine the order of LegalDocuments to fetch.
      */
-    orderBy?: ItineraryVoteOrderByWithRelationInput | ItineraryVoteOrderByWithRelationInput[]
+    orderBy?: LegalDocumentOrderByWithRelationInput | LegalDocumentOrderByWithRelationInput[]
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
      * 
-     * Sets the position for listing ItineraryVotes.
+     * Sets the position for listing LegalDocuments.
      */
-    cursor?: ItineraryVoteWhereUniqueInput
+    cursor?: LegalDocumentWhereUniqueInput
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Take `±n` ItineraryVotes from the position of the cursor.
+     * Take `±n` LegalDocuments from the position of the cursor.
      */
     take?: number
     /**
      * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
      * 
-     * Skip the first `n` ItineraryVotes.
+     * Skip the first `n` LegalDocuments.
      */
     skip?: number
-    distinct?: ItineraryVoteScalarFieldEnum | ItineraryVoteScalarFieldEnum[]
+    distinct?: LegalDocumentScalarFieldEnum | LegalDocumentScalarFieldEnum[]
   }
 
   /**
-   * ItineraryVote create
+   * LegalDocument create
    */
-  export type ItineraryVoteCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * The data needed to create a LegalDocument.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    /**
-     * The data needed to create a ItineraryVote.
-     */
-    data: XOR<ItineraryVoteCreateInput, ItineraryVoteUncheckedCreateInput>
+    data: XOR<LegalDocumentCreateInput, LegalDocumentUncheckedCreateInput>
   }
 
   /**
-   * ItineraryVote createMany
+   * LegalDocument createMany
    */
-  export type ItineraryVoteCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to create many ItineraryVotes.
+     * The data used to create many LegalDocuments.
      */
-    data: ItineraryVoteCreateManyInput | ItineraryVoteCreateManyInput[]
+    data: LegalDocumentCreateManyInput | LegalDocumentCreateManyInput[]
     skipDuplicates?: boolean
   }
 
   /**
-   * ItineraryVote createManyAndReturn
+   * LegalDocument createManyAndReturn
    */
-  export type ItineraryVoteCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelectCreateManyAndReturn<ExtArgs> | null
+    select?: LegalDocumentSelectCreateManyAndReturn<ExtArgs> | null
     /**
-     * The data used to create many ItineraryVotes.
+     * The data used to create many LegalDocuments.
      */
-    data: ItineraryVoteCreateManyInput | ItineraryVoteCreateManyInput[]
+    data: LegalDocumentCreateManyInput | LegalDocumentCreateManyInput[]
     skipDuplicates?: boolean
-    /**
-     * Choose, which related nodes to fetch as well
-     */
-    include?: ItineraryVoteIncludeCreateManyAndReturn<ExtArgs> | null
   }
 
   /**
-   * ItineraryVote update
+   * LegalDocument update
    */
-  export type ItineraryVoteUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * The data needed to update a LegalDocument.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
+    data: XOR<LegalDocumentUpdateInput, LegalDocumentUncheckedUpdateInput>
     /**
-     * The data needed to update a ItineraryVote.
+     * Choose, which LegalDocument to update.
      */
-    data: XOR<ItineraryVoteUpdateInput, ItineraryVoteUncheckedUpdateInput>
-    /**
-     * Choose, which ItineraryVote to update.
-     */
-    where: ItineraryVoteWhereUniqueInput
+    where: LegalDocumentWhereUniqueInput
   }
 
   /**
-   * ItineraryVote updateMany
+   * LegalDocument updateMany
    */
-  export type ItineraryVoteUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * The data used to update ItineraryVotes.
+     * The data used to update LegalDocuments.
      */
-    data: XOR<ItineraryVoteUpdateManyMutationInput, ItineraryVoteUncheckedUpdateManyInput>
+    data: XOR<LegalDocumentUpdateManyMutationInput, LegalDocumentUncheckedUpdateManyInput>
     /**
-     * Filter which ItineraryVotes to update
+     * Filter which LegalDocuments to update
      */
-    where?: ItineraryVoteWhereInput
+    where?: LegalDocumentWhereInput
   }
 
   /**
-   * ItineraryVote upsert
+   * LegalDocument upsert
    */
-  export type ItineraryVoteUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * The filter to search for the LegalDocument to update in case it exists.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
+    where: LegalDocumentWhereUniqueInput
     /**
-     * The filter to search for the ItineraryVote to update in case it exists.
+     * In case the LegalDocument found by the `where` argument doesn't exist, create a new LegalDocument with this data.
      */
-    where: ItineraryVoteWhereUniqueInput
+    create: XOR<LegalDocumentCreateInput, LegalDocumentUncheckedCreateInput>
     /**
-     * In case the ItineraryVote found by the `where` argument doesn't exist, create a new ItineraryVote with this data.
+     * In case the LegalDocument was found with the provided `where` argument, update it with this data.
      */
-    create: XOR<ItineraryVoteCreateInput, ItineraryVoteUncheckedCreateInput>
-    /**
-     * In case the ItineraryVote was found with the provided `where` argument, update it with this data.
-     */
-    update: XOR<ItineraryVoteUpdateInput, ItineraryVoteUncheckedUpdateInput>
+    update: XOR<LegalDocumentUpdateInput, LegalDocumentUncheckedUpdateInput>
   }
 
   /**
-   * ItineraryVote delete
+   * LegalDocument delete
    */
-  export type ItineraryVoteDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
     /**
-     * Choose, which related nodes to fetch as well
+     * Filter which LegalDocument to delete.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
-    /**
-     * Filter which ItineraryVote to delete.
-     */
-    where: ItineraryVoteWhereUniqueInput
+    where: LegalDocumentWhereUniqueInput
   }
 
   /**
-   * ItineraryVote deleteMany
+   * LegalDocument deleteMany
    */
-  export type ItineraryVoteDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Filter which ItineraryVotes to delete
+     * Filter which LegalDocuments to delete
      */
-    where?: ItineraryVoteWhereInput
+    where?: LegalDocumentWhereInput
   }
 
   /**
-   * ItineraryVote without action
+   * LegalDocument without action
    */
-  export type ItineraryVoteDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+  export type LegalDocumentDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Select specific fields to fetch from the ItineraryVote
+     * Select specific fields to fetch from the LegalDocument
      */
-    select?: ItineraryVoteSelect<ExtArgs> | null
+    select?: LegalDocumentSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AdminAllowedEmail
+   */
+
+  export type AggregateAdminAllowedEmail = {
+    _count: AdminAllowedEmailCountAggregateOutputType | null
+    _min: AdminAllowedEmailMinAggregateOutputType | null
+    _max: AdminAllowedEmailMaxAggregateOutputType | null
+  }
+
+  export type AdminAllowedEmailMinAggregateOutputType = {
+    id: string | null
+    email: string | null
+    createdAt: Date | null
+    createdBy: string | null
+  }
+
+  export type AdminAllowedEmailMaxAggregateOutputType = {
+    id: string | null
+    email: string | null
+    createdAt: Date | null
+    createdBy: string | null
+  }
+
+  export type AdminAllowedEmailCountAggregateOutputType = {
+    id: number
+    email: number
+    createdAt: number
+    createdBy: number
+    _all: number
+  }
+
+
+  export type AdminAllowedEmailMinAggregateInputType = {
+    id?: true
+    email?: true
+    createdAt?: true
+    createdBy?: true
+  }
+
+  export type AdminAllowedEmailMaxAggregateInputType = {
+    id?: true
+    email?: true
+    createdAt?: true
+    createdBy?: true
+  }
+
+  export type AdminAllowedEmailCountAggregateInputType = {
+    id?: true
+    email?: true
+    createdAt?: true
+    createdBy?: true
+    _all?: true
+  }
+
+  export type AdminAllowedEmailAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     /**
-     * Choose, which related nodes to fetch as well
+     * Filter which AdminAllowedEmail to aggregate.
      */
-    include?: ItineraryVoteInclude<ExtArgs> | null
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AdminAllowedEmails
+    **/
+    _count?: true | AdminAllowedEmailCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AdminAllowedEmailMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AdminAllowedEmailMaxAggregateInputType
+  }
+
+  export type GetAdminAllowedEmailAggregateType<T extends AdminAllowedEmailAggregateArgs> = {
+        [P in keyof T & keyof AggregateAdminAllowedEmail]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAdminAllowedEmail[P]>
+      : GetScalarType<T[P], AggregateAdminAllowedEmail[P]>
+  }
+
+
+
+
+  export type AdminAllowedEmailGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AdminAllowedEmailWhereInput
+    orderBy?: AdminAllowedEmailOrderByWithAggregationInput | AdminAllowedEmailOrderByWithAggregationInput[]
+    by: AdminAllowedEmailScalarFieldEnum[] | AdminAllowedEmailScalarFieldEnum
+    having?: AdminAllowedEmailScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AdminAllowedEmailCountAggregateInputType | true
+    _min?: AdminAllowedEmailMinAggregateInputType
+    _max?: AdminAllowedEmailMaxAggregateInputType
+  }
+
+  export type AdminAllowedEmailGroupByOutputType = {
+    id: string
+    email: string
+    createdAt: Date
+    createdBy: string | null
+    _count: AdminAllowedEmailCountAggregateOutputType | null
+    _min: AdminAllowedEmailMinAggregateOutputType | null
+    _max: AdminAllowedEmailMaxAggregateOutputType | null
+  }
+
+  type GetAdminAllowedEmailGroupByPayload<T extends AdminAllowedEmailGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AdminAllowedEmailGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AdminAllowedEmailGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AdminAllowedEmailGroupByOutputType[P]>
+            : GetScalarType<T[P], AdminAllowedEmailGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AdminAllowedEmailSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    createdAt?: boolean
+    createdBy?: boolean
+  }, ExtArgs["result"]["adminAllowedEmail"]>
+
+  export type AdminAllowedEmailSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    createdAt?: boolean
+    createdBy?: boolean
+  }, ExtArgs["result"]["adminAllowedEmail"]>
+
+  export type AdminAllowedEmailSelectScalar = {
+    id?: boolean
+    email?: boolean
+    createdAt?: boolean
+    createdBy?: boolean
+  }
+
+
+  export type $AdminAllowedEmailPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AdminAllowedEmail"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      email: string
+      createdAt: Date
+      createdBy: string | null
+    }, ExtArgs["result"]["adminAllowedEmail"]>
+    composites: {}
+  }
+
+  type AdminAllowedEmailGetPayload<S extends boolean | null | undefined | AdminAllowedEmailDefaultArgs> = $Result.GetResult<Prisma.$AdminAllowedEmailPayload, S>
+
+  type AdminAllowedEmailCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AdminAllowedEmailFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AdminAllowedEmailCountAggregateInputType | true
+    }
+
+  export interface AdminAllowedEmailDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AdminAllowedEmail'], meta: { name: 'AdminAllowedEmail' } }
+    /**
+     * Find zero or one AdminAllowedEmail that matches the filter.
+     * @param {AdminAllowedEmailFindUniqueArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AdminAllowedEmailFindUniqueArgs>(args: SelectSubset<T, AdminAllowedEmailFindUniqueArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AdminAllowedEmail that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AdminAllowedEmailFindUniqueOrThrowArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AdminAllowedEmailFindUniqueOrThrowArgs>(args: SelectSubset<T, AdminAllowedEmailFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AdminAllowedEmail that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailFindFirstArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AdminAllowedEmailFindFirstArgs>(args?: SelectSubset<T, AdminAllowedEmailFindFirstArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AdminAllowedEmail that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailFindFirstOrThrowArgs} args - Arguments to find a AdminAllowedEmail
+     * @example
+     * // Get one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AdminAllowedEmailFindFirstOrThrowArgs>(args?: SelectSubset<T, AdminAllowedEmailFindFirstOrThrowArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AdminAllowedEmails that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AdminAllowedEmails
+     * const adminAllowedEmails = await prisma.adminAllowedEmail.findMany()
+     * 
+     * // Get first 10 AdminAllowedEmails
+     * const adminAllowedEmails = await prisma.adminAllowedEmail.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const adminAllowedEmailWithIdOnly = await prisma.adminAllowedEmail.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AdminAllowedEmailFindManyArgs>(args?: SelectSubset<T, AdminAllowedEmailFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AdminAllowedEmail.
+     * @param {AdminAllowedEmailCreateArgs} args - Arguments to create a AdminAllowedEmail.
+     * @example
+     * // Create one AdminAllowedEmail
+     * const AdminAllowedEmail = await prisma.adminAllowedEmail.create({
+     *   data: {
+     *     // ... data to create a AdminAllowedEmail
+     *   }
+     * })
+     * 
+     */
+    create<T extends AdminAllowedEmailCreateArgs>(args: SelectSubset<T, AdminAllowedEmailCreateArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AdminAllowedEmails.
+     * @param {AdminAllowedEmailCreateManyArgs} args - Arguments to create many AdminAllowedEmails.
+     * @example
+     * // Create many AdminAllowedEmails
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AdminAllowedEmailCreateManyArgs>(args?: SelectSubset<T, AdminAllowedEmailCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AdminAllowedEmails and returns the data saved in the database.
+     * @param {AdminAllowedEmailCreateManyAndReturnArgs} args - Arguments to create many AdminAllowedEmails.
+     * @example
+     * // Create many AdminAllowedEmails
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AdminAllowedEmails and only return the `id`
+     * const adminAllowedEmailWithIdOnly = await prisma.adminAllowedEmail.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AdminAllowedEmailCreateManyAndReturnArgs>(args?: SelectSubset<T, AdminAllowedEmailCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AdminAllowedEmail.
+     * @param {AdminAllowedEmailDeleteArgs} args - Arguments to delete one AdminAllowedEmail.
+     * @example
+     * // Delete one AdminAllowedEmail
+     * const AdminAllowedEmail = await prisma.adminAllowedEmail.delete({
+     *   where: {
+     *     // ... filter to delete one AdminAllowedEmail
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AdminAllowedEmailDeleteArgs>(args: SelectSubset<T, AdminAllowedEmailDeleteArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AdminAllowedEmail.
+     * @param {AdminAllowedEmailUpdateArgs} args - Arguments to update one AdminAllowedEmail.
+     * @example
+     * // Update one AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AdminAllowedEmailUpdateArgs>(args: SelectSubset<T, AdminAllowedEmailUpdateArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AdminAllowedEmails.
+     * @param {AdminAllowedEmailDeleteManyArgs} args - Arguments to filter AdminAllowedEmails to delete.
+     * @example
+     * // Delete a few AdminAllowedEmails
+     * const { count } = await prisma.adminAllowedEmail.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AdminAllowedEmailDeleteManyArgs>(args?: SelectSubset<T, AdminAllowedEmailDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AdminAllowedEmails.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AdminAllowedEmails
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AdminAllowedEmailUpdateManyArgs>(args: SelectSubset<T, AdminAllowedEmailUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AdminAllowedEmail.
+     * @param {AdminAllowedEmailUpsertArgs} args - Arguments to update or create a AdminAllowedEmail.
+     * @example
+     * // Update or create a AdminAllowedEmail
+     * const adminAllowedEmail = await prisma.adminAllowedEmail.upsert({
+     *   create: {
+     *     // ... data to create a AdminAllowedEmail
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AdminAllowedEmail we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AdminAllowedEmailUpsertArgs>(args: SelectSubset<T, AdminAllowedEmailUpsertArgs<ExtArgs>>): Prisma__AdminAllowedEmailClient<$Result.GetResult<Prisma.$AdminAllowedEmailPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AdminAllowedEmails.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailCountArgs} args - Arguments to filter AdminAllowedEmails to count.
+     * @example
+     * // Count the number of AdminAllowedEmails
+     * const count = await prisma.adminAllowedEmail.count({
+     *   where: {
+     *     // ... the filter for the AdminAllowedEmails we want to count
+     *   }
+     * })
+    **/
+    count<T extends AdminAllowedEmailCountArgs>(
+      args?: Subset<T, AdminAllowedEmailCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AdminAllowedEmailCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AdminAllowedEmail.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AdminAllowedEmailAggregateArgs>(args: Subset<T, AdminAllowedEmailAggregateArgs>): Prisma.PrismaPromise<GetAdminAllowedEmailAggregateType<T>>
+
+    /**
+     * Group by AdminAllowedEmail.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminAllowedEmailGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AdminAllowedEmailGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AdminAllowedEmailGroupByArgs['orderBy'] }
+        : { orderBy?: AdminAllowedEmailGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AdminAllowedEmailGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAdminAllowedEmailGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AdminAllowedEmail model
+   */
+  readonly fields: AdminAllowedEmailFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AdminAllowedEmail.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AdminAllowedEmailClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AdminAllowedEmail model
+   */ 
+  interface AdminAllowedEmailFieldRefs {
+    readonly id: FieldRef<"AdminAllowedEmail", 'String'>
+    readonly email: FieldRef<"AdminAllowedEmail", 'String'>
+    readonly createdAt: FieldRef<"AdminAllowedEmail", 'DateTime'>
+    readonly createdBy: FieldRef<"AdminAllowedEmail", 'String'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AdminAllowedEmail findUnique
+   */
+  export type AdminAllowedEmailFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail findUniqueOrThrow
+   */
+  export type AdminAllowedEmailFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail findFirst
+   */
+  export type AdminAllowedEmailFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminAllowedEmails.
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminAllowedEmails.
+     */
+    distinct?: AdminAllowedEmailScalarFieldEnum | AdminAllowedEmailScalarFieldEnum[]
+  }
+
+  /**
+   * AdminAllowedEmail findFirstOrThrow
+   */
+  export type AdminAllowedEmailFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmail to fetch.
+     */
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminAllowedEmails.
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminAllowedEmails.
+     */
+    distinct?: AdminAllowedEmailScalarFieldEnum | AdminAllowedEmailScalarFieldEnum[]
+  }
+
+  /**
+   * AdminAllowedEmail findMany
+   */
+  export type AdminAllowedEmailFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminAllowedEmails to fetch.
+     */
+    where?: AdminAllowedEmailWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminAllowedEmails to fetch.
+     */
+    orderBy?: AdminAllowedEmailOrderByWithRelationInput | AdminAllowedEmailOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AdminAllowedEmails.
+     */
+    cursor?: AdminAllowedEmailWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminAllowedEmails from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminAllowedEmails.
+     */
+    skip?: number
+    distinct?: AdminAllowedEmailScalarFieldEnum | AdminAllowedEmailScalarFieldEnum[]
+  }
+
+  /**
+   * AdminAllowedEmail create
+   */
+  export type AdminAllowedEmailCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AdminAllowedEmail.
+     */
+    data: XOR<AdminAllowedEmailCreateInput, AdminAllowedEmailUncheckedCreateInput>
+  }
+
+  /**
+   * AdminAllowedEmail createMany
+   */
+  export type AdminAllowedEmailCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AdminAllowedEmails.
+     */
+    data: AdminAllowedEmailCreateManyInput | AdminAllowedEmailCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminAllowedEmail createManyAndReturn
+   */
+  export type AdminAllowedEmailCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AdminAllowedEmails.
+     */
+    data: AdminAllowedEmailCreateManyInput | AdminAllowedEmailCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminAllowedEmail update
+   */
+  export type AdminAllowedEmailUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AdminAllowedEmail.
+     */
+    data: XOR<AdminAllowedEmailUpdateInput, AdminAllowedEmailUncheckedUpdateInput>
+    /**
+     * Choose, which AdminAllowedEmail to update.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail updateMany
+   */
+  export type AdminAllowedEmailUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AdminAllowedEmails.
+     */
+    data: XOR<AdminAllowedEmailUpdateManyMutationInput, AdminAllowedEmailUncheckedUpdateManyInput>
+    /**
+     * Filter which AdminAllowedEmails to update
+     */
+    where?: AdminAllowedEmailWhereInput
+  }
+
+  /**
+   * AdminAllowedEmail upsert
+   */
+  export type AdminAllowedEmailUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AdminAllowedEmail to update in case it exists.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+    /**
+     * In case the AdminAllowedEmail found by the `where` argument doesn't exist, create a new AdminAllowedEmail with this data.
+     */
+    create: XOR<AdminAllowedEmailCreateInput, AdminAllowedEmailUncheckedCreateInput>
+    /**
+     * In case the AdminAllowedEmail was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AdminAllowedEmailUpdateInput, AdminAllowedEmailUncheckedUpdateInput>
+  }
+
+  /**
+   * AdminAllowedEmail delete
+   */
+  export type AdminAllowedEmailDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+    /**
+     * Filter which AdminAllowedEmail to delete.
+     */
+    where: AdminAllowedEmailWhereUniqueInput
+  }
+
+  /**
+   * AdminAllowedEmail deleteMany
+   */
+  export type AdminAllowedEmailDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AdminAllowedEmails to delete
+     */
+    where?: AdminAllowedEmailWhereInput
+  }
+
+  /**
+   * AdminAllowedEmail without action
+   */
+  export type AdminAllowedEmailDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminAllowedEmail
+     */
+    select?: AdminAllowedEmailSelect<ExtArgs> | null
+  }
+
+
+  /**
+   * Model AdminOtp
+   */
+
+  export type AggregateAdminOtp = {
+    _count: AdminOtpCountAggregateOutputType | null
+    _min: AdminOtpMinAggregateOutputType | null
+    _max: AdminOtpMaxAggregateOutputType | null
+  }
+
+  export type AdminOtpMinAggregateOutputType = {
+    id: string | null
+    email: string | null
+    otpHash: string | null
+    expiresAt: Date | null
+    verified: boolean | null
+    createdAt: Date | null
+  }
+
+  export type AdminOtpMaxAggregateOutputType = {
+    id: string | null
+    email: string | null
+    otpHash: string | null
+    expiresAt: Date | null
+    verified: boolean | null
+    createdAt: Date | null
+  }
+
+  export type AdminOtpCountAggregateOutputType = {
+    id: number
+    email: number
+    otpHash: number
+    expiresAt: number
+    verified: number
+    createdAt: number
+    _all: number
+  }
+
+
+  export type AdminOtpMinAggregateInputType = {
+    id?: true
+    email?: true
+    otpHash?: true
+    expiresAt?: true
+    verified?: true
+    createdAt?: true
+  }
+
+  export type AdminOtpMaxAggregateInputType = {
+    id?: true
+    email?: true
+    otpHash?: true
+    expiresAt?: true
+    verified?: true
+    createdAt?: true
+  }
+
+  export type AdminOtpCountAggregateInputType = {
+    id?: true
+    email?: true
+    otpHash?: true
+    expiresAt?: true
+    verified?: true
+    createdAt?: true
+    _all?: true
+  }
+
+  export type AdminOtpAggregateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AdminOtp to aggregate.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the start position
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Count returned AdminOtps
+    **/
+    _count?: true | AdminOtpCountAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the minimum value
+    **/
+    _min?: AdminOtpMinAggregateInputType
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/aggregations Aggregation Docs}
+     * 
+     * Select which fields to find the maximum value
+    **/
+    _max?: AdminOtpMaxAggregateInputType
+  }
+
+  export type GetAdminOtpAggregateType<T extends AdminOtpAggregateArgs> = {
+        [P in keyof T & keyof AggregateAdminOtp]: P extends '_count' | 'count'
+      ? T[P] extends true
+        ? number
+        : GetScalarType<T[P], AggregateAdminOtp[P]>
+      : GetScalarType<T[P], AggregateAdminOtp[P]>
+  }
+
+
+
+
+  export type AdminOtpGroupByArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    where?: AdminOtpWhereInput
+    orderBy?: AdminOtpOrderByWithAggregationInput | AdminOtpOrderByWithAggregationInput[]
+    by: AdminOtpScalarFieldEnum[] | AdminOtpScalarFieldEnum
+    having?: AdminOtpScalarWhereWithAggregatesInput
+    take?: number
+    skip?: number
+    _count?: AdminOtpCountAggregateInputType | true
+    _min?: AdminOtpMinAggregateInputType
+    _max?: AdminOtpMaxAggregateInputType
+  }
+
+  export type AdminOtpGroupByOutputType = {
+    id: string
+    email: string
+    otpHash: string
+    expiresAt: Date
+    verified: boolean
+    createdAt: Date
+    _count: AdminOtpCountAggregateOutputType | null
+    _min: AdminOtpMinAggregateOutputType | null
+    _max: AdminOtpMaxAggregateOutputType | null
+  }
+
+  type GetAdminOtpGroupByPayload<T extends AdminOtpGroupByArgs> = Prisma.PrismaPromise<
+    Array<
+      PickEnumerable<AdminOtpGroupByOutputType, T['by']> &
+        {
+          [P in ((keyof T) & (keyof AdminOtpGroupByOutputType))]: P extends '_count'
+            ? T[P] extends boolean
+              ? number
+              : GetScalarType<T[P], AdminOtpGroupByOutputType[P]>
+            : GetScalarType<T[P], AdminOtpGroupByOutputType[P]>
+        }
+      >
+    >
+
+
+  export type AdminOtpSelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    verified?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["adminOtp"]>
+
+  export type AdminOtpSelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
+    id?: boolean
+    email?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    verified?: boolean
+    createdAt?: boolean
+  }, ExtArgs["result"]["adminOtp"]>
+
+  export type AdminOtpSelectScalar = {
+    id?: boolean
+    email?: boolean
+    otpHash?: boolean
+    expiresAt?: boolean
+    verified?: boolean
+    createdAt?: boolean
+  }
+
+
+  export type $AdminOtpPayload<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    name: "AdminOtp"
+    objects: {}
+    scalars: $Extensions.GetPayloadResult<{
+      id: string
+      email: string
+      otpHash: string
+      expiresAt: Date
+      verified: boolean
+      createdAt: Date
+    }, ExtArgs["result"]["adminOtp"]>
+    composites: {}
+  }
+
+  type AdminOtpGetPayload<S extends boolean | null | undefined | AdminOtpDefaultArgs> = $Result.GetResult<Prisma.$AdminOtpPayload, S>
+
+  type AdminOtpCountArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = 
+    Omit<AdminOtpFindManyArgs, 'select' | 'include' | 'distinct'> & {
+      select?: AdminOtpCountAggregateInputType | true
+    }
+
+  export interface AdminOtpDelegate<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> {
+    [K: symbol]: { types: Prisma.TypeMap<ExtArgs>['model']['AdminOtp'], meta: { name: 'AdminOtp' } }
+    /**
+     * Find zero or one AdminOtp that matches the filter.
+     * @param {AdminOtpFindUniqueArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findUnique({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUnique<T extends AdminOtpFindUniqueArgs>(args: SelectSubset<T, AdminOtpFindUniqueArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findUnique"> | null, null, ExtArgs>
+
+    /**
+     * Find one AdminOtp that matches the filter or throw an error with `error.code='P2025'` 
+     * if no matches were found.
+     * @param {AdminOtpFindUniqueOrThrowArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findUniqueOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findUniqueOrThrow<T extends AdminOtpFindUniqueOrThrowArgs>(args: SelectSubset<T, AdminOtpFindUniqueOrThrowArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findUniqueOrThrow">, never, ExtArgs>
+
+    /**
+     * Find the first AdminOtp that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpFindFirstArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findFirst({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirst<T extends AdminOtpFindFirstArgs>(args?: SelectSubset<T, AdminOtpFindFirstArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findFirst"> | null, null, ExtArgs>
+
+    /**
+     * Find the first AdminOtp that matches the filter or
+     * throw `PrismaKnownClientError` with `P2025` code if no matches were found.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpFindFirstOrThrowArgs} args - Arguments to find a AdminOtp
+     * @example
+     * // Get one AdminOtp
+     * const adminOtp = await prisma.adminOtp.findFirstOrThrow({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     */
+    findFirstOrThrow<T extends AdminOtpFindFirstOrThrowArgs>(args?: SelectSubset<T, AdminOtpFindFirstOrThrowArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findFirstOrThrow">, never, ExtArgs>
+
+    /**
+     * Find zero or more AdminOtps that matches the filter.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpFindManyArgs} args - Arguments to filter and select certain fields only.
+     * @example
+     * // Get all AdminOtps
+     * const adminOtps = await prisma.adminOtp.findMany()
+     * 
+     * // Get first 10 AdminOtps
+     * const adminOtps = await prisma.adminOtp.findMany({ take: 10 })
+     * 
+     * // Only select the `id`
+     * const adminOtpWithIdOnly = await prisma.adminOtp.findMany({ select: { id: true } })
+     * 
+     */
+    findMany<T extends AdminOtpFindManyArgs>(args?: SelectSubset<T, AdminOtpFindManyArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "findMany">>
+
+    /**
+     * Create a AdminOtp.
+     * @param {AdminOtpCreateArgs} args - Arguments to create a AdminOtp.
+     * @example
+     * // Create one AdminOtp
+     * const AdminOtp = await prisma.adminOtp.create({
+     *   data: {
+     *     // ... data to create a AdminOtp
+     *   }
+     * })
+     * 
+     */
+    create<T extends AdminOtpCreateArgs>(args: SelectSubset<T, AdminOtpCreateArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "create">, never, ExtArgs>
+
+    /**
+     * Create many AdminOtps.
+     * @param {AdminOtpCreateManyArgs} args - Arguments to create many AdminOtps.
+     * @example
+     * // Create many AdminOtps
+     * const adminOtp = await prisma.adminOtp.createMany({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     *     
+     */
+    createMany<T extends AdminOtpCreateManyArgs>(args?: SelectSubset<T, AdminOtpCreateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create many AdminOtps and returns the data saved in the database.
+     * @param {AdminOtpCreateManyAndReturnArgs} args - Arguments to create many AdminOtps.
+     * @example
+     * // Create many AdminOtps
+     * const adminOtp = await prisma.adminOtp.createManyAndReturn({
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * 
+     * // Create many AdminOtps and only return the `id`
+     * const adminOtpWithIdOnly = await prisma.adminOtp.createManyAndReturn({ 
+     *   select: { id: true },
+     *   data: [
+     *     // ... provide data here
+     *   ]
+     * })
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * 
+     */
+    createManyAndReturn<T extends AdminOtpCreateManyAndReturnArgs>(args?: SelectSubset<T, AdminOtpCreateManyAndReturnArgs<ExtArgs>>): Prisma.PrismaPromise<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "createManyAndReturn">>
+
+    /**
+     * Delete a AdminOtp.
+     * @param {AdminOtpDeleteArgs} args - Arguments to delete one AdminOtp.
+     * @example
+     * // Delete one AdminOtp
+     * const AdminOtp = await prisma.adminOtp.delete({
+     *   where: {
+     *     // ... filter to delete one AdminOtp
+     *   }
+     * })
+     * 
+     */
+    delete<T extends AdminOtpDeleteArgs>(args: SelectSubset<T, AdminOtpDeleteArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "delete">, never, ExtArgs>
+
+    /**
+     * Update one AdminOtp.
+     * @param {AdminOtpUpdateArgs} args - Arguments to update one AdminOtp.
+     * @example
+     * // Update one AdminOtp
+     * const adminOtp = await prisma.adminOtp.update({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    update<T extends AdminOtpUpdateArgs>(args: SelectSubset<T, AdminOtpUpdateArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "update">, never, ExtArgs>
+
+    /**
+     * Delete zero or more AdminOtps.
+     * @param {AdminOtpDeleteManyArgs} args - Arguments to filter AdminOtps to delete.
+     * @example
+     * // Delete a few AdminOtps
+     * const { count } = await prisma.adminOtp.deleteMany({
+     *   where: {
+     *     // ... provide filter here
+     *   }
+     * })
+     * 
+     */
+    deleteMany<T extends AdminOtpDeleteManyArgs>(args?: SelectSubset<T, AdminOtpDeleteManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Update zero or more AdminOtps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpUpdateManyArgs} args - Arguments to update one or more rows.
+     * @example
+     * // Update many AdminOtps
+     * const adminOtp = await prisma.adminOtp.updateMany({
+     *   where: {
+     *     // ... provide filter here
+     *   },
+     *   data: {
+     *     // ... provide data here
+     *   }
+     * })
+     * 
+     */
+    updateMany<T extends AdminOtpUpdateManyArgs>(args: SelectSubset<T, AdminOtpUpdateManyArgs<ExtArgs>>): Prisma.PrismaPromise<BatchPayload>
+
+    /**
+     * Create or update one AdminOtp.
+     * @param {AdminOtpUpsertArgs} args - Arguments to update or create a AdminOtp.
+     * @example
+     * // Update or create a AdminOtp
+     * const adminOtp = await prisma.adminOtp.upsert({
+     *   create: {
+     *     // ... data to create a AdminOtp
+     *   },
+     *   update: {
+     *     // ... in case it already exists, update
+     *   },
+     *   where: {
+     *     // ... the filter for the AdminOtp we want to update
+     *   }
+     * })
+     */
+    upsert<T extends AdminOtpUpsertArgs>(args: SelectSubset<T, AdminOtpUpsertArgs<ExtArgs>>): Prisma__AdminOtpClient<$Result.GetResult<Prisma.$AdminOtpPayload<ExtArgs>, T, "upsert">, never, ExtArgs>
+
+
+    /**
+     * Count the number of AdminOtps.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpCountArgs} args - Arguments to filter AdminOtps to count.
+     * @example
+     * // Count the number of AdminOtps
+     * const count = await prisma.adminOtp.count({
+     *   where: {
+     *     // ... the filter for the AdminOtps we want to count
+     *   }
+     * })
+    **/
+    count<T extends AdminOtpCountArgs>(
+      args?: Subset<T, AdminOtpCountArgs>,
+    ): Prisma.PrismaPromise<
+      T extends $Utils.Record<'select', any>
+        ? T['select'] extends true
+          ? number
+          : GetScalarType<T['select'], AdminOtpCountAggregateOutputType>
+        : number
+    >
+
+    /**
+     * Allows you to perform aggregations operations on a AdminOtp.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpAggregateArgs} args - Select which aggregations you would like to apply and on what fields.
+     * @example
+     * // Ordered by age ascending
+     * // Where email contains prisma.io
+     * // Limited to the 10 users
+     * const aggregations = await prisma.user.aggregate({
+     *   _avg: {
+     *     age: true,
+     *   },
+     *   where: {
+     *     email: {
+     *       contains: "prisma.io",
+     *     },
+     *   },
+     *   orderBy: {
+     *     age: "asc",
+     *   },
+     *   take: 10,
+     * })
+    **/
+    aggregate<T extends AdminOtpAggregateArgs>(args: Subset<T, AdminOtpAggregateArgs>): Prisma.PrismaPromise<GetAdminOtpAggregateType<T>>
+
+    /**
+     * Group by AdminOtp.
+     * Note, that providing `undefined` is treated as the value not being there.
+     * Read more here: https://pris.ly/d/null-undefined
+     * @param {AdminOtpGroupByArgs} args - Group by arguments.
+     * @example
+     * // Group by city, order by createdAt, get count
+     * const result = await prisma.user.groupBy({
+     *   by: ['city', 'createdAt'],
+     *   orderBy: {
+     *     createdAt: true
+     *   },
+     *   _count: {
+     *     _all: true
+     *   },
+     * })
+     * 
+    **/
+    groupBy<
+      T extends AdminOtpGroupByArgs,
+      HasSelectOrTake extends Or<
+        Extends<'skip', Keys<T>>,
+        Extends<'take', Keys<T>>
+      >,
+      OrderByArg extends True extends HasSelectOrTake
+        ? { orderBy: AdminOtpGroupByArgs['orderBy'] }
+        : { orderBy?: AdminOtpGroupByArgs['orderBy'] },
+      OrderFields extends ExcludeUnderscoreKeys<Keys<MaybeTupleToUnion<T['orderBy']>>>,
+      ByFields extends MaybeTupleToUnion<T['by']>,
+      ByValid extends Has<ByFields, OrderFields>,
+      HavingFields extends GetHavingFields<T['having']>,
+      HavingValid extends Has<ByFields, HavingFields>,
+      ByEmpty extends T['by'] extends never[] ? True : False,
+      InputErrors extends ByEmpty extends True
+      ? `Error: "by" must not be empty.`
+      : HavingValid extends False
+      ? {
+          [P in HavingFields]: P extends ByFields
+            ? never
+            : P extends string
+            ? `Error: Field "${P}" used in "having" needs to be provided in "by".`
+            : [
+                Error,
+                'Field ',
+                P,
+                ` in "having" needs to be provided in "by"`,
+              ]
+        }[HavingFields]
+      : 'take' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "take", you also need to provide "orderBy"'
+      : 'skip' extends Keys<T>
+      ? 'orderBy' extends Keys<T>
+        ? ByValid extends True
+          ? {}
+          : {
+              [P in OrderFields]: P extends ByFields
+                ? never
+                : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+            }[OrderFields]
+        : 'Error: If you provide "skip", you also need to provide "orderBy"'
+      : ByValid extends True
+      ? {}
+      : {
+          [P in OrderFields]: P extends ByFields
+            ? never
+            : `Error: Field "${P}" in "orderBy" needs to be provided in "by"`
+        }[OrderFields]
+    >(args: SubsetIntersection<T, AdminOtpGroupByArgs, OrderByArg> & InputErrors): {} extends InputErrors ? GetAdminOtpGroupByPayload<T> : Prisma.PrismaPromise<InputErrors>
+  /**
+   * Fields of the AdminOtp model
+   */
+  readonly fields: AdminOtpFieldRefs;
+  }
+
+  /**
+   * The delegate class that acts as a "Promise-like" for AdminOtp.
+   * Why is this prefixed with `Prisma__`?
+   * Because we want to prevent naming conflicts as mentioned in
+   * https://github.com/prisma/prisma-client-js/issues/707
+   */
+  export interface Prisma__AdminOtpClient<T, Null = never, ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> extends Prisma.PrismaPromise<T> {
+    readonly [Symbol.toStringTag]: "PrismaPromise"
+    /**
+     * Attaches callbacks for the resolution and/or rejection of the Promise.
+     * @param onfulfilled The callback to execute when the Promise is resolved.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of which ever callback is executed.
+     */
+    then<TResult1 = T, TResult2 = never>(onfulfilled?: ((value: T) => TResult1 | PromiseLike<TResult1>) | undefined | null, onrejected?: ((reason: any) => TResult2 | PromiseLike<TResult2>) | undefined | null): $Utils.JsPromise<TResult1 | TResult2>
+    /**
+     * Attaches a callback for only the rejection of the Promise.
+     * @param onrejected The callback to execute when the Promise is rejected.
+     * @returns A Promise for the completion of the callback.
+     */
+    catch<TResult = never>(onrejected?: ((reason: any) => TResult | PromiseLike<TResult>) | undefined | null): $Utils.JsPromise<T | TResult>
+    /**
+     * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+     * resolved value cannot be modified from the callback.
+     * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+     * @returns A Promise for the completion of the callback.
+     */
+    finally(onfinally?: (() => void) | undefined | null): $Utils.JsPromise<T>
+  }
+
+
+
+
+  /**
+   * Fields of the AdminOtp model
+   */ 
+  interface AdminOtpFieldRefs {
+    readonly id: FieldRef<"AdminOtp", 'String'>
+    readonly email: FieldRef<"AdminOtp", 'String'>
+    readonly otpHash: FieldRef<"AdminOtp", 'String'>
+    readonly expiresAt: FieldRef<"AdminOtp", 'DateTime'>
+    readonly verified: FieldRef<"AdminOtp", 'Boolean'>
+    readonly createdAt: FieldRef<"AdminOtp", 'DateTime'>
+  }
+    
+
+  // Custom InputTypes
+  /**
+   * AdminOtp findUnique
+   */
+  export type AdminOtpFindUniqueArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp findUniqueOrThrow
+   */
+  export type AdminOtpFindUniqueOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp findFirst
+   */
+  export type AdminOtpFindFirstArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminOtps.
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminOtps.
+     */
+    distinct?: AdminOtpScalarFieldEnum | AdminOtpScalarFieldEnum[]
+  }
+
+  /**
+   * AdminOtp findFirstOrThrow
+   */
+  export type AdminOtpFindFirstOrThrowArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtp to fetch.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for searching for AdminOtps.
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/distinct Distinct Docs}
+     * 
+     * Filter by unique combinations of AdminOtps.
+     */
+    distinct?: AdminOtpScalarFieldEnum | AdminOtpScalarFieldEnum[]
+  }
+
+  /**
+   * AdminOtp findMany
+   */
+  export type AdminOtpFindManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter, which AdminOtps to fetch.
+     */
+    where?: AdminOtpWhereInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/sorting Sorting Docs}
+     * 
+     * Determine the order of AdminOtps to fetch.
+     */
+    orderBy?: AdminOtpOrderByWithRelationInput | AdminOtpOrderByWithRelationInput[]
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination#cursor-based-pagination Cursor Docs}
+     * 
+     * Sets the position for listing AdminOtps.
+     */
+    cursor?: AdminOtpWhereUniqueInput
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Take `±n` AdminOtps from the position of the cursor.
+     */
+    take?: number
+    /**
+     * {@link https://www.prisma.io/docs/concepts/components/prisma-client/pagination Pagination Docs}
+     * 
+     * Skip the first `n` AdminOtps.
+     */
+    skip?: number
+    distinct?: AdminOtpScalarFieldEnum | AdminOtpScalarFieldEnum[]
+  }
+
+  /**
+   * AdminOtp create
+   */
+  export type AdminOtpCreateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * The data needed to create a AdminOtp.
+     */
+    data: XOR<AdminOtpCreateInput, AdminOtpUncheckedCreateInput>
+  }
+
+  /**
+   * AdminOtp createMany
+   */
+  export type AdminOtpCreateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to create many AdminOtps.
+     */
+    data: AdminOtpCreateManyInput | AdminOtpCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminOtp createManyAndReturn
+   */
+  export type AdminOtpCreateManyAndReturnArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelectCreateManyAndReturn<ExtArgs> | null
+    /**
+     * The data used to create many AdminOtps.
+     */
+    data: AdminOtpCreateManyInput | AdminOtpCreateManyInput[]
+    skipDuplicates?: boolean
+  }
+
+  /**
+   * AdminOtp update
+   */
+  export type AdminOtpUpdateArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * The data needed to update a AdminOtp.
+     */
+    data: XOR<AdminOtpUpdateInput, AdminOtpUncheckedUpdateInput>
+    /**
+     * Choose, which AdminOtp to update.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp updateMany
+   */
+  export type AdminOtpUpdateManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * The data used to update AdminOtps.
+     */
+    data: XOR<AdminOtpUpdateManyMutationInput, AdminOtpUncheckedUpdateManyInput>
+    /**
+     * Filter which AdminOtps to update
+     */
+    where?: AdminOtpWhereInput
+  }
+
+  /**
+   * AdminOtp upsert
+   */
+  export type AdminOtpUpsertArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * The filter to search for the AdminOtp to update in case it exists.
+     */
+    where: AdminOtpWhereUniqueInput
+    /**
+     * In case the AdminOtp found by the `where` argument doesn't exist, create a new AdminOtp with this data.
+     */
+    create: XOR<AdminOtpCreateInput, AdminOtpUncheckedCreateInput>
+    /**
+     * In case the AdminOtp was found with the provided `where` argument, update it with this data.
+     */
+    update: XOR<AdminOtpUpdateInput, AdminOtpUncheckedUpdateInput>
+  }
+
+  /**
+   * AdminOtp delete
+   */
+  export type AdminOtpDeleteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
+    /**
+     * Filter which AdminOtp to delete.
+     */
+    where: AdminOtpWhereUniqueInput
+  }
+
+  /**
+   * AdminOtp deleteMany
+   */
+  export type AdminOtpDeleteManyArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Filter which AdminOtps to delete
+     */
+    where?: AdminOtpWhereInput
+  }
+
+  /**
+   * AdminOtp without action
+   */
+  export type AdminOtpDefaultArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
+    /**
+     * Select specific fields to fetch from the AdminOtp
+     */
+    select?: AdminOtpSelect<ExtArgs> | null
   }
 
 
@@ -25399,77 +26207,94 @@ export namespace Prisma {
   export type PlaceAuditScalarFieldEnum = (typeof PlaceAuditScalarFieldEnum)[keyof typeof PlaceAuditScalarFieldEnum]
 
 
-  export const ItineraryScalarFieldEnum: {
+  export const LiveLocationShareScalarFieldEnum: {
     id: 'id',
-    title: 'title',
-    description: 'description',
     ownerId: 'ownerId',
-    shareToken: 'shareToken',
-    coverEmoji: 'coverEmoji',
-    startDate: 'startDate',
-    endDate: 'endDate',
-    autoSort: 'autoSort',
+    tokenHash: 'tokenHash',
+    status: 'status',
+    durationMinutes: 'durationMinutes',
+    expiresAt: 'expiresAt',
+    endedAt: 'endedAt',
+    endedReason: 'endedReason',
+    lastLatitude: 'lastLatitude',
+    lastLongitude: 'lastLongitude',
+    lastAccuracy: 'lastAccuracy',
+    lastSpeed: 'lastSpeed',
+    lastHeading: 'lastHeading',
+    lastUpdatedAt: 'lastUpdatedAt',
+    presenceStatus: 'presenceStatus',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
-  export type ItineraryScalarFieldEnum = (typeof ItineraryScalarFieldEnum)[keyof typeof ItineraryScalarFieldEnum]
+  export type LiveLocationShareScalarFieldEnum = (typeof LiveLocationShareScalarFieldEnum)[keyof typeof LiveLocationShareScalarFieldEnum]
 
 
-  export const ItineraryMemberScalarFieldEnum: {
+  export const LiveLocationViewerScalarFieldEnum: {
     id: 'id',
-    itineraryId: 'itineraryId',
+    shareId: 'shareId',
     userId: 'userId',
-    role: 'role',
-    createdAt: 'createdAt'
+    firstViewedAt: 'firstViewedAt',
+    lastViewedAt: 'lastViewedAt'
   };
 
-  export type ItineraryMemberScalarFieldEnum = (typeof ItineraryMemberScalarFieldEnum)[keyof typeof ItineraryMemberScalarFieldEnum]
+  export type LiveLocationViewerScalarFieldEnum = (typeof LiveLocationViewerScalarFieldEnum)[keyof typeof LiveLocationViewerScalarFieldEnum]
 
 
-  export const ItineraryStopScalarFieldEnum: {
+  export const SafetyHazardReportScalarFieldEnum: {
     id: 'id',
-    itineraryId: 'itineraryId',
-    placeId: 'placeId',
-    name: 'name',
-    category: 'category',
+    userId: 'userId',
+    type: 'type',
     latitude: 'latitude',
     longitude: 'longitude',
-    address: 'address',
-    notes: 'notes',
-    position: 'position',
-    dayIndex: 'dayIndex',
-    addedById: 'addedById',
-    addedByName: 'addedByName',
+    severity: 'severity',
+    description: 'description',
+    roadName: 'roadName',
+    status: 'status',
+    expiresAt: 'expiresAt',
+    approvedAt: 'approvedAt',
+    moderatedBy: 'moderatedBy',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
 
-  export type ItineraryStopScalarFieldEnum = (typeof ItineraryStopScalarFieldEnum)[keyof typeof ItineraryStopScalarFieldEnum]
+  export type SafetyHazardReportScalarFieldEnum = (typeof SafetyHazardReportScalarFieldEnum)[keyof typeof SafetyHazardReportScalarFieldEnum]
 
 
-  export const ItineraryCommentScalarFieldEnum: {
+  export const LegalDocumentScalarFieldEnum: {
     id: 'id',
-    stopId: 'stopId',
-    userId: 'userId',
-    userName: 'userName',
-    body: 'body',
+    type: 'type',
+    title: 'title',
+    content: 'content',
+    version: 'version',
+    updatedBy: 'updatedBy',
+    createdAt: 'createdAt',
+    updatedAt: 'updatedAt'
+  };
+
+  export type LegalDocumentScalarFieldEnum = (typeof LegalDocumentScalarFieldEnum)[keyof typeof LegalDocumentScalarFieldEnum]
+
+
+  export const AdminAllowedEmailScalarFieldEnum: {
+    id: 'id',
+    email: 'email',
+    createdAt: 'createdAt',
+    createdBy: 'createdBy'
+  };
+
+  export type AdminAllowedEmailScalarFieldEnum = (typeof AdminAllowedEmailScalarFieldEnum)[keyof typeof AdminAllowedEmailScalarFieldEnum]
+
+
+  export const AdminOtpScalarFieldEnum: {
+    id: 'id',
+    email: 'email',
+    otpHash: 'otpHash',
+    expiresAt: 'expiresAt',
+    verified: 'verified',
     createdAt: 'createdAt'
   };
 
-  export type ItineraryCommentScalarFieldEnum = (typeof ItineraryCommentScalarFieldEnum)[keyof typeof ItineraryCommentScalarFieldEnum]
-
-
-  export const ItineraryVoteScalarFieldEnum: {
-    id: 'id',
-    stopId: 'stopId',
-    userId: 'userId',
-    value: 'value',
-    createdAt: 'createdAt',
-    updatedAt: 'updatedAt'
-  };
-
-  export type ItineraryVoteScalarFieldEnum = (typeof ItineraryVoteScalarFieldEnum)[keyof typeof ItineraryVoteScalarFieldEnum]
+  export type AdminOtpScalarFieldEnum = (typeof AdminOtpScalarFieldEnum)[keyof typeof AdminOtpScalarFieldEnum]
 
 
   export const SortOrder: {
@@ -25620,10 +26445,9 @@ export namespace Prisma {
     notificationPreference?: XOR<NotificationPreferenceNullableRelationFilter, NotificationPreferenceWhereInput> | null
     businessClaims?: BusinessClaimListRelationFilter
     placeLabels?: PlaceLabelListRelationFilter
-    ownedItineraries?: ItineraryListRelationFilter
-    itineraryMemberships?: ItineraryMemberListRelationFilter
-    itineraryComments?: ItineraryCommentListRelationFilter
-    itineraryVotes?: ItineraryVoteListRelationFilter
+    ownedLiveLocationShares?: LiveLocationShareListRelationFilter
+    liveLocationViewerships?: LiveLocationViewerListRelationFilter
+    safetyHazardReports?: SafetyHazardReportListRelationFilter
   }
 
   export type UserOrderByWithRelationInput = {
@@ -25652,10 +26476,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceOrderByWithRelationInput
     businessClaims?: BusinessClaimOrderByRelationAggregateInput
     placeLabels?: PlaceLabelOrderByRelationAggregateInput
-    ownedItineraries?: ItineraryOrderByRelationAggregateInput
-    itineraryMemberships?: ItineraryMemberOrderByRelationAggregateInput
-    itineraryComments?: ItineraryCommentOrderByRelationAggregateInput
-    itineraryVotes?: ItineraryVoteOrderByRelationAggregateInput
+    ownedLiveLocationShares?: LiveLocationShareOrderByRelationAggregateInput
+    liveLocationViewerships?: LiveLocationViewerOrderByRelationAggregateInput
+    safetyHazardReports?: SafetyHazardReportOrderByRelationAggregateInput
   }
 
   export type UserWhereUniqueInput = Prisma.AtLeast<{
@@ -25687,10 +26510,9 @@ export namespace Prisma {
     notificationPreference?: XOR<NotificationPreferenceNullableRelationFilter, NotificationPreferenceWhereInput> | null
     businessClaims?: BusinessClaimListRelationFilter
     placeLabels?: PlaceLabelListRelationFilter
-    ownedItineraries?: ItineraryListRelationFilter
-    itineraryMemberships?: ItineraryMemberListRelationFilter
-    itineraryComments?: ItineraryCommentListRelationFilter
-    itineraryVotes?: ItineraryVoteListRelationFilter
+    ownedLiveLocationShares?: LiveLocationShareListRelationFilter
+    liveLocationViewerships?: LiveLocationViewerListRelationFilter
+    safetyHazardReports?: SafetyHazardReportListRelationFilter
   }, "id" | "email" | "googleId">
 
   export type UserOrderByWithAggregationInput = {
@@ -27112,396 +27934,458 @@ export namespace Prisma {
     createdAt?: DateTimeWithAggregatesFilter<"PlaceAudit"> | Date | string
   }
 
-  export type ItineraryWhereInput = {
-    AND?: ItineraryWhereInput | ItineraryWhereInput[]
-    OR?: ItineraryWhereInput[]
-    NOT?: ItineraryWhereInput | ItineraryWhereInput[]
-    id?: StringFilter<"Itinerary"> | string
-    title?: StringFilter<"Itinerary"> | string
-    description?: StringNullableFilter<"Itinerary"> | string | null
-    ownerId?: StringFilter<"Itinerary"> | string
-    shareToken?: StringFilter<"Itinerary"> | string
-    coverEmoji?: StringNullableFilter<"Itinerary"> | string | null
-    startDate?: DateTimeNullableFilter<"Itinerary"> | Date | string | null
-    endDate?: DateTimeNullableFilter<"Itinerary"> | Date | string | null
-    autoSort?: BoolFilter<"Itinerary"> | boolean
-    createdAt?: DateTimeFilter<"Itinerary"> | Date | string
-    updatedAt?: DateTimeFilter<"Itinerary"> | Date | string
+  export type LiveLocationShareWhereInput = {
+    AND?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    OR?: LiveLocationShareWhereInput[]
+    NOT?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    id?: StringFilter<"LiveLocationShare"> | string
+    ownerId?: StringFilter<"LiveLocationShare"> | string
+    tokenHash?: StringFilter<"LiveLocationShare"> | string
+    status?: StringFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
     owner?: XOR<UserRelationFilter, UserWhereInput>
-    members?: ItineraryMemberListRelationFilter
-    stops?: ItineraryStopListRelationFilter
+    viewers?: LiveLocationViewerListRelationFilter
   }
 
-  export type ItineraryOrderByWithRelationInput = {
+  export type LiveLocationShareOrderByWithRelationInput = {
     id?: SortOrder
-    title?: SortOrder
-    description?: SortOrderInput | SortOrder
     ownerId?: SortOrder
-    shareToken?: SortOrder
-    coverEmoji?: SortOrderInput | SortOrder
-    startDate?: SortOrderInput | SortOrder
-    endDate?: SortOrderInput | SortOrder
-    autoSort?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    endedReason?: SortOrderInput | SortOrder
+    lastLatitude?: SortOrderInput | SortOrder
+    lastLongitude?: SortOrderInput | SortOrder
+    lastAccuracy?: SortOrderInput | SortOrder
+    lastSpeed?: SortOrderInput | SortOrder
+    lastHeading?: SortOrderInput | SortOrder
+    lastUpdatedAt?: SortOrderInput | SortOrder
+    presenceStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     owner?: UserOrderByWithRelationInput
-    members?: ItineraryMemberOrderByRelationAggregateInput
-    stops?: ItineraryStopOrderByRelationAggregateInput
+    viewers?: LiveLocationViewerOrderByRelationAggregateInput
   }
 
-  export type ItineraryWhereUniqueInput = Prisma.AtLeast<{
+  export type LiveLocationShareWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    shareToken?: string
-    AND?: ItineraryWhereInput | ItineraryWhereInput[]
-    OR?: ItineraryWhereInput[]
-    NOT?: ItineraryWhereInput | ItineraryWhereInput[]
-    title?: StringFilter<"Itinerary"> | string
-    description?: StringNullableFilter<"Itinerary"> | string | null
-    ownerId?: StringFilter<"Itinerary"> | string
-    coverEmoji?: StringNullableFilter<"Itinerary"> | string | null
-    startDate?: DateTimeNullableFilter<"Itinerary"> | Date | string | null
-    endDate?: DateTimeNullableFilter<"Itinerary"> | Date | string | null
-    autoSort?: BoolFilter<"Itinerary"> | boolean
-    createdAt?: DateTimeFilter<"Itinerary"> | Date | string
-    updatedAt?: DateTimeFilter<"Itinerary"> | Date | string
+    tokenHash?: string
+    AND?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    OR?: LiveLocationShareWhereInput[]
+    NOT?: LiveLocationShareWhereInput | LiveLocationShareWhereInput[]
+    ownerId?: StringFilter<"LiveLocationShare"> | string
+    status?: StringFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
     owner?: XOR<UserRelationFilter, UserWhereInput>
-    members?: ItineraryMemberListRelationFilter
-    stops?: ItineraryStopListRelationFilter
-  }, "id" | "shareToken">
+    viewers?: LiveLocationViewerListRelationFilter
+  }, "id" | "tokenHash">
 
-  export type ItineraryOrderByWithAggregationInput = {
+  export type LiveLocationShareOrderByWithAggregationInput = {
     id?: SortOrder
-    title?: SortOrder
-    description?: SortOrderInput | SortOrder
     ownerId?: SortOrder
-    shareToken?: SortOrder
-    coverEmoji?: SortOrderInput | SortOrder
-    startDate?: SortOrderInput | SortOrder
-    endDate?: SortOrderInput | SortOrder
-    autoSort?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrderInput | SortOrder
+    endedReason?: SortOrderInput | SortOrder
+    lastLatitude?: SortOrderInput | SortOrder
+    lastLongitude?: SortOrderInput | SortOrder
+    lastAccuracy?: SortOrderInput | SortOrder
+    lastSpeed?: SortOrderInput | SortOrder
+    lastHeading?: SortOrderInput | SortOrder
+    lastUpdatedAt?: SortOrderInput | SortOrder
+    presenceStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    _count?: ItineraryCountOrderByAggregateInput
-    _max?: ItineraryMaxOrderByAggregateInput
-    _min?: ItineraryMinOrderByAggregateInput
+    _count?: LiveLocationShareCountOrderByAggregateInput
+    _avg?: LiveLocationShareAvgOrderByAggregateInput
+    _max?: LiveLocationShareMaxOrderByAggregateInput
+    _min?: LiveLocationShareMinOrderByAggregateInput
+    _sum?: LiveLocationShareSumOrderByAggregateInput
   }
 
-  export type ItineraryScalarWhereWithAggregatesInput = {
-    AND?: ItineraryScalarWhereWithAggregatesInput | ItineraryScalarWhereWithAggregatesInput[]
-    OR?: ItineraryScalarWhereWithAggregatesInput[]
-    NOT?: ItineraryScalarWhereWithAggregatesInput | ItineraryScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"Itinerary"> | string
-    title?: StringWithAggregatesFilter<"Itinerary"> | string
-    description?: StringNullableWithAggregatesFilter<"Itinerary"> | string | null
-    ownerId?: StringWithAggregatesFilter<"Itinerary"> | string
-    shareToken?: StringWithAggregatesFilter<"Itinerary"> | string
-    coverEmoji?: StringNullableWithAggregatesFilter<"Itinerary"> | string | null
-    startDate?: DateTimeNullableWithAggregatesFilter<"Itinerary"> | Date | string | null
-    endDate?: DateTimeNullableWithAggregatesFilter<"Itinerary"> | Date | string | null
-    autoSort?: BoolWithAggregatesFilter<"Itinerary"> | boolean
-    createdAt?: DateTimeWithAggregatesFilter<"Itinerary"> | Date | string
-    updatedAt?: DateTimeWithAggregatesFilter<"Itinerary"> | Date | string
+  export type LiveLocationShareScalarWhereWithAggregatesInput = {
+    AND?: LiveLocationShareScalarWhereWithAggregatesInput | LiveLocationShareScalarWhereWithAggregatesInput[]
+    OR?: LiveLocationShareScalarWhereWithAggregatesInput[]
+    NOT?: LiveLocationShareScalarWhereWithAggregatesInput | LiveLocationShareScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    ownerId?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    tokenHash?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    status?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntWithAggregatesFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeWithAggregatesFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableWithAggregatesFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableWithAggregatesFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableWithAggregatesFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableWithAggregatesFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringWithAggregatesFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"LiveLocationShare"> | Date | string
   }
 
-  export type ItineraryMemberWhereInput = {
-    AND?: ItineraryMemberWhereInput | ItineraryMemberWhereInput[]
-    OR?: ItineraryMemberWhereInput[]
-    NOT?: ItineraryMemberWhereInput | ItineraryMemberWhereInput[]
-    id?: StringFilter<"ItineraryMember"> | string
-    itineraryId?: StringFilter<"ItineraryMember"> | string
-    userId?: StringFilter<"ItineraryMember"> | string
-    role?: StringFilter<"ItineraryMember"> | string
-    createdAt?: DateTimeFilter<"ItineraryMember"> | Date | string
-    itinerary?: XOR<ItineraryRelationFilter, ItineraryWhereInput>
+  export type LiveLocationViewerWhereInput = {
+    AND?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    OR?: LiveLocationViewerWhereInput[]
+    NOT?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    id?: StringFilter<"LiveLocationViewer"> | string
+    shareId?: StringFilter<"LiveLocationViewer"> | string
+    userId?: StringFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    share?: XOR<LiveLocationShareRelationFilter, LiveLocationShareWhereInput>
     user?: XOR<UserRelationFilter, UserWhereInput>
   }
 
-  export type ItineraryMemberOrderByWithRelationInput = {
+  export type LiveLocationViewerOrderByWithRelationInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
+    shareId?: SortOrder
     userId?: SortOrder
-    role?: SortOrder
-    createdAt?: SortOrder
-    itinerary?: ItineraryOrderByWithRelationInput
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
+    share?: LiveLocationShareOrderByWithRelationInput
     user?: UserOrderByWithRelationInput
   }
 
-  export type ItineraryMemberWhereUniqueInput = Prisma.AtLeast<{
+  export type LiveLocationViewerWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    itineraryId_userId?: ItineraryMemberItineraryIdUserIdCompoundUniqueInput
-    AND?: ItineraryMemberWhereInput | ItineraryMemberWhereInput[]
-    OR?: ItineraryMemberWhereInput[]
-    NOT?: ItineraryMemberWhereInput | ItineraryMemberWhereInput[]
-    itineraryId?: StringFilter<"ItineraryMember"> | string
-    userId?: StringFilter<"ItineraryMember"> | string
-    role?: StringFilter<"ItineraryMember"> | string
-    createdAt?: DateTimeFilter<"ItineraryMember"> | Date | string
-    itinerary?: XOR<ItineraryRelationFilter, ItineraryWhereInput>
+    shareId_userId?: LiveLocationViewerShareIdUserIdCompoundUniqueInput
+    AND?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    OR?: LiveLocationViewerWhereInput[]
+    NOT?: LiveLocationViewerWhereInput | LiveLocationViewerWhereInput[]
+    shareId?: StringFilter<"LiveLocationViewer"> | string
+    userId?: StringFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    share?: XOR<LiveLocationShareRelationFilter, LiveLocationShareWhereInput>
     user?: XOR<UserRelationFilter, UserWhereInput>
-  }, "id" | "itineraryId_userId">
+  }, "id" | "shareId_userId">
 
-  export type ItineraryMemberOrderByWithAggregationInput = {
+  export type LiveLocationViewerOrderByWithAggregationInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
+    shareId?: SortOrder
     userId?: SortOrder
-    role?: SortOrder
-    createdAt?: SortOrder
-    _count?: ItineraryMemberCountOrderByAggregateInput
-    _max?: ItineraryMemberMaxOrderByAggregateInput
-    _min?: ItineraryMemberMinOrderByAggregateInput
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
+    _count?: LiveLocationViewerCountOrderByAggregateInput
+    _max?: LiveLocationViewerMaxOrderByAggregateInput
+    _min?: LiveLocationViewerMinOrderByAggregateInput
   }
 
-  export type ItineraryMemberScalarWhereWithAggregatesInput = {
-    AND?: ItineraryMemberScalarWhereWithAggregatesInput | ItineraryMemberScalarWhereWithAggregatesInput[]
-    OR?: ItineraryMemberScalarWhereWithAggregatesInput[]
-    NOT?: ItineraryMemberScalarWhereWithAggregatesInput | ItineraryMemberScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"ItineraryMember"> | string
-    itineraryId?: StringWithAggregatesFilter<"ItineraryMember"> | string
-    userId?: StringWithAggregatesFilter<"ItineraryMember"> | string
-    role?: StringWithAggregatesFilter<"ItineraryMember"> | string
-    createdAt?: DateTimeWithAggregatesFilter<"ItineraryMember"> | Date | string
+  export type LiveLocationViewerScalarWhereWithAggregatesInput = {
+    AND?: LiveLocationViewerScalarWhereWithAggregatesInput | LiveLocationViewerScalarWhereWithAggregatesInput[]
+    OR?: LiveLocationViewerScalarWhereWithAggregatesInput[]
+    NOT?: LiveLocationViewerScalarWhereWithAggregatesInput | LiveLocationViewerScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LiveLocationViewer"> | string
+    shareId?: StringWithAggregatesFilter<"LiveLocationViewer"> | string
+    userId?: StringWithAggregatesFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeWithAggregatesFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeWithAggregatesFilter<"LiveLocationViewer"> | Date | string
   }
 
-  export type ItineraryStopWhereInput = {
-    AND?: ItineraryStopWhereInput | ItineraryStopWhereInput[]
-    OR?: ItineraryStopWhereInput[]
-    NOT?: ItineraryStopWhereInput | ItineraryStopWhereInput[]
-    id?: StringFilter<"ItineraryStop"> | string
-    itineraryId?: StringFilter<"ItineraryStop"> | string
-    placeId?: StringNullableFilter<"ItineraryStop"> | string | null
-    name?: StringFilter<"ItineraryStop"> | string
-    category?: StringNullableFilter<"ItineraryStop"> | string | null
-    latitude?: FloatFilter<"ItineraryStop"> | number
-    longitude?: FloatFilter<"ItineraryStop"> | number
-    address?: StringNullableFilter<"ItineraryStop"> | string | null
-    notes?: StringNullableFilter<"ItineraryStop"> | string | null
-    position?: IntFilter<"ItineraryStop"> | number
-    dayIndex?: IntNullableFilter<"ItineraryStop"> | number | null
-    addedById?: StringNullableFilter<"ItineraryStop"> | string | null
-    addedByName?: StringNullableFilter<"ItineraryStop"> | string | null
-    createdAt?: DateTimeFilter<"ItineraryStop"> | Date | string
-    updatedAt?: DateTimeFilter<"ItineraryStop"> | Date | string
-    itinerary?: XOR<ItineraryRelationFilter, ItineraryWhereInput>
-    comments?: ItineraryCommentListRelationFilter
-    votes?: ItineraryVoteListRelationFilter
-  }
-
-  export type ItineraryStopOrderByWithRelationInput = {
-    id?: SortOrder
-    itineraryId?: SortOrder
-    placeId?: SortOrderInput | SortOrder
-    name?: SortOrder
-    category?: SortOrderInput | SortOrder
-    latitude?: SortOrder
-    longitude?: SortOrder
-    address?: SortOrderInput | SortOrder
-    notes?: SortOrderInput | SortOrder
-    position?: SortOrder
-    dayIndex?: SortOrderInput | SortOrder
-    addedById?: SortOrderInput | SortOrder
-    addedByName?: SortOrderInput | SortOrder
-    createdAt?: SortOrder
-    updatedAt?: SortOrder
-    itinerary?: ItineraryOrderByWithRelationInput
-    comments?: ItineraryCommentOrderByRelationAggregateInput
-    votes?: ItineraryVoteOrderByRelationAggregateInput
-  }
-
-  export type ItineraryStopWhereUniqueInput = Prisma.AtLeast<{
-    id?: string
-    AND?: ItineraryStopWhereInput | ItineraryStopWhereInput[]
-    OR?: ItineraryStopWhereInput[]
-    NOT?: ItineraryStopWhereInput | ItineraryStopWhereInput[]
-    itineraryId?: StringFilter<"ItineraryStop"> | string
-    placeId?: StringNullableFilter<"ItineraryStop"> | string | null
-    name?: StringFilter<"ItineraryStop"> | string
-    category?: StringNullableFilter<"ItineraryStop"> | string | null
-    latitude?: FloatFilter<"ItineraryStop"> | number
-    longitude?: FloatFilter<"ItineraryStop"> | number
-    address?: StringNullableFilter<"ItineraryStop"> | string | null
-    notes?: StringNullableFilter<"ItineraryStop"> | string | null
-    position?: IntFilter<"ItineraryStop"> | number
-    dayIndex?: IntNullableFilter<"ItineraryStop"> | number | null
-    addedById?: StringNullableFilter<"ItineraryStop"> | string | null
-    addedByName?: StringNullableFilter<"ItineraryStop"> | string | null
-    createdAt?: DateTimeFilter<"ItineraryStop"> | Date | string
-    updatedAt?: DateTimeFilter<"ItineraryStop"> | Date | string
-    itinerary?: XOR<ItineraryRelationFilter, ItineraryWhereInput>
-    comments?: ItineraryCommentListRelationFilter
-    votes?: ItineraryVoteListRelationFilter
-  }, "id">
-
-  export type ItineraryStopOrderByWithAggregationInput = {
-    id?: SortOrder
-    itineraryId?: SortOrder
-    placeId?: SortOrderInput | SortOrder
-    name?: SortOrder
-    category?: SortOrderInput | SortOrder
-    latitude?: SortOrder
-    longitude?: SortOrder
-    address?: SortOrderInput | SortOrder
-    notes?: SortOrderInput | SortOrder
-    position?: SortOrder
-    dayIndex?: SortOrderInput | SortOrder
-    addedById?: SortOrderInput | SortOrder
-    addedByName?: SortOrderInput | SortOrder
-    createdAt?: SortOrder
-    updatedAt?: SortOrder
-    _count?: ItineraryStopCountOrderByAggregateInput
-    _avg?: ItineraryStopAvgOrderByAggregateInput
-    _max?: ItineraryStopMaxOrderByAggregateInput
-    _min?: ItineraryStopMinOrderByAggregateInput
-    _sum?: ItineraryStopSumOrderByAggregateInput
-  }
-
-  export type ItineraryStopScalarWhereWithAggregatesInput = {
-    AND?: ItineraryStopScalarWhereWithAggregatesInput | ItineraryStopScalarWhereWithAggregatesInput[]
-    OR?: ItineraryStopScalarWhereWithAggregatesInput[]
-    NOT?: ItineraryStopScalarWhereWithAggregatesInput | ItineraryStopScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"ItineraryStop"> | string
-    itineraryId?: StringWithAggregatesFilter<"ItineraryStop"> | string
-    placeId?: StringNullableWithAggregatesFilter<"ItineraryStop"> | string | null
-    name?: StringWithAggregatesFilter<"ItineraryStop"> | string
-    category?: StringNullableWithAggregatesFilter<"ItineraryStop"> | string | null
-    latitude?: FloatWithAggregatesFilter<"ItineraryStop"> | number
-    longitude?: FloatWithAggregatesFilter<"ItineraryStop"> | number
-    address?: StringNullableWithAggregatesFilter<"ItineraryStop"> | string | null
-    notes?: StringNullableWithAggregatesFilter<"ItineraryStop"> | string | null
-    position?: IntWithAggregatesFilter<"ItineraryStop"> | number
-    dayIndex?: IntNullableWithAggregatesFilter<"ItineraryStop"> | number | null
-    addedById?: StringNullableWithAggregatesFilter<"ItineraryStop"> | string | null
-    addedByName?: StringNullableWithAggregatesFilter<"ItineraryStop"> | string | null
-    createdAt?: DateTimeWithAggregatesFilter<"ItineraryStop"> | Date | string
-    updatedAt?: DateTimeWithAggregatesFilter<"ItineraryStop"> | Date | string
-  }
-
-  export type ItineraryCommentWhereInput = {
-    AND?: ItineraryCommentWhereInput | ItineraryCommentWhereInput[]
-    OR?: ItineraryCommentWhereInput[]
-    NOT?: ItineraryCommentWhereInput | ItineraryCommentWhereInput[]
-    id?: StringFilter<"ItineraryComment"> | string
-    stopId?: StringFilter<"ItineraryComment"> | string
-    userId?: StringFilter<"ItineraryComment"> | string
-    userName?: StringNullableFilter<"ItineraryComment"> | string | null
-    body?: StringFilter<"ItineraryComment"> | string
-    createdAt?: DateTimeFilter<"ItineraryComment"> | Date | string
-    stop?: XOR<ItineraryStopRelationFilter, ItineraryStopWhereInput>
+  export type SafetyHazardReportWhereInput = {
+    AND?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    OR?: SafetyHazardReportWhereInput[]
+    NOT?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    id?: StringFilter<"SafetyHazardReport"> | string
+    userId?: StringFilter<"SafetyHazardReport"> | string
+    type?: StringFilter<"SafetyHazardReport"> | string
+    latitude?: FloatFilter<"SafetyHazardReport"> | number
+    longitude?: FloatFilter<"SafetyHazardReport"> | number
+    severity?: IntFilter<"SafetyHazardReport"> | number
+    description?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    status?: StringFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
   }
 
-  export type ItineraryCommentOrderByWithRelationInput = {
+  export type SafetyHazardReportOrderByWithRelationInput = {
     id?: SortOrder
-    stopId?: SortOrder
     userId?: SortOrder
-    userName?: SortOrderInput | SortOrder
-    body?: SortOrder
+    type?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+    description?: SortOrderInput | SortOrder
+    roadName?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    moderatedBy?: SortOrderInput | SortOrder
     createdAt?: SortOrder
-    stop?: ItineraryStopOrderByWithRelationInput
+    updatedAt?: SortOrder
     user?: UserOrderByWithRelationInput
   }
 
-  export type ItineraryCommentWhereUniqueInput = Prisma.AtLeast<{
+  export type SafetyHazardReportWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    AND?: ItineraryCommentWhereInput | ItineraryCommentWhereInput[]
-    OR?: ItineraryCommentWhereInput[]
-    NOT?: ItineraryCommentWhereInput | ItineraryCommentWhereInput[]
-    stopId?: StringFilter<"ItineraryComment"> | string
-    userId?: StringFilter<"ItineraryComment"> | string
-    userName?: StringNullableFilter<"ItineraryComment"> | string | null
-    body?: StringFilter<"ItineraryComment"> | string
-    createdAt?: DateTimeFilter<"ItineraryComment"> | Date | string
-    stop?: XOR<ItineraryStopRelationFilter, ItineraryStopWhereInput>
+    AND?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    OR?: SafetyHazardReportWhereInput[]
+    NOT?: SafetyHazardReportWhereInput | SafetyHazardReportWhereInput[]
+    userId?: StringFilter<"SafetyHazardReport"> | string
+    type?: StringFilter<"SafetyHazardReport"> | string
+    latitude?: FloatFilter<"SafetyHazardReport"> | number
+    longitude?: FloatFilter<"SafetyHazardReport"> | number
+    severity?: IntFilter<"SafetyHazardReport"> | number
+    description?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    status?: StringFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
   }, "id">
 
-  export type ItineraryCommentOrderByWithAggregationInput = {
+  export type SafetyHazardReportOrderByWithAggregationInput = {
     id?: SortOrder
-    stopId?: SortOrder
     userId?: SortOrder
-    userName?: SortOrderInput | SortOrder
-    body?: SortOrder
-    createdAt?: SortOrder
-    _count?: ItineraryCommentCountOrderByAggregateInput
-    _max?: ItineraryCommentMaxOrderByAggregateInput
-    _min?: ItineraryCommentMinOrderByAggregateInput
-  }
-
-  export type ItineraryCommentScalarWhereWithAggregatesInput = {
-    AND?: ItineraryCommentScalarWhereWithAggregatesInput | ItineraryCommentScalarWhereWithAggregatesInput[]
-    OR?: ItineraryCommentScalarWhereWithAggregatesInput[]
-    NOT?: ItineraryCommentScalarWhereWithAggregatesInput | ItineraryCommentScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"ItineraryComment"> | string
-    stopId?: StringWithAggregatesFilter<"ItineraryComment"> | string
-    userId?: StringWithAggregatesFilter<"ItineraryComment"> | string
-    userName?: StringNullableWithAggregatesFilter<"ItineraryComment"> | string | null
-    body?: StringWithAggregatesFilter<"ItineraryComment"> | string
-    createdAt?: DateTimeWithAggregatesFilter<"ItineraryComment"> | Date | string
-  }
-
-  export type ItineraryVoteWhereInput = {
-    AND?: ItineraryVoteWhereInput | ItineraryVoteWhereInput[]
-    OR?: ItineraryVoteWhereInput[]
-    NOT?: ItineraryVoteWhereInput | ItineraryVoteWhereInput[]
-    id?: StringFilter<"ItineraryVote"> | string
-    stopId?: StringFilter<"ItineraryVote"> | string
-    userId?: StringFilter<"ItineraryVote"> | string
-    value?: IntFilter<"ItineraryVote"> | number
-    createdAt?: DateTimeFilter<"ItineraryVote"> | Date | string
-    updatedAt?: DateTimeFilter<"ItineraryVote"> | Date | string
-    stop?: XOR<ItineraryStopRelationFilter, ItineraryStopWhereInput>
-    user?: XOR<UserRelationFilter, UserWhereInput>
-  }
-
-  export type ItineraryVoteOrderByWithRelationInput = {
-    id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    value?: SortOrder
+    type?: SortOrder
+    latitude?: SortOrder
+    longitude?: SortOrder
+    severity?: SortOrder
+    description?: SortOrderInput | SortOrder
+    roadName?: SortOrderInput | SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrderInput | SortOrder
+    approvedAt?: SortOrderInput | SortOrder
+    moderatedBy?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    stop?: ItineraryStopOrderByWithRelationInput
-    user?: UserOrderByWithRelationInput
+    _count?: SafetyHazardReportCountOrderByAggregateInput
+    _avg?: SafetyHazardReportAvgOrderByAggregateInput
+    _max?: SafetyHazardReportMaxOrderByAggregateInput
+    _min?: SafetyHazardReportMinOrderByAggregateInput
+    _sum?: SafetyHazardReportSumOrderByAggregateInput
   }
 
-  export type ItineraryVoteWhereUniqueInput = Prisma.AtLeast<{
+  export type SafetyHazardReportScalarWhereWithAggregatesInput = {
+    AND?: SafetyHazardReportScalarWhereWithAggregatesInput | SafetyHazardReportScalarWhereWithAggregatesInput[]
+    OR?: SafetyHazardReportScalarWhereWithAggregatesInput[]
+    NOT?: SafetyHazardReportScalarWhereWithAggregatesInput | SafetyHazardReportScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    userId?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    type?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    latitude?: FloatWithAggregatesFilter<"SafetyHazardReport"> | number
+    longitude?: FloatWithAggregatesFilter<"SafetyHazardReport"> | number
+    severity?: IntWithAggregatesFilter<"SafetyHazardReport"> | number
+    description?: StringNullableWithAggregatesFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableWithAggregatesFilter<"SafetyHazardReport"> | string | null
+    status?: StringWithAggregatesFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableWithAggregatesFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableWithAggregatesFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableWithAggregatesFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"SafetyHazardReport"> | Date | string
+  }
+
+  export type LegalDocumentWhereInput = {
+    AND?: LegalDocumentWhereInput | LegalDocumentWhereInput[]
+    OR?: LegalDocumentWhereInput[]
+    NOT?: LegalDocumentWhereInput | LegalDocumentWhereInput[]
+    id?: StringFilter<"LegalDocument"> | string
+    type?: StringFilter<"LegalDocument"> | string
+    title?: StringFilter<"LegalDocument"> | string
+    content?: StringFilter<"LegalDocument"> | string
+    version?: IntFilter<"LegalDocument"> | number
+    updatedBy?: StringNullableFilter<"LegalDocument"> | string | null
+    createdAt?: DateTimeFilter<"LegalDocument"> | Date | string
+    updatedAt?: DateTimeFilter<"LegalDocument"> | Date | string
+  }
+
+  export type LegalDocumentOrderByWithRelationInput = {
+    id?: SortOrder
+    type?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    version?: SortOrder
+    updatedBy?: SortOrderInput | SortOrder
+    createdAt?: SortOrder
+    updatedAt?: SortOrder
+  }
+
+  export type LegalDocumentWhereUniqueInput = Prisma.AtLeast<{
     id?: string
-    stopId_userId?: ItineraryVoteStopIdUserIdCompoundUniqueInput
-    AND?: ItineraryVoteWhereInput | ItineraryVoteWhereInput[]
-    OR?: ItineraryVoteWhereInput[]
-    NOT?: ItineraryVoteWhereInput | ItineraryVoteWhereInput[]
-    stopId?: StringFilter<"ItineraryVote"> | string
-    userId?: StringFilter<"ItineraryVote"> | string
-    value?: IntFilter<"ItineraryVote"> | number
-    createdAt?: DateTimeFilter<"ItineraryVote"> | Date | string
-    updatedAt?: DateTimeFilter<"ItineraryVote"> | Date | string
-    stop?: XOR<ItineraryStopRelationFilter, ItineraryStopWhereInput>
-    user?: XOR<UserRelationFilter, UserWhereInput>
-  }, "id" | "stopId_userId">
+    type?: string
+    AND?: LegalDocumentWhereInput | LegalDocumentWhereInput[]
+    OR?: LegalDocumentWhereInput[]
+    NOT?: LegalDocumentWhereInput | LegalDocumentWhereInput[]
+    title?: StringFilter<"LegalDocument"> | string
+    content?: StringFilter<"LegalDocument"> | string
+    version?: IntFilter<"LegalDocument"> | number
+    updatedBy?: StringNullableFilter<"LegalDocument"> | string | null
+    createdAt?: DateTimeFilter<"LegalDocument"> | Date | string
+    updatedAt?: DateTimeFilter<"LegalDocument"> | Date | string
+  }, "id" | "type">
 
-  export type ItineraryVoteOrderByWithAggregationInput = {
+  export type LegalDocumentOrderByWithAggregationInput = {
     id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    value?: SortOrder
+    type?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    version?: SortOrder
+    updatedBy?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
-    _count?: ItineraryVoteCountOrderByAggregateInput
-    _avg?: ItineraryVoteAvgOrderByAggregateInput
-    _max?: ItineraryVoteMaxOrderByAggregateInput
-    _min?: ItineraryVoteMinOrderByAggregateInput
-    _sum?: ItineraryVoteSumOrderByAggregateInput
+    _count?: LegalDocumentCountOrderByAggregateInput
+    _avg?: LegalDocumentAvgOrderByAggregateInput
+    _max?: LegalDocumentMaxOrderByAggregateInput
+    _min?: LegalDocumentMinOrderByAggregateInput
+    _sum?: LegalDocumentSumOrderByAggregateInput
   }
 
-  export type ItineraryVoteScalarWhereWithAggregatesInput = {
-    AND?: ItineraryVoteScalarWhereWithAggregatesInput | ItineraryVoteScalarWhereWithAggregatesInput[]
-    OR?: ItineraryVoteScalarWhereWithAggregatesInput[]
-    NOT?: ItineraryVoteScalarWhereWithAggregatesInput | ItineraryVoteScalarWhereWithAggregatesInput[]
-    id?: StringWithAggregatesFilter<"ItineraryVote"> | string
-    stopId?: StringWithAggregatesFilter<"ItineraryVote"> | string
-    userId?: StringWithAggregatesFilter<"ItineraryVote"> | string
-    value?: IntWithAggregatesFilter<"ItineraryVote"> | number
-    createdAt?: DateTimeWithAggregatesFilter<"ItineraryVote"> | Date | string
-    updatedAt?: DateTimeWithAggregatesFilter<"ItineraryVote"> | Date | string
+  export type LegalDocumentScalarWhereWithAggregatesInput = {
+    AND?: LegalDocumentScalarWhereWithAggregatesInput | LegalDocumentScalarWhereWithAggregatesInput[]
+    OR?: LegalDocumentScalarWhereWithAggregatesInput[]
+    NOT?: LegalDocumentScalarWhereWithAggregatesInput | LegalDocumentScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"LegalDocument"> | string
+    type?: StringWithAggregatesFilter<"LegalDocument"> | string
+    title?: StringWithAggregatesFilter<"LegalDocument"> | string
+    content?: StringWithAggregatesFilter<"LegalDocument"> | string
+    version?: IntWithAggregatesFilter<"LegalDocument"> | number
+    updatedBy?: StringNullableWithAggregatesFilter<"LegalDocument"> | string | null
+    createdAt?: DateTimeWithAggregatesFilter<"LegalDocument"> | Date | string
+    updatedAt?: DateTimeWithAggregatesFilter<"LegalDocument"> | Date | string
+  }
+
+  export type AdminAllowedEmailWhereInput = {
+    AND?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    OR?: AdminAllowedEmailWhereInput[]
+    NOT?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    id?: StringFilter<"AdminAllowedEmail"> | string
+    email?: StringFilter<"AdminAllowedEmail"> | string
+    createdAt?: DateTimeFilter<"AdminAllowedEmail"> | Date | string
+    createdBy?: StringNullableFilter<"AdminAllowedEmail"> | string | null
+  }
+
+  export type AdminAllowedEmailOrderByWithRelationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrderInput | SortOrder
+  }
+
+  export type AdminAllowedEmailWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    email?: string
+    AND?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    OR?: AdminAllowedEmailWhereInput[]
+    NOT?: AdminAllowedEmailWhereInput | AdminAllowedEmailWhereInput[]
+    createdAt?: DateTimeFilter<"AdminAllowedEmail"> | Date | string
+    createdBy?: StringNullableFilter<"AdminAllowedEmail"> | string | null
+  }, "id" | "email">
+
+  export type AdminAllowedEmailOrderByWithAggregationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrderInput | SortOrder
+    _count?: AdminAllowedEmailCountOrderByAggregateInput
+    _max?: AdminAllowedEmailMaxOrderByAggregateInput
+    _min?: AdminAllowedEmailMinOrderByAggregateInput
+  }
+
+  export type AdminAllowedEmailScalarWhereWithAggregatesInput = {
+    AND?: AdminAllowedEmailScalarWhereWithAggregatesInput | AdminAllowedEmailScalarWhereWithAggregatesInput[]
+    OR?: AdminAllowedEmailScalarWhereWithAggregatesInput[]
+    NOT?: AdminAllowedEmailScalarWhereWithAggregatesInput | AdminAllowedEmailScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AdminAllowedEmail"> | string
+    email?: StringWithAggregatesFilter<"AdminAllowedEmail"> | string
+    createdAt?: DateTimeWithAggregatesFilter<"AdminAllowedEmail"> | Date | string
+    createdBy?: StringNullableWithAggregatesFilter<"AdminAllowedEmail"> | string | null
+  }
+
+  export type AdminOtpWhereInput = {
+    AND?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    OR?: AdminOtpWhereInput[]
+    NOT?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    id?: StringFilter<"AdminOtp"> | string
+    email?: StringFilter<"AdminOtp"> | string
+    otpHash?: StringFilter<"AdminOtp"> | string
+    expiresAt?: DateTimeFilter<"AdminOtp"> | Date | string
+    verified?: BoolFilter<"AdminOtp"> | boolean
+    createdAt?: DateTimeFilter<"AdminOtp"> | Date | string
+  }
+
+  export type AdminOtpOrderByWithRelationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AdminOtpWhereUniqueInput = Prisma.AtLeast<{
+    id?: string
+    AND?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    OR?: AdminOtpWhereInput[]
+    NOT?: AdminOtpWhereInput | AdminOtpWhereInput[]
+    email?: StringFilter<"AdminOtp"> | string
+    otpHash?: StringFilter<"AdminOtp"> | string
+    expiresAt?: DateTimeFilter<"AdminOtp"> | Date | string
+    verified?: BoolFilter<"AdminOtp"> | boolean
+    createdAt?: DateTimeFilter<"AdminOtp"> | Date | string
+  }, "id">
+
+  export type AdminOtpOrderByWithAggregationInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+    _count?: AdminOtpCountOrderByAggregateInput
+    _max?: AdminOtpMaxOrderByAggregateInput
+    _min?: AdminOtpMinOrderByAggregateInput
+  }
+
+  export type AdminOtpScalarWhereWithAggregatesInput = {
+    AND?: AdminOtpScalarWhereWithAggregatesInput | AdminOtpScalarWhereWithAggregatesInput[]
+    OR?: AdminOtpScalarWhereWithAggregatesInput[]
+    NOT?: AdminOtpScalarWhereWithAggregatesInput | AdminOtpScalarWhereWithAggregatesInput[]
+    id?: StringWithAggregatesFilter<"AdminOtp"> | string
+    email?: StringWithAggregatesFilter<"AdminOtp"> | string
+    otpHash?: StringWithAggregatesFilter<"AdminOtp"> | string
+    expiresAt?: DateTimeWithAggregatesFilter<"AdminOtp"> | Date | string
+    verified?: BoolWithAggregatesFilter<"AdminOtp"> | boolean
+    createdAt?: DateTimeWithAggregatesFilter<"AdminOtp"> | Date | string
   }
 
   export type UserCreateInput = {
@@ -27530,10 +28414,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateInput = {
@@ -27562,10 +28445,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserUpdateInput = {
@@ -27594,10 +28476,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateInput = {
@@ -27626,10 +28507,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateManyInput = {
@@ -29228,418 +30108,508 @@ export namespace Prisma {
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryCreateInput = {
+  export type LiveLocationShareCreateInput = {
     id?: string
-    title: string
-    description?: string | null
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    owner: UserCreateNestedOneWithoutOwnedItinerariesInput
-    members?: ItineraryMemberCreateNestedManyWithoutItineraryInput
-    stops?: ItineraryStopCreateNestedManyWithoutItineraryInput
+    owner: UserCreateNestedOneWithoutOwnedLiveLocationSharesInput
+    viewers?: LiveLocationViewerCreateNestedManyWithoutShareInput
   }
 
-  export type ItineraryUncheckedCreateInput = {
+  export type LiveLocationShareUncheckedCreateInput = {
     id?: string
-    title: string
-    description?: string | null
     ownerId: string
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    members?: ItineraryMemberUncheckedCreateNestedManyWithoutItineraryInput
-    stops?: ItineraryStopUncheckedCreateNestedManyWithoutItineraryInput
+    viewers?: LiveLocationViewerUncheckedCreateNestedManyWithoutShareInput
   }
 
-  export type ItineraryUpdateInput = {
+  export type LiveLocationShareUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    owner?: UserUpdateOneRequiredWithoutOwnedItinerariesNestedInput
-    members?: ItineraryMemberUpdateManyWithoutItineraryNestedInput
-    stops?: ItineraryStopUpdateManyWithoutItineraryNestedInput
+    owner?: UserUpdateOneRequiredWithoutOwnedLiveLocationSharesNestedInput
+    viewers?: LiveLocationViewerUpdateManyWithoutShareNestedInput
   }
 
-  export type ItineraryUncheckedUpdateInput = {
+  export type LiveLocationShareUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    members?: ItineraryMemberUncheckedUpdateManyWithoutItineraryNestedInput
-    stops?: ItineraryStopUncheckedUpdateManyWithoutItineraryNestedInput
+    viewers?: LiveLocationViewerUncheckedUpdateManyWithoutShareNestedInput
   }
 
-  export type ItineraryCreateManyInput = {
+  export type LiveLocationShareCreateManyInput = {
     id?: string
-    title: string
-    description?: string | null
     ownerId: string
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
-  export type ItineraryUpdateManyMutationInput = {
+  export type LiveLocationShareUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryUncheckedUpdateManyInput = {
+  export type LiveLocationShareUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryMemberCreateInput = {
+  export type LiveLocationViewerCreateInput = {
     id?: string
-    role?: string
-    createdAt?: Date | string
-    itinerary: ItineraryCreateNestedOneWithoutMembersInput
-    user: UserCreateNestedOneWithoutItineraryMembershipsInput
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+    share: LiveLocationShareCreateNestedOneWithoutViewersInput
+    user: UserCreateNestedOneWithoutLiveLocationViewershipsInput
   }
 
-  export type ItineraryMemberUncheckedCreateInput = {
+  export type LiveLocationViewerUncheckedCreateInput = {
     id?: string
-    itineraryId: string
+    shareId: string
     userId: string
-    role?: string
-    createdAt?: Date | string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
   }
 
-  export type ItineraryMemberUpdateInput = {
+  export type LiveLocationViewerUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    itinerary?: ItineraryUpdateOneRequiredWithoutMembersNestedInput
-    user?: UserUpdateOneRequiredWithoutItineraryMembershipsNestedInput
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    share?: LiveLocationShareUpdateOneRequiredWithoutViewersNestedInput
+    user?: UserUpdateOneRequiredWithoutLiveLocationViewershipsNestedInput
   }
 
-  export type ItineraryMemberUncheckedUpdateInput = {
+  export type LiveLocationViewerUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryMemberCreateManyInput = {
+  export type LiveLocationViewerCreateManyInput = {
     id?: string
-    itineraryId: string
+    shareId: string
     userId: string
-    role?: string
-    createdAt?: Date | string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
   }
 
-  export type ItineraryMemberUpdateManyMutationInput = {
+  export type LiveLocationViewerUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryMemberUncheckedUpdateManyInput = {
+  export type LiveLocationViewerUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryStopCreateInput = {
+  export type SafetyHazardReportCreateInput = {
     id?: string
-    placeId?: string | null
-    name: string
-    category?: string | null
+    type: string
     latitude: number
     longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    itinerary: ItineraryCreateNestedOneWithoutStopsInput
-    comments?: ItineraryCommentCreateNestedManyWithoutStopInput
-    votes?: ItineraryVoteCreateNestedManyWithoutStopInput
+    user: UserCreateNestedOneWithoutSafetyHazardReportsInput
   }
 
-  export type ItineraryStopUncheckedCreateInput = {
+  export type SafetyHazardReportUncheckedCreateInput = {
     id?: string
-    itineraryId: string
-    placeId?: string | null
-    name: string
-    category?: string | null
+    userId: string
+    type: string
     latitude: number
     longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    comments?: ItineraryCommentUncheckedCreateNestedManyWithoutStopInput
-    votes?: ItineraryVoteUncheckedCreateNestedManyWithoutStopInput
   }
 
-  export type ItineraryStopUpdateInput = {
+  export type SafetyHazardReportUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
+    type?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    itinerary?: ItineraryUpdateOneRequiredWithoutStopsNestedInput
-    comments?: ItineraryCommentUpdateManyWithoutStopNestedInput
-    votes?: ItineraryVoteUpdateManyWithoutStopNestedInput
+    user?: UserUpdateOneRequiredWithoutSafetyHazardReportsNestedInput
   }
 
-  export type ItineraryStopUncheckedUpdateInput = {
+  export type SafetyHazardReportUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    comments?: ItineraryCommentUncheckedUpdateManyWithoutStopNestedInput
-    votes?: ItineraryVoteUncheckedUpdateManyWithoutStopNestedInput
   }
 
-  export type ItineraryStopCreateManyInput = {
+  export type SafetyHazardReportCreateManyInput = {
     id?: string
-    itineraryId: string
-    placeId?: string | null
-    name: string
-    category?: string | null
+    userId: string
+    type: string
     latitude: number
     longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
-  export type ItineraryStopUpdateManyMutationInput = {
+  export type SafetyHazardReportUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
+    type?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryStopUncheckedUpdateManyInput = {
+  export type SafetyHazardReportUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
+    userId?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
     latitude?: FloatFieldUpdateOperationsInput | number
     longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
+    severity?: IntFieldUpdateOperationsInput | number
+    description?: NullableStringFieldUpdateOperationsInput | string | null
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryCommentCreateInput = {
+  export type LegalDocumentCreateInput = {
     id?: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-    stop: ItineraryStopCreateNestedOneWithoutCommentsInput
-    user: UserCreateNestedOneWithoutItineraryCommentsInput
-  }
-
-  export type ItineraryCommentUncheckedCreateInput = {
-    id?: string
-    stopId: string
-    userId: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-  }
-
-  export type ItineraryCommentUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    stop?: ItineraryStopUpdateOneRequiredWithoutCommentsNestedInput
-    user?: UserUpdateOneRequiredWithoutItineraryCommentsNestedInput
-  }
-
-  export type ItineraryCommentUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryCommentCreateManyInput = {
-    id?: string
-    stopId: string
-    userId: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-  }
-
-  export type ItineraryCommentUpdateManyMutationInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryCommentUncheckedUpdateManyInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryVoteCreateInput = {
-    id?: string
-    value: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    stop: ItineraryStopCreateNestedOneWithoutVotesInput
-    user: UserCreateNestedOneWithoutItineraryVotesInput
-  }
-
-  export type ItineraryVoteUncheckedCreateInput = {
-    id?: string
-    stopId: string
-    userId: string
-    value: number
+    type: string
+    title: string
+    content: string
+    version?: number
+    updatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
-  export type ItineraryVoteUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    stop?: ItineraryStopUpdateOneRequiredWithoutVotesNestedInput
-    user?: UserUpdateOneRequiredWithoutItineraryVotesNestedInput
-  }
-
-  export type ItineraryVoteUncheckedUpdateInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryVoteCreateManyInput = {
+  export type LegalDocumentUncheckedCreateInput = {
     id?: string
-    stopId: string
-    userId: string
-    value: number
+    type: string
+    title: string
+    content: string
+    version?: number
+    updatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
-  export type ItineraryVoteUpdateManyMutationInput = {
+  export type LegalDocumentUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
+    type?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryVoteUncheckedUpdateManyInput = {
+  export type LegalDocumentUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
+    type?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LegalDocumentCreateManyInput = {
+    id?: string
+    type: string
+    title: string
+    content: string
+    version?: number
+    updatedBy?: string | null
+    createdAt?: Date | string
+    updatedAt?: Date | string
+  }
+
+  export type LegalDocumentUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LegalDocumentUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    title?: StringFieldUpdateOperationsInput | string
+    content?: StringFieldUpdateOperationsInput | string
+    version?: IntFieldUpdateOperationsInput | number
+    updatedBy?: NullableStringFieldUpdateOperationsInput | string | null
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AdminAllowedEmailCreateInput = {
+    id?: string
+    email: string
+    createdAt?: Date | string
+    createdBy?: string | null
+  }
+
+  export type AdminAllowedEmailUncheckedCreateInput = {
+    id?: string
+    email: string
+    createdAt?: Date | string
+    createdBy?: string | null
+  }
+
+  export type AdminAllowedEmailUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminAllowedEmailUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminAllowedEmailCreateManyInput = {
+    id?: string
+    email: string
+    createdAt?: Date | string
+    createdBy?: string | null
+  }
+
+  export type AdminAllowedEmailUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminAllowedEmailUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    createdBy?: NullableStringFieldUpdateOperationsInput | string | null
+  }
+
+  export type AdminOtpCreateInput = {
+    id?: string
+    email: string
+    otpHash: string
+    expiresAt: Date | string
+    verified?: boolean
+    createdAt?: Date | string
+  }
+
+  export type AdminOtpUncheckedCreateInput = {
+    id?: string
+    email: string
+    otpHash: string
+    expiresAt: Date | string
+    verified?: boolean
+    createdAt?: Date | string
+  }
+
+  export type AdminOtpUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AdminOtpUncheckedUpdateInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AdminOtpCreateManyInput = {
+    id?: string
+    email: string
+    otpHash: string
+    expiresAt: Date | string
+    verified?: boolean
+    createdAt?: Date | string
+  }
+
+  export type AdminOtpUpdateManyMutationInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type AdminOtpUncheckedUpdateManyInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    email?: StringFieldUpdateOperationsInput | string
+    otpHash?: StringFieldUpdateOperationsInput | string
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    verified?: BoolFieldUpdateOperationsInput | boolean
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type StringFilter<$PrismaModel = never> = {
@@ -29782,28 +30752,22 @@ export namespace Prisma {
     none?: PlaceLabelWhereInput
   }
 
-  export type ItineraryListRelationFilter = {
-    every?: ItineraryWhereInput
-    some?: ItineraryWhereInput
-    none?: ItineraryWhereInput
+  export type LiveLocationShareListRelationFilter = {
+    every?: LiveLocationShareWhereInput
+    some?: LiveLocationShareWhereInput
+    none?: LiveLocationShareWhereInput
   }
 
-  export type ItineraryMemberListRelationFilter = {
-    every?: ItineraryMemberWhereInput
-    some?: ItineraryMemberWhereInput
-    none?: ItineraryMemberWhereInput
+  export type LiveLocationViewerListRelationFilter = {
+    every?: LiveLocationViewerWhereInput
+    some?: LiveLocationViewerWhereInput
+    none?: LiveLocationViewerWhereInput
   }
 
-  export type ItineraryCommentListRelationFilter = {
-    every?: ItineraryCommentWhereInput
-    some?: ItineraryCommentWhereInput
-    none?: ItineraryCommentWhereInput
-  }
-
-  export type ItineraryVoteListRelationFilter = {
-    every?: ItineraryVoteWhereInput
-    some?: ItineraryVoteWhereInput
-    none?: ItineraryVoteWhereInput
+  export type SafetyHazardReportListRelationFilter = {
+    every?: SafetyHazardReportWhereInput
+    some?: SafetyHazardReportWhereInput
+    none?: SafetyHazardReportWhereInput
   }
 
   export type SortOrderInput = {
@@ -29863,19 +30827,15 @@ export namespace Prisma {
     _count?: SortOrder
   }
 
-  export type ItineraryOrderByRelationAggregateInput = {
+  export type LiveLocationShareOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
-  export type ItineraryMemberOrderByRelationAggregateInput = {
+  export type LiveLocationViewerOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
-  export type ItineraryCommentOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type ItineraryVoteOrderByRelationAggregateInput = {
+  export type SafetyHazardReportOrderByRelationAggregateInput = {
     _count?: SortOrder
   }
 
@@ -30912,230 +31872,268 @@ export namespace Prisma {
     createdAt?: SortOrder
   }
 
-  export type ItineraryStopListRelationFilter = {
-    every?: ItineraryStopWhereInput
-    some?: ItineraryStopWhereInput
-    none?: ItineraryStopWhereInput
-  }
-
-  export type ItineraryStopOrderByRelationAggregateInput = {
-    _count?: SortOrder
-  }
-
-  export type ItineraryCountOrderByAggregateInput = {
+  export type LiveLocationShareCountOrderByAggregateInput = {
     id?: SortOrder
-    title?: SortOrder
-    description?: SortOrder
     ownerId?: SortOrder
-    shareToken?: SortOrder
-    coverEmoji?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
-    autoSort?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrder
+    endedReason?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+    lastUpdatedAt?: SortOrder
+    presenceStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryMaxOrderByAggregateInput = {
+  export type LiveLocationShareAvgOrderByAggregateInput = {
+    durationMinutes?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+  }
+
+  export type LiveLocationShareMaxOrderByAggregateInput = {
     id?: SortOrder
-    title?: SortOrder
-    description?: SortOrder
     ownerId?: SortOrder
-    shareToken?: SortOrder
-    coverEmoji?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
-    autoSort?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrder
+    endedReason?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+    lastUpdatedAt?: SortOrder
+    presenceStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryMinOrderByAggregateInput = {
+  export type LiveLocationShareMinOrderByAggregateInput = {
     id?: SortOrder
-    title?: SortOrder
-    description?: SortOrder
     ownerId?: SortOrder
-    shareToken?: SortOrder
-    coverEmoji?: SortOrder
-    startDate?: SortOrder
-    endDate?: SortOrder
-    autoSort?: SortOrder
+    tokenHash?: SortOrder
+    status?: SortOrder
+    durationMinutes?: SortOrder
+    expiresAt?: SortOrder
+    endedAt?: SortOrder
+    endedReason?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
+    lastUpdatedAt?: SortOrder
+    presenceStatus?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryRelationFilter = {
-    is?: ItineraryWhereInput
-    isNot?: ItineraryWhereInput
+  export type LiveLocationShareSumOrderByAggregateInput = {
+    durationMinutes?: SortOrder
+    lastLatitude?: SortOrder
+    lastLongitude?: SortOrder
+    lastAccuracy?: SortOrder
+    lastSpeed?: SortOrder
+    lastHeading?: SortOrder
   }
 
-  export type ItineraryMemberItineraryIdUserIdCompoundUniqueInput = {
-    itineraryId: string
+  export type LiveLocationShareRelationFilter = {
+    is?: LiveLocationShareWhereInput
+    isNot?: LiveLocationShareWhereInput
+  }
+
+  export type LiveLocationViewerShareIdUserIdCompoundUniqueInput = {
+    shareId: string
     userId: string
   }
 
-  export type ItineraryMemberCountOrderByAggregateInput = {
+  export type LiveLocationViewerCountOrderByAggregateInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
+    shareId?: SortOrder
     userId?: SortOrder
-    role?: SortOrder
-    createdAt?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
   }
 
-  export type ItineraryMemberMaxOrderByAggregateInput = {
+  export type LiveLocationViewerMaxOrderByAggregateInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
+    shareId?: SortOrder
     userId?: SortOrder
-    role?: SortOrder
-    createdAt?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
   }
 
-  export type ItineraryMemberMinOrderByAggregateInput = {
+  export type LiveLocationViewerMinOrderByAggregateInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
+    shareId?: SortOrder
     userId?: SortOrder
-    role?: SortOrder
-    createdAt?: SortOrder
+    firstViewedAt?: SortOrder
+    lastViewedAt?: SortOrder
   }
 
-  export type ItineraryStopCountOrderByAggregateInput = {
+  export type SafetyHazardReportCountOrderByAggregateInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
-    placeId?: SortOrder
-    name?: SortOrder
-    category?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
-    address?: SortOrder
-    notes?: SortOrder
-    position?: SortOrder
-    dayIndex?: SortOrder
-    addedById?: SortOrder
-    addedByName?: SortOrder
+    severity?: SortOrder
+    description?: SortOrder
+    roadName?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    approvedAt?: SortOrder
+    moderatedBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryStopAvgOrderByAggregateInput = {
+  export type SafetyHazardReportAvgOrderByAggregateInput = {
     latitude?: SortOrder
     longitude?: SortOrder
-    position?: SortOrder
-    dayIndex?: SortOrder
+    severity?: SortOrder
   }
 
-  export type ItineraryStopMaxOrderByAggregateInput = {
+  export type SafetyHazardReportMaxOrderByAggregateInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
-    placeId?: SortOrder
-    name?: SortOrder
-    category?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
-    address?: SortOrder
-    notes?: SortOrder
-    position?: SortOrder
-    dayIndex?: SortOrder
-    addedById?: SortOrder
-    addedByName?: SortOrder
+    severity?: SortOrder
+    description?: SortOrder
+    roadName?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    approvedAt?: SortOrder
+    moderatedBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryStopMinOrderByAggregateInput = {
+  export type SafetyHazardReportMinOrderByAggregateInput = {
     id?: SortOrder
-    itineraryId?: SortOrder
-    placeId?: SortOrder
-    name?: SortOrder
-    category?: SortOrder
+    userId?: SortOrder
+    type?: SortOrder
     latitude?: SortOrder
     longitude?: SortOrder
-    address?: SortOrder
-    notes?: SortOrder
-    position?: SortOrder
-    dayIndex?: SortOrder
-    addedById?: SortOrder
-    addedByName?: SortOrder
+    severity?: SortOrder
+    description?: SortOrder
+    roadName?: SortOrder
+    status?: SortOrder
+    expiresAt?: SortOrder
+    approvedAt?: SortOrder
+    moderatedBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryStopSumOrderByAggregateInput = {
+  export type SafetyHazardReportSumOrderByAggregateInput = {
     latitude?: SortOrder
     longitude?: SortOrder
-    position?: SortOrder
-    dayIndex?: SortOrder
+    severity?: SortOrder
   }
 
-  export type ItineraryStopRelationFilter = {
-    is?: ItineraryStopWhereInput
-    isNot?: ItineraryStopWhereInput
-  }
-
-  export type ItineraryCommentCountOrderByAggregateInput = {
+  export type LegalDocumentCountOrderByAggregateInput = {
     id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    userName?: SortOrder
-    body?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type ItineraryCommentMaxOrderByAggregateInput = {
-    id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    userName?: SortOrder
-    body?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type ItineraryCommentMinOrderByAggregateInput = {
-    id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    userName?: SortOrder
-    body?: SortOrder
-    createdAt?: SortOrder
-  }
-
-  export type ItineraryVoteStopIdUserIdCompoundUniqueInput = {
-    stopId: string
-    userId: string
-  }
-
-  export type ItineraryVoteCountOrderByAggregateInput = {
-    id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    value?: SortOrder
+    type?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    version?: SortOrder
+    updatedBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryVoteAvgOrderByAggregateInput = {
-    value?: SortOrder
+  export type LegalDocumentAvgOrderByAggregateInput = {
+    version?: SortOrder
   }
 
-  export type ItineraryVoteMaxOrderByAggregateInput = {
+  export type LegalDocumentMaxOrderByAggregateInput = {
     id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    value?: SortOrder
+    type?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    version?: SortOrder
+    updatedBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryVoteMinOrderByAggregateInput = {
+  export type LegalDocumentMinOrderByAggregateInput = {
     id?: SortOrder
-    stopId?: SortOrder
-    userId?: SortOrder
-    value?: SortOrder
+    type?: SortOrder
+    title?: SortOrder
+    content?: SortOrder
+    version?: SortOrder
+    updatedBy?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
 
-  export type ItineraryVoteSumOrderByAggregateInput = {
-    value?: SortOrder
+  export type LegalDocumentSumOrderByAggregateInput = {
+    version?: SortOrder
+  }
+
+  export type AdminAllowedEmailCountOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrder
+  }
+
+  export type AdminAllowedEmailMaxOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrder
+  }
+
+  export type AdminAllowedEmailMinOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    createdAt?: SortOrder
+    createdBy?: SortOrder
+  }
+
+  export type AdminOtpCountOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AdminOtpMaxOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
+  }
+
+  export type AdminOtpMinOrderByAggregateInput = {
+    id?: SortOrder
+    email?: SortOrder
+    otpHash?: SortOrder
+    expiresAt?: SortOrder
+    verified?: SortOrder
+    createdAt?: SortOrder
   }
 
   export type OTPVerificationCreateNestedManyWithoutUserInput = {
@@ -31235,32 +32233,25 @@ export namespace Prisma {
     connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
   }
 
-  export type ItineraryCreateNestedManyWithoutOwnerInput = {
-    create?: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput> | ItineraryCreateWithoutOwnerInput[] | ItineraryUncheckedCreateWithoutOwnerInput[]
-    connectOrCreate?: ItineraryCreateOrConnectWithoutOwnerInput | ItineraryCreateOrConnectWithoutOwnerInput[]
-    createMany?: ItineraryCreateManyOwnerInputEnvelope
-    connect?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
+  export type LiveLocationShareCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
   }
 
-  export type ItineraryMemberCreateNestedManyWithoutUserInput = {
-    create?: XOR<ItineraryMemberCreateWithoutUserInput, ItineraryMemberUncheckedCreateWithoutUserInput> | ItineraryMemberCreateWithoutUserInput[] | ItineraryMemberUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutUserInput | ItineraryMemberCreateOrConnectWithoutUserInput[]
-    createMany?: ItineraryMemberCreateManyUserInputEnvelope
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
+  export type LiveLocationViewerCreateNestedManyWithoutUserInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
   }
 
-  export type ItineraryCommentCreateNestedManyWithoutUserInput = {
-    create?: XOR<ItineraryCommentCreateWithoutUserInput, ItineraryCommentUncheckedCreateWithoutUserInput> | ItineraryCommentCreateWithoutUserInput[] | ItineraryCommentUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutUserInput | ItineraryCommentCreateOrConnectWithoutUserInput[]
-    createMany?: ItineraryCommentCreateManyUserInputEnvelope
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-  }
-
-  export type ItineraryVoteCreateNestedManyWithoutUserInput = {
-    create?: XOR<ItineraryVoteCreateWithoutUserInput, ItineraryVoteUncheckedCreateWithoutUserInput> | ItineraryVoteCreateWithoutUserInput[] | ItineraryVoteUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutUserInput | ItineraryVoteCreateOrConnectWithoutUserInput[]
-    createMany?: ItineraryVoteCreateManyUserInputEnvelope
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
+  export type SafetyHazardReportCreateNestedManyWithoutUserInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
   }
 
   export type OTPVerificationUncheckedCreateNestedManyWithoutUserInput = {
@@ -31360,32 +32351,25 @@ export namespace Prisma {
     connect?: PlaceLabelWhereUniqueInput | PlaceLabelWhereUniqueInput[]
   }
 
-  export type ItineraryUncheckedCreateNestedManyWithoutOwnerInput = {
-    create?: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput> | ItineraryCreateWithoutOwnerInput[] | ItineraryUncheckedCreateWithoutOwnerInput[]
-    connectOrCreate?: ItineraryCreateOrConnectWithoutOwnerInput | ItineraryCreateOrConnectWithoutOwnerInput[]
-    createMany?: ItineraryCreateManyOwnerInputEnvelope
-    connect?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
+  export type LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
   }
 
-  export type ItineraryMemberUncheckedCreateNestedManyWithoutUserInput = {
-    create?: XOR<ItineraryMemberCreateWithoutUserInput, ItineraryMemberUncheckedCreateWithoutUserInput> | ItineraryMemberCreateWithoutUserInput[] | ItineraryMemberUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutUserInput | ItineraryMemberCreateOrConnectWithoutUserInput[]
-    createMany?: ItineraryMemberCreateManyUserInputEnvelope
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
+  export type LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
   }
 
-  export type ItineraryCommentUncheckedCreateNestedManyWithoutUserInput = {
-    create?: XOR<ItineraryCommentCreateWithoutUserInput, ItineraryCommentUncheckedCreateWithoutUserInput> | ItineraryCommentCreateWithoutUserInput[] | ItineraryCommentUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutUserInput | ItineraryCommentCreateOrConnectWithoutUserInput[]
-    createMany?: ItineraryCommentCreateManyUserInputEnvelope
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-  }
-
-  export type ItineraryVoteUncheckedCreateNestedManyWithoutUserInput = {
-    create?: XOR<ItineraryVoteCreateWithoutUserInput, ItineraryVoteUncheckedCreateWithoutUserInput> | ItineraryVoteCreateWithoutUserInput[] | ItineraryVoteUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutUserInput | ItineraryVoteCreateOrConnectWithoutUserInput[]
-    createMany?: ItineraryVoteCreateManyUserInputEnvelope
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
+  export type SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
   }
 
   export type StringFieldUpdateOperationsInput = {
@@ -31600,60 +32584,46 @@ export namespace Prisma {
     deleteMany?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
   }
 
-  export type ItineraryUpdateManyWithoutOwnerNestedInput = {
-    create?: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput> | ItineraryCreateWithoutOwnerInput[] | ItineraryUncheckedCreateWithoutOwnerInput[]
-    connectOrCreate?: ItineraryCreateOrConnectWithoutOwnerInput | ItineraryCreateOrConnectWithoutOwnerInput[]
-    upsert?: ItineraryUpsertWithWhereUniqueWithoutOwnerInput | ItineraryUpsertWithWhereUniqueWithoutOwnerInput[]
-    createMany?: ItineraryCreateManyOwnerInputEnvelope
-    set?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    disconnect?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    delete?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    connect?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    update?: ItineraryUpdateWithWhereUniqueWithoutOwnerInput | ItineraryUpdateWithWhereUniqueWithoutOwnerInput[]
-    updateMany?: ItineraryUpdateManyWithWhereWithoutOwnerInput | ItineraryUpdateManyWithWhereWithoutOwnerInput[]
-    deleteMany?: ItineraryScalarWhereInput | ItineraryScalarWhereInput[]
+  export type LiveLocationShareUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    upsert?: LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    set?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    disconnect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    delete?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    update?: LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: LiveLocationShareUpdateManyWithWhereWithoutOwnerInput | LiveLocationShareUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
   }
 
-  export type ItineraryMemberUpdateManyWithoutUserNestedInput = {
-    create?: XOR<ItineraryMemberCreateWithoutUserInput, ItineraryMemberUncheckedCreateWithoutUserInput> | ItineraryMemberCreateWithoutUserInput[] | ItineraryMemberUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutUserInput | ItineraryMemberCreateOrConnectWithoutUserInput[]
-    upsert?: ItineraryMemberUpsertWithWhereUniqueWithoutUserInput | ItineraryMemberUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: ItineraryMemberCreateManyUserInputEnvelope
-    set?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    disconnect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    delete?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    update?: ItineraryMemberUpdateWithWhereUniqueWithoutUserInput | ItineraryMemberUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: ItineraryMemberUpdateManyWithWhereWithoutUserInput | ItineraryMemberUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: ItineraryMemberScalarWhereInput | ItineraryMemberScalarWhereInput[]
+  export type LiveLocationViewerUpdateManyWithoutUserNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput | LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput | LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutUserInput | LiveLocationViewerUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
   }
 
-  export type ItineraryCommentUpdateManyWithoutUserNestedInput = {
-    create?: XOR<ItineraryCommentCreateWithoutUserInput, ItineraryCommentUncheckedCreateWithoutUserInput> | ItineraryCommentCreateWithoutUserInput[] | ItineraryCommentUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutUserInput | ItineraryCommentCreateOrConnectWithoutUserInput[]
-    upsert?: ItineraryCommentUpsertWithWhereUniqueWithoutUserInput | ItineraryCommentUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: ItineraryCommentCreateManyUserInputEnvelope
-    set?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    disconnect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    delete?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    update?: ItineraryCommentUpdateWithWhereUniqueWithoutUserInput | ItineraryCommentUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: ItineraryCommentUpdateManyWithWhereWithoutUserInput | ItineraryCommentUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: ItineraryCommentScalarWhereInput | ItineraryCommentScalarWhereInput[]
-  }
-
-  export type ItineraryVoteUpdateManyWithoutUserNestedInput = {
-    create?: XOR<ItineraryVoteCreateWithoutUserInput, ItineraryVoteUncheckedCreateWithoutUserInput> | ItineraryVoteCreateWithoutUserInput[] | ItineraryVoteUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutUserInput | ItineraryVoteCreateOrConnectWithoutUserInput[]
-    upsert?: ItineraryVoteUpsertWithWhereUniqueWithoutUserInput | ItineraryVoteUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: ItineraryVoteCreateManyUserInputEnvelope
-    set?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    disconnect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    delete?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    update?: ItineraryVoteUpdateWithWhereUniqueWithoutUserInput | ItineraryVoteUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: ItineraryVoteUpdateManyWithWhereWithoutUserInput | ItineraryVoteUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
+  export type SafetyHazardReportUpdateManyWithoutUserNestedInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    upsert?: SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput | SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    set?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    disconnect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    delete?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    update?: SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput | SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: SafetyHazardReportUpdateManyWithWhereWithoutUserInput | SafetyHazardReportUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
   }
 
   export type OTPVerificationUncheckedUpdateManyWithoutUserNestedInput = {
@@ -31848,60 +32818,46 @@ export namespace Prisma {
     deleteMany?: PlaceLabelScalarWhereInput | PlaceLabelScalarWhereInput[]
   }
 
-  export type ItineraryUncheckedUpdateManyWithoutOwnerNestedInput = {
-    create?: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput> | ItineraryCreateWithoutOwnerInput[] | ItineraryUncheckedCreateWithoutOwnerInput[]
-    connectOrCreate?: ItineraryCreateOrConnectWithoutOwnerInput | ItineraryCreateOrConnectWithoutOwnerInput[]
-    upsert?: ItineraryUpsertWithWhereUniqueWithoutOwnerInput | ItineraryUpsertWithWhereUniqueWithoutOwnerInput[]
-    createMany?: ItineraryCreateManyOwnerInputEnvelope
-    set?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    disconnect?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    delete?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    connect?: ItineraryWhereUniqueInput | ItineraryWhereUniqueInput[]
-    update?: ItineraryUpdateWithWhereUniqueWithoutOwnerInput | ItineraryUpdateWithWhereUniqueWithoutOwnerInput[]
-    updateMany?: ItineraryUpdateManyWithWhereWithoutOwnerInput | ItineraryUpdateManyWithWhereWithoutOwnerInput[]
-    deleteMany?: ItineraryScalarWhereInput | ItineraryScalarWhereInput[]
+  export type LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput = {
+    create?: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput> | LiveLocationShareCreateWithoutOwnerInput[] | LiveLocationShareUncheckedCreateWithoutOwnerInput[]
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutOwnerInput | LiveLocationShareCreateOrConnectWithoutOwnerInput[]
+    upsert?: LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput[]
+    createMany?: LiveLocationShareCreateManyOwnerInputEnvelope
+    set?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    disconnect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    delete?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    connect?: LiveLocationShareWhereUniqueInput | LiveLocationShareWhereUniqueInput[]
+    update?: LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput | LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput[]
+    updateMany?: LiveLocationShareUpdateManyWithWhereWithoutOwnerInput | LiveLocationShareUpdateManyWithWhereWithoutOwnerInput[]
+    deleteMany?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
   }
 
-  export type ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput = {
-    create?: XOR<ItineraryMemberCreateWithoutUserInput, ItineraryMemberUncheckedCreateWithoutUserInput> | ItineraryMemberCreateWithoutUserInput[] | ItineraryMemberUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutUserInput | ItineraryMemberCreateOrConnectWithoutUserInput[]
-    upsert?: ItineraryMemberUpsertWithWhereUniqueWithoutUserInput | ItineraryMemberUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: ItineraryMemberCreateManyUserInputEnvelope
-    set?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    disconnect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    delete?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    update?: ItineraryMemberUpdateWithWhereUniqueWithoutUserInput | ItineraryMemberUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: ItineraryMemberUpdateManyWithWhereWithoutUserInput | ItineraryMemberUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: ItineraryMemberScalarWhereInput | ItineraryMemberScalarWhereInput[]
+  export type LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput> | LiveLocationViewerCreateWithoutUserInput[] | LiveLocationViewerUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutUserInput | LiveLocationViewerCreateOrConnectWithoutUserInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput | LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: LiveLocationViewerCreateManyUserInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput | LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutUserInput | LiveLocationViewerUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
   }
 
-  export type ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput = {
-    create?: XOR<ItineraryCommentCreateWithoutUserInput, ItineraryCommentUncheckedCreateWithoutUserInput> | ItineraryCommentCreateWithoutUserInput[] | ItineraryCommentUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutUserInput | ItineraryCommentCreateOrConnectWithoutUserInput[]
-    upsert?: ItineraryCommentUpsertWithWhereUniqueWithoutUserInput | ItineraryCommentUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: ItineraryCommentCreateManyUserInputEnvelope
-    set?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    disconnect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    delete?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    update?: ItineraryCommentUpdateWithWhereUniqueWithoutUserInput | ItineraryCommentUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: ItineraryCommentUpdateManyWithWhereWithoutUserInput | ItineraryCommentUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: ItineraryCommentScalarWhereInput | ItineraryCommentScalarWhereInput[]
-  }
-
-  export type ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput = {
-    create?: XOR<ItineraryVoteCreateWithoutUserInput, ItineraryVoteUncheckedCreateWithoutUserInput> | ItineraryVoteCreateWithoutUserInput[] | ItineraryVoteUncheckedCreateWithoutUserInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutUserInput | ItineraryVoteCreateOrConnectWithoutUserInput[]
-    upsert?: ItineraryVoteUpsertWithWhereUniqueWithoutUserInput | ItineraryVoteUpsertWithWhereUniqueWithoutUserInput[]
-    createMany?: ItineraryVoteCreateManyUserInputEnvelope
-    set?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    disconnect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    delete?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    update?: ItineraryVoteUpdateWithWhereUniqueWithoutUserInput | ItineraryVoteUpdateWithWhereUniqueWithoutUserInput[]
-    updateMany?: ItineraryVoteUpdateManyWithWhereWithoutUserInput | ItineraryVoteUpdateManyWithWhereWithoutUserInput[]
-    deleteMany?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
+  export type SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput = {
+    create?: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput> | SafetyHazardReportCreateWithoutUserInput[] | SafetyHazardReportUncheckedCreateWithoutUserInput[]
+    connectOrCreate?: SafetyHazardReportCreateOrConnectWithoutUserInput | SafetyHazardReportCreateOrConnectWithoutUserInput[]
+    upsert?: SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput | SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput[]
+    createMany?: SafetyHazardReportCreateManyUserInputEnvelope
+    set?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    disconnect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    delete?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    connect?: SafetyHazardReportWhereUniqueInput | SafetyHazardReportWhereUniqueInput[]
+    update?: SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput | SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput[]
+    updateMany?: SafetyHazardReportUpdateManyWithWhereWithoutUserInput | SafetyHazardReportUpdateManyWithWhereWithoutUserInput[]
+    deleteMany?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
   }
 
   export type UserCreateNestedOneWithoutNotificationsInput = {
@@ -32536,284 +33492,102 @@ export namespace Prisma {
     update?: XOR<XOR<PlaceUpdateToOneWithWhereWithoutLabelsInput, PlaceUpdateWithoutLabelsInput>, PlaceUncheckedUpdateWithoutLabelsInput>
   }
 
-  export type UserCreateNestedOneWithoutOwnedItinerariesInput = {
-    create?: XOR<UserCreateWithoutOwnedItinerariesInput, UserUncheckedCreateWithoutOwnedItinerariesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutOwnedItinerariesInput
+  export type UserCreateNestedOneWithoutOwnedLiveLocationSharesInput = {
+    create?: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutOwnedLiveLocationSharesInput
     connect?: UserWhereUniqueInput
   }
 
-  export type ItineraryMemberCreateNestedManyWithoutItineraryInput = {
-    create?: XOR<ItineraryMemberCreateWithoutItineraryInput, ItineraryMemberUncheckedCreateWithoutItineraryInput> | ItineraryMemberCreateWithoutItineraryInput[] | ItineraryMemberUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutItineraryInput | ItineraryMemberCreateOrConnectWithoutItineraryInput[]
-    createMany?: ItineraryMemberCreateManyItineraryInputEnvelope
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
+  export type LiveLocationViewerCreateNestedManyWithoutShareInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
   }
 
-  export type ItineraryStopCreateNestedManyWithoutItineraryInput = {
-    create?: XOR<ItineraryStopCreateWithoutItineraryInput, ItineraryStopUncheckedCreateWithoutItineraryInput> | ItineraryStopCreateWithoutItineraryInput[] | ItineraryStopUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutItineraryInput | ItineraryStopCreateOrConnectWithoutItineraryInput[]
-    createMany?: ItineraryStopCreateManyItineraryInputEnvelope
-    connect?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
+  export type LiveLocationViewerUncheckedCreateNestedManyWithoutShareInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
   }
 
-  export type ItineraryMemberUncheckedCreateNestedManyWithoutItineraryInput = {
-    create?: XOR<ItineraryMemberCreateWithoutItineraryInput, ItineraryMemberUncheckedCreateWithoutItineraryInput> | ItineraryMemberCreateWithoutItineraryInput[] | ItineraryMemberUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutItineraryInput | ItineraryMemberCreateOrConnectWithoutItineraryInput[]
-    createMany?: ItineraryMemberCreateManyItineraryInputEnvelope
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-  }
-
-  export type ItineraryStopUncheckedCreateNestedManyWithoutItineraryInput = {
-    create?: XOR<ItineraryStopCreateWithoutItineraryInput, ItineraryStopUncheckedCreateWithoutItineraryInput> | ItineraryStopCreateWithoutItineraryInput[] | ItineraryStopUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutItineraryInput | ItineraryStopCreateOrConnectWithoutItineraryInput[]
-    createMany?: ItineraryStopCreateManyItineraryInputEnvelope
-    connect?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-  }
-
-  export type UserUpdateOneRequiredWithoutOwnedItinerariesNestedInput = {
-    create?: XOR<UserCreateWithoutOwnedItinerariesInput, UserUncheckedCreateWithoutOwnedItinerariesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutOwnedItinerariesInput
-    upsert?: UserUpsertWithoutOwnedItinerariesInput
+  export type UserUpdateOneRequiredWithoutOwnedLiveLocationSharesNestedInput = {
+    create?: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
+    connectOrCreate?: UserCreateOrConnectWithoutOwnedLiveLocationSharesInput
+    upsert?: UserUpsertWithoutOwnedLiveLocationSharesInput
     connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutOwnedItinerariesInput, UserUpdateWithoutOwnedItinerariesInput>, UserUncheckedUpdateWithoutOwnedItinerariesInput>
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutOwnedLiveLocationSharesInput, UserUpdateWithoutOwnedLiveLocationSharesInput>, UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput>
   }
 
-  export type ItineraryMemberUpdateManyWithoutItineraryNestedInput = {
-    create?: XOR<ItineraryMemberCreateWithoutItineraryInput, ItineraryMemberUncheckedCreateWithoutItineraryInput> | ItineraryMemberCreateWithoutItineraryInput[] | ItineraryMemberUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutItineraryInput | ItineraryMemberCreateOrConnectWithoutItineraryInput[]
-    upsert?: ItineraryMemberUpsertWithWhereUniqueWithoutItineraryInput | ItineraryMemberUpsertWithWhereUniqueWithoutItineraryInput[]
-    createMany?: ItineraryMemberCreateManyItineraryInputEnvelope
-    set?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    disconnect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    delete?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    update?: ItineraryMemberUpdateWithWhereUniqueWithoutItineraryInput | ItineraryMemberUpdateWithWhereUniqueWithoutItineraryInput[]
-    updateMany?: ItineraryMemberUpdateManyWithWhereWithoutItineraryInput | ItineraryMemberUpdateManyWithWhereWithoutItineraryInput[]
-    deleteMany?: ItineraryMemberScalarWhereInput | ItineraryMemberScalarWhereInput[]
+  export type LiveLocationViewerUpdateManyWithoutShareNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput | LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput | LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutShareInput | LiveLocationViewerUpdateManyWithWhereWithoutShareInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
   }
 
-  export type ItineraryStopUpdateManyWithoutItineraryNestedInput = {
-    create?: XOR<ItineraryStopCreateWithoutItineraryInput, ItineraryStopUncheckedCreateWithoutItineraryInput> | ItineraryStopCreateWithoutItineraryInput[] | ItineraryStopUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutItineraryInput | ItineraryStopCreateOrConnectWithoutItineraryInput[]
-    upsert?: ItineraryStopUpsertWithWhereUniqueWithoutItineraryInput | ItineraryStopUpsertWithWhereUniqueWithoutItineraryInput[]
-    createMany?: ItineraryStopCreateManyItineraryInputEnvelope
-    set?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    disconnect?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    delete?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    connect?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    update?: ItineraryStopUpdateWithWhereUniqueWithoutItineraryInput | ItineraryStopUpdateWithWhereUniqueWithoutItineraryInput[]
-    updateMany?: ItineraryStopUpdateManyWithWhereWithoutItineraryInput | ItineraryStopUpdateManyWithWhereWithoutItineraryInput[]
-    deleteMany?: ItineraryStopScalarWhereInput | ItineraryStopScalarWhereInput[]
+  export type LiveLocationViewerUncheckedUpdateManyWithoutShareNestedInput = {
+    create?: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput> | LiveLocationViewerCreateWithoutShareInput[] | LiveLocationViewerUncheckedCreateWithoutShareInput[]
+    connectOrCreate?: LiveLocationViewerCreateOrConnectWithoutShareInput | LiveLocationViewerCreateOrConnectWithoutShareInput[]
+    upsert?: LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput | LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput[]
+    createMany?: LiveLocationViewerCreateManyShareInputEnvelope
+    set?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    disconnect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    delete?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    connect?: LiveLocationViewerWhereUniqueInput | LiveLocationViewerWhereUniqueInput[]
+    update?: LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput | LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput[]
+    updateMany?: LiveLocationViewerUpdateManyWithWhereWithoutShareInput | LiveLocationViewerUpdateManyWithWhereWithoutShareInput[]
+    deleteMany?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
   }
 
-  export type ItineraryMemberUncheckedUpdateManyWithoutItineraryNestedInput = {
-    create?: XOR<ItineraryMemberCreateWithoutItineraryInput, ItineraryMemberUncheckedCreateWithoutItineraryInput> | ItineraryMemberCreateWithoutItineraryInput[] | ItineraryMemberUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryMemberCreateOrConnectWithoutItineraryInput | ItineraryMemberCreateOrConnectWithoutItineraryInput[]
-    upsert?: ItineraryMemberUpsertWithWhereUniqueWithoutItineraryInput | ItineraryMemberUpsertWithWhereUniqueWithoutItineraryInput[]
-    createMany?: ItineraryMemberCreateManyItineraryInputEnvelope
-    set?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    disconnect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    delete?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    connect?: ItineraryMemberWhereUniqueInput | ItineraryMemberWhereUniqueInput[]
-    update?: ItineraryMemberUpdateWithWhereUniqueWithoutItineraryInput | ItineraryMemberUpdateWithWhereUniqueWithoutItineraryInput[]
-    updateMany?: ItineraryMemberUpdateManyWithWhereWithoutItineraryInput | ItineraryMemberUpdateManyWithWhereWithoutItineraryInput[]
-    deleteMany?: ItineraryMemberScalarWhereInput | ItineraryMemberScalarWhereInput[]
+  export type LiveLocationShareCreateNestedOneWithoutViewersInput = {
+    create?: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutViewersInput
+    connect?: LiveLocationShareWhereUniqueInput
   }
 
-  export type ItineraryStopUncheckedUpdateManyWithoutItineraryNestedInput = {
-    create?: XOR<ItineraryStopCreateWithoutItineraryInput, ItineraryStopUncheckedCreateWithoutItineraryInput> | ItineraryStopCreateWithoutItineraryInput[] | ItineraryStopUncheckedCreateWithoutItineraryInput[]
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutItineraryInput | ItineraryStopCreateOrConnectWithoutItineraryInput[]
-    upsert?: ItineraryStopUpsertWithWhereUniqueWithoutItineraryInput | ItineraryStopUpsertWithWhereUniqueWithoutItineraryInput[]
-    createMany?: ItineraryStopCreateManyItineraryInputEnvelope
-    set?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    disconnect?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    delete?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    connect?: ItineraryStopWhereUniqueInput | ItineraryStopWhereUniqueInput[]
-    update?: ItineraryStopUpdateWithWhereUniqueWithoutItineraryInput | ItineraryStopUpdateWithWhereUniqueWithoutItineraryInput[]
-    updateMany?: ItineraryStopUpdateManyWithWhereWithoutItineraryInput | ItineraryStopUpdateManyWithWhereWithoutItineraryInput[]
-    deleteMany?: ItineraryStopScalarWhereInput | ItineraryStopScalarWhereInput[]
-  }
-
-  export type ItineraryCreateNestedOneWithoutMembersInput = {
-    create?: XOR<ItineraryCreateWithoutMembersInput, ItineraryUncheckedCreateWithoutMembersInput>
-    connectOrCreate?: ItineraryCreateOrConnectWithoutMembersInput
-    connect?: ItineraryWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutItineraryMembershipsInput = {
-    create?: XOR<UserCreateWithoutItineraryMembershipsInput, UserUncheckedCreateWithoutItineraryMembershipsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutItineraryMembershipsInput
+  export type UserCreateNestedOneWithoutLiveLocationViewershipsInput = {
+    create?: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLiveLocationViewershipsInput
     connect?: UserWhereUniqueInput
   }
 
-  export type ItineraryUpdateOneRequiredWithoutMembersNestedInput = {
-    create?: XOR<ItineraryCreateWithoutMembersInput, ItineraryUncheckedCreateWithoutMembersInput>
-    connectOrCreate?: ItineraryCreateOrConnectWithoutMembersInput
-    upsert?: ItineraryUpsertWithoutMembersInput
-    connect?: ItineraryWhereUniqueInput
-    update?: XOR<XOR<ItineraryUpdateToOneWithWhereWithoutMembersInput, ItineraryUpdateWithoutMembersInput>, ItineraryUncheckedUpdateWithoutMembersInput>
+  export type LiveLocationShareUpdateOneRequiredWithoutViewersNestedInput = {
+    create?: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
+    connectOrCreate?: LiveLocationShareCreateOrConnectWithoutViewersInput
+    upsert?: LiveLocationShareUpsertWithoutViewersInput
+    connect?: LiveLocationShareWhereUniqueInput
+    update?: XOR<XOR<LiveLocationShareUpdateToOneWithWhereWithoutViewersInput, LiveLocationShareUpdateWithoutViewersInput>, LiveLocationShareUncheckedUpdateWithoutViewersInput>
   }
 
-  export type UserUpdateOneRequiredWithoutItineraryMembershipsNestedInput = {
-    create?: XOR<UserCreateWithoutItineraryMembershipsInput, UserUncheckedCreateWithoutItineraryMembershipsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutItineraryMembershipsInput
-    upsert?: UserUpsertWithoutItineraryMembershipsInput
+  export type UserUpdateOneRequiredWithoutLiveLocationViewershipsNestedInput = {
+    create?: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutLiveLocationViewershipsInput
+    upsert?: UserUpsertWithoutLiveLocationViewershipsInput
     connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutItineraryMembershipsInput, UserUpdateWithoutItineraryMembershipsInput>, UserUncheckedUpdateWithoutItineraryMembershipsInput>
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutLiveLocationViewershipsInput, UserUpdateWithoutLiveLocationViewershipsInput>, UserUncheckedUpdateWithoutLiveLocationViewershipsInput>
   }
 
-  export type ItineraryCreateNestedOneWithoutStopsInput = {
-    create?: XOR<ItineraryCreateWithoutStopsInput, ItineraryUncheckedCreateWithoutStopsInput>
-    connectOrCreate?: ItineraryCreateOrConnectWithoutStopsInput
-    connect?: ItineraryWhereUniqueInput
-  }
-
-  export type ItineraryCommentCreateNestedManyWithoutStopInput = {
-    create?: XOR<ItineraryCommentCreateWithoutStopInput, ItineraryCommentUncheckedCreateWithoutStopInput> | ItineraryCommentCreateWithoutStopInput[] | ItineraryCommentUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutStopInput | ItineraryCommentCreateOrConnectWithoutStopInput[]
-    createMany?: ItineraryCommentCreateManyStopInputEnvelope
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-  }
-
-  export type ItineraryVoteCreateNestedManyWithoutStopInput = {
-    create?: XOR<ItineraryVoteCreateWithoutStopInput, ItineraryVoteUncheckedCreateWithoutStopInput> | ItineraryVoteCreateWithoutStopInput[] | ItineraryVoteUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutStopInput | ItineraryVoteCreateOrConnectWithoutStopInput[]
-    createMany?: ItineraryVoteCreateManyStopInputEnvelope
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-  }
-
-  export type ItineraryCommentUncheckedCreateNestedManyWithoutStopInput = {
-    create?: XOR<ItineraryCommentCreateWithoutStopInput, ItineraryCommentUncheckedCreateWithoutStopInput> | ItineraryCommentCreateWithoutStopInput[] | ItineraryCommentUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutStopInput | ItineraryCommentCreateOrConnectWithoutStopInput[]
-    createMany?: ItineraryCommentCreateManyStopInputEnvelope
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-  }
-
-  export type ItineraryVoteUncheckedCreateNestedManyWithoutStopInput = {
-    create?: XOR<ItineraryVoteCreateWithoutStopInput, ItineraryVoteUncheckedCreateWithoutStopInput> | ItineraryVoteCreateWithoutStopInput[] | ItineraryVoteUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutStopInput | ItineraryVoteCreateOrConnectWithoutStopInput[]
-    createMany?: ItineraryVoteCreateManyStopInputEnvelope
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-  }
-
-  export type ItineraryUpdateOneRequiredWithoutStopsNestedInput = {
-    create?: XOR<ItineraryCreateWithoutStopsInput, ItineraryUncheckedCreateWithoutStopsInput>
-    connectOrCreate?: ItineraryCreateOrConnectWithoutStopsInput
-    upsert?: ItineraryUpsertWithoutStopsInput
-    connect?: ItineraryWhereUniqueInput
-    update?: XOR<XOR<ItineraryUpdateToOneWithWhereWithoutStopsInput, ItineraryUpdateWithoutStopsInput>, ItineraryUncheckedUpdateWithoutStopsInput>
-  }
-
-  export type ItineraryCommentUpdateManyWithoutStopNestedInput = {
-    create?: XOR<ItineraryCommentCreateWithoutStopInput, ItineraryCommentUncheckedCreateWithoutStopInput> | ItineraryCommentCreateWithoutStopInput[] | ItineraryCommentUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutStopInput | ItineraryCommentCreateOrConnectWithoutStopInput[]
-    upsert?: ItineraryCommentUpsertWithWhereUniqueWithoutStopInput | ItineraryCommentUpsertWithWhereUniqueWithoutStopInput[]
-    createMany?: ItineraryCommentCreateManyStopInputEnvelope
-    set?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    disconnect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    delete?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    update?: ItineraryCommentUpdateWithWhereUniqueWithoutStopInput | ItineraryCommentUpdateWithWhereUniqueWithoutStopInput[]
-    updateMany?: ItineraryCommentUpdateManyWithWhereWithoutStopInput | ItineraryCommentUpdateManyWithWhereWithoutStopInput[]
-    deleteMany?: ItineraryCommentScalarWhereInput | ItineraryCommentScalarWhereInput[]
-  }
-
-  export type ItineraryVoteUpdateManyWithoutStopNestedInput = {
-    create?: XOR<ItineraryVoteCreateWithoutStopInput, ItineraryVoteUncheckedCreateWithoutStopInput> | ItineraryVoteCreateWithoutStopInput[] | ItineraryVoteUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutStopInput | ItineraryVoteCreateOrConnectWithoutStopInput[]
-    upsert?: ItineraryVoteUpsertWithWhereUniqueWithoutStopInput | ItineraryVoteUpsertWithWhereUniqueWithoutStopInput[]
-    createMany?: ItineraryVoteCreateManyStopInputEnvelope
-    set?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    disconnect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    delete?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    update?: ItineraryVoteUpdateWithWhereUniqueWithoutStopInput | ItineraryVoteUpdateWithWhereUniqueWithoutStopInput[]
-    updateMany?: ItineraryVoteUpdateManyWithWhereWithoutStopInput | ItineraryVoteUpdateManyWithWhereWithoutStopInput[]
-    deleteMany?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
-  }
-
-  export type ItineraryCommentUncheckedUpdateManyWithoutStopNestedInput = {
-    create?: XOR<ItineraryCommentCreateWithoutStopInput, ItineraryCommentUncheckedCreateWithoutStopInput> | ItineraryCommentCreateWithoutStopInput[] | ItineraryCommentUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryCommentCreateOrConnectWithoutStopInput | ItineraryCommentCreateOrConnectWithoutStopInput[]
-    upsert?: ItineraryCommentUpsertWithWhereUniqueWithoutStopInput | ItineraryCommentUpsertWithWhereUniqueWithoutStopInput[]
-    createMany?: ItineraryCommentCreateManyStopInputEnvelope
-    set?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    disconnect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    delete?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    connect?: ItineraryCommentWhereUniqueInput | ItineraryCommentWhereUniqueInput[]
-    update?: ItineraryCommentUpdateWithWhereUniqueWithoutStopInput | ItineraryCommentUpdateWithWhereUniqueWithoutStopInput[]
-    updateMany?: ItineraryCommentUpdateManyWithWhereWithoutStopInput | ItineraryCommentUpdateManyWithWhereWithoutStopInput[]
-    deleteMany?: ItineraryCommentScalarWhereInput | ItineraryCommentScalarWhereInput[]
-  }
-
-  export type ItineraryVoteUncheckedUpdateManyWithoutStopNestedInput = {
-    create?: XOR<ItineraryVoteCreateWithoutStopInput, ItineraryVoteUncheckedCreateWithoutStopInput> | ItineraryVoteCreateWithoutStopInput[] | ItineraryVoteUncheckedCreateWithoutStopInput[]
-    connectOrCreate?: ItineraryVoteCreateOrConnectWithoutStopInput | ItineraryVoteCreateOrConnectWithoutStopInput[]
-    upsert?: ItineraryVoteUpsertWithWhereUniqueWithoutStopInput | ItineraryVoteUpsertWithWhereUniqueWithoutStopInput[]
-    createMany?: ItineraryVoteCreateManyStopInputEnvelope
-    set?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    disconnect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    delete?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    connect?: ItineraryVoteWhereUniqueInput | ItineraryVoteWhereUniqueInput[]
-    update?: ItineraryVoteUpdateWithWhereUniqueWithoutStopInput | ItineraryVoteUpdateWithWhereUniqueWithoutStopInput[]
-    updateMany?: ItineraryVoteUpdateManyWithWhereWithoutStopInput | ItineraryVoteUpdateManyWithWhereWithoutStopInput[]
-    deleteMany?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
-  }
-
-  export type ItineraryStopCreateNestedOneWithoutCommentsInput = {
-    create?: XOR<ItineraryStopCreateWithoutCommentsInput, ItineraryStopUncheckedCreateWithoutCommentsInput>
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutCommentsInput
-    connect?: ItineraryStopWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutItineraryCommentsInput = {
-    create?: XOR<UserCreateWithoutItineraryCommentsInput, UserUncheckedCreateWithoutItineraryCommentsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutItineraryCommentsInput
+  export type UserCreateNestedOneWithoutSafetyHazardReportsInput = {
+    create?: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSafetyHazardReportsInput
     connect?: UserWhereUniqueInput
   }
 
-  export type ItineraryStopUpdateOneRequiredWithoutCommentsNestedInput = {
-    create?: XOR<ItineraryStopCreateWithoutCommentsInput, ItineraryStopUncheckedCreateWithoutCommentsInput>
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutCommentsInput
-    upsert?: ItineraryStopUpsertWithoutCommentsInput
-    connect?: ItineraryStopWhereUniqueInput
-    update?: XOR<XOR<ItineraryStopUpdateToOneWithWhereWithoutCommentsInput, ItineraryStopUpdateWithoutCommentsInput>, ItineraryStopUncheckedUpdateWithoutCommentsInput>
-  }
-
-  export type UserUpdateOneRequiredWithoutItineraryCommentsNestedInput = {
-    create?: XOR<UserCreateWithoutItineraryCommentsInput, UserUncheckedCreateWithoutItineraryCommentsInput>
-    connectOrCreate?: UserCreateOrConnectWithoutItineraryCommentsInput
-    upsert?: UserUpsertWithoutItineraryCommentsInput
+  export type UserUpdateOneRequiredWithoutSafetyHazardReportsNestedInput = {
+    create?: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
+    connectOrCreate?: UserCreateOrConnectWithoutSafetyHazardReportsInput
+    upsert?: UserUpsertWithoutSafetyHazardReportsInput
     connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutItineraryCommentsInput, UserUpdateWithoutItineraryCommentsInput>, UserUncheckedUpdateWithoutItineraryCommentsInput>
-  }
-
-  export type ItineraryStopCreateNestedOneWithoutVotesInput = {
-    create?: XOR<ItineraryStopCreateWithoutVotesInput, ItineraryStopUncheckedCreateWithoutVotesInput>
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutVotesInput
-    connect?: ItineraryStopWhereUniqueInput
-  }
-
-  export type UserCreateNestedOneWithoutItineraryVotesInput = {
-    create?: XOR<UserCreateWithoutItineraryVotesInput, UserUncheckedCreateWithoutItineraryVotesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutItineraryVotesInput
-    connect?: UserWhereUniqueInput
-  }
-
-  export type ItineraryStopUpdateOneRequiredWithoutVotesNestedInput = {
-    create?: XOR<ItineraryStopCreateWithoutVotesInput, ItineraryStopUncheckedCreateWithoutVotesInput>
-    connectOrCreate?: ItineraryStopCreateOrConnectWithoutVotesInput
-    upsert?: ItineraryStopUpsertWithoutVotesInput
-    connect?: ItineraryStopWhereUniqueInput
-    update?: XOR<XOR<ItineraryStopUpdateToOneWithWhereWithoutVotesInput, ItineraryStopUpdateWithoutVotesInput>, ItineraryStopUncheckedUpdateWithoutVotesInput>
-  }
-
-  export type UserUpdateOneRequiredWithoutItineraryVotesNestedInput = {
-    create?: XOR<UserCreateWithoutItineraryVotesInput, UserUncheckedCreateWithoutItineraryVotesInput>
-    connectOrCreate?: UserCreateOrConnectWithoutItineraryVotesInput
-    upsert?: UserUpsertWithoutItineraryVotesInput
-    connect?: UserWhereUniqueInput
-    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutItineraryVotesInput, UserUpdateWithoutItineraryVotesInput>, UserUncheckedUpdateWithoutItineraryVotesInput>
+    update?: XOR<XOR<UserUpdateToOneWithWhereWithoutSafetyHazardReportsInput, UserUpdateWithoutSafetyHazardReportsInput>, UserUncheckedUpdateWithoutSafetyHazardReportsInput>
   }
 
   export type NestedStringFilter<$PrismaModel = never> = {
@@ -33608,119 +34382,119 @@ export namespace Prisma {
     skipDuplicates?: boolean
   }
 
-  export type ItineraryCreateWithoutOwnerInput = {
+  export type LiveLocationShareCreateWithoutOwnerInput = {
     id?: string
-    title: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    viewers?: LiveLocationViewerCreateNestedManyWithoutShareInput
+  }
+
+  export type LiveLocationShareUncheckedCreateWithoutOwnerInput = {
+    id?: string
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
+    createdAt?: Date | string
+    updatedAt?: Date | string
+    viewers?: LiveLocationViewerUncheckedCreateNestedManyWithoutShareInput
+  }
+
+  export type LiveLocationShareCreateOrConnectWithoutOwnerInput = {
+    where: LiveLocationShareWhereUniqueInput
+    create: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput>
+  }
+
+  export type LiveLocationShareCreateManyOwnerInputEnvelope = {
+    data: LiveLocationShareCreateManyOwnerInput | LiveLocationShareCreateManyOwnerInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type LiveLocationViewerCreateWithoutUserInput = {
+    id?: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+    share: LiveLocationShareCreateNestedOneWithoutViewersInput
+  }
+
+  export type LiveLocationViewerUncheckedCreateWithoutUserInput = {
+    id?: string
+    shareId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+  }
+
+  export type LiveLocationViewerCreateOrConnectWithoutUserInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    create: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput>
+  }
+
+  export type LiveLocationViewerCreateManyUserInputEnvelope = {
+    data: LiveLocationViewerCreateManyUserInput | LiveLocationViewerCreateManyUserInput[]
+    skipDuplicates?: boolean
+  }
+
+  export type SafetyHazardReportCreateWithoutUserInput = {
+    id?: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
     description?: string | null
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
-    members?: ItineraryMemberCreateNestedManyWithoutItineraryInput
-    stops?: ItineraryStopCreateNestedManyWithoutItineraryInput
   }
 
-  export type ItineraryUncheckedCreateWithoutOwnerInput = {
+  export type SafetyHazardReportUncheckedCreateWithoutUserInput = {
     id?: string
-    title: string
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
     description?: string | null
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    members?: ItineraryMemberUncheckedCreateNestedManyWithoutItineraryInput
-    stops?: ItineraryStopUncheckedCreateNestedManyWithoutItineraryInput
-  }
-
-  export type ItineraryCreateOrConnectWithoutOwnerInput = {
-    where: ItineraryWhereUniqueInput
-    create: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput>
-  }
-
-  export type ItineraryCreateManyOwnerInputEnvelope = {
-    data: ItineraryCreateManyOwnerInput | ItineraryCreateManyOwnerInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type ItineraryMemberCreateWithoutUserInput = {
-    id?: string
-    role?: string
-    createdAt?: Date | string
-    itinerary: ItineraryCreateNestedOneWithoutMembersInput
-  }
-
-  export type ItineraryMemberUncheckedCreateWithoutUserInput = {
-    id?: string
-    itineraryId: string
-    role?: string
-    createdAt?: Date | string
-  }
-
-  export type ItineraryMemberCreateOrConnectWithoutUserInput = {
-    where: ItineraryMemberWhereUniqueInput
-    create: XOR<ItineraryMemberCreateWithoutUserInput, ItineraryMemberUncheckedCreateWithoutUserInput>
-  }
-
-  export type ItineraryMemberCreateManyUserInputEnvelope = {
-    data: ItineraryMemberCreateManyUserInput | ItineraryMemberCreateManyUserInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type ItineraryCommentCreateWithoutUserInput = {
-    id?: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-    stop: ItineraryStopCreateNestedOneWithoutCommentsInput
-  }
-
-  export type ItineraryCommentUncheckedCreateWithoutUserInput = {
-    id?: string
-    stopId: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-  }
-
-  export type ItineraryCommentCreateOrConnectWithoutUserInput = {
-    where: ItineraryCommentWhereUniqueInput
-    create: XOR<ItineraryCommentCreateWithoutUserInput, ItineraryCommentUncheckedCreateWithoutUserInput>
-  }
-
-  export type ItineraryCommentCreateManyUserInputEnvelope = {
-    data: ItineraryCommentCreateManyUserInput | ItineraryCommentCreateManyUserInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type ItineraryVoteCreateWithoutUserInput = {
-    id?: string
-    value: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    stop: ItineraryStopCreateNestedOneWithoutVotesInput
-  }
-
-  export type ItineraryVoteUncheckedCreateWithoutUserInput = {
-    id?: string
-    stopId: string
-    value: number
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
-  export type ItineraryVoteCreateOrConnectWithoutUserInput = {
-    where: ItineraryVoteWhereUniqueInput
-    create: XOR<ItineraryVoteCreateWithoutUserInput, ItineraryVoteUncheckedCreateWithoutUserInput>
+  export type SafetyHazardReportCreateOrConnectWithoutUserInput = {
+    where: SafetyHazardReportWhereUniqueInput
+    create: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput>
   }
 
-  export type ItineraryVoteCreateManyUserInputEnvelope = {
-    data: ItineraryVoteCreateManyUserInput | ItineraryVoteCreateManyUserInput[]
+  export type SafetyHazardReportCreateManyUserInputEnvelope = {
+    data: SafetyHazardReportCreateManyUserInput | SafetyHazardReportCreateManyUserInput[]
     skipDuplicates?: boolean
   }
 
@@ -34200,120 +34974,106 @@ export namespace Prisma {
     updatedAt?: DateTimeFilter<"PlaceLabel"> | Date | string
   }
 
-  export type ItineraryUpsertWithWhereUniqueWithoutOwnerInput = {
-    where: ItineraryWhereUniqueInput
-    update: XOR<ItineraryUpdateWithoutOwnerInput, ItineraryUncheckedUpdateWithoutOwnerInput>
-    create: XOR<ItineraryCreateWithoutOwnerInput, ItineraryUncheckedCreateWithoutOwnerInput>
+  export type LiveLocationShareUpsertWithWhereUniqueWithoutOwnerInput = {
+    where: LiveLocationShareWhereUniqueInput
+    update: XOR<LiveLocationShareUpdateWithoutOwnerInput, LiveLocationShareUncheckedUpdateWithoutOwnerInput>
+    create: XOR<LiveLocationShareCreateWithoutOwnerInput, LiveLocationShareUncheckedCreateWithoutOwnerInput>
   }
 
-  export type ItineraryUpdateWithWhereUniqueWithoutOwnerInput = {
-    where: ItineraryWhereUniqueInput
-    data: XOR<ItineraryUpdateWithoutOwnerInput, ItineraryUncheckedUpdateWithoutOwnerInput>
+  export type LiveLocationShareUpdateWithWhereUniqueWithoutOwnerInput = {
+    where: LiveLocationShareWhereUniqueInput
+    data: XOR<LiveLocationShareUpdateWithoutOwnerInput, LiveLocationShareUncheckedUpdateWithoutOwnerInput>
   }
 
-  export type ItineraryUpdateManyWithWhereWithoutOwnerInput = {
-    where: ItineraryScalarWhereInput
-    data: XOR<ItineraryUpdateManyMutationInput, ItineraryUncheckedUpdateManyWithoutOwnerInput>
+  export type LiveLocationShareUpdateManyWithWhereWithoutOwnerInput = {
+    where: LiveLocationShareScalarWhereInput
+    data: XOR<LiveLocationShareUpdateManyMutationInput, LiveLocationShareUncheckedUpdateManyWithoutOwnerInput>
   }
 
-  export type ItineraryScalarWhereInput = {
-    AND?: ItineraryScalarWhereInput | ItineraryScalarWhereInput[]
-    OR?: ItineraryScalarWhereInput[]
-    NOT?: ItineraryScalarWhereInput | ItineraryScalarWhereInput[]
-    id?: StringFilter<"Itinerary"> | string
-    title?: StringFilter<"Itinerary"> | string
-    description?: StringNullableFilter<"Itinerary"> | string | null
-    ownerId?: StringFilter<"Itinerary"> | string
-    shareToken?: StringFilter<"Itinerary"> | string
-    coverEmoji?: StringNullableFilter<"Itinerary"> | string | null
-    startDate?: DateTimeNullableFilter<"Itinerary"> | Date | string | null
-    endDate?: DateTimeNullableFilter<"Itinerary"> | Date | string | null
-    autoSort?: BoolFilter<"Itinerary"> | boolean
-    createdAt?: DateTimeFilter<"Itinerary"> | Date | string
-    updatedAt?: DateTimeFilter<"Itinerary"> | Date | string
+  export type LiveLocationShareScalarWhereInput = {
+    AND?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
+    OR?: LiveLocationShareScalarWhereInput[]
+    NOT?: LiveLocationShareScalarWhereInput | LiveLocationShareScalarWhereInput[]
+    id?: StringFilter<"LiveLocationShare"> | string
+    ownerId?: StringFilter<"LiveLocationShare"> | string
+    tokenHash?: StringFilter<"LiveLocationShare"> | string
+    status?: StringFilter<"LiveLocationShare"> | string
+    durationMinutes?: IntFilter<"LiveLocationShare"> | number
+    expiresAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    endedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    endedReason?: StringNullableFilter<"LiveLocationShare"> | string | null
+    lastLatitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastLongitude?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastAccuracy?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastSpeed?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastHeading?: FloatNullableFilter<"LiveLocationShare"> | number | null
+    lastUpdatedAt?: DateTimeNullableFilter<"LiveLocationShare"> | Date | string | null
+    presenceStatus?: StringFilter<"LiveLocationShare"> | string
+    createdAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
+    updatedAt?: DateTimeFilter<"LiveLocationShare"> | Date | string
   }
 
-  export type ItineraryMemberUpsertWithWhereUniqueWithoutUserInput = {
-    where: ItineraryMemberWhereUniqueInput
-    update: XOR<ItineraryMemberUpdateWithoutUserInput, ItineraryMemberUncheckedUpdateWithoutUserInput>
-    create: XOR<ItineraryMemberCreateWithoutUserInput, ItineraryMemberUncheckedCreateWithoutUserInput>
+  export type LiveLocationViewerUpsertWithWhereUniqueWithoutUserInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    update: XOR<LiveLocationViewerUpdateWithoutUserInput, LiveLocationViewerUncheckedUpdateWithoutUserInput>
+    create: XOR<LiveLocationViewerCreateWithoutUserInput, LiveLocationViewerUncheckedCreateWithoutUserInput>
   }
 
-  export type ItineraryMemberUpdateWithWhereUniqueWithoutUserInput = {
-    where: ItineraryMemberWhereUniqueInput
-    data: XOR<ItineraryMemberUpdateWithoutUserInput, ItineraryMemberUncheckedUpdateWithoutUserInput>
+  export type LiveLocationViewerUpdateWithWhereUniqueWithoutUserInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    data: XOR<LiveLocationViewerUpdateWithoutUserInput, LiveLocationViewerUncheckedUpdateWithoutUserInput>
   }
 
-  export type ItineraryMemberUpdateManyWithWhereWithoutUserInput = {
-    where: ItineraryMemberScalarWhereInput
-    data: XOR<ItineraryMemberUpdateManyMutationInput, ItineraryMemberUncheckedUpdateManyWithoutUserInput>
+  export type LiveLocationViewerUpdateManyWithWhereWithoutUserInput = {
+    where: LiveLocationViewerScalarWhereInput
+    data: XOR<LiveLocationViewerUpdateManyMutationInput, LiveLocationViewerUncheckedUpdateManyWithoutUserInput>
   }
 
-  export type ItineraryMemberScalarWhereInput = {
-    AND?: ItineraryMemberScalarWhereInput | ItineraryMemberScalarWhereInput[]
-    OR?: ItineraryMemberScalarWhereInput[]
-    NOT?: ItineraryMemberScalarWhereInput | ItineraryMemberScalarWhereInput[]
-    id?: StringFilter<"ItineraryMember"> | string
-    itineraryId?: StringFilter<"ItineraryMember"> | string
-    userId?: StringFilter<"ItineraryMember"> | string
-    role?: StringFilter<"ItineraryMember"> | string
-    createdAt?: DateTimeFilter<"ItineraryMember"> | Date | string
+  export type LiveLocationViewerScalarWhereInput = {
+    AND?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+    OR?: LiveLocationViewerScalarWhereInput[]
+    NOT?: LiveLocationViewerScalarWhereInput | LiveLocationViewerScalarWhereInput[]
+    id?: StringFilter<"LiveLocationViewer"> | string
+    shareId?: StringFilter<"LiveLocationViewer"> | string
+    userId?: StringFilter<"LiveLocationViewer"> | string
+    firstViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
+    lastViewedAt?: DateTimeFilter<"LiveLocationViewer"> | Date | string
   }
 
-  export type ItineraryCommentUpsertWithWhereUniqueWithoutUserInput = {
-    where: ItineraryCommentWhereUniqueInput
-    update: XOR<ItineraryCommentUpdateWithoutUserInput, ItineraryCommentUncheckedUpdateWithoutUserInput>
-    create: XOR<ItineraryCommentCreateWithoutUserInput, ItineraryCommentUncheckedCreateWithoutUserInput>
+  export type SafetyHazardReportUpsertWithWhereUniqueWithoutUserInput = {
+    where: SafetyHazardReportWhereUniqueInput
+    update: XOR<SafetyHazardReportUpdateWithoutUserInput, SafetyHazardReportUncheckedUpdateWithoutUserInput>
+    create: XOR<SafetyHazardReportCreateWithoutUserInput, SafetyHazardReportUncheckedCreateWithoutUserInput>
   }
 
-  export type ItineraryCommentUpdateWithWhereUniqueWithoutUserInput = {
-    where: ItineraryCommentWhereUniqueInput
-    data: XOR<ItineraryCommentUpdateWithoutUserInput, ItineraryCommentUncheckedUpdateWithoutUserInput>
+  export type SafetyHazardReportUpdateWithWhereUniqueWithoutUserInput = {
+    where: SafetyHazardReportWhereUniqueInput
+    data: XOR<SafetyHazardReportUpdateWithoutUserInput, SafetyHazardReportUncheckedUpdateWithoutUserInput>
   }
 
-  export type ItineraryCommentUpdateManyWithWhereWithoutUserInput = {
-    where: ItineraryCommentScalarWhereInput
-    data: XOR<ItineraryCommentUpdateManyMutationInput, ItineraryCommentUncheckedUpdateManyWithoutUserInput>
+  export type SafetyHazardReportUpdateManyWithWhereWithoutUserInput = {
+    where: SafetyHazardReportScalarWhereInput
+    data: XOR<SafetyHazardReportUpdateManyMutationInput, SafetyHazardReportUncheckedUpdateManyWithoutUserInput>
   }
 
-  export type ItineraryCommentScalarWhereInput = {
-    AND?: ItineraryCommentScalarWhereInput | ItineraryCommentScalarWhereInput[]
-    OR?: ItineraryCommentScalarWhereInput[]
-    NOT?: ItineraryCommentScalarWhereInput | ItineraryCommentScalarWhereInput[]
-    id?: StringFilter<"ItineraryComment"> | string
-    stopId?: StringFilter<"ItineraryComment"> | string
-    userId?: StringFilter<"ItineraryComment"> | string
-    userName?: StringNullableFilter<"ItineraryComment"> | string | null
-    body?: StringFilter<"ItineraryComment"> | string
-    createdAt?: DateTimeFilter<"ItineraryComment"> | Date | string
-  }
-
-  export type ItineraryVoteUpsertWithWhereUniqueWithoutUserInput = {
-    where: ItineraryVoteWhereUniqueInput
-    update: XOR<ItineraryVoteUpdateWithoutUserInput, ItineraryVoteUncheckedUpdateWithoutUserInput>
-    create: XOR<ItineraryVoteCreateWithoutUserInput, ItineraryVoteUncheckedCreateWithoutUserInput>
-  }
-
-  export type ItineraryVoteUpdateWithWhereUniqueWithoutUserInput = {
-    where: ItineraryVoteWhereUniqueInput
-    data: XOR<ItineraryVoteUpdateWithoutUserInput, ItineraryVoteUncheckedUpdateWithoutUserInput>
-  }
-
-  export type ItineraryVoteUpdateManyWithWhereWithoutUserInput = {
-    where: ItineraryVoteScalarWhereInput
-    data: XOR<ItineraryVoteUpdateManyMutationInput, ItineraryVoteUncheckedUpdateManyWithoutUserInput>
-  }
-
-  export type ItineraryVoteScalarWhereInput = {
-    AND?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
-    OR?: ItineraryVoteScalarWhereInput[]
-    NOT?: ItineraryVoteScalarWhereInput | ItineraryVoteScalarWhereInput[]
-    id?: StringFilter<"ItineraryVote"> | string
-    stopId?: StringFilter<"ItineraryVote"> | string
-    userId?: StringFilter<"ItineraryVote"> | string
-    value?: IntFilter<"ItineraryVote"> | number
-    createdAt?: DateTimeFilter<"ItineraryVote"> | Date | string
-    updatedAt?: DateTimeFilter<"ItineraryVote"> | Date | string
+  export type SafetyHazardReportScalarWhereInput = {
+    AND?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
+    OR?: SafetyHazardReportScalarWhereInput[]
+    NOT?: SafetyHazardReportScalarWhereInput | SafetyHazardReportScalarWhereInput[]
+    id?: StringFilter<"SafetyHazardReport"> | string
+    userId?: StringFilter<"SafetyHazardReport"> | string
+    type?: StringFilter<"SafetyHazardReport"> | string
+    latitude?: FloatFilter<"SafetyHazardReport"> | number
+    longitude?: FloatFilter<"SafetyHazardReport"> | number
+    severity?: IntFilter<"SafetyHazardReport"> | number
+    description?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    roadName?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    status?: StringFilter<"SafetyHazardReport"> | string
+    expiresAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    approvedAt?: DateTimeNullableFilter<"SafetyHazardReport"> | Date | string | null
+    moderatedBy?: StringNullableFilter<"SafetyHazardReport"> | string | null
+    createdAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
+    updatedAt?: DateTimeFilter<"SafetyHazardReport"> | Date | string
   }
 
   export type UserCreateWithoutNotificationsInput = {
@@ -34341,10 +35101,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationsInput = {
@@ -34372,10 +35131,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationsInput = {
@@ -34419,10 +35177,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationsInput = {
@@ -34450,10 +35207,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutNotificationPreferenceInput = {
@@ -34481,10 +35237,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutNotificationPreferenceInput = {
@@ -34512,10 +35267,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutNotificationPreferenceInput = {
@@ -34559,10 +35313,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutNotificationPreferenceInput = {
@@ -34590,10 +35343,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPushSubscriptionsInput = {
@@ -34621,10 +35373,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPushSubscriptionsInput = {
@@ -34652,10 +35403,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPushSubscriptionsInput = {
@@ -34699,10 +35449,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPushSubscriptionsInput = {
@@ -34730,10 +35479,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutOtpVerificationsInput = {
@@ -34761,10 +35509,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutOtpVerificationsInput = {
@@ -34792,10 +35539,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutOtpVerificationsInput = {
@@ -34839,10 +35585,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutOtpVerificationsInput = {
@@ -34870,10 +35615,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutSessionsInput = {
@@ -34901,10 +35645,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutSessionsInput = {
@@ -34932,10 +35675,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutSessionsInput = {
@@ -34979,10 +35721,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutSessionsInput = {
@@ -35010,10 +35751,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutVehiclesInput = {
@@ -35041,10 +35781,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutVehiclesInput = {
@@ -35072,10 +35811,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutVehiclesInput = {
@@ -35199,10 +35937,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutVehiclesInput = {
@@ -35230,10 +35967,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type LocationUpsertWithWhereUniqueWithoutVehicleInput = {
@@ -35322,10 +36058,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutLocationsInput = {
@@ -35353,10 +36088,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutLocationsInput = {
@@ -35435,10 +36169,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutLocationsInput = {
@@ -35466,10 +36199,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type VehicleCreateWithoutRoutesInput = {
@@ -35526,10 +36258,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutRoutesInput = {
@@ -35557,10 +36288,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutRoutesInput = {
@@ -35639,10 +36369,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutRoutesInput = {
@@ -35670,10 +36399,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPlacesInput = {
@@ -35701,10 +36429,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlacesInput = {
@@ -35732,10 +36459,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlacesInput = {
@@ -35943,10 +36669,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlacesInput = {
@@ -35974,10 +36699,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceReviewUpsertWithWhereUniqueWithoutPlaceInput = {
@@ -36085,10 +36809,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutFavoritesInput = {
@@ -36116,10 +36839,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutFavoritesInput = {
@@ -36276,10 +36998,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutFavoritesInput = {
@@ -36307,10 +37028,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceUpsertWithoutFavoritesInput = {
@@ -36570,10 +37290,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlaceReviewsInput = {
@@ -36601,10 +37320,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlaceReviewsInput = {
@@ -36767,10 +37485,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlaceReviewsInput = {
@@ -36798,10 +37515,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceCreateWithoutPhotosInput = {
@@ -36942,10 +37658,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlacePhotosInput = {
@@ -36973,10 +37688,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlacePhotosInput = {
@@ -37139,10 +37853,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlacePhotosInput = {
@@ -37170,10 +37883,9 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceCreateWithoutClaimsInput = {
@@ -37314,10 +38026,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutBusinessClaimsInput = {
@@ -37345,10 +38056,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutBusinessClaimsInput = {
@@ -37511,10 +38221,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutBusinessClaimsInput = {
@@ -37542,10 +38251,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type UserCreateWithoutPlaceLabelsInput = {
@@ -37573,10 +38281,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
   export type UserUncheckedCreateWithoutPlaceLabelsInput = {
@@ -37604,10 +38311,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
   export type UserCreateOrConnectWithoutPlaceLabelsInput = {
@@ -37764,10 +38470,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
   export type UserUncheckedUpdateWithoutPlaceLabelsInput = {
@@ -37795,10 +38500,9 @@ export namespace Prisma {
     pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type PlaceUpsertWithoutLabelsInput = {
@@ -37920,7 +38624,7 @@ export namespace Prisma {
     claims?: BusinessClaimUncheckedUpdateManyWithoutPlaceNestedInput
   }
 
-  export type UserCreateWithoutOwnedItinerariesInput = {
+  export type UserCreateWithoutOwnedLiveLocationSharesInput = {
     id?: string
     name: string
     email: string
@@ -37946,12 +38650,11 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
-  export type UserUncheckedCreateWithoutOwnedItinerariesInput = {
+  export type UserUncheckedCreateWithoutOwnedLiveLocationSharesInput = {
     id?: string
     name: string
     email: string
@@ -37977,100 +38680,51 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
-  export type UserCreateOrConnectWithoutOwnedItinerariesInput = {
+  export type UserCreateOrConnectWithoutOwnedLiveLocationSharesInput = {
     where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutOwnedItinerariesInput, UserUncheckedCreateWithoutOwnedItinerariesInput>
+    create: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
   }
 
-  export type ItineraryMemberCreateWithoutItineraryInput = {
+  export type LiveLocationViewerCreateWithoutShareInput = {
     id?: string
-    role?: string
-    createdAt?: Date | string
-    user: UserCreateNestedOneWithoutItineraryMembershipsInput
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
+    user: UserCreateNestedOneWithoutLiveLocationViewershipsInput
   }
 
-  export type ItineraryMemberUncheckedCreateWithoutItineraryInput = {
+  export type LiveLocationViewerUncheckedCreateWithoutShareInput = {
     id?: string
     userId: string
-    role?: string
-    createdAt?: Date | string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
   }
 
-  export type ItineraryMemberCreateOrConnectWithoutItineraryInput = {
-    where: ItineraryMemberWhereUniqueInput
-    create: XOR<ItineraryMemberCreateWithoutItineraryInput, ItineraryMemberUncheckedCreateWithoutItineraryInput>
+  export type LiveLocationViewerCreateOrConnectWithoutShareInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    create: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput>
   }
 
-  export type ItineraryMemberCreateManyItineraryInputEnvelope = {
-    data: ItineraryMemberCreateManyItineraryInput | ItineraryMemberCreateManyItineraryInput[]
+  export type LiveLocationViewerCreateManyShareInputEnvelope = {
+    data: LiveLocationViewerCreateManyShareInput | LiveLocationViewerCreateManyShareInput[]
     skipDuplicates?: boolean
   }
 
-  export type ItineraryStopCreateWithoutItineraryInput = {
-    id?: string
-    placeId?: string | null
-    name: string
-    category?: string | null
-    latitude: number
-    longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    comments?: ItineraryCommentCreateNestedManyWithoutStopInput
-    votes?: ItineraryVoteCreateNestedManyWithoutStopInput
-  }
-
-  export type ItineraryStopUncheckedCreateWithoutItineraryInput = {
-    id?: string
-    placeId?: string | null
-    name: string
-    category?: string | null
-    latitude: number
-    longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    comments?: ItineraryCommentUncheckedCreateNestedManyWithoutStopInput
-    votes?: ItineraryVoteUncheckedCreateNestedManyWithoutStopInput
-  }
-
-  export type ItineraryStopCreateOrConnectWithoutItineraryInput = {
-    where: ItineraryStopWhereUniqueInput
-    create: XOR<ItineraryStopCreateWithoutItineraryInput, ItineraryStopUncheckedCreateWithoutItineraryInput>
-  }
-
-  export type ItineraryStopCreateManyItineraryInputEnvelope = {
-    data: ItineraryStopCreateManyItineraryInput | ItineraryStopCreateManyItineraryInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type UserUpsertWithoutOwnedItinerariesInput = {
-    update: XOR<UserUpdateWithoutOwnedItinerariesInput, UserUncheckedUpdateWithoutOwnedItinerariesInput>
-    create: XOR<UserCreateWithoutOwnedItinerariesInput, UserUncheckedCreateWithoutOwnedItinerariesInput>
+  export type UserUpsertWithoutOwnedLiveLocationSharesInput = {
+    update: XOR<UserUpdateWithoutOwnedLiveLocationSharesInput, UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput>
+    create: XOR<UserCreateWithoutOwnedLiveLocationSharesInput, UserUncheckedCreateWithoutOwnedLiveLocationSharesInput>
     where?: UserWhereInput
   }
 
-  export type UserUpdateToOneWithWhereWithoutOwnedItinerariesInput = {
+  export type UserUpdateToOneWithWhereWithoutOwnedLiveLocationSharesInput = {
     where?: UserWhereInput
-    data: XOR<UserUpdateWithoutOwnedItinerariesInput, UserUncheckedUpdateWithoutOwnedItinerariesInput>
+    data: XOR<UserUpdateWithoutOwnedLiveLocationSharesInput, UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput>
   }
 
-  export type UserUpdateWithoutOwnedItinerariesInput = {
+  export type UserUpdateWithoutOwnedLiveLocationSharesInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -38096,12 +38750,11 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
-  export type UserUncheckedUpdateWithoutOwnedItinerariesInput = {
+  export type UserUncheckedUpdateWithoutOwnedLiveLocationSharesInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -38127,100 +38780,72 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
-  export type ItineraryMemberUpsertWithWhereUniqueWithoutItineraryInput = {
-    where: ItineraryMemberWhereUniqueInput
-    update: XOR<ItineraryMemberUpdateWithoutItineraryInput, ItineraryMemberUncheckedUpdateWithoutItineraryInput>
-    create: XOR<ItineraryMemberCreateWithoutItineraryInput, ItineraryMemberUncheckedCreateWithoutItineraryInput>
+  export type LiveLocationViewerUpsertWithWhereUniqueWithoutShareInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    update: XOR<LiveLocationViewerUpdateWithoutShareInput, LiveLocationViewerUncheckedUpdateWithoutShareInput>
+    create: XOR<LiveLocationViewerCreateWithoutShareInput, LiveLocationViewerUncheckedCreateWithoutShareInput>
   }
 
-  export type ItineraryMemberUpdateWithWhereUniqueWithoutItineraryInput = {
-    where: ItineraryMemberWhereUniqueInput
-    data: XOR<ItineraryMemberUpdateWithoutItineraryInput, ItineraryMemberUncheckedUpdateWithoutItineraryInput>
+  export type LiveLocationViewerUpdateWithWhereUniqueWithoutShareInput = {
+    where: LiveLocationViewerWhereUniqueInput
+    data: XOR<LiveLocationViewerUpdateWithoutShareInput, LiveLocationViewerUncheckedUpdateWithoutShareInput>
   }
 
-  export type ItineraryMemberUpdateManyWithWhereWithoutItineraryInput = {
-    where: ItineraryMemberScalarWhereInput
-    data: XOR<ItineraryMemberUpdateManyMutationInput, ItineraryMemberUncheckedUpdateManyWithoutItineraryInput>
+  export type LiveLocationViewerUpdateManyWithWhereWithoutShareInput = {
+    where: LiveLocationViewerScalarWhereInput
+    data: XOR<LiveLocationViewerUpdateManyMutationInput, LiveLocationViewerUncheckedUpdateManyWithoutShareInput>
   }
 
-  export type ItineraryStopUpsertWithWhereUniqueWithoutItineraryInput = {
-    where: ItineraryStopWhereUniqueInput
-    update: XOR<ItineraryStopUpdateWithoutItineraryInput, ItineraryStopUncheckedUpdateWithoutItineraryInput>
-    create: XOR<ItineraryStopCreateWithoutItineraryInput, ItineraryStopUncheckedCreateWithoutItineraryInput>
-  }
-
-  export type ItineraryStopUpdateWithWhereUniqueWithoutItineraryInput = {
-    where: ItineraryStopWhereUniqueInput
-    data: XOR<ItineraryStopUpdateWithoutItineraryInput, ItineraryStopUncheckedUpdateWithoutItineraryInput>
-  }
-
-  export type ItineraryStopUpdateManyWithWhereWithoutItineraryInput = {
-    where: ItineraryStopScalarWhereInput
-    data: XOR<ItineraryStopUpdateManyMutationInput, ItineraryStopUncheckedUpdateManyWithoutItineraryInput>
-  }
-
-  export type ItineraryStopScalarWhereInput = {
-    AND?: ItineraryStopScalarWhereInput | ItineraryStopScalarWhereInput[]
-    OR?: ItineraryStopScalarWhereInput[]
-    NOT?: ItineraryStopScalarWhereInput | ItineraryStopScalarWhereInput[]
-    id?: StringFilter<"ItineraryStop"> | string
-    itineraryId?: StringFilter<"ItineraryStop"> | string
-    placeId?: StringNullableFilter<"ItineraryStop"> | string | null
-    name?: StringFilter<"ItineraryStop"> | string
-    category?: StringNullableFilter<"ItineraryStop"> | string | null
-    latitude?: FloatFilter<"ItineraryStop"> | number
-    longitude?: FloatFilter<"ItineraryStop"> | number
-    address?: StringNullableFilter<"ItineraryStop"> | string | null
-    notes?: StringNullableFilter<"ItineraryStop"> | string | null
-    position?: IntFilter<"ItineraryStop"> | number
-    dayIndex?: IntNullableFilter<"ItineraryStop"> | number | null
-    addedById?: StringNullableFilter<"ItineraryStop"> | string | null
-    addedByName?: StringNullableFilter<"ItineraryStop"> | string | null
-    createdAt?: DateTimeFilter<"ItineraryStop"> | Date | string
-    updatedAt?: DateTimeFilter<"ItineraryStop"> | Date | string
-  }
-
-  export type ItineraryCreateWithoutMembersInput = {
+  export type LiveLocationShareCreateWithoutViewersInput = {
     id?: string
-    title: string
-    description?: string | null
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    owner: UserCreateNestedOneWithoutOwnedItinerariesInput
-    stops?: ItineraryStopCreateNestedManyWithoutItineraryInput
+    owner: UserCreateNestedOneWithoutOwnedLiveLocationSharesInput
   }
 
-  export type ItineraryUncheckedCreateWithoutMembersInput = {
+  export type LiveLocationShareUncheckedCreateWithoutViewersInput = {
     id?: string
-    title: string
-    description?: string | null
     ownerId: string
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
     createdAt?: Date | string
     updatedAt?: Date | string
-    stops?: ItineraryStopUncheckedCreateNestedManyWithoutItineraryInput
   }
 
-  export type ItineraryCreateOrConnectWithoutMembersInput = {
-    where: ItineraryWhereUniqueInput
-    create: XOR<ItineraryCreateWithoutMembersInput, ItineraryUncheckedCreateWithoutMembersInput>
+  export type LiveLocationShareCreateOrConnectWithoutViewersInput = {
+    where: LiveLocationShareWhereUniqueInput
+    create: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
   }
 
-  export type UserCreateWithoutItineraryMembershipsInput = {
+  export type UserCreateWithoutLiveLocationViewershipsInput = {
     id?: string
     name: string
     email: string
@@ -38246,12 +38871,11 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    safetyHazardReports?: SafetyHazardReportCreateNestedManyWithoutUserInput
   }
 
-  export type UserUncheckedCreateWithoutItineraryMembershipsInput = {
+  export type UserUncheckedCreateWithoutLiveLocationViewershipsInput = {
     id?: string
     name: string
     email: string
@@ -38277,69 +38901,78 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    safetyHazardReports?: SafetyHazardReportUncheckedCreateNestedManyWithoutUserInput
   }
 
-  export type UserCreateOrConnectWithoutItineraryMembershipsInput = {
+  export type UserCreateOrConnectWithoutLiveLocationViewershipsInput = {
     where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutItineraryMembershipsInput, UserUncheckedCreateWithoutItineraryMembershipsInput>
+    create: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
   }
 
-  export type ItineraryUpsertWithoutMembersInput = {
-    update: XOR<ItineraryUpdateWithoutMembersInput, ItineraryUncheckedUpdateWithoutMembersInput>
-    create: XOR<ItineraryCreateWithoutMembersInput, ItineraryUncheckedCreateWithoutMembersInput>
-    where?: ItineraryWhereInput
+  export type LiveLocationShareUpsertWithoutViewersInput = {
+    update: XOR<LiveLocationShareUpdateWithoutViewersInput, LiveLocationShareUncheckedUpdateWithoutViewersInput>
+    create: XOR<LiveLocationShareCreateWithoutViewersInput, LiveLocationShareUncheckedCreateWithoutViewersInput>
+    where?: LiveLocationShareWhereInput
   }
 
-  export type ItineraryUpdateToOneWithWhereWithoutMembersInput = {
-    where?: ItineraryWhereInput
-    data: XOR<ItineraryUpdateWithoutMembersInput, ItineraryUncheckedUpdateWithoutMembersInput>
+  export type LiveLocationShareUpdateToOneWithWhereWithoutViewersInput = {
+    where?: LiveLocationShareWhereInput
+    data: XOR<LiveLocationShareUpdateWithoutViewersInput, LiveLocationShareUncheckedUpdateWithoutViewersInput>
   }
 
-  export type ItineraryUpdateWithoutMembersInput = {
+  export type LiveLocationShareUpdateWithoutViewersInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    owner?: UserUpdateOneRequiredWithoutOwnedItinerariesNestedInput
-    stops?: ItineraryStopUpdateManyWithoutItineraryNestedInput
+    owner?: UserUpdateOneRequiredWithoutOwnedLiveLocationSharesNestedInput
   }
 
-  export type ItineraryUncheckedUpdateWithoutMembersInput = {
+  export type LiveLocationShareUncheckedUpdateWithoutViewersInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
     ownerId?: StringFieldUpdateOperationsInput | string
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    stops?: ItineraryStopUncheckedUpdateManyWithoutItineraryNestedInput
   }
 
-  export type UserUpsertWithoutItineraryMembershipsInput = {
-    update: XOR<UserUpdateWithoutItineraryMembershipsInput, UserUncheckedUpdateWithoutItineraryMembershipsInput>
-    create: XOR<UserCreateWithoutItineraryMembershipsInput, UserUncheckedCreateWithoutItineraryMembershipsInput>
+  export type UserUpsertWithoutLiveLocationViewershipsInput = {
+    update: XOR<UserUpdateWithoutLiveLocationViewershipsInput, UserUncheckedUpdateWithoutLiveLocationViewershipsInput>
+    create: XOR<UserCreateWithoutLiveLocationViewershipsInput, UserUncheckedCreateWithoutLiveLocationViewershipsInput>
     where?: UserWhereInput
   }
 
-  export type UserUpdateToOneWithWhereWithoutItineraryMembershipsInput = {
+  export type UserUpdateToOneWithWhereWithoutLiveLocationViewershipsInput = {
     where?: UserWhereInput
-    data: XOR<UserUpdateWithoutItineraryMembershipsInput, UserUncheckedUpdateWithoutItineraryMembershipsInput>
+    data: XOR<UserUpdateWithoutLiveLocationViewershipsInput, UserUncheckedUpdateWithoutLiveLocationViewershipsInput>
   }
 
-  export type UserUpdateWithoutItineraryMembershipsInput = {
+  export type UserUpdateWithoutLiveLocationViewershipsInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -38365,12 +38998,11 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    safetyHazardReports?: SafetyHazardReportUpdateManyWithoutUserNestedInput
   }
 
-  export type UserUncheckedUpdateWithoutItineraryMembershipsInput = {
+  export type UserUncheckedUpdateWithoutLiveLocationViewershipsInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -38396,215 +39028,11 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    safetyHazardReports?: SafetyHazardReportUncheckedUpdateManyWithoutUserNestedInput
   }
 
-  export type ItineraryCreateWithoutStopsInput = {
-    id?: string
-    title: string
-    description?: string | null
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    owner: UserCreateNestedOneWithoutOwnedItinerariesInput
-    members?: ItineraryMemberCreateNestedManyWithoutItineraryInput
-  }
-
-  export type ItineraryUncheckedCreateWithoutStopsInput = {
-    id?: string
-    title: string
-    description?: string | null
-    ownerId: string
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    members?: ItineraryMemberUncheckedCreateNestedManyWithoutItineraryInput
-  }
-
-  export type ItineraryCreateOrConnectWithoutStopsInput = {
-    where: ItineraryWhereUniqueInput
-    create: XOR<ItineraryCreateWithoutStopsInput, ItineraryUncheckedCreateWithoutStopsInput>
-  }
-
-  export type ItineraryCommentCreateWithoutStopInput = {
-    id?: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-    user: UserCreateNestedOneWithoutItineraryCommentsInput
-  }
-
-  export type ItineraryCommentUncheckedCreateWithoutStopInput = {
-    id?: string
-    userId: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-  }
-
-  export type ItineraryCommentCreateOrConnectWithoutStopInput = {
-    where: ItineraryCommentWhereUniqueInput
-    create: XOR<ItineraryCommentCreateWithoutStopInput, ItineraryCommentUncheckedCreateWithoutStopInput>
-  }
-
-  export type ItineraryCommentCreateManyStopInputEnvelope = {
-    data: ItineraryCommentCreateManyStopInput | ItineraryCommentCreateManyStopInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type ItineraryVoteCreateWithoutStopInput = {
-    id?: string
-    value: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    user: UserCreateNestedOneWithoutItineraryVotesInput
-  }
-
-  export type ItineraryVoteUncheckedCreateWithoutStopInput = {
-    id?: string
-    userId: string
-    value: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-  }
-
-  export type ItineraryVoteCreateOrConnectWithoutStopInput = {
-    where: ItineraryVoteWhereUniqueInput
-    create: XOR<ItineraryVoteCreateWithoutStopInput, ItineraryVoteUncheckedCreateWithoutStopInput>
-  }
-
-  export type ItineraryVoteCreateManyStopInputEnvelope = {
-    data: ItineraryVoteCreateManyStopInput | ItineraryVoteCreateManyStopInput[]
-    skipDuplicates?: boolean
-  }
-
-  export type ItineraryUpsertWithoutStopsInput = {
-    update: XOR<ItineraryUpdateWithoutStopsInput, ItineraryUncheckedUpdateWithoutStopsInput>
-    create: XOR<ItineraryCreateWithoutStopsInput, ItineraryUncheckedCreateWithoutStopsInput>
-    where?: ItineraryWhereInput
-  }
-
-  export type ItineraryUpdateToOneWithWhereWithoutStopsInput = {
-    where?: ItineraryWhereInput
-    data: XOR<ItineraryUpdateWithoutStopsInput, ItineraryUncheckedUpdateWithoutStopsInput>
-  }
-
-  export type ItineraryUpdateWithoutStopsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    owner?: UserUpdateOneRequiredWithoutOwnedItinerariesNestedInput
-    members?: ItineraryMemberUpdateManyWithoutItineraryNestedInput
-  }
-
-  export type ItineraryUncheckedUpdateWithoutStopsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
-    description?: NullableStringFieldUpdateOperationsInput | string | null
-    ownerId?: StringFieldUpdateOperationsInput | string
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    members?: ItineraryMemberUncheckedUpdateManyWithoutItineraryNestedInput
-  }
-
-  export type ItineraryCommentUpsertWithWhereUniqueWithoutStopInput = {
-    where: ItineraryCommentWhereUniqueInput
-    update: XOR<ItineraryCommentUpdateWithoutStopInput, ItineraryCommentUncheckedUpdateWithoutStopInput>
-    create: XOR<ItineraryCommentCreateWithoutStopInput, ItineraryCommentUncheckedCreateWithoutStopInput>
-  }
-
-  export type ItineraryCommentUpdateWithWhereUniqueWithoutStopInput = {
-    where: ItineraryCommentWhereUniqueInput
-    data: XOR<ItineraryCommentUpdateWithoutStopInput, ItineraryCommentUncheckedUpdateWithoutStopInput>
-  }
-
-  export type ItineraryCommentUpdateManyWithWhereWithoutStopInput = {
-    where: ItineraryCommentScalarWhereInput
-    data: XOR<ItineraryCommentUpdateManyMutationInput, ItineraryCommentUncheckedUpdateManyWithoutStopInput>
-  }
-
-  export type ItineraryVoteUpsertWithWhereUniqueWithoutStopInput = {
-    where: ItineraryVoteWhereUniqueInput
-    update: XOR<ItineraryVoteUpdateWithoutStopInput, ItineraryVoteUncheckedUpdateWithoutStopInput>
-    create: XOR<ItineraryVoteCreateWithoutStopInput, ItineraryVoteUncheckedCreateWithoutStopInput>
-  }
-
-  export type ItineraryVoteUpdateWithWhereUniqueWithoutStopInput = {
-    where: ItineraryVoteWhereUniqueInput
-    data: XOR<ItineraryVoteUpdateWithoutStopInput, ItineraryVoteUncheckedUpdateWithoutStopInput>
-  }
-
-  export type ItineraryVoteUpdateManyWithWhereWithoutStopInput = {
-    where: ItineraryVoteScalarWhereInput
-    data: XOR<ItineraryVoteUpdateManyMutationInput, ItineraryVoteUncheckedUpdateManyWithoutStopInput>
-  }
-
-  export type ItineraryStopCreateWithoutCommentsInput = {
-    id?: string
-    placeId?: string | null
-    name: string
-    category?: string | null
-    latitude: number
-    longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    itinerary: ItineraryCreateNestedOneWithoutStopsInput
-    votes?: ItineraryVoteCreateNestedManyWithoutStopInput
-  }
-
-  export type ItineraryStopUncheckedCreateWithoutCommentsInput = {
-    id?: string
-    itineraryId: string
-    placeId?: string | null
-    name: string
-    category?: string | null
-    latitude: number
-    longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    votes?: ItineraryVoteUncheckedCreateNestedManyWithoutStopInput
-  }
-
-  export type ItineraryStopCreateOrConnectWithoutCommentsInput = {
-    where: ItineraryStopWhereUniqueInput
-    create: XOR<ItineraryStopCreateWithoutCommentsInput, ItineraryStopUncheckedCreateWithoutCommentsInput>
-  }
-
-  export type UserCreateWithoutItineraryCommentsInput = {
+  export type UserCreateWithoutSafetyHazardReportsInput = {
     id?: string
     name: string
     email: string
@@ -38630,12 +39058,11 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerCreateNestedManyWithoutUserInput
   }
 
-  export type UserUncheckedCreateWithoutItineraryCommentsInput = {
+  export type UserUncheckedCreateWithoutSafetyHazardReportsInput = {
     id?: string
     name: string
     email: string
@@ -38661,77 +39088,27 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
     businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
     placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryVotes?: ItineraryVoteUncheckedCreateNestedManyWithoutUserInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedCreateNestedManyWithoutOwnerInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedCreateNestedManyWithoutUserInput
   }
 
-  export type UserCreateOrConnectWithoutItineraryCommentsInput = {
+  export type UserCreateOrConnectWithoutSafetyHazardReportsInput = {
     where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutItineraryCommentsInput, UserUncheckedCreateWithoutItineraryCommentsInput>
+    create: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
   }
 
-  export type ItineraryStopUpsertWithoutCommentsInput = {
-    update: XOR<ItineraryStopUpdateWithoutCommentsInput, ItineraryStopUncheckedUpdateWithoutCommentsInput>
-    create: XOR<ItineraryStopCreateWithoutCommentsInput, ItineraryStopUncheckedCreateWithoutCommentsInput>
-    where?: ItineraryStopWhereInput
-  }
-
-  export type ItineraryStopUpdateToOneWithWhereWithoutCommentsInput = {
-    where?: ItineraryStopWhereInput
-    data: XOR<ItineraryStopUpdateWithoutCommentsInput, ItineraryStopUncheckedUpdateWithoutCommentsInput>
-  }
-
-  export type ItineraryStopUpdateWithoutCommentsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    itinerary?: ItineraryUpdateOneRequiredWithoutStopsNestedInput
-    votes?: ItineraryVoteUpdateManyWithoutStopNestedInput
-  }
-
-  export type ItineraryStopUncheckedUpdateWithoutCommentsInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    votes?: ItineraryVoteUncheckedUpdateManyWithoutStopNestedInput
-  }
-
-  export type UserUpsertWithoutItineraryCommentsInput = {
-    update: XOR<UserUpdateWithoutItineraryCommentsInput, UserUncheckedUpdateWithoutItineraryCommentsInput>
-    create: XOR<UserCreateWithoutItineraryCommentsInput, UserUncheckedCreateWithoutItineraryCommentsInput>
+  export type UserUpsertWithoutSafetyHazardReportsInput = {
+    update: XOR<UserUpdateWithoutSafetyHazardReportsInput, UserUncheckedUpdateWithoutSafetyHazardReportsInput>
+    create: XOR<UserCreateWithoutSafetyHazardReportsInput, UserUncheckedCreateWithoutSafetyHazardReportsInput>
     where?: UserWhereInput
   }
 
-  export type UserUpdateToOneWithWhereWithoutItineraryCommentsInput = {
+  export type UserUpdateToOneWithWhereWithoutSafetyHazardReportsInput = {
     where?: UserWhereInput
-    data: XOR<UserUpdateWithoutItineraryCommentsInput, UserUncheckedUpdateWithoutItineraryCommentsInput>
+    data: XOR<UserUpdateWithoutSafetyHazardReportsInput, UserUncheckedUpdateWithoutSafetyHazardReportsInput>
   }
 
-  export type UserUpdateWithoutItineraryCommentsInput = {
+  export type UserUpdateWithoutSafetyHazardReportsInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -38757,12 +39134,11 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUpdateManyWithoutUserNestedInput
   }
 
-  export type UserUncheckedUpdateWithoutItineraryCommentsInput = {
+  export type UserUncheckedUpdateWithoutSafetyHazardReportsInput = {
     id?: StringFieldUpdateOperationsInput | string
     name?: StringFieldUpdateOperationsInput | string
     email?: StringFieldUpdateOperationsInput | string
@@ -38788,241 +39164,8 @@ export namespace Prisma {
     notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
     businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
     placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryVotes?: ItineraryVoteUncheckedUpdateManyWithoutUserNestedInput
-  }
-
-  export type ItineraryStopCreateWithoutVotesInput = {
-    id?: string
-    placeId?: string | null
-    name: string
-    category?: string | null
-    latitude: number
-    longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    itinerary: ItineraryCreateNestedOneWithoutStopsInput
-    comments?: ItineraryCommentCreateNestedManyWithoutStopInput
-  }
-
-  export type ItineraryStopUncheckedCreateWithoutVotesInput = {
-    id?: string
-    itineraryId: string
-    placeId?: string | null
-    name: string
-    category?: string | null
-    latitude: number
-    longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    comments?: ItineraryCommentUncheckedCreateNestedManyWithoutStopInput
-  }
-
-  export type ItineraryStopCreateOrConnectWithoutVotesInput = {
-    where: ItineraryStopWhereUniqueInput
-    create: XOR<ItineraryStopCreateWithoutVotesInput, ItineraryStopUncheckedCreateWithoutVotesInput>
-  }
-
-  export type UserCreateWithoutItineraryVotesInput = {
-    id?: string
-    name: string
-    email: string
-    password?: string | null
-    googleId?: string | null
-    picture?: string | null
-    emailVerified?: boolean
-    profilePublic?: boolean
-    lastGridExtractAt?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
-    sessions?: SessionCreateNestedManyWithoutUserInput
-    vehicles?: VehicleCreateNestedManyWithoutUserInput
-    locations?: LocationCreateNestedManyWithoutUserInput
-    routes?: RouteCreateNestedManyWithoutUserInput
-    places?: PlaceCreateNestedManyWithoutUserInput
-    placeReviews?: PlaceReviewCreateNestedManyWithoutUserInput
-    placePhotos?: PlacePhotoCreateNestedManyWithoutUserInput
-    favorites?: FavoriteCreateNestedManyWithoutUserInput
-    notifications?: NotificationCreateNestedManyWithoutUserInput
-    pushSubscriptions?: PushSubscriptionCreateNestedManyWithoutUserInput
-    notificationPreference?: NotificationPreferenceCreateNestedOneWithoutUserInput
-    businessClaims?: BusinessClaimCreateNestedManyWithoutUserInput
-    placeLabels?: PlaceLabelCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentCreateNestedManyWithoutUserInput
-  }
-
-  export type UserUncheckedCreateWithoutItineraryVotesInput = {
-    id?: string
-    name: string
-    email: string
-    password?: string | null
-    googleId?: string | null
-    picture?: string | null
-    emailVerified?: boolean
-    profilePublic?: boolean
-    lastGridExtractAt?: Date | string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-    otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
-    sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
-    vehicles?: VehicleUncheckedCreateNestedManyWithoutUserInput
-    locations?: LocationUncheckedCreateNestedManyWithoutUserInput
-    routes?: RouteUncheckedCreateNestedManyWithoutUserInput
-    places?: PlaceUncheckedCreateNestedManyWithoutUserInput
-    placeReviews?: PlaceReviewUncheckedCreateNestedManyWithoutUserInput
-    placePhotos?: PlacePhotoUncheckedCreateNestedManyWithoutUserInput
-    favorites?: FavoriteUncheckedCreateNestedManyWithoutUserInput
-    notifications?: NotificationUncheckedCreateNestedManyWithoutUserInput
-    pushSubscriptions?: PushSubscriptionUncheckedCreateNestedManyWithoutUserInput
-    notificationPreference?: NotificationPreferenceUncheckedCreateNestedOneWithoutUserInput
-    businessClaims?: BusinessClaimUncheckedCreateNestedManyWithoutUserInput
-    placeLabels?: PlaceLabelUncheckedCreateNestedManyWithoutUserInput
-    ownedItineraries?: ItineraryUncheckedCreateNestedManyWithoutOwnerInput
-    itineraryMemberships?: ItineraryMemberUncheckedCreateNestedManyWithoutUserInput
-    itineraryComments?: ItineraryCommentUncheckedCreateNestedManyWithoutUserInput
-  }
-
-  export type UserCreateOrConnectWithoutItineraryVotesInput = {
-    where: UserWhereUniqueInput
-    create: XOR<UserCreateWithoutItineraryVotesInput, UserUncheckedCreateWithoutItineraryVotesInput>
-  }
-
-  export type ItineraryStopUpsertWithoutVotesInput = {
-    update: XOR<ItineraryStopUpdateWithoutVotesInput, ItineraryStopUncheckedUpdateWithoutVotesInput>
-    create: XOR<ItineraryStopCreateWithoutVotesInput, ItineraryStopUncheckedCreateWithoutVotesInput>
-    where?: ItineraryStopWhereInput
-  }
-
-  export type ItineraryStopUpdateToOneWithWhereWithoutVotesInput = {
-    where?: ItineraryStopWhereInput
-    data: XOR<ItineraryStopUpdateWithoutVotesInput, ItineraryStopUncheckedUpdateWithoutVotesInput>
-  }
-
-  export type ItineraryStopUpdateWithoutVotesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    itinerary?: ItineraryUpdateOneRequiredWithoutStopsNestedInput
-    comments?: ItineraryCommentUpdateManyWithoutStopNestedInput
-  }
-
-  export type ItineraryStopUncheckedUpdateWithoutVotesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    comments?: ItineraryCommentUncheckedUpdateManyWithoutStopNestedInput
-  }
-
-  export type UserUpsertWithoutItineraryVotesInput = {
-    update: XOR<UserUpdateWithoutItineraryVotesInput, UserUncheckedUpdateWithoutItineraryVotesInput>
-    create: XOR<UserCreateWithoutItineraryVotesInput, UserUncheckedCreateWithoutItineraryVotesInput>
-    where?: UserWhereInput
-  }
-
-  export type UserUpdateToOneWithWhereWithoutItineraryVotesInput = {
-    where?: UserWhereInput
-    data: XOR<UserUpdateWithoutItineraryVotesInput, UserUncheckedUpdateWithoutItineraryVotesInput>
-  }
-
-  export type UserUpdateWithoutItineraryVotesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    password?: NullableStringFieldUpdateOperationsInput | string | null
-    googleId?: NullableStringFieldUpdateOperationsInput | string | null
-    picture?: NullableStringFieldUpdateOperationsInput | string | null
-    emailVerified?: BoolFieldUpdateOperationsInput | boolean
-    profilePublic?: BoolFieldUpdateOperationsInput | boolean
-    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
-    sessions?: SessionUpdateManyWithoutUserNestedInput
-    vehicles?: VehicleUpdateManyWithoutUserNestedInput
-    locations?: LocationUpdateManyWithoutUserNestedInput
-    routes?: RouteUpdateManyWithoutUserNestedInput
-    places?: PlaceUpdateManyWithoutUserNestedInput
-    placeReviews?: PlaceReviewUpdateManyWithoutUserNestedInput
-    placePhotos?: PlacePhotoUpdateManyWithoutUserNestedInput
-    favorites?: FavoriteUpdateManyWithoutUserNestedInput
-    notifications?: NotificationUpdateManyWithoutUserNestedInput
-    pushSubscriptions?: PushSubscriptionUpdateManyWithoutUserNestedInput
-    notificationPreference?: NotificationPreferenceUpdateOneWithoutUserNestedInput
-    businessClaims?: BusinessClaimUpdateManyWithoutUserNestedInput
-    placeLabels?: PlaceLabelUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUpdateManyWithoutUserNestedInput
-  }
-
-  export type UserUncheckedUpdateWithoutItineraryVotesInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    name?: StringFieldUpdateOperationsInput | string
-    email?: StringFieldUpdateOperationsInput | string
-    password?: NullableStringFieldUpdateOperationsInput | string | null
-    googleId?: NullableStringFieldUpdateOperationsInput | string | null
-    picture?: NullableStringFieldUpdateOperationsInput | string | null
-    emailVerified?: BoolFieldUpdateOperationsInput | boolean
-    profilePublic?: BoolFieldUpdateOperationsInput | boolean
-    lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
-    sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
-    vehicles?: VehicleUncheckedUpdateManyWithoutUserNestedInput
-    locations?: LocationUncheckedUpdateManyWithoutUserNestedInput
-    routes?: RouteUncheckedUpdateManyWithoutUserNestedInput
-    places?: PlaceUncheckedUpdateManyWithoutUserNestedInput
-    placeReviews?: PlaceReviewUncheckedUpdateManyWithoutUserNestedInput
-    placePhotos?: PlacePhotoUncheckedUpdateManyWithoutUserNestedInput
-    favorites?: FavoriteUncheckedUpdateManyWithoutUserNestedInput
-    notifications?: NotificationUncheckedUpdateManyWithoutUserNestedInput
-    pushSubscriptions?: PushSubscriptionUncheckedUpdateManyWithoutUserNestedInput
-    notificationPreference?: NotificationPreferenceUncheckedUpdateOneWithoutUserNestedInput
-    businessClaims?: BusinessClaimUncheckedUpdateManyWithoutUserNestedInput
-    placeLabels?: PlaceLabelUncheckedUpdateManyWithoutUserNestedInput
-    ownedItineraries?: ItineraryUncheckedUpdateManyWithoutOwnerNestedInput
-    itineraryMemberships?: ItineraryMemberUncheckedUpdateManyWithoutUserNestedInput
-    itineraryComments?: ItineraryCommentUncheckedUpdateManyWithoutUserNestedInput
+    ownedLiveLocationShares?: LiveLocationShareUncheckedUpdateManyWithoutOwnerNestedInput
+    liveLocationViewerships?: LiveLocationViewerUncheckedUpdateManyWithoutUserNestedInput
   }
 
   export type OTPVerificationCreateManyUserInput = {
@@ -39208,38 +39351,44 @@ export namespace Prisma {
     updatedAt?: Date | string
   }
 
-  export type ItineraryCreateManyOwnerInput = {
+  export type LiveLocationShareCreateManyOwnerInput = {
     id?: string
-    title: string
-    description?: string | null
-    shareToken: string
-    coverEmoji?: string | null
-    startDate?: Date | string | null
-    endDate?: Date | string | null
-    autoSort?: boolean
+    tokenHash: string
+    status?: string
+    durationMinutes: number
+    expiresAt: Date | string
+    endedAt?: Date | string | null
+    endedReason?: string | null
+    lastLatitude?: number | null
+    lastLongitude?: number | null
+    lastAccuracy?: number | null
+    lastSpeed?: number | null
+    lastHeading?: number | null
+    lastUpdatedAt?: Date | string | null
+    presenceStatus?: string
     createdAt?: Date | string
     updatedAt?: Date | string
   }
 
-  export type ItineraryMemberCreateManyUserInput = {
+  export type LiveLocationViewerCreateManyUserInput = {
     id?: string
-    itineraryId: string
-    role?: string
-    createdAt?: Date | string
+    shareId: string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
   }
 
-  export type ItineraryCommentCreateManyUserInput = {
+  export type SafetyHazardReportCreateManyUserInput = {
     id?: string
-    stopId: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-  }
-
-  export type ItineraryVoteCreateManyUserInput = {
-    id?: string
-    stopId: string
-    value: number
+    type: string
+    latitude: number
+    longitude: number
+    severity?: number
+    description?: string | null
+    roadName?: string | null
+    status?: string
+    expiresAt?: Date | string | null
+    approvedAt?: Date | string | null
+    moderatedBy?: string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -39807,114 +39956,130 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryUpdateWithoutOwnerInput = {
+  export type LiveLocationShareUpdateWithoutOwnerInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    viewers?: LiveLocationViewerUpdateManyWithoutShareNestedInput
+  }
+
+  export type LiveLocationShareUncheckedUpdateWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    viewers?: LiveLocationViewerUncheckedUpdateManyWithoutShareNestedInput
+  }
+
+  export type LiveLocationShareUncheckedUpdateManyWithoutOwnerInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    tokenHash?: StringFieldUpdateOperationsInput | string
+    status?: StringFieldUpdateOperationsInput | string
+    durationMinutes?: IntFieldUpdateOperationsInput | number
+    expiresAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    endedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    endedReason?: NullableStringFieldUpdateOperationsInput | string | null
+    lastLatitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastLongitude?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastAccuracy?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastSpeed?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastHeading?: NullableFloatFieldUpdateOperationsInput | number | null
+    lastUpdatedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    presenceStatus?: StringFieldUpdateOperationsInput | string
+    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    share?: LiveLocationShareUpdateOneRequiredWithoutViewersNestedInput
+  }
+
+  export type LiveLocationViewerUncheckedUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type LiveLocationViewerUncheckedUpdateManyWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    shareId?: StringFieldUpdateOperationsInput | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+  }
+
+  export type SafetyHazardReportUpdateWithoutUserInput = {
+    id?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    members?: ItineraryMemberUpdateManyWithoutItineraryNestedInput
-    stops?: ItineraryStopUpdateManyWithoutItineraryNestedInput
   }
 
-  export type ItineraryUncheckedUpdateWithoutOwnerInput = {
+  export type SafetyHazardReportUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    members?: ItineraryMemberUncheckedUpdateManyWithoutItineraryNestedInput
-    stops?: ItineraryStopUncheckedUpdateManyWithoutItineraryNestedInput
   }
 
-  export type ItineraryUncheckedUpdateManyWithoutOwnerInput = {
+  export type SafetyHazardReportUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    title?: StringFieldUpdateOperationsInput | string
+    type?: StringFieldUpdateOperationsInput | string
+    latitude?: FloatFieldUpdateOperationsInput | number
+    longitude?: FloatFieldUpdateOperationsInput | number
+    severity?: IntFieldUpdateOperationsInput | number
     description?: NullableStringFieldUpdateOperationsInput | string | null
-    shareToken?: StringFieldUpdateOperationsInput | string
-    coverEmoji?: NullableStringFieldUpdateOperationsInput | string | null
-    startDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    endDate?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
-    autoSort?: BoolFieldUpdateOperationsInput | boolean
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryMemberUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    itinerary?: ItineraryUpdateOneRequiredWithoutMembersNestedInput
-  }
-
-  export type ItineraryMemberUncheckedUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryMemberUncheckedUpdateManyWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    itineraryId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryCommentUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    stop?: ItineraryStopUpdateOneRequiredWithoutCommentsNestedInput
-  }
-
-  export type ItineraryCommentUncheckedUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryCommentUncheckedUpdateManyWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryVoteUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    stop?: ItineraryStopUpdateOneRequiredWithoutVotesNestedInput
-  }
-
-  export type ItineraryVoteUncheckedUpdateWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryVoteUncheckedUpdateManyWithoutUserInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    stopId?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
+    roadName?: NullableStringFieldUpdateOperationsInput | string | null
+    status?: StringFieldUpdateOperationsInput | string
+    expiresAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    approvedAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    moderatedBy?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -40267,168 +40432,32 @@ export namespace Prisma {
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryMemberCreateManyItineraryInput = {
+  export type LiveLocationViewerCreateManyShareInput = {
     id?: string
     userId: string
-    role?: string
-    createdAt?: Date | string
+    firstViewedAt?: Date | string
+    lastViewedAt?: Date | string
   }
 
-  export type ItineraryStopCreateManyItineraryInput = {
-    id?: string
-    placeId?: string | null
-    name: string
-    category?: string | null
-    latitude: number
-    longitude: number
-    address?: string | null
-    notes?: string | null
-    position?: number
-    dayIndex?: number | null
-    addedById?: string | null
-    addedByName?: string | null
-    createdAt?: Date | string
-    updatedAt?: Date | string
-  }
-
-  export type ItineraryMemberUpdateWithoutItineraryInput = {
+  export type LiveLocationViewerUpdateWithoutShareInput = {
     id?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    user?: UserUpdateOneRequiredWithoutItineraryMembershipsNestedInput
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    user?: UserUpdateOneRequiredWithoutLiveLocationViewershipsNestedInput
   }
 
-  export type ItineraryMemberUncheckedUpdateWithoutItineraryInput = {
+  export type LiveLocationViewerUncheckedUpdateWithoutShareInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
-  export type ItineraryMemberUncheckedUpdateManyWithoutItineraryInput = {
+  export type LiveLocationViewerUncheckedUpdateManyWithoutShareInput = {
     id?: StringFieldUpdateOperationsInput | string
     userId?: StringFieldUpdateOperationsInput | string
-    role?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryStopUpdateWithoutItineraryInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    comments?: ItineraryCommentUpdateManyWithoutStopNestedInput
-    votes?: ItineraryVoteUpdateManyWithoutStopNestedInput
-  }
-
-  export type ItineraryStopUncheckedUpdateWithoutItineraryInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    comments?: ItineraryCommentUncheckedUpdateManyWithoutStopNestedInput
-    votes?: ItineraryVoteUncheckedUpdateManyWithoutStopNestedInput
-  }
-
-  export type ItineraryStopUncheckedUpdateManyWithoutItineraryInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    placeId?: NullableStringFieldUpdateOperationsInput | string | null
-    name?: StringFieldUpdateOperationsInput | string
-    category?: NullableStringFieldUpdateOperationsInput | string | null
-    latitude?: FloatFieldUpdateOperationsInput | number
-    longitude?: FloatFieldUpdateOperationsInput | number
-    address?: NullableStringFieldUpdateOperationsInput | string | null
-    notes?: NullableStringFieldUpdateOperationsInput | string | null
-    position?: IntFieldUpdateOperationsInput | number
-    dayIndex?: NullableIntFieldUpdateOperationsInput | number | null
-    addedById?: NullableStringFieldUpdateOperationsInput | string | null
-    addedByName?: NullableStringFieldUpdateOperationsInput | string | null
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryCommentCreateManyStopInput = {
-    id?: string
-    userId: string
-    userName?: string | null
-    body: string
-    createdAt?: Date | string
-  }
-
-  export type ItineraryVoteCreateManyStopInput = {
-    id?: string
-    userId: string
-    value: number
-    createdAt?: Date | string
-    updatedAt?: Date | string
-  }
-
-  export type ItineraryCommentUpdateWithoutStopInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    user?: UserUpdateOneRequiredWithoutItineraryCommentsNestedInput
-  }
-
-  export type ItineraryCommentUncheckedUpdateWithoutStopInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryCommentUncheckedUpdateManyWithoutStopInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    userName?: NullableStringFieldUpdateOperationsInput | string | null
-    body?: StringFieldUpdateOperationsInput | string
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryVoteUpdateWithoutStopInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    user?: UserUpdateOneRequiredWithoutItineraryVotesNestedInput
-  }
-
-  export type ItineraryVoteUncheckedUpdateWithoutStopInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
-  }
-
-  export type ItineraryVoteUncheckedUpdateManyWithoutStopInput = {
-    id?: StringFieldUpdateOperationsInput | string
-    userId?: StringFieldUpdateOperationsInput | string
-    value?: IntFieldUpdateOperationsInput | number
-    createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
-    updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    firstViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
+    lastViewedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
 
@@ -40449,13 +40478,9 @@ export namespace Prisma {
      */
     export type PlaceCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlaceCountOutputTypeDefaultArgs<ExtArgs>
     /**
-     * @deprecated Use ItineraryCountOutputTypeDefaultArgs instead
+     * @deprecated Use LiveLocationShareCountOutputTypeDefaultArgs instead
      */
-    export type ItineraryCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryCountOutputTypeDefaultArgs<ExtArgs>
-    /**
-     * @deprecated Use ItineraryStopCountOutputTypeDefaultArgs instead
-     */
-    export type ItineraryStopCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryStopCountOutputTypeDefaultArgs<ExtArgs>
+    export type LiveLocationShareCountOutputTypeArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LiveLocationShareCountOutputTypeDefaultArgs<ExtArgs>
     /**
      * @deprecated Use UserDefaultArgs instead
      */
@@ -40521,25 +40546,29 @@ export namespace Prisma {
      */
     export type PlaceAuditArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = PlaceAuditDefaultArgs<ExtArgs>
     /**
-     * @deprecated Use ItineraryDefaultArgs instead
+     * @deprecated Use LiveLocationShareDefaultArgs instead
      */
-    export type ItineraryArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryDefaultArgs<ExtArgs>
+    export type LiveLocationShareArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LiveLocationShareDefaultArgs<ExtArgs>
     /**
-     * @deprecated Use ItineraryMemberDefaultArgs instead
+     * @deprecated Use LiveLocationViewerDefaultArgs instead
      */
-    export type ItineraryMemberArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryMemberDefaultArgs<ExtArgs>
+    export type LiveLocationViewerArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LiveLocationViewerDefaultArgs<ExtArgs>
     /**
-     * @deprecated Use ItineraryStopDefaultArgs instead
+     * @deprecated Use SafetyHazardReportDefaultArgs instead
      */
-    export type ItineraryStopArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryStopDefaultArgs<ExtArgs>
+    export type SafetyHazardReportArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = SafetyHazardReportDefaultArgs<ExtArgs>
     /**
-     * @deprecated Use ItineraryCommentDefaultArgs instead
+     * @deprecated Use LegalDocumentDefaultArgs instead
      */
-    export type ItineraryCommentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryCommentDefaultArgs<ExtArgs>
+    export type LegalDocumentArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = LegalDocumentDefaultArgs<ExtArgs>
     /**
-     * @deprecated Use ItineraryVoteDefaultArgs instead
+     * @deprecated Use AdminAllowedEmailDefaultArgs instead
      */
-    export type ItineraryVoteArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = ItineraryVoteDefaultArgs<ExtArgs>
+    export type AdminAllowedEmailArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AdminAllowedEmailDefaultArgs<ExtArgs>
+    /**
+     * @deprecated Use AdminOtpDefaultArgs instead
+     */
+    export type AdminOtpArgs<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = AdminOtpDefaultArgs<ExtArgs>
 
   /**
    * Batch Payload for updateMany & deleteMany & createMany

@@ -3,7 +3,8 @@ import axios from 'axios'
 const SEARCH_SIMPLE_URL = (process.env.SEARCH_SIMPLE_URL || 'https://umnaapp.in/search').trim().replace(/\/+$/, '')
 const NOMINATIM_URL = (process.env.NOMINATIM_URL || '').trim().replace(/\/+$/, '')
 const UMNAAPP_NOMINATIM_SEARCH = (process.env.UMNAAPP_NOMINATIM_SEARCH || 'https://umnaapp.in/map/nominatim/search').trim().replace(/\/+$/, '')
-const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 60000
+const SEARCH_SIMPLE_TIMEOUT = parseInt(process.env.SEARCH_SIMPLE_TIMEOUT, 10) || 20000
+const SEARCH_SIMPLE_RETRIES = parseInt(process.env.SEARCH_SIMPLE_RETRIES, 10) || 3
 const USE_UMNAAPP_NOMINATIM =
   String(process.env.UMNAAPP_NOMINATIM_ENABLED || '').toLowerCase() === 'true'
 
@@ -80,7 +81,7 @@ export async function searchExternalProviders(q, { limit = 10, lat, lng, radiusK
       url: SEARCH_SIMPLE_URL,
       params: { q, limit },
       validateStatus: (s) => s === 200 || s === 404,
-      retries: 0,
+      retries: SEARCH_SIMPLE_RETRIES,
     },
   ]
 
@@ -154,7 +155,8 @@ export async function searchExternalProviders(q, { limit = 10, lat, lng, radiusK
 
   const merged = []
   const providersUsed = []
-  const errors = []
+  const hardFailures = []
+  const emptyProviders = []
   const seen = new Set()
 
   const EARTH_R = 6378137
@@ -187,7 +189,8 @@ export async function searchExternalProviders(q, { limit = 10, lat, lng, radiusK
       const raw = outcome.value.data
       const rows = Array.isArray(raw?.results) ? raw.results : Array.isArray(raw) ? raw : []
       if (rows.length === 0) {
-        errors.push({ provider: pName, reason: 'empty' })
+        // Healthy upstream with no matches — not an outage.
+        emptyProviders.push(pName)
         console.log(`[search] ✓ ${pName}: 200 OK but 0 results`)
         continue
       }
@@ -213,14 +216,14 @@ export async function searchExternalProviders(q, { limit = 10, lat, lng, radiusK
         providersUsed.push(pName)
         console.log(`[search] ✓ ${pName}: ${rows.length} raw → ${added} added (after dedupe/validation)`)
       } else {
-        errors.push({ provider: pName, reason: 'no valid coords' })
+        emptyProviders.push(pName)
         console.log(`[search] ✓ ${pName}: ${rows.length} raw but 0 usable (no valid coords / duplicates)`)
       }
     } else {
       const err = outcome.reason
       const status = err?.response?.status
       const reason = status ? `upstream ${status}` : err?.message || 'unknown'
-      errors.push({ provider: pName, reason })
+      hardFailures.push({ provider: pName, reason })
       console.warn(`[search] ✗ ${pName} failed:`, reason)
     }
   }
@@ -229,14 +232,29 @@ export async function searchExternalProviders(q, { limit = 10, lat, lng, radiusK
     console.log(
       `[search] RESULT for q="${q}": ${merged.length} place(s), used provider(s): ${providersUsed.join(' + ')}`
     )
-    return { provider: providersUsed.join('+'), providers: providersUsed, rows: merged }
+    return { provider: providersUsed.join('+'), providers: providersUsed, rows: merged, error: null }
   }
 
-  console.warn(`[search] RESULT for q="${q}": 0 places — all providers empty/failed`, errors)
+  // Only mark geocoding unavailable when every provider hard-failed (timeout/5xx/network).
+  // Empty 200 responses mean the service worked — just no matches for this query.
+  const allHardFailed = providers.length > 0 && hardFailures.length === providers.length
+  if (allHardFailed) {
+    console.warn(`[search] RESULT for q="${q}": 0 places — all providers failed`, hardFailures)
+    return {
+      provider: null,
+      providers: [],
+      rows: [],
+      error: hardFailures[hardFailures.length - 1] || { provider: 'external', reason: 'unavailable' },
+    }
+  }
+
+  console.log(
+    `[search] RESULT for q="${q}": 0 places (providers ok/empty: ${emptyProviders.join('+') || 'none'}; failures: ${hardFailures.map((e) => e.provider).join('+') || 'none'})`
+  )
   return {
     provider: null,
     providers: [],
     rows: [],
-    error: errors[errors.length - 1] || null,
+    error: null,
   }
 }

@@ -1,30 +1,114 @@
 import { createClient } from 'redis'
 
 let redisClient = null
+let redisInitPromise = null
+let loggedDevSkip = false
 
-// Initialize Redis client for rate limiting
-if (process.env.REDIS_URL) {
-  redisClient = createClient({
-    url: process.env.REDIS_URL,
+function isProduction() {
+  return process.env.NODE_ENV === 'production'
+}
+
+function redisUnavailableResponse(res, reason = 'Rate limiting unavailable') {
+  return res.status(503).json({
+    error: 'Service temporarily unavailable',
+    message: `${reason}. Redis is required for rate limiting.`,
   })
-
-  redisClient.on('error', (err) => {
-    console.error('Redis Rate Limit Client Error:', err)
-  })
-
-  redisClient.connect().catch(console.error)
 }
 
 /**
- * Rate limiting middleware using Redis
- * @param {string} keyPrefix - Prefix for rate limit key
- * @param {number} maxRequests - Maximum requests allowed
- * @param {number} windowSeconds - Time window in seconds
+ * Fail fast in production when REDIS_URL is missing.
+ * Development may omit Redis (rate limits skip with an explicit warning).
+ */
+export function validateRedisOrExit() {
+  const url = (process.env.REDIS_URL || '').trim()
+  if (isProduction() && !url) {
+    console.error(
+      '❌ REDIS_URL is required in production. Refusing to start without Redis (rate limiting must not be disabled).'
+    )
+    process.exit(1)
+  }
+  if (!url && !isProduction()) {
+    console.warn(
+      '⚠️  REDIS_URL not set — rate limiting is DISABLED in development. Set REDIS_URL to enable it.'
+    )
+  }
+}
+
+function createRedisClient() {
+  const url = (process.env.REDIS_URL || '').trim()
+  if (!url) return null
+
+  const client = createClient({ url })
+  client.on('error', (err) => {
+    console.error('Redis Rate Limit Client Error:', err)
+  })
+  return client
+}
+
+/**
+ * Connect Redis when REDIS_URL is set. In production, resolves only after a
+ * successful PING so the server never listens with a half-connected client.
+ */
+export async function ensureRedisReady() {
+  if (redisInitPromise) return redisInitPromise
+
+  redisInitPromise = (async () => {
+    const url = (process.env.REDIS_URL || '').trim()
+    if (!url) {
+      if (isProduction()) {
+        throw new Error('REDIS_URL is required in production')
+      }
+      return null
+    }
+
+    redisClient = createRedisClient()
+    if (!redisClient) {
+      throw new Error('Failed to create Redis client')
+    }
+
+    await redisClient.connect()
+    const pong = await redisClient.ping()
+    if (String(pong).toUpperCase() !== 'PONG') {
+      throw new Error(`Unexpected Redis PING response: ${pong}`)
+    }
+    console.log('✅ Redis connected (rate limiting enabled)')
+    return redisClient
+  })()
+
+  try {
+    return await redisInitPromise
+  } catch (err) {
+    redisInitPromise = null
+    redisClient = null
+    if (isProduction()) {
+      console.error('❌ Redis connection failed in production. Refusing to start.', err)
+      process.exit(1)
+    }
+    console.error('❌ Redis connection failed — rate limiting will reject requests until Redis is available.', err)
+    throw err
+  }
+}
+
+function isRedisUsable() {
+  return Boolean(redisClient?.isOpen)
+}
+
+/**
+ * Rate limiting middleware using Redis.
+ * Never silently disables: when Redis is required/configured but unavailable,
+ * requests receive 503 instead of passing through unthrottled.
  */
 export const rateLimitMiddleware = (keyPrefix, maxRequests, windowSeconds) => {
   return async (req, res, next) => {
-    if (!redisClient) {
-      return next() // Skip rate limiting if Redis is not available
+    if (!isRedisUsable()) {
+      if (!process.env.REDIS_URL?.trim() && !isProduction()) {
+        if (!loggedDevSkip) {
+          loggedDevSkip = true
+          console.warn('⚠️  Rate limiting skipped (no REDIS_URL in development)')
+        }
+        return next()
+      }
+      return redisUnavailableResponse(res)
     }
 
     try {
@@ -34,7 +118,7 @@ export const rateLimitMiddleware = (keyPrefix, maxRequests, windowSeconds) => {
 
       // Get current count
       const current = await redisClient.get(key)
-      const count = current ? parseInt(current) : 0
+      const count = current ? parseInt(current, 10) : 0
 
       if (count >= maxRequests) {
         return res.status(429).json({
@@ -60,7 +144,8 @@ export const rateLimitMiddleware = (keyPrefix, maxRequests, windowSeconds) => {
       next()
     } catch (error) {
       console.error('Rate limit middleware error:', error)
-      next() // Continue on error to avoid blocking requests
+      // Fail closed — never bypass throttling when Redis errors
+      return redisUnavailableResponse(res, 'Rate limiting error')
     }
   }
 }
@@ -80,7 +165,17 @@ export const rateLimitMiddleware = (keyPrefix, maxRequests, windowSeconds) => {
  */
 export const tieredRateLimitMiddleware = (keyPrefix, { authMax, anonMax, windowSeconds }) => {
   return async (req, res, next) => {
-    if (!redisClient) return next()
+    if (!isRedisUsable()) {
+      if (!process.env.REDIS_URL?.trim() && !isProduction()) {
+        if (!loggedDevSkip) {
+          loggedDevSkip = true
+          console.warn('⚠️  Rate limiting skipped (no REDIS_URL in development)')
+        }
+        return next()
+      }
+      return redisUnavailableResponse(res)
+    }
+
     try {
       const isAuthed = Boolean(req.user?.id)
       const identifier = isAuthed ? `u:${req.user.id}` : `ip:${req.ip || 'anonymous'}`
@@ -88,7 +183,7 @@ export const tieredRateLimitMiddleware = (keyPrefix, { authMax, anonMax, windowS
       const key = `ratelimit:${keyPrefix}:${identifier}`
 
       const current = await redisClient.get(key)
-      const count = current ? parseInt(current) : 0
+      const count = current ? parseInt(current, 10) : 0
 
       if (count >= maxRequests) {
         return res.status(429).json({
@@ -111,8 +206,7 @@ export const tieredRateLimitMiddleware = (keyPrefix, { authMax, anonMax, windowS
       next()
     } catch (error) {
       console.error('Tiered rate limit error:', error)
-      next()
+      return redisUnavailableResponse(res, 'Rate limiting error')
     }
   }
 }
-

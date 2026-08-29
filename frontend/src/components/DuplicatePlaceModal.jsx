@@ -172,15 +172,5 @@ export default function DuplicatePlaceModal({
   )
 }
 
-/** Build popup payload from API / client duplicate result */
-export function buildDuplicatePopupPayload(dup, placeName = '') {
-  if (!dup?.duplicate) return null
-  return {
-    message: dup.message,
-    reason: dup.reason,
-    placeName: placeName || dup.placeName || '',
-    existingPlaceName: dup.existingPlaceName || null,
-    existingPlaceId: dup.existingPlaceId || null,
-  }
-}
+export { buildDuplicatePopupPayload } from '../utils/placePopupPayloads'
 

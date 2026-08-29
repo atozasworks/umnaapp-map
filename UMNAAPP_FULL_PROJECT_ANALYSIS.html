@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UMNAAPP — Full Project Analysis Report</title>
+  <style>
+    :root {
+      --bg: #f6f4ef;
+      --surface: #ffffff;
+      --ink: #1a1f2e;
+      --muted: #5c6578;
+      --line: #e4e0d6;
+      --accent: #0f6e56;
+      --accent-soft: #e6f4ef;
+      --warn: #9a6700;
+      --warn-bg: #fff8e6;
+      --bad: #b42318;
+      --bad-bg: #fef3f2;
+      --ok: #067647;
+      --ok-bg: #ecfdf3;
+      --partial: #b54708;
+      --partial-bg: #fffaeb;
+      --missing: #6941c6;
+      --missing-bg: #f4f3ff;
+      --shadow: 0 1px 2px rgba(26, 31, 46, 0.06), 0 8px 24px rgba(26, 31, 46, 0.06);
+      --radius: 12px;
+      --mono: ui-monospace, "Cascadia Code", "Segoe UI Mono", Consolas, monospace;
+      --sans: "Segoe UI", system-ui, -apple-system, sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #dceee7 0%, transparent 55%),
+        radial-gradient(900px 500px at 100% 0%, #efe8d8 0%, transparent 50%),
+        var(--bg);
+      line-height: 1.55;
+      font-size: 15px;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .wrap { max-width: 1100px; margin: 0 auto; padding: 24px 20px 80px; }
+
+    header.hero {
+      background: linear-gradient(145deg, #0b3d32 0%, #0f6e56 55%, #1a8f6e 100%);
+      color: #f5faf8;
+      border-radius: 18px;
+      padding: 36px 32px 28px;
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+      position: relative;
+      overflow: hidden;
+    }
+    header.hero::after {
+      content: "";
+      position: absolute;
+      inset: auto -40px -60px auto;
+      width: 280px; height: 280px;
+      background: radial-gradient(circle, rgba(255,255,255,0.12), transparent 70%);
+      pointer-events: none;
+    }
+    .eyebrow {
+      display: inline-block;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin-bottom: 10px;
+      font-weight: 600;
+    }
+    header.hero h1 {
+      margin: 0 0 10px;
+      font-size: clamp(1.6rem, 3vw, 2.15rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+    }
+    header.hero p { margin: 0; max-width: 62ch; opacity: 0.92; font-size: 1.02rem; }
+    .meta-row {
+      display: flex; flex-wrap: wrap; gap: 10px;
+      margin-top: 22px;
+    }
+    .chip {
+      background: rgba(255,255,255,0.14);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 12.5px;
+      backdrop-filter: blur(6px);
+    }
+
+    .score-banner {
+      display: grid;
+      grid-template-columns: 160px 1fr;
+      gap: 20px;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 20px 22px;
+      box-shadow: var(--shadow);
+      margin-bottom: 28px;
+    }
+    .overall-ring {
+      width: 140px; height: 140px;
+      border-radius: 50%;
+      background: conic-gradient(#0f6e56 calc(7.2 * 36deg), #e8ebe9 0);
+      display: grid; place-items: center;
+      position: relative;
+      margin: 0 auto;
+    }
+    .overall-ring::before {
+      content: "";
+      position: absolute;
+      inset: 12px;
+      background: var(--surface);
+      border-radius: 50%;
+    }
+    .overall-ring .val {
+      position: relative;
+      z-index: 1;
+      text-align: center;
+    }
+    .overall-ring .val strong {
+      display: block;
+      font-size: 2rem;
+      letter-spacing: -0.03em;
+      color: var(--accent);
+    }
+    .overall-ring .val span { font-size: 12px; color: var(--muted); }
+    .score-copy h2 { margin: 0 0 8px; font-size: 1.25rem; }
+    .score-copy p { margin: 0; color: var(--muted); }
+
+    nav.toc {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 18px 20px;
+      margin-bottom: 28px;
+      box-shadow: var(--shadow);
+    }
+    nav.toc h2 { margin: 0 0 12px; font-size: 1rem; }
+    nav.toc ol {
+      margin: 0; padding-left: 1.2rem;
+      columns: 2; column-gap: 28px;
+    }
+    nav.toc li { break-inside: avoid; margin-bottom: 6px; font-size: 14px; }
+
+    section {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      padding: 24px 22px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow);
+    }
+    section h2 {
+      margin: 0 0 6px;
+      font-size: 1.35rem;
+      letter-spacing: -0.02em;
+      padding-bottom: 10px;
+      border-bottom: 1px solid var(--line);
+    }
+    section h3 {
+      margin: 22px 0 8px;
+      font-size: 1.05rem;
+    }
+    section > p.lead { color: var(--muted); margin: 12px 0 0; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-top: 16px;
+    }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 14px 16px;
+      background: #fafaf8;
+    }
+    .card h4 { margin: 0 0 6px; font-size: 0.95rem; }
+    .card p, .card ul { margin: 0; color: var(--muted); font-size: 14px; }
+    .card ul { padding-left: 1.1rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 14px;
+      font-size: 13.5px;
+    }
+    th, td {
+      text-align: left;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      vertical-align: top;
+    }
+    th {
+      background: #f3f1eb;
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      position: sticky;
+      top: 0;
+    }
+    tr:hover td { background: #fafaf7; }
+    .table-wrap { overflow-x: auto; margin-top: 8px; border-radius: 8px; border: 1px solid var(--line); }
+    .table-wrap table { margin: 0; }
+    .table-wrap th:first-child, .table-wrap td:first-child { white-space: nowrap; }
+
+    .badge {
+      display: inline-block;
+      font-size: 11.5px;
+      font-weight: 650;
+      padding: 3px 8px;
+      border-radius: 999px;
+      letter-spacing: 0.01em;
+      white-space: nowrap;
+    }
+    .b-ok { background: var(--ok-bg); color: var(--ok); }
+    .b-partial { background: var(--partial-bg); color: var(--partial); }
+    .b-bad { background: var(--bad-bg); color: var(--bad); }
+    .b-missing { background: var(--missing-bg); color: var(--missing); }
+    .b-info { background: var(--accent-soft); color: var(--accent); }
+
+    .score {
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      color: var(--accent);
+    }
+    .score.mid { color: var(--warn); }
+    .score.low { color: var(--bad); }
+
+    .bar {
+      height: 8px;
+      background: #eceae4;
+      border-radius: 999px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+    .bar > i {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, #0f6e56, #2a9d7c);
+      border-radius: inherit;
+    }
+    .bar.mid > i { background: linear-gradient(90deg, #b54708, #f79009); }
+    .bar.low > i { background: linear-gradient(90deg, #b42318, #f04438); }
+
+    .rating-row {
+      display: grid;
+      grid-template-columns: 180px 1fr 48px;
+      gap: 12px;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--line);
+      font-size: 14px;
+    }
+    .rating-row:last-child { border-bottom: 0; }
+
+    .feature-block {
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 16px 18px;
+      margin-top: 14px;
+      background: #fff;
+    }
+    .feature-block header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .feature-block h3 { margin: 0; font-size: 1.05rem; border: 0; padding: 0; }
+    .feature-block .process {
+      background: #f7f6f2;
+      border-left: 3px solid var(--accent);
+      padding: 10px 14px;
+      margin: 10px 0;
+      font-size: 13.5px;
+      color: var(--ink);
+    }
+    .feature-block .process ol { margin: 6px 0 0; padding-left: 1.2rem; }
+    .pros-cons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .pros, .cons {
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 13.5px;
+    }
+    .pros { background: var(--ok-bg); }
+    .cons { background: var(--bad-bg); }
+    .pros h5, .cons h5 { margin: 0 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em; }
+    .pros ul, .cons ul { margin: 0; padding-left: 1.1rem; }
+    .pros h5 { color: var(--ok); }
+    .cons h5 { color: var(--bad); }
+
+    .prio {
+      display: flex; gap: 8px; align-items: flex-start;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .prio:last-child { border-bottom: 0; }
+    .prio-tag {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 6px;
+      min-width: 36px;
+      text-align: center;
+    }
+    .p0 { background: var(--bad-bg); color: var(--bad); }
+    .p1 { background: var(--partial-bg); color: var(--partial); }
+    .p2 { background: var(--warn-bg); color: var(--warn); }
+    .p3 { background: var(--accent-soft); color: var(--accent); }
+
+    .legend {
+      display: flex; flex-wrap: wrap; gap: 8px;
+      margin: 12px 0 0;
+    }
+
+    footer {
+      margin-top: 28px;
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    code, .path {
+      font-family: var(--mono);
+      font-size: 12.5px;
+      background: #f0eee8;
+      padding: 1px 5px;
+      border-radius: 4px;
+    }
+
+    .method {
+      margin-top: 12px;
+      padding: 12px 14px;
+      background: #f3f1eb;
+      border-radius: 8px;
+      font-size: 13.5px;
+      color: var(--muted);
+    }
+
+    @media (max-width: 800px) {
+      .score-banner { grid-template-columns: 1fr; text-align: center; }
+      .grid-2, .pros-cons { grid-template-columns: 1fr; }
+      nav.toc ol { columns: 1; }
+      .rating-row { grid-template-columns: 1fr 48px; }
+      .rating-row .bar { display: none; }
+      header.hero { padding: 28px 20px; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      header.hero, section, .score-banner, nav.toc { box-shadow: none; break-inside: avoid; }
+      .overall-ring { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">Source-code verified audit</div>
+      <h1>UMNAAPP Full Project Analysis</h1>
+      <p>
+        End-to-end evaluation of the Universal Map &amp; Navigation Advisory App
+        (maptest monorepo): features, implementation depth, architecture, security,
+        performance, and product readiness — verified from source, not assumed from UI presence.
+      </p>
+      <div class="meta-row">
+        <span class="chip">Date: 10 Aug 2026</span>
+        <span class="chip">Stack: React · Express · Prisma · PostGIS · MapLibre</span>
+        <span class="chip">Workspaces: frontend · backend · admin</span>
+        <span class="chip">Method: Static code-path verification</span>
+      </div>
+    </header>
+
+    <div class="score-banner">
+      <div class="overall-ring" aria-label="Overall score 7.2 out of 10">
+        <div class="val">
+          <strong>7.2</strong>
+          <span>/ 10 overall</span>
+        </div>
+      </div>
+      <div class="score-copy">
+        <h2>Solid, feature-rich MVP — not yet production-hardened</h2>
+        <p>
+          Core map, places, auth (OTP + Google), routing, live location, admin moderation,
+          and PWA offline packs are genuinely wired end-to-end. Security gaps (unauthenticated
+          test routes, Redis-optional rate limits, admin secret in localStorage), scalability
+          risks (base64 photos, broadcast notifications), incomplete vehicle UX, and no native
+          Capacitor app keep the overall score below “production-excellent.” Internal
+          <code>production-readiness-report.md</code> (~9.5) overstates current health.
+        </p>
+      </div>
+    </div>
+
+    <nav class="toc" aria-label="Table of contents">
+      <h2>Contents</h2>
+      <ol>
+        <li><a href="#summary">Overall project summary</a></li>
+        <li><a href="#features">Complete feature list</a></li>
+        <li><a href="#feature-detail">Feature-wise analysis</a></li>
+        <li><a href="#categories">Category-wise ratings</a></li>
+        <li><a href="#bugs">Major bugs &amp; issues</a></li>
+        <li><a href="#missing">Missing / improvement features</a></li>
+        <li><a href="#recommendations">Priority recommendations</a></li>
+        <li><a href="#conclusion">Final conclusion</a></li>
+      </ol>
+    </nav>
+
+    <!-- ========== SUMMARY ========== -->
+    <section id="summary">
+      <h2>1. Overall project summary</h2>
+      <p class="lead">
+        UMNAAPP is a full-stack India-oriented mapping platform: authenticated React/Vite PWA,
+        Express/Prisma/PostGIS API, separate admin SPA, public embeddable maps API + JS SDK,
+        Docker Compose for Postgres (PostGIS), Redis, TileServer, OSRM, Nominatim, and Nginx.
+      </p>
+
+      <div class="grid-2">
+        <div class="card">
+          <h4>What ships today</h4>
+          <ul>
+            <li>Email OTP + Google OAuth login sessions</li>
+            <li>MapLibre map with search, routing, turn-by-turn + voice</li>
+            <li>Community places (CRUD, approval, duplicates, reviews, photos, claims, labels)</li>
+            <li>Favorites, festivals, polygon explore, measure, utilities</li>
+            <li>Safe-route scoring + hazard reports (admin-moderated)</li>
+            <li>Live location share links + Socket.IO</li>
+            <li>In-app + Web Push notifications</li>
+            <li>Admin moderation, legal docs, schema/data explorer</li>
+            <li>PWA install + offline raster tile packs</li>
+            <li>Public REST + embed map + <code>sdk.js</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Architecture snapshot</h4>
+          <ul>
+            <li><strong>Frontend:</strong> React 18, Vite, Tailwind, MapLibre, Socket.IO client, PWA</li>
+            <li><strong>Backend:</strong> Express, Prisma, JWT sessions, Passport Google, web-push</li>
+            <li><strong>DB:</strong> PostgreSQL + optional PostGIS geom / GiST</li>
+            <li><strong>Admin:</strong> Separate Vite app, shared <code>ADMIN_SECRET</code></li>
+            <li><strong>Infra:</strong> Docker Compose; defaults often hit <code>umnaapp.in</code> / public OSRM/Nominatim</li>
+            <li><strong>Mobile:</strong> PWA only — no Capacitor project in repo</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="method">
+        <strong>Verification method:</strong> Routes, controllers/services, Prisma models, and frontend call sites
+        were cross-checked. Status is <em>Working</em> only when UI → API → persistence (or documented client-only)
+        is connected. Env-gated features (SMTP, Google Maps/OAuth, Groq, VAPID, OSM DB) are scored as Working
+        when code paths are complete, with dependency noted. Dead/unrouted UI and 501 stubs are marked Not Working.
+      </div>
+
+      <div class="legend">
+        <span class="badge b-ok">Working</span>
+        <span class="badge b-partial">Partial</span>
+        <span class="badge b-bad">Not Working</span>
+        <span class="badge b-missing">Missing</span>
+      </div>
+    </section>
+
+    <!-- ========== FEATURE LIST ========== -->
+    <section id="features">
+      <h2>2. Complete feature list &amp; scoreboard</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Feature</th>
+              <th>Status</th>
+              <th>Score</th>
+              <th>One-line verdict</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td>1</td><td>Authentication (OTP + Google)</td><td><span class="badge b-ok">Working</span></td><td class="score">7.0</td><td>Primary auth solid; Atozas kit path dead; password unused</td></tr>
+            <tr><td>2</td><td>Interactive map (tiles, layers, markers)</td><td><span class="badge b-ok">Working</span></td><td class="score">8.5</td><td>MapLibre + multi-basemap + rich overlays</td></tr>
+            <tr><td>3</td><td>Search &amp; geocoding</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>Unified DB + Nominatim/umnaapp cascade</td></tr>
+            <tr><td>4</td><td>Place management (add/edit/approve)</td><td><span class="badge b-ok">Working</span></td><td class="score">8.5</td><td>Full CRUD + audit + auto-approve scheduler</td></tr>
+            <tr><td>5</td><td>Duplicate detection</td><td><span class="badge b-ok">Working</span></td><td class="score">9.0</td><td>Client + server; create/bulk enforced</td></tr>
+            <tr><td>6</td><td>Favorites</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>Dedicated model; bookmark without creating Place</td></tr>
+            <tr><td>7</td><td>Reviews</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>Upsert per user/place; DB places only</td></tr>
+            <tr><td>8</td><td>Photos</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">7.0</td><td>Works via base64 in Postgres — not scalable</td></tr>
+            <tr><td>9</td><td>Business claims</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">7.5</td><td>Flow works; push/socket notify bypassed</td></tr>
+            <tr><td>10</td><td>Personal labels</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>Private PlaceLabel CRUD</td></tr>
+            <tr><td>11</td><td>Place history / audit</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>PlaceAudit trail + admin restore</td></tr>
+            <tr><td>12</td><td>Grid / Google place extract</td><td><span class="badge b-ok">Working</span></td><td class="score">7.0</td><td>Key/quota + 1/day consume gate</td></tr>
+            <tr><td>13</td><td>Bulk place import</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>Up to 500; dup-aware</td></tr>
+            <tr><td>14</td><td>Polygon explore</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>PostGIS/JS + OSM merge</td></tr>
+            <tr><td>15</td><td>Measure distance</td><td><span class="badge b-ok">Working</span></td><td class="score">9.0</td><td>Client-only; clean &amp; complete</td></tr>
+            <tr><td>16</td><td>Navigation / routing</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>OSRM cascade + voice; train/bus heuristic</td></tr>
+            <tr><td>17</td><td>Safe route &amp; hazards</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">7.0</td><td>Heuristics work; needs approved hazards for community value</td></tr>
+            <tr><td>18</td><td>Public utility finder</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">7.5</td><td>Best with OSM DB; search fallback otherwise</td></tr>
+            <tr><td>19</td><td>Ask Maps / AI assistant</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">7.0</td><td>Groq when keyed; keyword/FAQ fallback</td></tr>
+            <tr><td>20</td><td>Upcoming festivals</td><td><span class="badge b-ok">Working</span></td><td class="score">7.5</td><td>API + UI; empty until festival places exist</td></tr>
+            <tr><td>21</td><td>Live location sharing</td><td><span class="badge b-ok">Working</span></td><td class="score">8.5</td><td>REST + sockets + share token flow</td></tr>
+            <tr><td>22</td><td>Vehicle tracking</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">5.0</td><td>API + map markers; no user vehicle management UI</td></tr>
+            <tr><td>23</td><td>Notifications (in-app + push)</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">7.0</td><td>Core solid; claim path incomplete; fan-out risk</td></tr>
+            <tr><td>24</td><td>Admin panel</td><td><span class="badge b-ok">Working</span></td><td class="score">7.5</td><td>Full moderation; secret auth; explorer leaks secrets</td></tr>
+            <tr><td>25</td><td>Settings / profile</td><td><span class="badge b-ok">Working</span></td><td class="score">8.0</td><td>Profile, picture, prefs, privacy</td></tr>
+            <tr><td>26</td><td>Contributions &amp; public profiles</td><td><span class="badge b-ok">Working</span></td><td class="score">7.5</td><td>Stats + public view with privacy toggle</td></tr>
+            <tr><td>27</td><td>i18n (Indic languages)</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">7.0</td><td>atozas-traslate wired; coverage uneven</td></tr>
+            <tr><td>28</td><td>PWA &amp; offline maps</td><td><span class="badge b-partial">Partial</span></td><td class="score mid">6.5</td><td>Install + raster packs; no offline routing/native</td></tr>
+            <tr><td>29</td><td>Public maps API / embed / SDK</td><td><span class="badge b-ok">Working</span></td><td class="score">7.5</td><td>Open CORS read API; no API keys yet</td></tr>
+            <tr><td>30</td><td>Feedback</td><td><span class="badge b-ok">Working</span></td><td class="score">7.0</td><td>Modal → <code>/api/feedback</code></td></tr>
+            <tr><td>31</td><td>Atozas Auth Kit UI</td><td><span class="badge b-bad">Not Working</span></td><td class="score low">3.0</td><td>Unrouted + Google credential 501</td></tr>
+            <tr><td>32</td><td>Native Android (Capacitor)</td><td><span class="badge b-missing">Missing</span></td><td class="score low">2.0</td><td>Asset Links stub only; no project</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== FEATURE DETAIL ========== -->
+    <section id="feature-detail">
+      <h2>3. Feature-wise working process &amp; functionality</h2>
+      <p class="lead">Each block: process → status → score → pros/cons from verified code paths.</p>
+
+      <!-- Auth -->
+      <article class="feature-block" id="f-auth">
+        <header>
+          <h3>3.1 Authentication</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">7.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>User registers or logs in via <code>LoginPage</code> / <code>RegisterPage</code> → <code>POST /api/auth/register|login</code>.</li>
+            <li>Backend stores bcrypt-hashed OTP in <code>OTPVerification</code>, emails via SMTP (<code>atozasAuth</code>).</li>
+            <li><code>OTPVerificationPage</code> → <code>POST /api/auth/verify-otp</code> → JWT + <code>Session</code> row.</li>
+            <li>Google: <code>GET /api/auth/google</code> (Passport) → callback redirects with <code>?token=</code> → <code>AuthContext</code>.</li>
+            <li>Subsequent API calls use <code>Authorization: Bearer</code>; middleware checks JWT <em>and</em> live session.</li>
+            <li>Logout deletes session server-side; 401 on <code>/auth/me</code> clears client session.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Primary path is complete. Register password is hashed but never used for login. <code>LoginPageAtozas</code> is not routed. Kit <code>POST /api/google</code> returns <strong>501</strong>. Dual OTP writers on same table if kit routes are used.</p>
+        <div class="pros-cons">
+          <div class="pros"><h5>Pros</h5><ul><li>Session revocation on logout</li><li>Hashed OTPs</li><li>Google HMAC state</li></ul></div>
+          <div class="cons"><h5>Cons</h5><ul><li>Token briefly in URL (Google)</li><li>Dead Atozas UI / 501</li><li>SMTP dependency for OTP</li></ul></div>
+        </div>
+      </article>
+
+      <!-- Map -->
+      <article class="feature-block" id="f-map">
+        <header>
+          <h3>3.2 Interactive map</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">8.5 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li><code>HomePage</code> mounts <code>MapComponent</code> (MapLibre GL).</li>
+            <li>Street tiles from umnaapp / env / <code>/api/map/tiles</code> with Carto Voyager fallback; satellite (ArcGIS) &amp; terrain overlays.</li>
+            <li>Markers/layers for places, search hits, routes, hazards, utilities, live share, vehicles.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Fully interactive. Local Docker TileServer is optional and unused unless env points to it.</p>
+        <div class="pros-cons">
+          <div class="pros"><h5>Pros</h5><ul><li>Resilient tile fallbacks</li><li>Rich overlay model</li></ul></div>
+          <div class="cons"><h5>Cons</h5><ul><li>Hardcoded production tile hosts</li><li>India-centric defaults</li></ul></div>
+        </div>
+      </article>
+
+      <!-- Search -->
+      <article class="feature-block" id="f-search">
+        <header>
+          <h3>3.3 Search &amp; geocoding</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">8.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li><code>SearchBar</code> debounces → <code>GET /api/map/search-simple</code>.</li>
+            <li><code>unifiedTextSearch</code>: local Place DB ± OSM tables ± HTTP geocoders (umnaapp / public Nominatim).</li>
+            <li>Results plotted; reverse geocode via <code>/api/map/reverse</code>.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> End-to-end. Quality degrades if upstreams fail; SearchBar does not always pass map bias lat/lng.</p>
+      </article>
+
+      <!-- Places -->
+      <article class="feature-block" id="f-places">
+        <header>
+          <h3>3.4 Place management, approval, duplicates, extract</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">8.5 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Add: <code>AddPlaceModal</code> → reverse geocode → optional translate → duplicate check → <code>POST /map/places</code> (pending + autoApproveAt).</li>
+            <li>Scheduler every 15 min auto-approves expired pending places; admin can approve/reject earlier.</li>
+            <li>Visibility: approved public; pending owner-only.</li>
+            <li>Extract: Google NearbySearch client-side → daily <code>grid-extract/consume</code> → <code>POST /places/bulk</code>.</li>
+            <li>Detail panel: contribute fields, nearby, history; ownership-aware edit/delete.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> One of the strongest areas. Duplicate index (googlePlaceId / coords / name+address) is enforced on create and bulk.</p>
+        <div class="pros-cons">
+          <div class="pros"><h5>Pros</h5><ul><li>Audit trail</li><li>Auto-approve off hot path</li><li>Strong dup logic</li></ul></div>
+          <div class="cons"><h5>Cons</h5><ul><li>Extract needs Google key/quota</li><li>Photos stored as data URLs</li></ul></div>
+        </div>
+      </article>
+
+      <!-- Favorites reviews claims -->
+      <article class="feature-block" id="f-social-place">
+        <header>
+          <h3>3.5 Favorites, reviews, photos, claims, labels</h3>
+          <div><span class="badge b-partial">Partial</span> <span class="score mid">7.7 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Favorites: <code>GET/POST/DELETE /map/favorites</code> — bookmark only, no Place create.</li>
+            <li>Reviews/photos: CRUD on DB places; one review per user; photos capped (~10, size limit).</li>
+            <li>Claims: user submits → admin approve stamps <code>claimedById</code>; reject path exists.</li>
+            <li>Labels: private per-user <code>PlaceLabel</code>.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Favorites/labels/reviews work. Photos work but store base64 in DB. Claims moderation works, but notification on approve/reject uses raw <code>prisma.notification.create</code> (no Socket.IO / web push / preference check) — <strong>Partial</strong> for claim UX completeness.</p>
+      </article>
+
+      <!-- Routing -->
+      <article class="feature-block" id="f-nav">
+        <header>
+          <h3>3.6 Navigation, routing &amp; voice</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">8.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li><code>RoutePanel</code> → <code>GET /api/map/route</code> with profile (driving/walking/cycling/bus/two_wheeler/train).</li>
+            <li>Backend tries <code>ROUTE_SERVICE_URL</code> (default umnaapp OSRM) → <code>OSRM_URL</code> → public OSRM → straight-line fallback.</li>
+            <li>Start navigation → <code>NavigationView</code> + <code>useVoiceNavigation</code> (snap, phases, off-route reroute, Web Speech).</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Real turn-by-turn for road profiles. Bus / two-wheeler / train retime driving geometry — <em>not</em> true transit graphs. Voice quality is browser-dependent.</p>
+      </article>
+
+      <!-- Safe route -->
+      <article class="feature-block" id="f-safe">
+        <header>
+          <h3>3.7 Safe route &amp; hazard reports</h3>
+          <div><span class="badge b-partial">Partial</span> <span class="score mid">7.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Score alternatives via <code>POST /map/safe-route/score</code> (hazards + road heuristics + avoid options).</li>
+            <li>Users report via <code>HazardReportSheet</code> → pending <code>SafetyHazardReport</code> → admin approve.</li>
+            <li>During nav, <code>useSafeRouteMonitor</code> can warn / suggest safer alt.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Code path complete. With zero approved hazards, ranking falls back to heuristics (<code>fallback: true</code>) — useful but not “community safety” yet.</p>
+      </article>
+
+      <!-- Live location -->
+      <article class="feature-block" id="f-live">
+        <header>
+          <h3>3.8 Live location sharing</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">8.5 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Create share → timed token → GPS updates via socket <code>live-location:update</code>.</li>
+            <li>Viewer opens <code>/live/:token</code> → exchange → join room → live marker + viewer bar.</li>
+            <li>Stop/expire/rotate token; pause on owner disconnect; viewer notifications.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Fully wired REST + Socket.IO + Prisma. Requires correct proxy/WebSocket config in production.</p>
+      </article>
+
+      <!-- Vehicles -->
+      <article class="feature-block" id="f-vehicles">
+        <header>
+          <h3>3.9 Vehicle tracking</h3>
+          <div><span class="badge b-partial">Partial</span> <span class="score mid">5.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Backend: full <code>/api/vehicles</code> CRUD + location history; Socket.IO vehicle rooms.</li>
+            <li>Map listens for <code>vehicles:list</code> / location updates and draws markers.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> README claims real-time vehicle tracking. There is <strong>no</strong> dedicated frontend page/UI to create or manage vehicles — backend-capable, product-incomplete.</p>
+      </article>
+
+      <!-- Notifications -->
+      <article class="feature-block" id="f-notif">
+        <header>
+          <h3>3.10 Notifications</h3>
+          <div><span class="badge b-partial">Partial</span> <span class="score mid">7.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>In-app list/unread via <code>/api/notifications</code>; live via Socket.IO; prefs in Settings.</li>
+            <li>Web Push: VAPID public key → subscribe → <code>web-push</code> delivery when enabled.</li>
+            <li>Events: place submitted, community place added (opt-in), place approved, festivals, live-location events.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Solid for place/live events. Claim approve/reject skips <code>createUserNotification</code>. Festival / place_added can fan out to all opted-in users (not geo-scoped despite “near you” copy).</p>
+      </article>
+
+      <!-- Admin -->
+      <article class="feature-block" id="f-admin">
+        <header>
+          <h3>3.11 Admin panel</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">7.5 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Admin SPA authenticates with shared <code>ADMIN_SECRET</code> (Bearer / X-Admin-Key), stored in localStorage.</li>
+            <li>Dashboard counts/growth; pending &amp; extracted places; claims; hazards; legal docs; schema; read-only data explorer.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Moderation is complete and useful. No per-admin RBAC. Data explorer can return password hashes, session tokens, OTPs; <code>?full=1</code> can dump large blobs.</p>
+      </article>
+
+      <!-- AI -->
+      <article class="feature-block" id="f-ai">
+        <header>
+          <h3>3.12 Ask Maps &amp; map assistant</h3>
+          <div><span class="badge b-partial">Partial</span> <span class="score mid">7.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li><code>POST /map/ask</code>: Groq intent if <code>GROQ_API_KEY</code>, else keyword fallback → place search.</li>
+            <li><code>POST /map/assistant</code>: Groq chat or offline FAQ mode.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Real integration with graceful degrade — not a stub, but “AI product” quality is env-dependent.</p>
+      </article>
+
+      <!-- Explore tools -->
+      <article class="feature-block" id="f-tools">
+        <header>
+          <h3>3.13 Polygon explore, measure, utilities, festivals</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">8.0 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Polygon → <code>POST /map/places/in-polygon</code> (PostGIS or JS fallback) + search enrichment.</li>
+            <li>Measure → client haversine path on map (no backend).</li>
+            <li>Utilities → <code>GET /map/utilities/nearby</code> (OSM amenities when configured).</li>
+            <li>Festivals → <code>GET /map/festivals/upcoming</code> from Place festival fields.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> All implemented. Utility finder &amp; festivals are data-dependent; USP catalog still marks some as “Not started” (stale vs code).</p>
+      </article>
+
+      <!-- PWA -->
+      <article class="feature-block" id="f-pwa">
+        <header>
+          <h3>3.14 PWA, offline maps &amp; mobile</h3>
+          <div><span class="badge b-partial">Partial</span> <span class="score mid">6.5 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li><code>vite-plugin-pwa</code> + custom <code>sw.js</code>: precache shell; CacheFirst tiles; NetworkOnly for auth/admin/notifications.</li>
+            <li><code>OfflineMapsSheet</code> downloads viewport tiles to Cache API + IndexedDB region metadata.</li>
+            <li>Install prompts via landing / install manager; update &amp; offline banners in <code>PwaShell</code>.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> PWA install + offline <em>raster</em> viewing works. Offline turn-by-turn and vector tiles are <strong>Missing</strong>. No Capacitor Android project despite Asset Links placeholder for <code>com.umnaapp.app</code>.</p>
+      </article>
+
+      <!-- Public API -->
+      <article class="feature-block" id="f-public">
+        <header>
+          <h3>3.15 Public maps platform (embed + SDK + REST)</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">7.5 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Hosts/paths like <code>maps.*</code> / <code>/embedded-map</code> → <code>PublicMapPage</code> (no auth shell).</li>
+            <li>Open-CORS <code>/api/public/*</code> for places, search, nearby, route, legal; <code>/sdk.js</code> served by backend.</li>
+            <li>Socket namespace <code>/public-maps</code> broadcasts approved place changes.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Usable developer surface. Phase 10 (API keys, usage analytics, developer dashboard) explicitly deferred — open public API is a trust/abuse risk at scale.</p>
+      </article>
+
+      <!-- Profiles i18n feedback -->
+      <article class="feature-block" id="f-misc">
+        <header>
+          <h3>3.16 Profiles, i18n, feedback, settings</h3>
+          <div><span class="badge b-ok">Working</span> <span class="score">7.5 / 10</span></div>
+        </header>
+        <div class="process">
+          <strong>Working process</strong>
+          <ol>
+            <li>Settings: profile, picture (data URL), notification prefs, privacy.</li>
+            <li>My Contributions + public profile with <code>profilePublic</code> gate.</li>
+            <li>Language via <code>atozas-traslate</code> + Indic dictionaries; voice maps en/kn/hi (+ Tulu→Kannada TTS).</li>
+            <li>Feedback modal posts to <code>/api/feedback</code>.</li>
+          </ol>
+        </div>
+        <p><strong>Functionality:</strong> Complete for MVP. Translation coverage is partial across all strings; picture storage shares the same base64 scaling issue as photos.</p>
+      </article>
+    </section>
+
+    <!-- ========== CATEGORIES ========== -->
+    <section id="categories">
+      <h2>4. Category-wise ratings</h2>
+      <p class="lead">Cross-cutting quality dimensions (not individual features).</p>
+
+      <div class="rating-row">
+        <div>Architecture</div>
+        <div class="bar"><i style="width:75%"></i></div>
+        <div class="score">7.5</div>
+      </div>
+      <div class="rating-row">
+        <div>UI / UX</div>
+        <div class="bar"><i style="width:70%"></i></div>
+        <div class="score">7.0</div>
+      </div>
+      <div class="rating-row">
+        <div>Performance</div>
+        <div class="bar mid"><i style="width:65%"></i></div>
+        <div class="score mid">6.5</div>
+      </div>
+      <div class="rating-row">
+        <div>Scalability</div>
+        <div class="bar mid"><i style="width:55%"></i></div>
+        <div class="score mid">5.5</div>
+      </div>
+      <div class="rating-row">
+        <div>Security</div>
+        <div class="bar mid"><i style="width:55%"></i></div>
+        <div class="score mid">5.5</div>
+      </div>
+      <div class="rating-row">
+        <div>Data quality</div>
+        <div class="bar"><i style="width:70%"></i></div>
+        <div class="score">7.0</div>
+      </div>
+      <div class="rating-row">
+        <div>Error handling</div>
+        <div class="bar mid"><i style="width:55%"></i></div>
+        <div class="score mid">5.5</div>
+      </div>
+      <div class="rating-row">
+        <div>PWA / Mobile</div>
+        <div class="bar mid"><i style="width:65%"></i></div>
+        <div class="score mid">6.5</div>
+      </div>
+      <div class="rating-row">
+        <div>API completeness</div>
+        <div class="bar"><i style="width:80%"></i></div>
+        <div class="score">8.0</div>
+      </div>
+      <div class="rating-row">
+        <div>Database / PostGIS</div>
+        <div class="bar"><i style="width:78%"></i></div>
+        <div class="score">7.8</div>
+      </div>
+      <div class="rating-row">
+        <div>Product potential</div>
+        <div class="bar"><i style="width:85%"></i></div>
+        <div class="score">8.5</div>
+      </div>
+      <div class="rating-row" style="margin-top:8px;font-weight:700;">
+        <div>Overall</div>
+        <div class="bar"><i style="width:72%"></i></div>
+        <div class="score">7.2</div>
+      </div>
+
+      <h3>Category notes</h3>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Category</th><th>Assessment</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Architecture</strong></td>
+              <td>Clean monorepo split (frontend/admin/backend), Prisma models, service modules, Socket.IO namespaces, Docker stack. Controllers thin (most logic in routes/services). Some dual-path auth debt.</td>
+            </tr>
+            <tr>
+              <td><strong>UI / UX</strong></td>
+              <td>Map-first home is capable; many panels/sheets. Density can overwhelm. Install prompt mainly on landing. Onboarding tour exists. No shared toast system; root ErrorBoundary only.</td>
+            </tr>
+            <tr>
+              <td><strong>Performance</strong></td>
+              <td>Compression, Redis cache (when present), SW tile cache, bbox/category filtering, approval off hot path. Weaknesses: large place list caps, base64 media, notification fan-out.</td>
+            </tr>
+            <tr>
+              <td><strong>Scalability</strong></td>
+              <td>Single Node process; session in DB; photos in Postgres; broadcast notifies; heavy OSRM/Nominatim/tiles ops. Horizontal story incomplete.</td>
+            </tr>
+            <tr>
+              <td><strong>Security</strong></td>
+              <td>JWT+session, admin secret strength check, CORS allowlist, express-validator on many routes, nginx rate zones. Critical: <code>/api/test</code> always mounted (OTP in JSON); Redis-optional app rate limits; admin secret in localStorage; no Helmet on Express; open public API without keys.</td>
+            </tr>
+            <tr>
+              <td><strong>Data quality</strong></td>
+              <td>Duplicate detection, approval workflow, audits, PostGIS when available — strong for community maps. Cold-start empty festivals/hazards; OSM enrichment optional.</td>
+            </tr>
+            <tr>
+              <td><strong>Product potential</strong></td>
+              <td>Credible India hyperlocal + community + safety + offline + embed story. USP catalog is mostly aspirational; shipped MVP is already differentiated vs pure Google clone.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== BUGS ========== -->
+    <section id="bugs">
+      <h2>5. Major bugs &amp; issues found</h2>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Severity</th><th>Issue</th><th>Evidence</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge b-bad">P0</span></td>
+              <td><code>/api/test</code> always mounted — <code>POST /test-email</code> returns plaintext OTP in JSON; SMTP config/test unauthenticated</td>
+              <td><code>backend/server.js</code>, <code>backend/routes/testRoutes.js</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge b-bad">P0</span></td>
+              <td>App rate limiting / cache silently no-ops without Redis; compose defaults include weak JWT-style secrets if not overridden</td>
+              <td><code>middleware/rateLimit.js</code>, <code>docker-compose.yml</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P1</span></td>
+              <td>Business claim approve/reject creates DB notification only — no socket emit, no web push, prefs not checked</td>
+              <td><code>adminRoutes.js</code> ~705–746 vs <code>createUserNotification</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P1</span></td>
+              <td>Admin Data Explorer can expose password hashes, session tokens, OTP codes; <code>full=1</code> dumps blobs</td>
+              <td>Admin records endpoints + truncate logic</td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P1</span></td>
+              <td>Admin auth = long-lived secret in <code>localStorage</code> (XSS = full moderation + DB read)</td>
+              <td><code>admin/src/lib/api.js</code>; noted in production-readiness report</td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P1</span></td>
+              <td>Place photos / profile pictures stored as data URLs in Postgres — payload &amp; DB bloat</td>
+              <td>Prisma <code>PlacePhoto</code>, auth profile-picture</td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P2</span></td>
+              <td>Vehicle tracking advertised but no user-facing vehicle management UI</td>
+              <td>API + MapComponent sockets only</td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P2</span></td>
+              <td>Atozas Auth Kit UI dead; <code>POST /api/google</code> returns 501; password field unused for login</td>
+              <td><code>MainApp.jsx</code>, <code>atozasAuthRoutes.js</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P2</span></td>
+              <td>Festival / place_added notifications not geo-scoped; copy says “near you”</td>
+              <td><code>notificationService.js</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge b-partial">P2</span></td>
+              <td>Asset Links claim native Android package without Capacitor project in repo</td>
+              <td><code>frontend/public/.well-known/assetlinks.json</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge b-info">P3</span></td>
+              <td>Internal prod-readiness ~9.5 overstates security/test/ops posture</td>
+              <td><code>docs/production-readiness-report.md</code></td>
+            </tr>
+            <tr>
+              <td><span class="badge b-info">P3</span></td>
+              <td>USP catalog stale vs shipped safe-route / utilities / festivals / offline packs</td>
+              <td><code>docs/umnaapp-usp-catalog.csv</code></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ========== MISSING ========== -->
+    <section id="missing">
+      <h2>6. Missing &amp; improvement features</h2>
+      <div class="grid-2">
+        <div class="card">
+          <h4>Missing (not in product)</h4>
+          <ul>
+            <li>Native Capacitor / Play Store app</li>
+            <li>Offline turn-by-turn / vector offline tiles</li>
+            <li>True transit routing (bus/train graphs)</li>
+            <li>Password login (despite register field)</li>
+            <li>API keys / developer dashboard (Phase 10)</li>
+            <li>Object storage for media</li>
+            <li>Per-admin RBAC &amp; admin action audit</li>
+            <li>Automated integration/E2E test suite</li>
+            <li>Helmet/CSP on Express; observability (Sentry etc.)</li>
+            <li>Vehicle management UX / geofencing</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4>Improvements (exists, enhance)</h4>
+          <ul>
+            <li>Wire claim notifications through <code>createUserNotification</code></li>
+            <li>Geo-scope community/festival pushes</li>
+            <li>Search lat/lng bias from map center</li>
+            <li>Remove or gate <code>/api/test</code> in production</li>
+            <li>Redact secrets in Data Explorer</li>
+            <li>httpOnly admin sessions</li>
+            <li>Require Redis in production config</li>
+            <li>Shared toast + route-level error UI</li>
+            <li>Clean dead Atozas auth code paths</li>
+            <li>Align USP catalog with shipped reality</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== RECOMMENDATIONS ========== -->
+    <section id="recommendations">
+      <h2>7. Priority-wise recommendations</h2>
+
+      <div class="prio">
+        <span class="prio-tag p0">P0</span>
+        <div>
+          <strong>Hardening before go-live</strong>
+          <p style="margin:4px 0 0;color:var(--muted);font-size:14px;">
+            Disable/mount <code>/api/test</code> only when <code>NODE_ENV !== 'production'</code>.
+            Enforce strong secrets; require Redis for rate limits in prod; verify SMTP/VAPID/Google/OSRM env on staging smoke tests.
+          </p>
+        </div>
+      </div>
+      <div class="prio">
+        <span class="prio-tag p1">P1</span>
+        <div>
+          <strong>Correctness &amp; trust</strong>
+          <p style="margin:4px 0 0;color:var(--muted);font-size:14px;">
+            Fix claim notification path; redact admin explorer fields; migrate admin auth off localStorage;
+            move photos/avatars to object storage + URLs.
+          </p>
+        </div>
+      </div>
+      <div class="prio">
+        <span class="prio-tag p2">P2</span>
+        <div>
+          <strong>Product completeness</strong>
+          <p style="margin:4px 0 0;color:var(--muted);font-size:14px;">
+            Ship vehicle management UI or stop advertising it; geo-target broadcasts; complete or remove Atozas kit paths;
+            add API keys for public platform; expand i18n coverage; shared UX error/toast layer.
+          </p>
+        </div>
+      </div>
+      <div class="prio">
+        <span class="prio-tag p3">P3</span>
+        <div>
+          <strong>Differentiation roadmap</strong>
+          <p style="margin:4px 0 0;color:var(--muted);font-size:14px;">
+            Offline routing, hyperlocal categories, pilgrimage packs, verified local moderators, embeddable collections —
+            pick 2–3 USP catalog items and execute rather than spreading thin across the full CSV.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========== CONCLUSION ========== -->
+    <section id="conclusion">
+      <h2>8. Final conclusion</h2>
+      <p class="lead">
+        UMNAAPP is a <strong>substantially implemented</strong> mapping product — not a UI mock.
+        Places, search, routing, live share, admin moderation, PWA offline packs, and public embed form a coherent MVP
+        with real India-oriented potential (<strong>product potential 8.5/10</strong>).
+      </p>
+      <p>
+        The gap to a trustworthy production rating is operational and security maturity, not feature imagination:
+        test-route exposure, optional rate limits, media-in-DB, incomplete claim push delivery, and overstated readiness docs.
+        Vehicle tracking and native mobile are the clearest “advertised vs shipped” mismatches.
+      </p>
+
+      <div class="grid-2" style="margin-top:16px;">
+        <div class="card">
+          <h4>Overall verdict</h4>
+          <p><span class="score" style="font-size:1.4rem;">7.2 / 10</span></p>
+          <p style="margin-top:8px;">
+            <span class="badge b-ok">Recommend</span> continue development with a hardening sprint before marketing as production-ready.
+          </p>
+        </div>
+        <div class="card">
+          <h4>Score interpretation</h4>
+          <ul>
+            <li><strong>9–10:</strong> Production-hardened, scalable, secure</li>
+            <li><strong>7–8:</strong> Strong MVP, fix P0/P1 before scale</li>
+            <li><strong>5–6:</strong> Partial / prototype in area</li>
+            <li><strong>≤4:</strong> Broken, dead, or missing</li>
+          </ul>
+        </div>
+      </div>
+
+      <h3>Pros (project-level)</h3>
+      <ul>
+        <li>Deep place contribution system with approval, duplicates, audit, claims, reviews</li>
+        <li>Practical map stack with graceful external fallbacks</li>
+        <li>Live location + Socket.IO done properly</li>
+        <li>Admin tools that operators can actually use</li>
+        <li>PWA + offline tile packs ahead of many map startups</li>
+        <li>Public embed/SDK opens distribution channel</li>
+      </ul>
+
+      <h3>Cons (project-level)</h3>
+      <ul>
+        <li>Security posture not matching feature maturity</li>
+        <li>Scalability cliffs (base64 media, notify fan-out, single process)</li>
+        <li>Dead code / dual auth paths add maintenance risk</li>
+        <li>Heavy dependence on umnaapp.in / public OSRM/Nominatim unless self-hosted data prepared</li>
+        <li>USP catalog and prod-readiness docs drift from code reality</li>
+        <li>Limited automated tests</li>
+      </ul>
+
+      <p style="margin-top:18px;padding:14px 16px;background:var(--accent-soft);border-radius:10px;border:1px solid #c5e5d9;">
+        <strong>Bottom line:</strong> Treat UMNAAPP as a <em>feature-complete community map MVP</em> with excellent product direction.
+        Close P0/P1 security and notification gaps, then invest in 2–3 differentiators (offline routing, hyperlocal data, public API keys)
+        to move from ~7.2 toward a true 9+.
+      </p>
+    </section>
+
+    <footer>
+      Generated from source analysis of the UMNAAPP / maptest repository · 10 August 2026<br />
+      Report file: <code>UMNAAPP_FULL_PROJECT_ANALYSIS.html</code>
+    </footer>
+  </div>
+</body>
+</html>

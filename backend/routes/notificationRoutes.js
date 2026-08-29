@@ -272,7 +272,7 @@ router.post('/push/test', async (req, res) => {
       type: 'place_added',
       title: 'Test notification',
       body: 'If you see this, push notifications are working correctly.',
-      data: { url: '/home' },
+      data: { url: '/' },
     })
     res.json({ success: true, subscriptions: subs })
   } catch (e) {
