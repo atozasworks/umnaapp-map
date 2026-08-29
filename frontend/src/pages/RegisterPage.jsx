@@ -89,7 +89,7 @@ const RegisterPage = () => {
 
         <div className="auth-field">
           <label htmlFor="email" className="auth-label">
-            Email address
+            Email address 
           </label>
           <div className="auth-input-wrap">
             <svg className="auth-input-icon" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.75} aria-hidden>
