@@ -3,14 +3,14 @@ import assert from 'node:assert/strict'
 import { sanitizeAuthRedirect } from '../src/utils/authRedirect.js'
 
 test('sanitizeAuthRedirect rejects external URLs', () => {
-  assert.equal(sanitizeAuthRedirect('https://evil.example/phish'), '/home')
-  assert.equal(sanitizeAuthRedirect('//evil.example'), '/home')
+  assert.equal(sanitizeAuthRedirect('https://evil.example/phish'), '/')
+  assert.equal(sanitizeAuthRedirect('//evil.example'), '/')
 })
 
 test('sanitizeAuthRedirect preserves same-origin paths', () => {
   assert.equal(
-    sanitizeAuthRedirect('/home?liveShare=abc123'),
-    '/home?liveShare=abc123'
+    sanitizeAuthRedirect('/?liveShare=abc123'),
+    '/?liveShare=abc123'
   )
   assert.equal(sanitizeAuthRedirect('/live/token-value'), '/live/token-value')
 })

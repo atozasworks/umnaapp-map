@@ -13,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 import authRoutes from './routes/authRoutes.js'
 import atozasAuthRoutes from './routes/atozasAuthRoutes.js'
+import { mountAtozasSso } from './config/atozasSso.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import safeRouteRoutes from './routes/safeRouteRoutes.js'
@@ -53,6 +54,7 @@ const corsOrigin =
   process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean) || defaultOrigins
 
 const app = express()
+app.set('trust proxy', 1)
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   cors: {
@@ -122,6 +124,10 @@ app.use(
 app.use(express.json({ limit: '5mb' }))
 app.use(express.urlencoded({ extended: true, limit: '5mb' }))
 app.use(passport.initialize())
+
+// ATOZAS OIDC client routes must be mounted before the SPA catch-all.
+// When ATOZAS_SSO_ENABLED=false these return JSON 404 and existing auth is unchanged.
+mountAtozasSso(app)
 
 // Routes
 app.use('/api/auth', rateLimitMiddleware('auth', 40, 60), authRoutes)
@@ -237,6 +243,7 @@ const serveAdminIndex = (req, res, next) => {
 app.get('/', serveIndex)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next()
+  if (req.path.startsWith('/auth')) return next()
   if (req.path === '/admin' || req.path.startsWith('/admin/')) {
     return serveAdminIndex(req, res, next)
   }

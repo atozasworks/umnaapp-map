@@ -15,7 +15,16 @@ export const sanitizeAuthRedirect = (value, fallback = DEFAULT_AUTH_REDIRECT) =>
     const base = typeof window !== 'undefined' ? window.location.origin : 'https://umnaapp.local'
     const url = new URL(decoded, base)
     if (url.origin !== base) return fallback
-    return `${normalizeMapPath(url.pathname)}${url.search}${url.hash}`
+    const pathname = normalizeMapPath(url.pathname)
+    if (
+      pathname === '/login' ||
+      pathname === '/register' ||
+      pathname === '/verify-otp' ||
+      pathname.startsWith('/auth')
+    ) {
+      return fallback
+    }
+    return `${pathname}${url.search}${url.hash}`
   } catch {
     return fallback
   }
@@ -28,7 +37,33 @@ export const currentPathWithSearch = () => {
 
 export const authPageWithRedirect = (page, redirect) => {
   const safeRedirect = sanitizeAuthRedirect(redirect)
+  if (safeRedirect === DEFAULT_AUTH_REDIRECT) return page
   return `${page}?redirect=${encodeURIComponent(safeRedirect)}`
+}
+
+/** Protected-route guests: open login and auto-start ATOZAS SSO once. */
+export const loginWithSsoHint = (redirect) => {
+  const page = authPageWithRedirect('/login', redirect)
+  return page.includes('?') ? `${page}&sso=1` : `${page}?sso=1`
+}
+
+/**
+ * True when this navigation originated from an ATOZAS property (e.g. the
+ * "Visit AtozMaps" link on https://testatozas.in). Used to auto-start SSO so a
+ * user already signed in at ATOZAS lands in the app without an extra click.
+ * A direct visit (bookmark/typed URL) has no ATOZAS referrer → button is shown.
+ */
+export const arrivedFromAtozas = () => {
+  if (typeof document === 'undefined' || typeof window === 'undefined') return false
+  try {
+    const ref = document.referrer
+    if (!ref) return false
+    const refUrl = new URL(ref)
+    if (refUrl.origin === window.location.origin) return false
+    return /(^|\.)testatozas\.in$/i.test(refUrl.hostname)
+  } catch {
+    return false
+  }
 }
 
 export { DEFAULT_AUTH_REDIRECT }

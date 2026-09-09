@@ -15,8 +15,15 @@ precacheAndRoute(self.__WB_MANIFEST || [])
 cleanupOutdatedCaches()
 
 registerRoute(
+  ({ url }) =>
+    url.origin === self.location.origin &&
+    (url.pathname.startsWith('/api/sso') || url.pathname.startsWith('/auth')),
+  new NetworkOnly()
+)
+
+registerRoute(
   new NavigationRoute(createHandlerBoundToURL('index.html'), {
-    denylist: [/^\/api/, /^\/socket\.io/, /^\/admin/],
+    denylist: [/^\/api/, /^\/auth/, /^\/socket\.io/, /^\/admin/, /^\/sdk\.js/],
   })
 )
 

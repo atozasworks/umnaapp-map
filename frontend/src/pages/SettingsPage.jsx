@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useTranslate } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
+import { ATOZAS_POST_LOGOUT_PATH } from '../utils/atozasSso'
 import AppLogo from '../components/AppLogo'
 import NotificationSettings from '../components/NotificationSettings'
 import api from '../services/api'
@@ -250,9 +251,9 @@ const SettingsPage = () => {
     e.target.value = ''
   }
 
-  const handleLogout = () => {
-    logout()
-    window.location.href = '/'
+  const handleLogout = async () => {
+    await logout()
+    window.location.replace(ATOZAS_POST_LOGOUT_PATH)
   }
 
   const handleTogglePublicProfile = async () => {

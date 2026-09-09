@@ -1,9 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { authPageWithRedirect } from '../utils/authRedirect'
+import { authPageWithRedirect, loginWithSsoHint } from '../utils/authRedirect'
+import { isAtozasLoggedOut } from '../utils/atozasSso'
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth()
+  const { isAuthenticated, loading, atozasSsoEnabled, atozasAutoStart } = useAuth()
   const location = useLocation()
 
   // A token exists (synchronous from localStorage) → render the page immediately
@@ -25,8 +26,11 @@ const ProtectedRoute = ({ children }) => {
   }
 
   const redirect = `${location.pathname}${location.search}`
-  return <Navigate to={authPageWithRedirect('/login', redirect)} replace />
+  const allowSsoHint = atozasSsoEnabled && atozasAutoStart && !isAtozasLoggedOut()
+  const to = allowSsoHint
+    ? loginWithSsoHint(redirect)
+    : authPageWithRedirect('/login', redirect)
+  return <Navigate to={to} replace />
 }
 
 export default ProtectedRoute
-
