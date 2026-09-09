@@ -47,11 +47,14 @@ export const loginWithSsoHint = (redirect) => {
   return page.includes('?') ? `${page}&sso=1` : `${page}?sso=1`
 }
 
+const ATOZAS_REFERRER_HOST =
+  /(^|\.)((test)?atozas\.in|atozasindia\.in|atozas\.com)$/i
+
 /**
  * True when this navigation originated from an ATOZAS property (e.g. the
- * "Visit AtozMaps" link on https://testatozas.in). Used to auto-start SSO so a
- * user already signed in at ATOZAS lands in the app without an extra click.
- * A direct visit (bookmark/typed URL) has no ATOZAS referrer → button is shown.
+ * "Visit AtozMaps" link on https://atozasindia.in or https://testatozas.in).
+ * Used to auto-start SSO so a user already signed in at ATOZAS lands in the
+ * app without an extra click. A direct visit has no ATOZAS referrer.
  */
 export const arrivedFromAtozas = () => {
   if (typeof document === 'undefined' || typeof window === 'undefined') return false
@@ -60,7 +63,7 @@ export const arrivedFromAtozas = () => {
     if (!ref) return false
     const refUrl = new URL(ref)
     if (refUrl.origin === window.location.origin) return false
-    return /(^|\.)testatozas\.in$/i.test(refUrl.hostname)
+    return ATOZAS_REFERRER_HOST.test(refUrl.hostname)
   } catch {
     return false
   }

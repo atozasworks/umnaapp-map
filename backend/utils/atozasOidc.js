@@ -72,6 +72,21 @@ export function generateState() {
   return crypto.randomBytes(32).toString('base64url')
 }
 
+/** Short hex state the ATOZAS IdP will echo; PKCE lives in the pending store. */
+export function generateOpaqueState() {
+  return crypto.randomBytes(16).toString('hex')
+}
+
+export function pendingFromRecord(record) {
+  if (!record || typeof record.v !== 'string' || !record.v) return null
+  return {
+    codeVerifier: record.v,
+    nonce: typeof record.n === 'string' ? record.n : '',
+    returnTo: sanitizeReturnTo(record.r, '/'),
+    createdAt: Number.isFinite(record.t) ? record.t : Date.now(),
+  }
+}
+
 export function generateNonce() {
   return crypto.randomBytes(32).toString('base64url')
 }

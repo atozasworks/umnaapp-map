@@ -7,10 +7,11 @@ import {
   readOidcConfig,
   publicSsoStatus,
   generateNonce,
+  generateOpaqueState,
   generatePkceS256,
   sanitizeReturnTo,
-  sealOidcState,
   openOidcState,
+  pendingFromRecord,
   discoverOidcEndpoints,
   buildAuthorizeUrl,
   exchangeAuthorizationCode,
@@ -18,6 +19,7 @@ import {
   revokeProviderToken,
   userRecordFromUserinfo,
 } from '../utils/atozasOidc.js'
+import { createMemoryPendingStore, createPgPendingStore } from '../utils/atozasOidcPending.js'
 
 const OIDC_TTL_MS = 10 * 60 * 1000
 
@@ -188,6 +190,13 @@ export function createAtozasSsoRouter(overrides = {}) {
       return Boolean(row)
     })
   const sessionStore = overrides.sessionStore || createSessionStore(config)
+  const pendingStore =
+    overrides.pendingStore ||
+    (overrides.sessionStore
+      ? createMemoryPendingStore()
+      : config.databaseUrl
+        ? createPgPendingStore(config.databaseUrl)
+        : createMemoryPendingStore())
 
   const router = express.Router()
   router.use(createSessionMiddleware(config, sessionStore))
@@ -209,14 +218,16 @@ export function createAtozasSsoRouter(overrides = {}) {
       const nonce = generateNonce()
       const pkce = generatePkceS256()
       const endpoints = await getEndpoints()
-      const state = sealOidcState(
+      const state = generateOpaqueState()
+      await pendingStore.set(
+        state,
         {
           v: pkce.codeVerifier,
           n: nonce,
           r: returnTo,
           t: Date.now(),
         },
-        config.sessionSecret
+        OIDC_TTL_MS
       )
 
       const authorizeUrl = buildAuthorizeUrl(endpoints, {
@@ -226,6 +237,7 @@ export function createAtozasSsoRouter(overrides = {}) {
         scope: config.scope,
         state,
         nonce,
+        homepage_key: config.homepageKey,
         code_challenge: pkce.codeChallenge,
         code_challenge_method: pkce.codeChallengeMethod,
       })
@@ -237,8 +249,9 @@ export function createAtozasSsoRouter(overrides = {}) {
   })
 
   router.get('/atozas/callback', async (req, res) => {
-    const sealed = typeof req.query.state === 'string' ? req.query.state : ''
-    const pending = openOidcState(sealed, config.sessionSecret, OIDC_TTL_MS)
+    const rawState = typeof req.query.state === 'string' ? req.query.state : ''
+    const stored = rawState ? await pendingStore.take(rawState).catch(() => null) : null
+    const pending = pendingFromRecord(stored) || openOidcState(rawState, config.sessionSecret, OIDC_TTL_MS)
     const returnTo = pending?.returnTo || '/'
     const fail = (code) => res.redirect(loginErrorRedirect(config.frontendUrl, code, returnTo))
 

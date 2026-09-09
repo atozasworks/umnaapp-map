@@ -18,6 +18,8 @@ import {
   resolveFrontendUrl,
   sealOidcState,
   openOidcState,
+  generateOpaqueState,
+  pendingFromRecord,
 } from '../utils/atozasOidc.js'
 
 describe('ATOZAS OIDC helpers', () => {
@@ -196,6 +198,16 @@ describe('ATOZAS OIDC helpers', () => {
     )
     assert.equal(merged.authorization_endpoint, 'https://custom/authorize')
     assert.equal(merged.token_endpoint, 'https://discovered/token')
+  })
+
+  test('opaque OIDC state is short hex the IdP can echo', () => {
+    const state = generateOpaqueState()
+    assert.match(state, /^[0-9a-f]{32}$/)
+    assert.notEqual(generateOpaqueState(), generateOpaqueState())
+    const pending = pendingFromRecord({ v: 'verifier-value', n: 'nonce', r: '/settings', t: Date.now() })
+    assert.equal(pending.codeVerifier, 'verifier-value')
+    assert.equal(pending.returnTo, '/settings')
+    assert.equal(pendingFromRecord(null), null)
   })
 
   test('sealed OIDC state round-trips and rejects tampering', () => {

@@ -5,7 +5,7 @@ import session from 'express-session'
 import '../loadEnv.js'
 import prisma from '../config/database.js'
 import { createAtozasSsoRouter, defaultFindOrCreateUser } from '../config/atozasSso.js'
-import { readOidcConfig } from '../utils/atozasOidc.js'
+import { readOidcConfig, sealOidcState } from '../utils/atozasOidc.js'
 
 function jsonResponse(status, body) {
   return {
@@ -51,7 +51,7 @@ function testConfig(overrides = {}) {
     userinfoUrl: 'https://idp.test/sso/userinfo',
     revokeUrl: 'https://idp.test/sso/revoke',
     discoveryUrl: '',
-    homepageKey: '',
+    homepageKey: 'umnaapp',
     tokenAuthStyle: 'body',
     autoRedirect: false,
     databaseUrl: 'postgresql://u:p@localhost:5432/umnaapp',
@@ -217,10 +217,11 @@ describe('ATOZAS SSO login → callback → JWT → me → logout', () => {
     assert.equal(authorize.searchParams.get('code_challenge_method'), 'S256')
     assert.ok(authorize.searchParams.get('code_challenge'))
     assert.equal(authorize.searchParams.get('code_verifier'), null)
-    assert.equal(authorize.searchParams.get('homepage_key'), null)
+    assert.equal(authorize.searchParams.get('homepage_key'), 'umnaapp')
     assert.equal(authorize.searchParams.get('redirect_uri'), 'http://127.0.0.1/auth/atozas/callback')
     const state = authorize.searchParams.get('state')
     assert.ok(state)
+    assert.match(state, /^[0-9a-f]{32}$/)
 
     const badState = await fetch(`${base}/auth/atozas/callback?code=good-code&state=wrong`, {
       redirect: 'manual',
@@ -292,6 +293,18 @@ describe('ATOZAS SSO login → callback → JWT → me → logout', () => {
     assert.equal(statusBody.enabled, true)
     assert.equal(statusBody.authenticated, false)
     assert.equal(statusBody.token, undefined)
+  })
+
+  test('callback still accepts a legacy sealed state', async () => {
+    const sealed = sealOidcState(
+      { v: 'legacy-verifier', n: 'nonce', r: '/', t: Date.now() },
+      'test-session-secret-value-32chars'
+    )
+    const callback = await fetch(`${base}/auth/atozas/callback?code=good-code&state=${encodeURIComponent(sealed)}`, {
+      redirect: 'manual',
+    })
+    assert.equal(callback.status, 302)
+    assert.match(callback.headers.get('location'), /token=/)
   })
 
   test('reuses an existing user when the email already exists', async () => {
