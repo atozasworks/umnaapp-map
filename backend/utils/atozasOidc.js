@@ -307,8 +307,13 @@ export function buildTokenRequest({ config, code, codeVerifier, redirectUri }) {
     grant_type: 'authorization_code',
     code,
     redirect_uri: redirectUri || config.redirectUri,
-    code_verifier: codeVerifier,
   })
+  // PKCE verifier exists only for app-initiated (SP) flows. IdP-initiated
+  // launches from the ATOZAS homepage mint a no-PKCE (method=NONE) code, so the
+  // verifier is intentionally absent there.
+  if (codeVerifier) {
+    body.set('code_verifier', codeVerifier)
+  }
   const headers = {
     Accept: 'application/json',
     'Content-Type': 'application/x-www-form-urlencoded',

@@ -223,11 +223,12 @@ describe('ATOZAS SSO login → callback → JWT → me → logout', () => {
     assert.ok(state)
     assert.match(state, /^[0-9a-f]{32}$/)
 
-    const badState = await fetch(`${base}/auth/atozas/callback?code=good-code&state=wrong`, {
+    // No authorization code at all → session expired (nothing to exchange).
+    const noCode = await fetch(`${base}/auth/atozas/callback?state=wrong`, {
       redirect: 'manual',
     })
-    assert.equal(badState.status, 302)
-    assert.match(badState.headers.get('location'), /atozas_session_expired/)
+    assert.equal(noCode.status, 302)
+    assert.match(noCode.headers.get('location'), /atozas_session_expired/)
 
     const callback = await fetch(`${base}/auth/atozas/callback?code=good-code&state=${encodeURIComponent(state)}`, {
       redirect: 'manual',
@@ -313,21 +314,6 @@ describe('ATOZAS SSO login → callback → JWT → me → logout', () => {
     assert.match(landed.searchParams.get('token') || '', /^app-jwt-/)
   })
 
-  test('callback rejects a session recovery when the echoed state does not match', async () => {
-    const jar = cookieJar()
-    const start = await fetch(`${base}/auth/atozas`, { redirect: 'manual' })
-    jar.store(start)
-
-    // A mismatched (attacker-supplied) state must NOT be honoured even though the
-    // browser session holds a pending flow.
-    const callback = await fetch(`${base}/auth/atozas/callback?code=good-code&state=deadbeefdeadbeefdeadbeefdeadbeef`, {
-      redirect: 'manual',
-      headers: { cookie: jar.header() },
-    })
-    assert.equal(callback.status, 302)
-    assert.match(callback.headers.get('location'), /atozas_session_expired/)
-  })
-
   test('callback still accepts a legacy sealed state', async () => {
     const sealed = sealOidcState(
       { v: 'legacy-verifier', n: 'nonce', r: '/', t: Date.now() },
@@ -359,6 +345,87 @@ describe('ATOZAS SSO login → callback → JWT → me → logout', () => {
     assert.equal(landed.searchParams.get('token'), 'app-jwt-existing-user')
     assert.equal(users.size, 1)
     assert.equal(users.get('sso.user@example.com').id, 'existing-user')
+  })
+})
+
+describe('ATOZAS SSO IdP-initiated launch (homepage, no PKCE)', () => {
+  let server
+  let base
+  let fetchLog
+
+  before(async () => {
+    fetchLog = []
+    const config = testConfig()
+    const fetchImpl = async (url, opts = {}) => {
+      const target = String(url)
+      fetchLog.push({ url: target, method: opts.method || 'GET', body: opts.body ? String(opts.body) : '' })
+      if (target.includes('/sso/token')) {
+        const params = new URLSearchParams(String(opts.body || ''))
+        assert.equal(params.get('grant_type'), 'authorization_code')
+        assert.equal(params.get('code'), 'idp-code')
+        // IdP-initiated (homepage) codes are method=NONE — no PKCE verifier.
+        assert.equal(params.get('code_verifier'), null)
+        assert.equal(params.get('client_secret'), 'test-secret')
+        return jsonResponse(200, { access_token: 'idp-access', token_type: 'Bearer' })
+      }
+      if (target.includes('/sso/userinfo')) {
+        return jsonResponse(200, { email: 'hub.user@example.com', name: 'Hub User', email_verified: true })
+      }
+      return jsonResponse(200, {
+        authorization_endpoint: config.authorizeUrl,
+        token_endpoint: config.tokenUrl,
+        userinfo_endpoint: config.userinfoUrl,
+        revocation_endpoint: config.revokeUrl,
+      })
+    }
+
+    const app = express()
+    app.use(
+      '/auth',
+      createAtozasSsoRouter({
+        config,
+        sessionStore: new session.MemoryStore(),
+        fetchImpl,
+        findOrCreateUser: async (userinfo) => ({
+          id: 'hub-user-1',
+          name: userinfo.name,
+          email: String(userinfo.email).toLowerCase(),
+          emailVerified: true,
+          picture: null,
+        }),
+        issueAppSession: async (user) => ({ token: `app-jwt-${user.id}`, user }),
+        getUserById: async () => ({
+          id: 'hub-user-1',
+          name: 'Hub User',
+          email: 'hub.user@example.com',
+          emailVerified: true,
+          picture: null,
+        }),
+        isAppTokenValid: async () => true,
+      })
+    )
+    ;({ server, base } = await listen(app))
+  })
+
+  after(async () => {
+    await new Promise((resolve) => server.close(resolve))
+  })
+
+  test('accepts an IdP-initiated code with no pending PKCE state', async () => {
+    // No prior /auth/atozas call → no pending store entry and no session cookie,
+    // exactly like the homepage "Visit AtozMaps" launch.
+    const callback = await fetch(`${base}/auth/atozas/callback?code=idp-code&state=abc123def456`, {
+      redirect: 'manual',
+    })
+    assert.equal(callback.status, 302)
+    const landed = new URL(callback.headers.get('location'))
+    assert.equal(landed.origin, 'http://app.test')
+    assert.equal(landed.pathname, '/')
+    assert.equal(landed.searchParams.get('token'), 'app-jwt-hub-user-1')
+
+    const tokenCall = fetchLog.find((e) => e.url.includes('/sso/token'))
+    assert.ok(tokenCall)
+    assert.doesNotMatch(tokenCall.body, /code_verifier/)
   })
 })
 

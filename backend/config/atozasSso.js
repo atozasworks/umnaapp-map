@@ -312,15 +312,12 @@ export function createAtozasSsoRouter(overrides = {}) {
       }
 
       const code = typeof req.query.code === 'string' ? req.query.code : ''
-      if (!code || !pending?.codeVerifier) {
-        // "atozas_session_expired": the PKCE/pending state saved at /auth/atozas
-        // could not be recovered here. Log enough to distinguish the causes:
-        //   - hasCode/hasState false  → the IdP did not echo code/state
-        //   - pendingStoreHit false   → the pending record was not in this
-        //     backend's store. The usual cause is that the authorize request and
-        //     this callback were handled by DIFFERENT backends/databases because
-        //     ATOZAS_REDIRECT_URI does not point at the host actually serving
-        //     this app (so the callback lands on another server).
+      const codeVerifier = pending?.codeVerifier || null
+      if (!code) {
+        // No authorization code came back at all. Log enough to tell the cause:
+        //   - hasState false → the IdP redirected here without code or state
+        //   - pendingStoreHit / recoveredFromSession → whether we had any local
+        //     record of an app-initiated (PKCE) flow.
         let redirectUriHost = ''
         try {
           redirectUriHost = new URL(config.redirectUri).host
@@ -328,9 +325,8 @@ export function createAtozasSsoRouter(overrides = {}) {
           redirectUriHost = ''
         }
         console.warn(
-          'ATOZAS callback could not restore PKCE state (atozas_session_expired):',
+          'ATOZAS callback received no authorization code (atozas_session_expired):',
           JSON.stringify({
-            hasCode: Boolean(code),
             hasState: Boolean(rawState),
             pendingStoreHit: Boolean(stored),
             hasSessionPending: Boolean(req.session?.oidcPending),
@@ -342,12 +338,21 @@ export function createAtozasSsoRouter(overrides = {}) {
         return fail('atozas_session_expired')
       }
 
+      // Two supported flows:
+      //  1. App-initiated (SP): we started the flow at /auth/atozas and hold a
+      //     PKCE verifier (from the pending store or this browser's session).
+      //  2. IdP-initiated launch: the ATOZAS homepage "Visit AtozMaps" button
+      //     mints a no-PKCE (method=NONE) code and its own `state`, then
+      //     redirects straight here. There is no pending verifier on our side,
+      //     which is expected — the token exchange is still authenticated with
+      //     our client_secret. Passing no code_verifier lets the IdP consume the
+      //     NONE-method code; S256 codes still require the verifier server-side.
       const endpoints = await getEndpoints()
       const tokens = await exchangeAuthorizationCode({
         config,
         endpoints,
         code,
-        codeVerifier: pending.codeVerifier,
+        codeVerifier: codeVerifier || undefined,
         fetchImpl,
       })
 
