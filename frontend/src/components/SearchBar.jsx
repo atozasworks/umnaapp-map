@@ -13,9 +13,6 @@ const SearchBar = ({
   onUnsavePlace,
   userPlaces = [],
   savingPlaceId = null,
-  // Guests use the credential-less public search API so search works without a
-  // session; authenticated users get the richer authenticated endpoint.
-  searchEndpoint = '/map/search-simple',
 }) => {
   const searchPlaceholder = useTranslate('Search places...')
   const tDirections = useTranslate('Directions')
@@ -67,7 +64,7 @@ const SearchBar = ({
       setSearchError(false)
       setUpstreamUnavailable(false)
       try {
-        const response = await api.get(searchEndpoint, {
+        const response = await api.get('/map/search-simple', {
           params: { q: searchQ },
         })
         const resultsData = response.data.results || []
@@ -93,7 +90,7 @@ const SearchBar = ({
         clearTimeout(searchTimeoutRef.current)
       }
     }
-  }, [query, searchEndpoint])
+  }, [query])
 
   // When focused with empty/short query, show user's places from database
   useEffect(() => {
