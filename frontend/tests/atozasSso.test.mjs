@@ -10,7 +10,6 @@ import {
   isAtozasLoggedOut,
   markAtozasLoggedOut,
   shouldAutoStartAtozasSso,
-  shouldStartSsoFromProtectedRoute,
 } from '../src/utils/atozasSso.js'
 
 const memory = new Map()
@@ -49,7 +48,6 @@ test('shouldAutoStartAtozasSso never fires after logout', () => {
       loggedOut: true,
       autoRedirect: true,
       ssoHint: true,
-      arrivedFromAtozas: true,
     }),
     false
   )
@@ -71,18 +69,11 @@ test('shouldAutoStartAtozasSso never fires after logout', () => {
   )
 })
 
-test('shouldAutoStartAtozasSso still allows a first-visit SSO hint', () => {
+test('shouldAutoStartAtozasSso still allows an explicit SSO hint or server autoRedirect', () => {
   assert.equal(
     shouldAutoStartAtozasSso({
       enabled: true,
       ssoHint: true,
-    }),
-    true
-  )
-  assert.equal(
-    shouldAutoStartAtozasSso({
-      enabled: true,
-      arrivedFromAtozas: true,
     }),
     true
   )
@@ -101,34 +92,14 @@ test('shouldAutoStartAtozasSso still allows a first-visit SSO hint', () => {
   )
 })
 
-test('protected / starts SSO for guests unless they logged out', () => {
+test('arriving from ATOZAS alone never auto-starts SSO (no forced login bounce)', () => {
+  // A guest opening the app from the atozasindia.in "Visit AtozMaps" link has an
+  // ATOZAS referrer but no explicit ?sso=1 hint and no server autoRedirect →
+  // must NOT be redirected to the ATOZAS login page.
   assert.equal(
-    shouldStartSsoFromProtectedRoute({
-      ssoEnabled: true,
-      autoStart: true,
-    }),
-    true
-  )
-  assert.equal(
-    shouldStartSsoFromProtectedRoute({
-      ssoEnabled: true,
-      autoStart: true,
-      loggedOut: true,
-    }),
-    false
-  )
-  assert.equal(
-    shouldStartSsoFromProtectedRoute({
-      ssoEnabled: true,
-      autoStart: true,
-      loading: true,
-    }),
-    false
-  )
-  assert.equal(
-    shouldStartSsoFromProtectedRoute({
-      ssoEnabled: false,
-      autoStart: true,
+    shouldAutoStartAtozasSso({
+      enabled: true,
+      arrivedFromAtozas: true,
     }),
     false
   )

@@ -1,11 +1,11 @@
 import { Link } from 'react-router-dom'
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import AppLogo from '../components/AppLogo'
 import LandingInstallPopup from '../components/LandingInstallPopup'
 import MapAssistantChatbot from '../components/MapAssistantChatbot'
 import { useAuth } from '../contexts/AuthContext'
-import { sanitizeAuthRedirect } from '../utils/authRedirect'
+import { authPageWithRedirect, sanitizeAuthRedirect } from '../utils/authRedirect'
 import { GITHUB_REPO_URL, devSetupSteps, prerequisites } from '../constants/openSource'
 
 const features = [
@@ -157,6 +157,14 @@ const highlights = [
 const LandingPage = () => {
   const { isAuthenticated } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
+
+  // A guest sent here from a protected route (e.g. ProtectedRoute) carries the
+  // originally requested path in location.state.from, so sign-in can return them
+  // there instead of always dropping them on the map root.
+  const from = sanitizeAuthRedirect(location.state?.from || '')
+  const loginTo = authPageWithRedirect('/login', from)
+  const registerTo = authPageWithRedirect('/register', from)
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -166,9 +174,9 @@ const LandingPage = () => {
         navigate(sanitizeAuthRedirect(`/?liveShare=${encodeURIComponent(liveShare)}`))
         return
       }
-      navigate('/')
+      navigate(from)
     }
-  }, [isAuthenticated, navigate])
+  }, [isAuthenticated, navigate, from])
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0b1220] text-white overflow-x-hidden">
@@ -201,13 +209,13 @@ const LandingPage = () => {
             </Link>
             <nav className="flex items-center gap-2 sm:gap-3">
               <Link
-                to="/login"
+                to={loginTo}
                 className="hidden sm:inline-flex text-sm font-medium text-slate-300 hover:text-white px-4 py-2 rounded-xl hover:bg-white/5 transition-all"
               >
                 Sign in
               </Link>
               <Link
-                to="/register"
+                to={registerTo}
                 className="relative inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-primary-500 via-sky-400 to-cyan-400 px-5 sm:px-6 py-2.5 text-sm sm:text-base font-semibold text-white shadow-lg shadow-sky-500/30 hover:shadow-sky-400/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
               >
                 Get started
@@ -250,7 +258,7 @@ const LandingPage = () => {
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-12 mt-2">
                   <Link
-                    to="/register"
+                    to={registerTo}
                     className="group relative inline-flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-primary-500 via-sky-400 to-cyan-400 px-8 py-4 text-base font-bold text-white shadow-xl shadow-sky-500/25 hover:shadow-sky-400/40 hover:scale-[1.02] transition-all overflow-hidden"
                   >
                     <span className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer bg-[length:200%_100%]" aria-hidden />
@@ -260,7 +268,7 @@ const LandingPage = () => {
                     </svg>
                   </Link>
                   <Link
-                    to="/login"
+                    to={loginTo}
                     className="inline-flex items-center justify-center rounded-2xl border border-white/20 bg-white/5 backdrop-blur-sm px-8 py-4 text-base font-semibold text-white hover:bg-white/10 hover:border-white/30 transition-all"
                   >
                     Sign in
@@ -605,7 +613,7 @@ const LandingPage = () => {
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Link
-                    to="/register"
+                    to={registerTo}
                     className="inline-flex items-center justify-center gap-2 rounded-2xl bg-white text-primary-700 font-bold px-10 py-4 shadow-2xl hover:scale-[1.02] hover:shadow-white/20 transition-all"
                   >
                     Create account
@@ -614,7 +622,7 @@ const LandingPage = () => {
                     </svg>
                   </Link>
                   <Link
-                    to="/login"
+                    to={loginTo}
                     className="inline-flex items-center justify-center rounded-2xl border-2 border-white/50 text-white font-bold px-10 py-4 hover:bg-white/15 transition-all"
                   >
                     Sign in
@@ -640,10 +648,10 @@ const LandingPage = () => {
               &copy; {new Date().getFullYear()} UMNAAPP. All rights reserved.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm font-medium">
-              <Link to="/login" className="text-slate-600 hover:text-primary-600 transition-colors">
+              <Link to={loginTo} className="text-slate-600 hover:text-primary-600 transition-colors">
                 Sign in
               </Link>
-              <Link to="/register" className="text-primary-600 hover:text-primary-700 transition-colors">
+              <Link to={registerTo} className="text-primary-600 hover:text-primary-700 transition-colors">
                 Register
               </Link>
               <a

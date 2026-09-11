@@ -43,21 +43,14 @@ export function shouldAutoStartAtozasSso({
   loggedOut,
   autoRedirect,
   ssoHint,
-  arrivedFromAtozas: fromAtozas,
 } = {}) {
   if (!enabled || isAuthenticated || hasError || loggedOut) return false
-  return Boolean(autoRedirect || ssoHint || fromAtozas)
-}
-
-/** Guest on a protected route: start OIDC now (homepage Visit AtozMaps → /). */
-export function shouldStartSsoFromProtectedRoute({
-  isAuthenticated,
-  loading,
-  ssoEnabled,
-  autoStart,
-  loggedOut,
-} = {}) {
-  return Boolean(!isAuthenticated && !loading && ssoEnabled && autoStart && !loggedOut)
+  // Only an explicit user intent starts SSO automatically: a one-time ?sso=1
+  // hint (set when the user clicks "Continue with ATOZAS"), or the admin-configured
+  // server autoRedirect. Merely arriving from an ATOZAS property (e.g. the
+  // "Visit AtozMaps" homepage link) must NOT force a bounce to the ATOZAS login
+  // page — guests land on the app's own welcome/login screen instead.
+  return Boolean(autoRedirect || ssoHint)
 }
 
 async function readJson(res) {

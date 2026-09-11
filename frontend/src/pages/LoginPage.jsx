@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import AuthLayout, { AuthError, AuthDivider, GoogleSignInButton, AtozasSignInButton } from '../components/auth/AuthLayout'
 import api from '../services/api'
 import { useAuth } from '../contexts/AuthContext'
-import { arrivedFromAtozas, authPageWithRedirect, DEFAULT_AUTH_REDIRECT, sanitizeAuthRedirect } from '../utils/authRedirect'
+import { authPageWithRedirect, DEFAULT_AUTH_REDIRECT, sanitizeAuthRedirect } from '../utils/authRedirect'
 import {
   ATOZAS_SSO_ONCE_KEY,
   atozasStartPath,
@@ -73,15 +73,15 @@ const LoginPage = () => {
     if (isAuthenticated) navigate(redirect, { replace: true })
   }, [isAuthenticated, redirect, navigate])
 
-  // Auto-start ATOZAS SSO when the user arrives from ATOZAS (e.g. "Visit
-  // AtozMaps"), or when explicitly hinted via ?sso=1 / server autoRedirect.
-  // After Logout this must NOT run — stay on the login page until the user
-  // clicks Continue with ATOZAS.
+  // Auto-start ATOZAS SSO ONLY on an explicit intent: a one-time ?sso=1 hint
+  // (set when the user clicks "Continue with ATOZAS") or the admin-configured
+  // server autoRedirect. Simply arriving from ATOZAS (e.g. the "Visit AtozMaps"
+  // homepage link) must NOT auto-redirect a guest to the ATOZAS login page.
+  // After Logout this must also NOT run — stay on the login page.
   useEffect(() => {
     const hasError = Boolean(searchParams.get('error'))
     const ssoHint = searchParams.get('sso') === '1'
-    const fromAtozas = arrivedFromAtozas()
-    if ((ssoHint || fromAtozas) && !hasError) {
+    if (ssoHint && !hasError) {
       sessionStorage.removeItem(ATOZAS_SSO_ONCE_KEY)
     }
     if (
@@ -92,7 +92,6 @@ const LoginPage = () => {
         loggedOut: isAtozasLoggedOut() || !atozasAutoStart,
         autoRedirect: atozasSso.autoRedirect,
         ssoHint,
-        arrivedFromAtozas: fromAtozas,
       })
     ) {
       return
