@@ -257,11 +257,46 @@ export function createAtozasSsoRouter(overrides = {}) {
 
     try {
       if (req.query.error) {
+        // Surface the IdP's own error so a misconfiguration (e.g.
+        // redirect_uri_mismatch, invalid_client, access_denied, login_required)
+        // is visible in the logs instead of a generic "sign-in failed".
+        console.error(
+          'ATOZAS callback returned an IdP error:',
+          String(req.query.error),
+          req.query.error_description ? `- ${String(req.query.error_description)}` : ''
+        )
         return fail('atozas_auth_failed')
       }
 
       const code = typeof req.query.code === 'string' ? req.query.code : ''
-      if (!code || !pending?.codeVerifier) return fail('atozas_session_expired')
+      if (!code || !pending?.codeVerifier) {
+        // "atozas_session_expired": the PKCE/pending state saved at /auth/atozas
+        // could not be recovered here. Log enough to distinguish the causes:
+        //   - hasCode/hasState false  → the IdP did not echo code/state
+        //   - pendingStoreHit false   → the pending record was not in this
+        //     backend's store. The usual cause is that the authorize request and
+        //     this callback were handled by DIFFERENT backends/databases because
+        //     ATOZAS_REDIRECT_URI does not point at the host actually serving
+        //     this app (so the callback lands on another server).
+        let redirectUriHost = ''
+        try {
+          redirectUriHost = new URL(config.redirectUri).host
+        } catch {
+          redirectUriHost = ''
+        }
+        console.warn(
+          'ATOZAS callback could not restore PKCE state (atozas_session_expired):',
+          JSON.stringify({
+            hasCode: Boolean(code),
+            hasState: Boolean(rawState),
+            pendingStoreHit: Boolean(stored),
+            recoveredFromSealedState: Boolean(!stored && pending),
+            callbackHost: req.headers.host || '',
+            redirectUriHost,
+          })
+        )
+        return fail('atozas_session_expired')
+      }
 
       const endpoints = await getEndpoints()
       const tokens = await exchangeAuthorizationCode({
