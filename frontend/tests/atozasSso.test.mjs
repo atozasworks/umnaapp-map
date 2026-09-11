@@ -10,6 +10,7 @@ import {
   isAtozasLoggedOut,
   markAtozasLoggedOut,
   shouldAutoStartAtozasSso,
+  shouldStartSsoFromProtectedRoute,
 } from '../src/utils/atozasSso.js'
 
 const memory = new Map()
@@ -95,6 +96,39 @@ test('shouldAutoStartAtozasSso still allows a first-visit SSO hint', () => {
   assert.equal(
     shouldAutoStartAtozasSso({
       enabled: true,
+    }),
+    false
+  )
+})
+
+test('protected / starts SSO for guests unless they logged out', () => {
+  assert.equal(
+    shouldStartSsoFromProtectedRoute({
+      ssoEnabled: true,
+      autoStart: true,
+    }),
+    true
+  )
+  assert.equal(
+    shouldStartSsoFromProtectedRoute({
+      ssoEnabled: true,
+      autoStart: true,
+      loggedOut: true,
+    }),
+    false
+  )
+  assert.equal(
+    shouldStartSsoFromProtectedRoute({
+      ssoEnabled: true,
+      autoStart: true,
+      loading: true,
+    }),
+    false
+  )
+  assert.equal(
+    shouldStartSsoFromProtectedRoute({
+      ssoEnabled: false,
+      autoStart: true,
     }),
     false
   )

@@ -28,7 +28,7 @@ const errorMessages = {
 const LoginPage = () => {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { isAuthenticated, atozasAutoStart } = useAuth()
+  const { isAuthenticated, atozasAutoStart, atozasSsoEnabled } = useAuth()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -78,15 +78,21 @@ const LoginPage = () => {
   // After Logout this must NOT run — stay on the login page until the user
   // clicks Continue with ATOZAS.
   useEffect(() => {
+    const hasError = Boolean(searchParams.get('error'))
+    const ssoHint = searchParams.get('sso') === '1'
+    const fromAtozas = arrivedFromAtozas()
+    if ((ssoHint || fromAtozas) && !hasError) {
+      sessionStorage.removeItem(ATOZAS_SSO_ONCE_KEY)
+    }
     if (
       !shouldAutoStartAtozasSso({
-        enabled: atozasSso.enabled,
+        enabled: atozasSso.enabled || atozasSsoEnabled,
         isAuthenticated,
-        hasError: Boolean(searchParams.get('error')),
+        hasError,
         loggedOut: isAtozasLoggedOut() || !atozasAutoStart,
         autoRedirect: atozasSso.autoRedirect,
-        ssoHint: searchParams.get('sso') === '1',
-        arrivedFromAtozas: arrivedFromAtozas(),
+        ssoHint,
+        arrivedFromAtozas: fromAtozas,
       })
     ) {
       return
@@ -95,7 +101,7 @@ const LoginPage = () => {
     sessionStorage.setItem(ATOZAS_SSO_ONCE_KEY, '1')
     setSsoStarting(true)
     window.location.replace(atozasStartPath(redirect))
-  }, [atozasSso, atozasAutoStart, isAuthenticated, redirect, searchParams])
+  }, [atozasSso, atozasSsoEnabled, atozasAutoStart, isAuthenticated, redirect, searchParams])
 
   const handleSubmit = async (e) => {
     e.preventDefault()

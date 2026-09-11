@@ -49,6 +49,17 @@ export function shouldAutoStartAtozasSso({
   return Boolean(autoRedirect || ssoHint || fromAtozas)
 }
 
+/** Guest on a protected route: start OIDC now (homepage Visit AtozMaps → /). */
+export function shouldStartSsoFromProtectedRoute({
+  isAuthenticated,
+  loading,
+  ssoEnabled,
+  autoStart,
+  loggedOut,
+} = {}) {
+  return Boolean(!isAuthenticated && !loading && ssoEnabled && autoStart && !loggedOut)
+}
+
 async function readJson(res) {
   const contentType = res.headers.get('content-type') || ''
   if (!contentType.includes('application/json')) return null
