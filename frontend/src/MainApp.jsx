@@ -84,14 +84,13 @@ export default function MainApp() {
               <SocketProvider>
                 <Suspense fallback={<RouteFallback />}>
                   <Routes>
-                    <Route
-                      path="/"
-                      element={
-                        <ProtectedRoute>
-                          <HomePage />
-                        </ProtectedRoute>
-                      }
-                    />
+                    {/*
+                      Landing/home is PUBLIC. Guests get the map in read-only
+                      "guest mode" — no forced redirect to ATOZAS/SSO. HomePage
+                      gates protected actions (add/save place, contributions,
+                      sharing, profile) and starts the SSO flow only then.
+                    */}
+                    <Route path="/" element={<HomePage />} />
                     <Route path="/welcome" element={<LandingPage />} />
                     <Route
                       path="/login"

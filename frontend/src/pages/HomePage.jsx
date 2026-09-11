@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useCallback, useMemo, Suspense, memo } fro
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslate } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
-import { ATOZAS_POST_LOGOUT_PATH } from '../utils/atozasSso'
+import { ATOZAS_POST_LOGOUT_PATH, beginAtozasLogin } from '../utils/atozasSso'
+import { loginWithSsoHint, sanitizeAuthRedirect } from '../utils/authRedirect'
 import MapComponent from '../components/MapComponent'
 import MapContextMenu from '../components/MapContextMenu'
 import SearchBar from '../components/SearchBar'
@@ -214,6 +215,19 @@ const HomePage = () => {
   const { user, logout, updateProfilePicture, isAuthenticated } = useAuth()
   const navigateTo = useNavigate()
   const location = useLocation()
+
+  // Guests can browse the public map freely, but any protected action (adding
+  // or saving a place, contributions, live sharing, profile, notifications)
+  // must start the SSO/login flow instead of silently failing. Returns true
+  // when already authenticated so callers can `if (!requireAuth()) return`.
+  const requireAuth = useCallback(() => {
+    if (isAuthenticated) return true
+    beginAtozasLogin()
+    const returnTo = sanitizeAuthRedirect(`${location.pathname}${location.search}`)
+    navigateTo(loginWithSsoHint(returnTo))
+    return false
+  }, [isAuthenticated, location.pathname, location.search, navigateTo])
+
   const mapRef = useRef(null)
   const [showRoutePanel, setShowRoutePanel] = useState(false)
   const [routePanelSafeMode, setRoutePanelSafeMode] = useState(false)
@@ -295,6 +309,9 @@ const HomePage = () => {
   const [showOfflineMaps, setShowOfflineMaps] = useState(false)
 
   const menuShowSidebar = useTranslate('Show side bar')
+  const menuGuestTitle = useTranslate('Browsing as guest')
+  const menuGuestSubtitle = useTranslate('Sign in to add places, save favorites, and share your location.')
+  const menuGuestSignIn = useTranslate('Sign in / Sign up')
   const menuSaved = useTranslate('Saved')
   const menuRecents = useTranslate('Recents')
   const menuYourContributions = useTranslate('Your contributions')
@@ -426,16 +443,29 @@ const HomePage = () => {
     if (!bounds?.getSouth) return
     const padded = padMapBounds(bounds)
     try {
-      const { data } = await api.get('/map/places', {
-        params: {
-          includeOsm: 'true',
-          minLat: padded.minLat,
-          maxLat: padded.maxLat,
-          minLng: padded.minLng,
-          maxLng: padded.maxLng,
-          limit: 2000,
-        },
-      })
+      // Guests read approved places from the credential-less public API so the
+      // landing map shows real content without a session. Authenticated users
+      // get the richer feed (their own places + OSM POIs).
+      const { data } = isAuthenticated
+        ? await api.get('/map/places', {
+            params: {
+              includeOsm: 'true',
+              minLat: padded.minLat,
+              maxLat: padded.maxLat,
+              minLng: padded.minLng,
+              maxLng: padded.maxLng,
+              limit: 2000,
+            },
+          })
+        : await api.get('/public/places', {
+            params: {
+              minLat: padded.minLat,
+              maxLat: padded.maxLat,
+              minLng: padded.minLng,
+              maxLng: padded.maxLng,
+              limit: 500,
+            },
+          })
       const places = Array.isArray(data.places) ? data.places : []
       loadedBboxRef.current = padded
       setAllPlaces((prev) => mergeViewportPlaces(prev, places, padded))
@@ -452,7 +482,7 @@ const HomePage = () => {
     } catch (err) {
       console.error('Failed to fetch places:', err)
     }
-  }, [])
+  }, [isAuthenticated])
 
   // Debounced viewport refresh: only fires after the user stops moving, skips
   // fetches when the viewport is still inside the already-loaded area, and does
@@ -528,10 +558,13 @@ const HomePage = () => {
     (map) => {
       setMapReadyTick((t) => t + 1)
       // Load secondary data only once the map is on screen, and only for the
-      // area currently in view.
+      // area currently in view. Places load for everyone (guests via the public
+      // API); favorites/contributions are user-scoped and load only when signed in.
       if (isAuthenticated) {
         refreshFavoritesFromDb()
         refreshMyContributions()
+      }
+      {
         const zoom = map?.getZoom?.() ?? 0
         if (zoom >= MIN_POI_ZOOM && map?.getBounds) {
           refreshPlacesFromDb(map.getBounds())
@@ -739,6 +772,7 @@ const HomePage = () => {
   }
 
   const handleLocationSharing = () => {
+    if (!requireAuth()) return
     setShowMenu(false)
     setLiveShareError('')
     setShowLiveShareSheet(true)
@@ -853,6 +887,7 @@ const HomePage = () => {
   }
 
   const openAddPlaceAt = async (lat, lng, { category, customCategory, name } = {}) => {
+    if (!requireAuth()) return
     const map = mapRef.current?.getMap?.()
     const zoom = map ? Math.round(map.getZoom()) : 15
     // Open modal immediately so the user sees feedback; enrich location in the background.
@@ -1032,6 +1067,7 @@ const HomePage = () => {
   }
 
   const openAddPlace = () => {
+    if (!requireAuth()) return
     setShowMenu(false)
     setMapLocation(null)
     setAddPlacePickMode(false)
@@ -1084,6 +1120,7 @@ const HomePage = () => {
   }
 
   const handleSavePlaceFromSearch = async (result) => {
+    if (!requireAuth()) return
     const lat = parseFloat(result.lat ?? result.latitude)
     const lng = parseFloat(result.lng ?? result.longitude)
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
@@ -1603,6 +1640,7 @@ const HomePage = () => {
   }
 
   const handlePlaceSaveFromPanel = async (place) => {
+    if (!requireAuth()) return
     const placeKey = `${place.latitude}-${place.longitude}`
     if (savingPlaceId === placeKey) return
     setSavingPlaceId(placeKey)
@@ -2053,14 +2091,19 @@ const HomePage = () => {
 
           {/* Right side: Notifications + Extract Places + Add Place */}
           <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
-            <NotificationBell
-              enabled={mapReadyTick > 0}
-              onPlaceFocus={handleNotificationPlaceFocus}
-              onOpenLiveShare={handleNotificationLiveShareOpen}
-            />
+            {isAuthenticated && (
+              <NotificationBell
+                enabled={mapReadyTick > 0}
+                onPlaceFocus={handleNotificationPlaceFocus}
+                onOpenLiveShare={handleNotificationLiveShareOpen}
+              />
+            )}
             {/* Extract Places button */}
             <button
-              onClick={() => setShowExtractPanel(true)}
+              onClick={() => {
+                if (!requireAuth()) return
+                setShowExtractPanel(true)
+              }}
               className="flex items-center gap-1.5 rounded-xl px-2.5 sm:px-3.5 py-2.5 font-medium text-sm transition-all duration-200 shrink-0 min-h-[44px] sm:min-h-0 bg-white/80 hover:bg-white border border-slate-200 hover:border-primary-300 text-slate-700 hover:text-primary-700 shadow-sm hover:shadow-md"
               title={menuExtractPlaces}
             >
@@ -2074,11 +2117,12 @@ const HomePage = () => {
               onClick={() => {
                 if (addPlacePickMode) {
                   setAddPlacePickMode(false)
-                } else {
-                  setMapLocation(null)
-                  setAddPlaceLocationMethod(null)
-                  setShowAddPlaceMethodModal(true)
+                  return
                 }
+                if (!requireAuth()) return
+                setMapLocation(null)
+                setAddPlaceLocationMethod(null)
+                setShowAddPlaceMethodModal(true)
               }}
               className={`flex items-center gap-2 rounded-xl px-3 sm:px-4 py-2.5 font-medium text-sm transition-all duration-200 shrink-0 min-h-[44px] sm:min-h-0 ${
                 addPlacePickMode
@@ -2126,6 +2170,7 @@ const HomePage = () => {
           onSavePlace={handleSavePlaceFromSearch}
           onUnsavePlace={handleUnsavePlaceFromSearch}
           savingPlaceId={savingPlaceId}
+          searchEndpoint={isAuthenticated ? '/map/search-simple' : '/public/search'}
         />
         <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
           <button
@@ -2570,6 +2615,20 @@ const HomePage = () => {
 
             {/* Menu content - scrollable */}
             <div className="flex-1 overflow-y-auto">
+              {/* Guest - prompt sign in for protected features */}
+              {!isAuthenticated && (
+                <div className="border-b border-slate-200 px-4 sm:px-5 py-4 bg-gradient-to-r from-primary-50/80 to-primary-100/50">
+                  <p className="text-sm font-semibold text-slate-800">{menuGuestTitle}</p>
+                  <p className="text-xs text-slate-600 mt-0.5">{menuGuestSubtitle}</p>
+                  <button
+                    type="button"
+                    onClick={() => { setShowMenu(false); requireAuth() }}
+                    className="mt-3 w-full rounded-xl bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 text-white text-sm font-semibold py-2.5 shadow-md transition-colors"
+                  >
+                    {menuGuestSignIn}
+                  </button>
+                </div>
+              )}
               {/* Logged-in user - top of menu */}
               {user && (
                 <div className="border-b border-slate-200 px-4 sm:px-5 py-4 bg-gradient-to-r from-primary-50/80 to-primary-100/50">
@@ -2729,7 +2788,7 @@ const HomePage = () => {
               {/* Section 2: Personal */}
               <div className="border-b border-slate-200 py-2">
                 <button
-                  onClick={() => { setShowMenu(false); setShowContributionsOnly(false); setShowMyPlaces(true); }}
+                  onClick={() => { if (!requireAuth()) return; setShowMenu(false); setShowContributionsOnly(false); setShowMyPlaces(true); }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
                 >
                   <svg className="w-5 h-5 text-slate-600" fill="currentColor" viewBox="0 0 24 24">
@@ -2747,7 +2806,7 @@ const HomePage = () => {
                   <span className="text-sm text-slate-500">{menuRecents}</span>
                 </button>
                 <button
-                  onClick={() => { setShowMenu(false); setShowContributionsOnly(true); setShowMyPlaces(true); }}
+                  onClick={() => { if (!requireAuth()) return; setShowMenu(false); setShowContributionsOnly(true); setShowMyPlaces(true); }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
                 >
                   <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
