@@ -219,16 +219,37 @@ export function createAtozasSsoRouter(overrides = {}) {
       const pkce = generatePkceS256()
       const endpoints = await getEndpoints()
       const state = generateOpaqueState()
+      const issuedAt = Date.now()
       await pendingStore.set(
         state,
         {
           v: pkce.codeVerifier,
           n: nonce,
           r: returnTo,
-          t: Date.now(),
+          t: issuedAt,
         },
         OIDC_TTL_MS
       )
+
+      // Also bind the in-flight PKCE state to this browser's own SSO session as a
+      // fallback. If the state-keyed pending store misses at the callback (store
+      // hiccup) or the IdP fails to echo `state`, the callback can still recover
+      // the verifier from the session cookie. Non-fatal if it can't be saved —
+      // the pending store stays the primary path.
+      if (req.session) {
+        req.session.oidcPending = {
+          v: pkce.codeVerifier,
+          n: nonce,
+          r: returnTo,
+          t: issuedAt,
+          s: state,
+        }
+        try {
+          await saveSession(req)
+        } catch {
+          /* pending store remains the primary recovery path */
+        }
+      }
 
       const authorizeUrl = buildAuthorizeUrl(endpoints, {
         response_type: 'code',
@@ -251,7 +272,29 @@ export function createAtozasSsoRouter(overrides = {}) {
   router.get('/atozas/callback', async (req, res) => {
     const rawState = typeof req.query.state === 'string' ? req.query.state : ''
     const stored = rawState ? await pendingStore.take(rawState).catch(() => null) : null
-    const pending = pendingFromRecord(stored) || openOidcState(rawState, config.sessionSecret, OIDC_TTL_MS)
+    let pending = pendingFromRecord(stored) || openOidcState(rawState, config.sessionSecret, OIDC_TTL_MS)
+
+    // Fallback: recover the PKCE verifier from this browser's own SSO session if
+    // the state-keyed pending store missed or the IdP did not echo `state`. The
+    // session cookie binds this callback to the browser that started the flow, so
+    // this stays CSRF-safe. When the IdP DID echo a state, it must match the one
+    // we issued for this session.
+    let recoveredFromSession = false
+    if (!pending?.codeVerifier) {
+      const sess = req.session?.oidcPending
+      if (
+        sess &&
+        typeof sess.v === 'string' &&
+        sess.v &&
+        Number.isFinite(sess.t) &&
+        Date.now() - sess.t <= OIDC_TTL_MS &&
+        (!rawState || rawState === sess.s)
+      ) {
+        pending = pendingFromRecord({ v: sess.v, n: sess.n, r: sess.r, t: sess.t })
+        recoveredFromSession = Boolean(pending?.codeVerifier)
+      }
+    }
+
     const returnTo = pending?.returnTo || '/'
     const fail = (code) => res.redirect(loginErrorRedirect(config.frontendUrl, code, returnTo))
 
@@ -290,7 +333,8 @@ export function createAtozasSsoRouter(overrides = {}) {
             hasCode: Boolean(code),
             hasState: Boolean(rawState),
             pendingStoreHit: Boolean(stored),
-            recoveredFromSealedState: Boolean(!stored && pending),
+            hasSessionPending: Boolean(req.session?.oidcPending),
+            recoveredFromSession,
             callbackHost: req.headers.host || '',
             redirectUriHost,
           })
@@ -337,6 +381,8 @@ export function createAtozasSsoRouter(overrides = {}) {
         refreshToken: typeof tokens.refresh_token === 'string' ? tokens.refresh_token : undefined,
         tokenType: typeof tokens.token_type === 'string' ? tokens.token_type : undefined,
       }
+      // Drop the transient PKCE binding now that the flow is complete.
+      req.session.oidcPending = undefined
       await saveSession(req)
       res.redirect(frontendRedirect(config.frontendUrl, returnTo, token))
     } catch (err) {

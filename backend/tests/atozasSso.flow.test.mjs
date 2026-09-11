@@ -295,6 +295,39 @@ describe('ATOZAS SSO login → callback → JWT → me → logout', () => {
     assert.equal(statusBody.token, undefined)
   })
 
+  test('callback recovers via the browser session when the IdP omits state', async () => {
+    const jar = cookieJar()
+    const start = await fetch(`${base}/auth/atozas?returnTo=/notifications`, { redirect: 'manual' })
+    jar.store(start)
+    assert.equal(start.status, 302)
+
+    // Simulate the IdP dropping `state` on the callback (only `code` comes back).
+    const callback = await fetch(`${base}/auth/atozas/callback?code=good-code`, {
+      redirect: 'manual',
+      headers: { cookie: jar.header() },
+    })
+    assert.equal(callback.status, 302)
+    const landed = new URL(callback.headers.get('location'))
+    assert.equal(landed.origin, 'http://app.test')
+    assert.equal(landed.pathname, '/notifications')
+    assert.match(landed.searchParams.get('token') || '', /^app-jwt-/)
+  })
+
+  test('callback rejects a session recovery when the echoed state does not match', async () => {
+    const jar = cookieJar()
+    const start = await fetch(`${base}/auth/atozas`, { redirect: 'manual' })
+    jar.store(start)
+
+    // A mismatched (attacker-supplied) state must NOT be honoured even though the
+    // browser session holds a pending flow.
+    const callback = await fetch(`${base}/auth/atozas/callback?code=good-code&state=deadbeefdeadbeefdeadbeefdeadbeef`, {
+      redirect: 'manual',
+      headers: { cookie: jar.header() },
+    })
+    assert.equal(callback.status, 302)
+    assert.match(callback.headers.get('location'), /atozas_session_expired/)
+  })
+
   test('callback still accepts a legacy sealed state', async () => {
     const sealed = sealOidcState(
       { v: 'legacy-verifier', n: 'nonce', r: '/', t: Date.now() },
