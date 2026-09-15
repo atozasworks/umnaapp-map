@@ -42,7 +42,13 @@ export async function requestAdminOtp(email) {
   try {
     await sendEmailOtp(normalized, otp)
   } catch (e) {
-    console.error('[admin] OTP email failed:', e.message)
+    // Log full SMTP detail server-side to aid diagnosis (code + server response).
+    console.error('[admin] OTP email failed:', {
+      message: e.message,
+      code: e.code,
+      command: e.command,
+      response: e.response,
+    })
     const err = new Error('Failed to send verification email. Check SMTP configuration.')
     err.status = 502
     throw err

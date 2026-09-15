@@ -362,21 +362,17 @@ export async function sendEmailOtp(email, otp) {
       </body>
       </html>
     `,
+    // Keep headers minimal and standards-compliant. High-priority + bulk +
+    // manually-forced Message-ID/Date/Content-Type flags trip Hostinger's
+    // outbound spam filter (554 5.7.1 Spam message rejected). Let nodemailer
+    // generate Message-ID/Date/MIME/Content-Type itself.
     headers: {
-      'X-Priority': '1',
-      'X-MSMail-Priority': 'High',
-      'Importance': 'high',
       'X-Mailer': 'UMNAAPP',
       'List-Unsubscribe': `<mailto:${smtpConfig.email}?subject=unsubscribe>`,
-      'Message-ID': `<${Date.now()}-${Math.random().toString(36)}@${smtpConfig.server}>`,
-      'Date': new Date().toUTCString(),
-      'MIME-Version': '1.0',
-      'Content-Type': 'text/html; charset=utf-8',
       'X-Auto-Response-Suppress': 'All',
-      'Precedence': 'bulk',
     },
     replyTo: smtpConfig.email,
-    // Add envelope for better deliverability
+    // Envelope sender must be the authenticated mailbox (Hostinger anti-spoofing).
     envelope: {
       from: smtpConfig.email,
       to: email,
