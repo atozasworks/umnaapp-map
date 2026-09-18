@@ -13,6 +13,7 @@ const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 import authRoutes from './routes/authRoutes.js'
 import atozasAuthRoutes from './routes/atozasAuthRoutes.js'
+import { mountAtozasSso } from './config/atozasSso.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import safeRouteRoutes from './routes/safeRouteRoutes.js'
@@ -23,6 +24,7 @@ import notificationRoutes from './routes/notificationRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import liveLocationRoutes from './routes/liveLocationRoutes.js'
+import reminderRoutes from './routes/reminderRoutes.js'
 import {
   pauseOwnerLiveSharesOnDisconnect,
   registerLiveLocationSockets,
@@ -36,6 +38,7 @@ import {
 } from './middleware/rateLimit.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
+import { startDailyReminderScheduler } from './services/dailyReminderService.js'
 import { seedAdminBootstrapEmails } from './services/adminAllowlistService.js'
 import { setIo } from './lib/socketIo.js'
 
@@ -53,6 +56,7 @@ const corsOrigin =
   process.env.CORS_ORIGINS?.split(',').map((s) => s.trim()).filter(Boolean) || defaultOrigins
 
 const app = express()
+app.set('trust proxy', 1)
 const httpServer = createServer(app)
 const io = new Server(httpServer, {
   cors: {
@@ -123,6 +127,10 @@ app.use(express.json({ limit: '5mb' }))
 app.use(express.urlencoded({ extended: true, limit: '5mb' }))
 app.use(passport.initialize())
 
+// ATOZAS OIDC client routes must be mounted before the SPA catch-all.
+// When ATOZAS_SSO_ENABLED=false these return JSON 404 and existing auth is unchanged.
+mountAtozasSso(app)
+
 // Routes
 app.use('/api/auth', rateLimitMiddleware('auth', 40, 60), authRoutes)
 app.use('/api', atozasAuthRoutes) // Atozas Auth Kit routes (/api/email/send-otp, /api/email/verify-otp, /api/me)
@@ -140,6 +148,7 @@ app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), not
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
 app.use('/api/feedback', feedbackRoutes)
 app.use('/api/live-location', liveLocationRoutes) // Timed live-location sharing
+app.use('/api/reminders', reminderRoutes) // Daily reminder email unsubscribe/resubscribe (public, token-signed)
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -237,6 +246,7 @@ const serveAdminIndex = (req, res, next) => {
 app.get('/', serveIndex)
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next()
+  if (req.path.startsWith('/auth')) return next()
   if (req.path === '/admin' || req.path.startsWith('/admin/')) {
     return serveAdminIndex(req, res, next)
   }
@@ -433,6 +443,7 @@ async function startServer() {
 
   httpServer.listen(PORT, () => {
     startPlaceApprovalScheduler()
+    startDailyReminderScheduler()
     console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
     console.log(`📡 Socket.io server ready`)
   })

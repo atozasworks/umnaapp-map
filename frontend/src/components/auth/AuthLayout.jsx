@@ -79,6 +79,33 @@ export function GoogleSignInButton({ onClick, label = 'Continue with Google' }) 
   )
 }
 
+export function AtozasSignInButton({ onClick, href, label = 'Continue with ATOZAS' }) {
+  const inner = (
+    <>
+      <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 24 24" aria-hidden>
+        <circle cx="12" cy="12" r="10" fill="#0ea5e9" />
+        <path
+          fill="white"
+          d="M12 6.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zm0 1.75a2 2 0 110 4 2 2 0 010-4zM8.4 16.2c.9-1 2.15-1.6 3.6-1.6s2.7.6 3.6 1.6A4.7 4.7 0 0112 17.25a4.7 4.7 0 01-3.6-1.05z"
+        />
+      </svg>
+      <span>{label}</span>
+    </>
+  )
+  if (href) {
+    return (
+      <a href={href} className="auth-google-btn auth-atozas-btn">
+        {inner}
+      </a>
+    )
+  }
+  return (
+    <button type="button" onClick={onClick} className="auth-google-btn auth-atozas-btn">
+      {inner}
+    </button>
+  )
+}
+
 export default function AuthLayout({ title, subtitle, children, footer }) {
   return (
     <div className="auth-page">
@@ -101,13 +128,13 @@ export default function AuthLayout({ title, subtitle, children, footer }) {
 
       {/* Top nav */}
       <header className="auth-page-header safe-area-inset">
-        <Link to="/" className="auth-back-link" aria-label="Back to home">
+        <Link to="/welcome" className="auth-back-link" aria-label="Back to home">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
             <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
           </svg>
           <span className="hidden sm:inline">Home</span>
         </Link>
-        <Link to="/" className="auth-header-logo group" aria-label="UMNAAPP home">
+        <Link to="/welcome" className="auth-header-logo group" aria-label="UMNAAPP home">
           <AppLogo decorative imgClassName="h-7 sm:h-8 w-auto object-contain flex-shrink-0 transition-transform group-hover:scale-105" />
           <span className="text-lg sm:text-xl font-bold tracking-tight bg-gradient-to-r from-sky-300 via-cyan-200 to-primary-300 bg-clip-text text-transparent">
             UMNAAPP

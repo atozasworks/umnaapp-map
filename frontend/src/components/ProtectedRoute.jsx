@@ -1,6 +1,6 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { authPageWithRedirect } from '../utils/authRedirect'
+import { sanitizeAuthRedirect } from '../utils/authRedirect'
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth()
@@ -14,8 +14,9 @@ const ProtectedRoute = ({ children }) => {
     return children
   }
 
-  // No token yet, but auth state is still resolving (e.g. token arriving from a
-  // Google OAuth redirect) → brief spinner instead of a premature redirect.
+  // No token yet, but auth state is still resolving (e.g. a token arriving from a
+  // Google OAuth redirect, or a silent ATOZAS session restore via /auth/atozas/me)
+  // → brief spinner instead of a premature redirect.
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -24,9 +25,18 @@ const ProtectedRoute = ({ children }) => {
     )
   }
 
-  const redirect = `${location.pathname}${location.search}`
-  return <Navigate to={authPageWithRedirect('/login', redirect)} replace />
+  // Guest (not signed in anywhere) → show the public landing/welcome page with
+  // Sign in / Get started actions.
+  //
+  // We deliberately DO NOT auto-start ATOZAS SSO here. Opening the app from the
+  // atozasindia.in "Visit AtozMaps" link (or any ATOZAS referrer) must never
+  // force a bounce to the ATOZAS login screen. Users who are already signed in
+  // at ATOZAS are still restored silently in AuthContext (no redirect); everyone
+  // else lands here and chooses "Continue with ATOZAS" / Google / email OTP on
+  // the login page themselves. The originally requested path is preserved so
+  // sign-in can return the user there.
+  const from = sanitizeAuthRedirect(`${location.pathname}${location.search}`)
+  return <Navigate to="/welcome" replace state={{ from }} />
 }
 
 export default ProtectedRoute
-

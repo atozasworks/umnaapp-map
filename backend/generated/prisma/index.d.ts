@@ -2972,6 +2972,8 @@ export namespace Prisma {
     emailVerified: boolean | null
     profilePublic: boolean | null
     lastGridExtractAt: Date | null
+    dailyReminderOptOut: boolean | null
+    lastDailyReminderAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -2986,6 +2988,8 @@ export namespace Prisma {
     emailVerified: boolean | null
     profilePublic: boolean | null
     lastGridExtractAt: Date | null
+    dailyReminderOptOut: boolean | null
+    lastDailyReminderAt: Date | null
     createdAt: Date | null
     updatedAt: Date | null
   }
@@ -3000,6 +3004,8 @@ export namespace Prisma {
     emailVerified: number
     profilePublic: number
     lastGridExtractAt: number
+    dailyReminderOptOut: number
+    lastDailyReminderAt: number
     createdAt: number
     updatedAt: number
     _all: number
@@ -3016,6 +3022,8 @@ export namespace Prisma {
     emailVerified?: true
     profilePublic?: true
     lastGridExtractAt?: true
+    dailyReminderOptOut?: true
+    lastDailyReminderAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3030,6 +3038,8 @@ export namespace Prisma {
     emailVerified?: true
     profilePublic?: true
     lastGridExtractAt?: true
+    dailyReminderOptOut?: true
+    lastDailyReminderAt?: true
     createdAt?: true
     updatedAt?: true
   }
@@ -3044,6 +3054,8 @@ export namespace Prisma {
     emailVerified?: true
     profilePublic?: true
     lastGridExtractAt?: true
+    dailyReminderOptOut?: true
+    lastDailyReminderAt?: true
     createdAt?: true
     updatedAt?: true
     _all?: true
@@ -3131,6 +3143,8 @@ export namespace Prisma {
     emailVerified: boolean
     profilePublic: boolean
     lastGridExtractAt: Date | null
+    dailyReminderOptOut: boolean
+    lastDailyReminderAt: Date | null
     createdAt: Date
     updatedAt: Date
     _count: UserCountAggregateOutputType | null
@@ -3162,6 +3176,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: boolean
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
     otpVerifications?: boolean | User$otpVerificationsArgs<ExtArgs>
@@ -3194,6 +3210,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: boolean
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }, ExtArgs["result"]["user"]>
@@ -3208,6 +3226,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: boolean
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: boolean
     createdAt?: boolean
     updatedAt?: boolean
   }
@@ -3265,6 +3285,8 @@ export namespace Prisma {
       emailVerified: boolean
       profilePublic: boolean
       lastGridExtractAt: Date | null
+      dailyReminderOptOut: boolean
+      lastDailyReminderAt: Date | null
       createdAt: Date
       updatedAt: Date
     }, ExtArgs["result"]["user"]>
@@ -3686,6 +3708,8 @@ export namespace Prisma {
     readonly emailVerified: FieldRef<"User", 'Boolean'>
     readonly profilePublic: FieldRef<"User", 'Boolean'>
     readonly lastGridExtractAt: FieldRef<"User", 'DateTime'>
+    readonly dailyReminderOptOut: FieldRef<"User", 'Boolean'>
+    readonly lastDailyReminderAt: FieldRef<"User", 'DateTime'>
     readonly createdAt: FieldRef<"User", 'DateTime'>
     readonly updatedAt: FieldRef<"User", 'DateTime'>
   }
@@ -25934,6 +25958,8 @@ export namespace Prisma {
     emailVerified: 'emailVerified',
     profilePublic: 'profilePublic',
     lastGridExtractAt: 'lastGridExtractAt',
+    dailyReminderOptOut: 'dailyReminderOptOut',
+    lastDailyReminderAt: 'lastDailyReminderAt',
     createdAt: 'createdAt',
     updatedAt: 'updatedAt'
   };
@@ -26429,6 +26455,8 @@ export namespace Prisma {
     emailVerified?: BoolFilter<"User"> | boolean
     profilePublic?: BoolFilter<"User"> | boolean
     lastGridExtractAt?: DateTimeNullableFilter<"User"> | Date | string | null
+    dailyReminderOptOut?: BoolFilter<"User"> | boolean
+    lastDailyReminderAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     otpVerifications?: OTPVerificationListRelationFilter
@@ -26460,6 +26488,8 @@ export namespace Prisma {
     emailVerified?: SortOrder
     profilePublic?: SortOrder
     lastGridExtractAt?: SortOrderInput | SortOrder
+    dailyReminderOptOut?: SortOrder
+    lastDailyReminderAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     otpVerifications?: OTPVerificationOrderByRelationAggregateInput
@@ -26494,6 +26524,8 @@ export namespace Prisma {
     emailVerified?: BoolFilter<"User"> | boolean
     profilePublic?: BoolFilter<"User"> | boolean
     lastGridExtractAt?: DateTimeNullableFilter<"User"> | Date | string | null
+    dailyReminderOptOut?: BoolFilter<"User"> | boolean
+    lastDailyReminderAt?: DateTimeNullableFilter<"User"> | Date | string | null
     createdAt?: DateTimeFilter<"User"> | Date | string
     updatedAt?: DateTimeFilter<"User"> | Date | string
     otpVerifications?: OTPVerificationListRelationFilter
@@ -26525,6 +26557,8 @@ export namespace Prisma {
     emailVerified?: SortOrder
     profilePublic?: SortOrder
     lastGridExtractAt?: SortOrderInput | SortOrder
+    dailyReminderOptOut?: SortOrder
+    lastDailyReminderAt?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
     _count?: UserCountOrderByAggregateInput
@@ -26545,6 +26579,8 @@ export namespace Prisma {
     emailVerified?: BoolWithAggregatesFilter<"User"> | boolean
     profilePublic?: BoolWithAggregatesFilter<"User"> | boolean
     lastGridExtractAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
+    dailyReminderOptOut?: BoolWithAggregatesFilter<"User"> | boolean
+    lastDailyReminderAt?: DateTimeNullableWithAggregatesFilter<"User"> | Date | string | null
     createdAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
     updatedAt?: DateTimeWithAggregatesFilter<"User"> | Date | string
   }
@@ -28398,6 +28434,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -28429,6 +28467,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -28460,6 +28500,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -28491,6 +28533,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -28522,6 +28566,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
   }
@@ -28536,6 +28582,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -28550,6 +28598,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
@@ -30849,6 +30899,8 @@ export namespace Prisma {
     emailVerified?: SortOrder
     profilePublic?: SortOrder
     lastGridExtractAt?: SortOrder
+    dailyReminderOptOut?: SortOrder
+    lastDailyReminderAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -30863,6 +30915,8 @@ export namespace Prisma {
     emailVerified?: SortOrder
     profilePublic?: SortOrder
     lastGridExtractAt?: SortOrder
+    dailyReminderOptOut?: SortOrder
+    lastDailyReminderAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -30877,6 +30931,8 @@ export namespace Prisma {
     emailVerified?: SortOrder
     profilePublic?: SortOrder
     lastGridExtractAt?: SortOrder
+    dailyReminderOptOut?: SortOrder
+    lastDailyReminderAt?: SortOrder
     createdAt?: SortOrder
     updatedAt?: SortOrder
   }
@@ -35086,6 +35142,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -35116,6 +35174,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -35162,6 +35222,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -35192,6 +35254,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -35222,6 +35286,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -35252,6 +35318,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -35298,6 +35366,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -35328,6 +35398,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -35358,6 +35430,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -35388,6 +35462,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -35434,6 +35510,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -35464,6 +35542,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -35494,6 +35574,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionCreateNestedManyWithoutUserInput
@@ -35524,6 +35606,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     sessions?: SessionUncheckedCreateNestedManyWithoutUserInput
@@ -35570,6 +35654,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUpdateManyWithoutUserNestedInput
@@ -35600,6 +35686,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     sessions?: SessionUncheckedUpdateManyWithoutUserNestedInput
@@ -35630,6 +35718,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -35660,6 +35750,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -35706,6 +35798,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -35736,6 +35830,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -35766,6 +35862,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -35796,6 +35894,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -35922,6 +36022,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -35952,6 +36054,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -36043,6 +36147,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -36073,6 +36179,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -36154,6 +36262,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -36184,6 +36294,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -36243,6 +36355,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -36273,6 +36387,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -36354,6 +36470,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -36384,6 +36502,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -36414,6 +36534,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -36444,6 +36566,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -36654,6 +36778,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -36684,6 +36810,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -36794,6 +36922,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -36824,6 +36954,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -36983,6 +37115,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -37013,6 +37147,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -37275,6 +37411,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -37305,6 +37443,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -37470,6 +37610,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -37500,6 +37642,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -37643,6 +37787,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -37673,6 +37819,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -37838,6 +37986,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -37868,6 +38018,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -38011,6 +38163,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -38041,6 +38195,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -38206,6 +38362,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -38236,6 +38394,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -38266,6 +38426,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -38296,6 +38458,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -38455,6 +38619,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -38485,6 +38651,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -38634,6 +38802,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -38664,6 +38834,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -38734,6 +38906,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -38764,6 +38938,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -38855,6 +39031,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -38885,6 +39063,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -38982,6 +39162,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -39012,6 +39194,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput
@@ -39042,6 +39226,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationCreateNestedManyWithoutUserInput
@@ -39072,6 +39258,8 @@ export namespace Prisma {
     emailVerified?: boolean
     profilePublic?: boolean
     lastGridExtractAt?: Date | string | null
+    dailyReminderOptOut?: boolean
+    lastDailyReminderAt?: Date | string | null
     createdAt?: Date | string
     updatedAt?: Date | string
     otpVerifications?: OTPVerificationUncheckedCreateNestedManyWithoutUserInput
@@ -39118,6 +39306,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUpdateManyWithoutUserNestedInput
@@ -39148,6 +39338,8 @@ export namespace Prisma {
     emailVerified?: BoolFieldUpdateOperationsInput | boolean
     profilePublic?: BoolFieldUpdateOperationsInput | boolean
     lastGridExtractAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
+    dailyReminderOptOut?: BoolFieldUpdateOperationsInput | boolean
+    lastDailyReminderAt?: NullableDateTimeFieldUpdateOperationsInput | Date | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     updatedAt?: DateTimeFieldUpdateOperationsInput | Date | string
     otpVerifications?: OTPVerificationUncheckedUpdateManyWithoutUserNestedInput

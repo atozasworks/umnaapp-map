@@ -113,8 +113,10 @@ router.put('/profile', authenticateToken, updateProfile)
 // Update profile picture
 router.put('/profile-picture', authenticateToken, updateProfilePicture)
 
-// Logout
-router.post('/logout', authenticateToken, logout)
+// Logout — idempotent and must NOT require a live session. The controller
+// deletes the session by the bearer token itself, so an expired/rotated/missing
+// token still returns 200 (401 here would leave the session row uncleaned).
+router.post('/logout', logout)
 
 // Google OAuth routes
 const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:3000'

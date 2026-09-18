@@ -132,6 +132,8 @@ exports.Prisma.UserScalarFieldEnum = {
   emailVerified: 'emailVerified',
   profilePublic: 'profilePublic',
   lastGridExtractAt: 'lastGridExtractAt',
+  dailyReminderOptOut: 'dailyReminderOptOut',
+  lastDailyReminderAt: 'lastDailyReminderAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

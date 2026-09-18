@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, useMemo, Suspense, memo } fro
 import { useNavigate, useLocation } from 'react-router-dom'
 import { useTranslate } from '../lib/i18n'
 import { useAuth } from '../contexts/AuthContext'
+import { ATOZAS_POST_LOGOUT_PATH } from '../utils/atozasSso'
 import MapComponent from '../components/MapComponent'
 import MapContextMenu from '../components/MapContextMenu'
 import SearchBar from '../components/SearchBar'
@@ -1860,8 +1861,8 @@ const HomePage = () => {
   }
 
   const handleLogout = async () => {
-    logout()
-    window.location.href = '/'
+    await logout()
+    window.location.replace(ATOZAS_POST_LOGOUT_PATH)
   }
 
   const confirmLogout = () => {
