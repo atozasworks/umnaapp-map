@@ -10,6 +10,7 @@ import PendingPlaces from './pages/PendingPlaces.jsx'
 import ExtractedPlaces from './pages/ExtractedPlaces.jsx'
 import BusinessClaims from './pages/BusinessClaims.jsx'
 import LegalDocs from './pages/LegalDocs.jsx'
+import DailyReminders from './pages/DailyReminders.jsx'
 import SafetyHazards from './pages/SafetyHazards.jsx'
 import AdminSettings from './pages/AdminSettings.jsx'
 
@@ -56,6 +57,7 @@ export default function App() {
         <Route path="safety-hazards" element={<SafetyHazards />} />
         <Route path="business-claims" element={<BusinessClaims />} />
         <Route path="legal" element={<LegalDocs />} />
+        <Route path="reminders" element={<DailyReminders />} />
         <Route path="extracted-places" element={<ExtractedPlaces />} />
         <Route path="schema" element={<Schema />} />
         <Route path="data" element={<DataExplorer />} />

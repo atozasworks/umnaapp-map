@@ -24,6 +24,7 @@ import notificationRoutes from './routes/notificationRoutes.js'
 import userRoutes from './routes/userRoutes.js'
 import feedbackRoutes from './routes/feedbackRoutes.js'
 import liveLocationRoutes from './routes/liveLocationRoutes.js'
+import reminderRoutes from './routes/reminderRoutes.js'
 import {
   pauseOwnerLiveSharesOnDisconnect,
   registerLiveLocationSockets,
@@ -37,6 +38,7 @@ import {
 } from './middleware/rateLimit.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
+import { startDailyReminderScheduler } from './services/dailyReminderService.js'
 import { seedAdminBootstrapEmails } from './services/adminAllowlistService.js'
 import { setIo } from './lib/socketIo.js'
 
@@ -146,6 +148,7 @@ app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), not
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
 app.use('/api/feedback', feedbackRoutes)
 app.use('/api/live-location', liveLocationRoutes) // Timed live-location sharing
+app.use('/api/reminders', reminderRoutes) // Daily reminder email unsubscribe/resubscribe (public, token-signed)
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -440,6 +443,7 @@ async function startServer() {
 
   httpServer.listen(PORT, () => {
     startPlaceApprovalScheduler()
+    startDailyReminderScheduler()
     console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
     console.log(`📡 Socket.io server ready`)
   })

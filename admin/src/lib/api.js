@@ -205,6 +205,16 @@ export async function updateLegalDocument(type, { title, content, notify = true 
   return data
 }
 
+export async function fetchDailyReminders() {
+  const { data } = await api.get('/admin/reminders')
+  return data
+}
+
+export async function sendDailyRemindersNow() {
+  const { data } = await api.post('/admin/reminders/send')
+  return data
+}
+
 export async function fetchBusinessClaims(status = 'pending') {
   const { data } = await api.get('/admin/claims', { params: { status } })
   return data

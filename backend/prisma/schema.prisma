@@ -12,17 +12,21 @@ datasource db {
 }
 
 model User {
-  id                String    @id @default(uuid())
-  name              String
-  email             String    @unique
-  password          String? // Optional for OTP-only users
-  googleId          String?   @unique
-  picture           String? // Profile image: URL (Google) or base64 data URL (uploaded)
-  emailVerified     Boolean   @default(false)
-  profilePublic     Boolean   @default(true) @map("profile_public") // public profile visibility
-  lastGridExtractAt DateTime? @map("last_grid_extract_at")
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
+  id                  String    @id @default(uuid())
+  name                String
+  email               String    @unique
+  password            String? // Optional for OTP-only users
+  googleId            String?   @unique
+  picture             String? // Profile image: URL (Google) or base64 data URL (uploaded)
+  emailVerified       Boolean   @default(false)
+  profilePublic       Boolean   @default(true) @map("profile_public") // public profile visibility
+  lastGridExtractAt   DateTime? @map("last_grid_extract_at")
+  // Daily "Add a Place" reminder emails. optOut = user unsubscribed (never email
+  // them again); lastDailyReminderAt = when we last sent one (dedupe per day).
+  dailyReminderOptOut Boolean   @default(false) @map("daily_reminder_opt_out")
+  lastDailyReminderAt DateTime? @map("last_daily_reminder_at")
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   otpVerifications       OTPVerification[]
   sessions               Session[]

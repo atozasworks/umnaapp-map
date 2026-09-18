@@ -12,6 +12,8 @@
     "migrate:favorites": "node scripts/migrate-favorites.js",
     "migrate:phase7": "node scripts/migrate-phase7-claims-labels.js",
     "migrate:legal": "node scripts/migrate-legal-documents.js",
+    "migrate:daily-reminders": "node scripts/migrate-daily-reminders.js",
+    "reminders:send": "node scripts/send-daily-reminders.js",
     "migrate:admin-otp": "node scripts/migrate-admin-otp-auth.js",
     "seed:admin-emails": "node scripts/seed-admin-allowed-emails.js",
     "ci:lint": "prisma validate && prisma format --check",

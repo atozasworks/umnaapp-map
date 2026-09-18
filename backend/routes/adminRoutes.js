@@ -44,6 +44,11 @@ import {
   upsertLegalDocument,
   sendLegalUpdateEmails,
 } from '../services/legalService.js'
+import {
+  getDailyReminderStats,
+  getDailyReminderRunStatus,
+  startReminderDrip,
+} from '../services/dailyReminderService.js'
 import { broadcastPlaceUpsert, broadcastPlaceRemoved, PLACE_EVENTS } from '../lib/placeEvents.js'
 import {
   recordPlaceAudit,
@@ -933,6 +938,53 @@ router.post('/claims/:id/reject', async (req, res) => {
     res.json({ success: true, claim: updated })
   } catch (e) {
     console.error('admin claim reject', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+// ── Daily "Add a Place" reminders ─────────────────────────────────────────
+
+/** GET /api/admin/reminders — stats + recent sends for the admin UI */
+router.get('/reminders', async (req, res) => {
+  try {
+    const [stats, run] = await Promise.all([
+      getDailyReminderStats(),
+      Promise.resolve(getDailyReminderRunStatus()),
+    ])
+    res.json({ ...stats, run })
+  } catch (e) {
+    console.error('admin reminders stats', e)
+    res.status(500).json({ error: e.message })
+  }
+})
+
+/**
+ * POST /api/admin/reminders/send — start drip campaign (3 users / 15 min).
+ * Returns immediately so proxies never 504. Waves continue automatically.
+ */
+router.post('/reminders/send', async (req, res) => {
+  try {
+    const summary = await startReminderDrip({ force: true })
+    if (summary?.alreadyRunning) {
+      return res.status(409).json({
+        success: false,
+        started: false,
+        ...summary,
+      })
+    }
+    if (summary?.skipped && !summary?.started) {
+      return res.status(503).json({
+        success: false,
+        ...summary,
+      })
+    }
+    res.status(202).json({
+      success: true,
+      ...summary,
+      run: getDailyReminderRunStatus(),
+    })
+  } catch (e) {
+    console.error('admin reminders send', e)
     res.status(500).json({ error: e.message })
   }
 })
