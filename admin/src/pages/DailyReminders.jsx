@@ -113,9 +113,6 @@ export default function DailyReminders() {
     }
   }
 
-  const hour = stats?.schedulerHour
-  const hourLabel =
-    hour != null ? `${String(hour).padStart(2, '0')}:00` : '09:00'
   const run = stats?.run
   const runRunning = run?.status === 'running'
   const dripSize = run?.dripSize || 3
@@ -129,16 +126,10 @@ export default function DailyReminders() {
             Daily reminders
           </h1>
           <p className="mt-2 max-w-3xl text-sm text-admin-muted">
-            Click once to start a drip: <span className="font-semibold text-slate-300">{dripSize} users</span>{' '}
-            every <span className="font-semibold text-slate-300">{intervalMin} minutes</span> until everyone
-            is covered (avoids Hostinger rate limits). Daily auto kickoff at{' '}
-            <span className="font-semibold text-slate-300">{hourLabel}</span>{' '}
-            {stats?.schedulerEnabled === false ? (
-              <span className="text-amber-300">(scheduler disabled)</span>
-            ) : (
-              <span>(scheduler on)</span>
-            )}
-            .
+            Send reminders only from this admin screen. A click starts a drip of{' '}
+            <span className="font-semibold text-slate-300">{dripSize} users</span> every{' '}
+            <span className="font-semibold text-slate-300">{intervalMin} minutes</span> until the queue is
+            finished.
           </p>
         </div>
         <button

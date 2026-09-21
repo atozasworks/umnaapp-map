@@ -296,7 +296,6 @@ const HomePage = () => {
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
-  const menuRecents = useTranslate('Recents')
   const menuYourContributions = useTranslate('Your contributions')
   const menuLocationSharing = useTranslate('Location sharing')
   const menuPrint = useTranslate('Print')
@@ -2739,12 +2738,6 @@ const HomePage = () => {
                   <span className="text-xs font-medium bg-primary-100 text-primary-700 rounded-full px-2 py-0.5 ml-auto">
                     {favorites.length}
                   </span>
-                </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation opacity-60">
-                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                  </svg>
-                  <span className="text-sm text-slate-500">{menuRecents}</span>
                 </button>
                 <button
                   onClick={() => { setShowMenu(false); setShowContributionsOnly(true); setShowMyPlaces(true); }}

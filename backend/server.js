@@ -38,7 +38,6 @@ import {
 } from './middleware/rateLimit.js'
 import prisma from './config/database.js'
 import { startPlaceApprovalScheduler } from './services/placeApproval.js'
-import { startDailyReminderScheduler } from './services/dailyReminderService.js'
 import { seedAdminBootstrapEmails } from './services/adminAllowlistService.js'
 import { setIo } from './lib/socketIo.js'
 
@@ -443,7 +442,6 @@ async function startServer() {
 
   httpServer.listen(PORT, () => {
     startPlaceApprovalScheduler()
-    startDailyReminderScheduler()
     console.log(`🚀 UMNAAPP Server running on port ${PORT}`)
     console.log(`📡 Socket.io server ready`)
   })

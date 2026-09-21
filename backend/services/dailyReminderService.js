@@ -662,56 +662,24 @@ export async function sendDailyReminders({ force = false } = {}) {
 }
 
 // ---------------------------------------------------------------------------
-// Scheduler (daily kickoff at DAILY_REMINDER_HOUR — continues via drip waves)
+// Reminder scheduling is disabled by requirement: only the admin panel can
+// start a reminder drip. Keep this function as a no-op so the app does not
+// run any background reminder sends outside that explicit admin action.
 // ---------------------------------------------------------------------------
-
-function msUntilNextRun(hour) {
-  const now = new Date()
-  const next = new Date(now)
-  next.setHours(hour, 0, 0, 0)
-  if (next.getTime() <= now.getTime()) {
-    next.setTime(next.getTime() + DAY_MS)
-  }
-  return next.getTime() - now.getTime()
-}
 
 let schedulerStarted = false
 
 export function startDailyReminderScheduler() {
-  if (schedulerStarted) return
-  if (!isDailyReminderEnabled()) {
-    console.log('🔕 Daily reminder scheduler disabled (DAILY_REMINDER_ENABLED=false)')
-    return
+  if (schedulerStarted) {
+    return { enabled: false, manualOnly: true, started: false }
   }
+
   schedulerStarted = true
-  const hour = getDailyReminderHour()
-
-  const runOnce = () => {
-    // Starts a drip (3 / 15 min). Safe if already running — returns alreadyRunning.
-    startReminderDrip({ force: false })
-      .then((summary) => {
-        if (summary?.started) {
-          console.log(
-            `📧 Daily reminder drip started — total=${summary.total}, ${summary.dripSize} every ${summary.intervalMinutes} min`
-          )
-        } else if (!summary?.alreadyRunning && !summary?.skipped) {
-          console.log(`[dailyReminder] daily kickoff: ${summary?.message || 'nothing to send'}`)
-        }
-      })
-      .catch((e) => console.error('[dailyReminder] scheduled run error:', e.message))
+  console.log('🔒 Daily reminder scheduler disabled — manual sends only from the admin panel.')
+  return {
+    enabled: false,
+    manualOnly: true,
+    started: false,
+    message: 'Manual reminder sends only — trigger from the admin panel.'
   }
-
-  const scheduleNext = () => {
-    const delay = msUntilNextRun(hour)
-    const runAt = new Date(Date.now() + delay)
-    console.log(
-      `🕘 Daily reminder drip kickoff scheduled for ${runAt.toLocaleString()} (every day at ${String(hour).padStart(2, '0')}:00, then ${DRIP_SIZE}/${Math.round(DRIP_INTERVAL_MS / 60000)}min)`
-    )
-    setTimeout(() => {
-      runOnce()
-      setInterval(runOnce, DAY_MS)
-    }, delay)
-  }
-
-  scheduleNext()
 }
