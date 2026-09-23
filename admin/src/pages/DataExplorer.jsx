@@ -277,6 +277,16 @@ export default function DataExplorer() {
 
 function formatCell(v) {
   if (v === null || v === undefined) return ''
+  if (v === null || v === undefined) return ''
+  // ISO date string detection (basic)
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v)) {
+    try {
+      const d = new Date(v)
+      if (!Number.isNaN(d.getTime())) return d.toLocaleString()
+    } catch {
+      // fallthrough
+    }
+  }
   if (typeof v === 'object') return JSON.stringify(v)
   return String(v)
 }
@@ -287,6 +297,15 @@ function cellPreview(v) {
   if (typeof v === 'object') {
     const s = JSON.stringify(v)
     return s.length > 80 ? `${s.slice(0, 80)}…` : s
+  }
+  // Format ISO date strings for readability
+  if (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/.test(v)) {
+    try {
+      const d = new Date(v)
+      if (!Number.isNaN(d.getTime())) return d.toLocaleString()
+    } catch {
+      // fallthrough to string handling
+    }
   }
   const s = String(v)
   return s.length > 120 ? `${s.slice(0, 120)}…` : s
