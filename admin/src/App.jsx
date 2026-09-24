@@ -13,6 +13,7 @@ import LegalDocs from './pages/LegalDocs.jsx'
 import DailyReminders from './pages/DailyReminders.jsx'
 import SafetyHazards from './pages/SafetyHazards.jsx'
 import AdminSettings from './pages/AdminSettings.jsx'
+import Feedback from './pages/Feedback.jsx'
 
 function PrivateRoute({ children }) {
   const [state, setState] = useState('loading') // loading | ok | no
@@ -62,6 +63,7 @@ export default function App() {
         <Route path="schema" element={<Schema />} />
         <Route path="data" element={<DataExplorer />} />
         <Route path="data/:model" element={<DataExplorer />} />
+        <Route path="feedback" element={<Feedback />} />
         <Route path="settings" element={<AdminSettings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

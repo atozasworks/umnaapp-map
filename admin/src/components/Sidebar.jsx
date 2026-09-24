@@ -6,6 +6,7 @@ const links = [
   { to: '/pending-places', label: 'Place approvals', icon: MHourglass },
   { to: '/safety-hazards', label: 'Safety hazards', icon: MShield },
   { to: '/business-claims', label: 'Business claims', icon: MBriefcase },
+  { to: '/feedback', label: 'Feedback', icon: MDocument },
   { to: '/extracted-places', label: 'Extracted places', icon: MPlaces },
   { to: '/legal', label: 'Legal documents', icon: MDocument },
   { to: '/reminders', label: 'Daily reminders', icon: MBell },

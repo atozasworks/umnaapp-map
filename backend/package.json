@@ -15,6 +15,7 @@
     "migrate:daily-reminders": "node scripts/migrate-daily-reminders.js",
     "reminders:send": "node scripts/send-daily-reminders.js",
     "migrate:admin-otp": "node scripts/migrate-admin-otp-auth.js",
+    "migrate:feedback": "node scripts/migrate-feedback.js",
     "seed:admin-emails": "node scripts/seed-admin-allowed-emails.js",
     "ci:lint": "prisma validate && prisma format --check",
     "ci:audit": "npm audit --audit-level=high",

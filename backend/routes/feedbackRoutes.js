@@ -1,6 +1,7 @@
 import express from 'express'
 import nodemailer from 'nodemailer'
 import { authenticateToken } from '../middleware/auth.js'
+import prisma from '../config/database.js'
 import {
   emailTransporter as fallbackTransporter,
   smtpConfig as fallbackSmtpConfig,
@@ -232,6 +233,26 @@ ${escapeHtml(cleanMessage)}
     console.log(
       `✅ Feedback email sent: ${info.messageId} | from=${user.email} (${user.name}) → ${toEmail}`
     )
+
+    // Persist feedback in database if available (best-effort)
+    try {
+      if (prisma && prisma.feedback) {
+        await prisma.feedback.create({
+          data: {
+            userId: user.id,
+            userName: user.name || null,
+            userEmail: user.email,
+            subject: cleanSubject,
+            message: cleanMessage,
+            category: cleanCategory,
+            rating: cleanRating,
+            userAgent: userAgent || null,
+          },
+        })
+      }
+    } catch (e) {
+      console.error('Failed to save feedback in DB:', e)
+    }
 
     if (info?.rejected?.length) {
       console.error('❌ Feedback recipients rejected by SMTP:', info.rejected)

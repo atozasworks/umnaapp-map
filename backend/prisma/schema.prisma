@@ -46,6 +46,7 @@ model User {
   ownedLiveLocationShares LiveLocationShare[]  @relation("LiveLocationOwner")
   liveLocationViewerships LiveLocationViewer[]
   safetyHazardReports     SafetyHazardReport[]
+  feedbacks               Feedback[]
 
   @@index([email])
   @@index([googleId])
@@ -65,6 +66,24 @@ model Notification {
 
   @@index([userId, read])
   @@index([userId, createdAt])
+}
+
+model Feedback {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  userName  String?  @map("user_name")
+  userEmail String   @map("user_email")
+  subject   String   @db.VarChar(200)
+  message   String   @db.Text
+  category  String   @default("General")
+  rating    Int?
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 // Per-user notification category preferences. A missing row means "all on"

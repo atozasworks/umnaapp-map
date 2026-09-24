@@ -455,6 +455,51 @@ router.get(
   }
 )
 
+  /** GET /api/admin/feedback — paginated list of user feedback */
+  router.get(
+    '/feedback',
+    [
+      query('page').optional().isInt({ min: 1 }),
+      query('limit').optional().isInt({ min: 1, max: 200 }),
+    ],
+    async (req, res) => {
+      try {
+        if (!prisma.feedback) return res.status(503).json({ error: 'Feedback model unavailable' })
+        const errors = validationResult(req)
+        if (!errors.isEmpty()) return res.status(400).json({ errors: errors.array() })
+
+        const page = Math.max(1, parseInt(req.query.page, 10) || 1)
+        const limit = Math.min(200, Math.max(1, parseInt(req.query.limit, 10) || 50))
+        const skip = (page - 1) * limit
+
+        const q = String(req.query.q || '').trim()
+        const category = String(req.query.category || '').trim()
+        const where = {}
+        if (q) {
+          Object.assign(where, {
+            OR: [
+              { message: { contains: q, mode: 'insensitive' } },
+              { subject: { contains: q, mode: 'insensitive' } },
+              { userName: { contains: q, mode: 'insensitive' } },
+              { userEmail: { contains: q, mode: 'insensitive' } },
+            ],
+          })
+        }
+        if (category) where.category = { equals: category, mode: 'insensitive' }
+
+        const [total, rows] = await prisma.$transaction([
+          prisma.feedback.count({ where }),
+          prisma.feedback.findMany({ where, orderBy: [{ createdAt: 'desc' }], skip, take: limit }),
+        ])
+
+        res.json({ feedback: rows, page, limit, total, totalPages: Math.ceil(total / limit) })
+      } catch (e) {
+        console.error('admin feedback list', e)
+        res.status(500).json({ error: e.message })
+      }
+    }
+  )
+
 /** GET /api/admin/places/:id — full place detail */
 router.get('/places/:id', async (req, res) => {
   try {

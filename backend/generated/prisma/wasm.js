@@ -149,6 +149,19 @@ exports.Prisma.NotificationScalarFieldEnum = {
   createdAt: 'createdAt'
 };
 
+exports.Prisma.FeedbackScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  userName: 'userName',
+  userEmail: 'userEmail',
+  subject: 'subject',
+  message: 'message',
+  category: 'category',
+  rating: 'rating',
+  userAgent: 'userAgent',
+  createdAt: 'createdAt'
+};
+
 exports.Prisma.NotificationPreferenceScalarFieldEnum = {
   id: 'id',
   userId: 'userId',
@@ -461,6 +474,7 @@ exports.Prisma.JsonNullValueFilter = {
 exports.Prisma.ModelName = {
   User: 'User',
   Notification: 'Notification',
+  Feedback: 'Feedback',
   NotificationPreference: 'NotificationPreference',
   PushSubscription: 'PushSubscription',
   OTPVerification: 'OTPVerification',
