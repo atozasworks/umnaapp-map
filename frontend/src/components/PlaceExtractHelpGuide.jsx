@@ -1,16 +1,19 @@
-import { useState } from 'react'
-
 /**
- * Collapsible in-panel guide for the Place Extractor feature.
+ * Compact Guide button + expandable details for Place Extractor.
+ * Pass open / onToggle from the parent so the button can sit in the method row.
  */
 export default function PlaceExtractHelpGuide({
   method = 'grid',
   maxPlaces = 20,
   maxAreaKm2 = 9,
   requiresLogin = false,
+  open = false,
+  onToggle,
+  /** When true, render only the small Guide button (for the method toolbar). */
+  buttonOnly = false,
+  /** When true, render only the expandable details panel. */
+  panelOnly = false,
 }) {
-  const [open, setOpen] = useState(true)
-
   const methodSteps = {
     grid: [
       'Enter location fields from country down to village (country is required). More detail = smaller, more accurate region.',
@@ -54,168 +57,196 @@ export default function PlaceExtractHelpGuide({
 
   const activeSteps = methodSteps[method] || methodSteps.grid
   const activeTips = methodTips[method] || methodTips.grid
+  const methodLabel = method === 'grid' ? 'Grid' : method === 'search' ? 'Search' : 'Area'
+
+  const guideButton = (
+    <button
+      type="button"
+      onClick={onToggle}
+      className={`inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1.5 text-[11px] font-semibold transition-colors sm:text-xs ${
+        open
+          ? 'bg-emerald-100 text-emerald-800 ring-1 ring-emerald-200'
+          : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-emerald-50 hover:text-emerald-800 hover:ring-emerald-200'
+      }`}
+      aria-expanded={open}
+      aria-controls="place-extract-guide-panel"
+      title="How to use Extract Places"
+    >
+      <svg className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth={2}
+          d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+        />
+      </svg>
+      Guide
+    </button>
+  )
+
+  if (buttonOnly) return guideButton
+
+  if (!open) {
+    if (panelOnly) return null
+    return (
+      <div className="shrink-0 border-b border-slate-100 bg-white">
+        <div className="flex items-center justify-end px-3 py-1.5 sm:px-4">{guideButton}</div>
+      </div>
+    )
+  }
 
   return (
     <div className="shrink-0 border-b border-emerald-100 bg-gradient-to-b from-emerald-50/90 to-white">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2 px-3 py-2.5 text-left transition-colors hover:bg-emerald-50/80 sm:px-4"
-        aria-expanded={open}
-      >
-        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-emerald-100 text-emerald-700 ring-1 ring-emerald-200/80">
-          <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-            />
-          </svg>
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-xs font-bold text-emerald-900 sm:text-[13px]">How to use Extract Places</span>
-          <span className="block truncate text-[10px] text-emerald-700/90 sm:text-[11px]">
-            Step-by-step guide · {method === 'grid' ? 'Grid' : method === 'search' ? 'Search' : 'Area'} method
-          </span>
-        </span>
-        <svg
-          className={`h-4 w-4 shrink-0 text-emerald-600 transition-transform ${open ? 'rotate-180' : ''}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          aria-hidden
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="max-h-[min(42vh,320px)] overflow-y-auto overscroll-contain border-t border-emerald-100/80 px-3 pb-3 pt-2 sm:px-4 sm:pb-3.5">
-          {/* Overview */}
-          <section className="mb-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">What is this?</h4>
-            <p className="mt-1 text-[11px] leading-relaxed text-slate-700 sm:text-xs">
-              Extract Places pulls real-world locations from Google into a list so you can add them to the community map
-              in bulk. Use <strong className="font-semibold text-slate-800">Grid</strong> to scan a region,{' '}
-              <strong className="font-semibold text-slate-800">Search</strong> to find specific names, or{' '}
-              <strong className="font-semibold text-slate-800">Area</strong> to extract inside a shape you draw.
-            </p>
-          </section>
-
-          {/* Requirements */}
-          <section className="mb-3 rounded-xl border border-amber-100 bg-amber-50/70 px-2.5 py-2 sm:px-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Before you start</h4>
-            <ul className="mt-1.5 space-y-1 text-[11px] leading-snug text-amber-950 sm:text-xs">
-              {requiresLogin && (
-                <li className="flex gap-1.5">
-                  <span className="shrink-0 font-bold text-amber-700">•</span>
-                  <span>
-                    <strong>Log in</strong> — an account is required for Grid and Area extraction.
-                  </span>
-                </li>
-              )}
-              <li className="flex gap-1.5">
-                <span className="shrink-0 font-bold text-amber-700">•</span>
-                <span>
-                  <strong>Daily limit:</strong> Grid and Area extraction can be run <strong>once per day</strong> per
-                  user (up to <strong>{maxPlaces} places</strong> per run).
-                </span>
-              </li>
-              <li className="flex gap-1.5">
-                <span className="shrink-0 font-bold text-amber-700">•</span>
-                <span>
-                  <strong>Area limit:</strong> drawn shapes must stay within <strong>{maxAreaKm2} km²</strong>.
-                </span>
-              </li>
-              <li className="flex gap-1.5">
-                <span className="shrink-0 font-bold text-amber-700">•</span>
-                <span>
-                  <strong>Search method</strong> does not count against the daily extract quota.
-                </span>
-              </li>
-            </ul>
-          </section>
-
-          {/* Method steps */}
-          <section className="mb-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Steps — {method === 'grid' ? 'Grid' : method === 'search' ? 'Search' : 'Area'} method
-            </h4>
-            <ol className="mt-1.5 space-y-1.5">
-              {activeSteps.map((step, i) => (
-                <li key={i} className="flex gap-2 text-[11px] leading-snug text-slate-700 sm:text-xs">
-                  <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-100 text-[10px] font-bold text-primary-700">
-                    {i + 1}
-                  </span>
-                  <span className="pt-0.5">{step}</span>
-                </li>
-              ))}
-            </ol>
-          </section>
-
-          {/* After extraction */}
-          <section className="mb-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">After extraction</h4>
-            <ul className="mt-1.5 space-y-1 text-[11px] leading-snug text-slate-700 sm:text-xs">
-              <li className="flex gap-1.5">
-                <span className="shrink-0 text-primary-600">✓</span>
-                <span>
-                  Use checkboxes to select places. Tap <strong>Select all</strong> or <strong>Deselect all</strong> as
-                  needed.
-                </span>
-              </li>
-              <li className="flex gap-1.5">
-                <span className="shrink-0 text-primary-600">✓</span>
-                <span>
-                  Tap <strong>Add to map</strong> — full Google details are fetched, then places are saved. Duplicates
-                  already on the map are skipped automatically.
-                </span>
-              </li>
-              <li className="flex gap-1.5">
-                <span className="shrink-0 text-primary-600">✓</span>
-                <span>
-                  Extracted places may appear as <strong>pending</strong> until approved by an admin (same as manually
-                  added places).
-                </span>
-              </li>
-              <li className="flex gap-1.5">
-                <span className="shrink-0 text-primary-600">✓</span>
-                <span>
-                  Use <strong>Export</strong> (JSON / GeoJSON) to keep a backup, or share with others via{' '}
-                  <strong>Upload</strong> (Grid method only).
-                </span>
-              </li>
-            </ul>
-          </section>
-
-          {/* Tips */}
-          <section className="rounded-xl border border-slate-100 bg-slate-50/80 px-2.5 py-2 sm:px-3">
-            <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tips for this method</h4>
-            <ul className="mt-1.5 space-y-1 text-[11px] leading-snug text-slate-600 sm:text-xs">
-              {activeTips.map((tip, i) => (
-                <li key={i} className="flex gap-1.5">
-                  <span className="shrink-0 text-slate-400">→</span>
-                  <span>{tip}</span>
-                </li>
-              ))}
-              <li className="flex gap-1.5">
-                <span className="shrink-0 text-slate-400">→</span>
-                <span>
-                  If extraction finds <strong>zero places</strong>, your daily slot is returned so you can try again the
-                  same day with a different area or zoom level.
-                </span>
-              </li>
-              <li className="flex gap-1.5">
-                <span className="shrink-0 text-slate-400">→</span>
-                <span>
-                  Tap <strong>Stop</strong> during a long Grid/Area run to keep places found so far.
-                </span>
-              </li>
-            </ul>
-          </section>
-        </div>
+      {!panelOnly && (
+        <div className="flex items-center justify-end px-3 py-1.5 sm:px-4">{guideButton}</div>
       )}
+      <div
+        id="place-extract-guide-panel"
+        className={`max-h-[min(42vh,320px)] overflow-y-auto overscroll-contain px-3 pb-3 pt-2 sm:px-4 sm:pb-3.5 ${
+          panelOnly ? '' : 'border-t border-emerald-100/80'
+        }`}
+      >
+        <div className="mb-2 flex items-start justify-between gap-2">
+          <p className="text-[10px] font-semibold text-emerald-800 sm:text-[11px]">
+            How to use Extract Places · {methodLabel} method
+          </p>
+          {panelOnly && (
+            <button
+              type="button"
+              onClick={onToggle}
+              className="shrink-0 rounded p-0.5 text-emerald-700 hover:bg-emerald-100"
+              aria-label="Close guide"
+            >
+              <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+
+        {/* Overview */}
+        <section className="mb-3">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">What is this?</h4>
+          <p className="mt-1 text-[11px] leading-relaxed text-slate-700 sm:text-xs">
+            Extract Places pulls real-world locations from Google into a list so you can add them to the community map
+            in bulk. Use <strong className="font-semibold text-slate-800">Grid</strong> to scan a region,{' '}
+            <strong className="font-semibold text-slate-800">Search</strong> to find specific names, or{' '}
+            <strong className="font-semibold text-slate-800">Area</strong> to extract inside a shape you draw.
+          </p>
+        </section>
+
+        {/* Requirements */}
+        <section className="mb-3 rounded-xl border border-amber-100 bg-amber-50/70 px-2.5 py-2 sm:px-3">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-amber-800">Before you start</h4>
+          <ul className="mt-1.5 space-y-1 text-[11px] leading-snug text-amber-950 sm:text-xs">
+            {requiresLogin && (
+              <li className="flex gap-1.5">
+                <span className="shrink-0 font-bold text-amber-700">•</span>
+                <span>
+                  <strong>Log in</strong> — an account is required for Grid and Area extraction.
+                </span>
+              </li>
+            )}
+            <li className="flex gap-1.5">
+              <span className="shrink-0 font-bold text-amber-700">•</span>
+              <span>
+                <strong>Daily limit:</strong> Grid and Area extraction can be run <strong>once per day</strong> per user
+                (up to <strong>{maxPlaces} places</strong> per run).
+              </span>
+            </li>
+            <li className="flex gap-1.5">
+              <span className="shrink-0 font-bold text-amber-700">•</span>
+              <span>
+                <strong>Area limit:</strong> drawn shapes must stay within <strong>{maxAreaKm2} km²</strong>.
+              </span>
+            </li>
+            <li className="flex gap-1.5">
+              <span className="shrink-0 font-bold text-amber-700">•</span>
+              <span>
+                <strong>Search method</strong> does not count against the daily extract quota.
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        {/* Method steps */}
+        <section className="mb-3">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+            Steps — {methodLabel} method
+          </h4>
+          <ol className="mt-1.5 space-y-1.5">
+            {activeSteps.map((step, i) => (
+              <li key={i} className="flex gap-2 text-[11px] leading-snug text-slate-700 sm:text-xs">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-primary-100 text-[10px] font-bold text-primary-700">
+                  {i + 1}
+                </span>
+                <span className="pt-0.5">{step}</span>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* After extraction */}
+        <section className="mb-3">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">After extraction</h4>
+          <ul className="mt-1.5 space-y-1 text-[11px] leading-snug text-slate-700 sm:text-xs">
+            <li className="flex gap-1.5">
+              <span className="shrink-0 text-primary-600">✓</span>
+              <span>
+                Use checkboxes to select places. Tap <strong>Select all</strong> or <strong>Deselect all</strong> as
+                needed.
+              </span>
+            </li>
+            <li className="flex gap-1.5">
+              <span className="shrink-0 text-primary-600">✓</span>
+              <span>
+                Tap <strong>Add to map</strong> — full Google details are fetched, then places are saved. Duplicates
+                already on the map are skipped automatically.
+              </span>
+            </li>
+            <li className="flex gap-1.5">
+              <span className="shrink-0 text-primary-600">✓</span>
+              <span>
+                Extracted places may appear as <strong>pending</strong> until approved by an admin (same as manually
+                added places).
+              </span>
+            </li>
+            <li className="flex gap-1.5">
+              <span className="shrink-0 text-primary-600">✓</span>
+              <span>
+                Use <strong>Export</strong> (JSON / GeoJSON) to keep a backup, or share with others via{' '}
+                <strong>Upload</strong> (Grid method only).
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        {/* Tips */}
+        <section className="rounded-xl border border-slate-100 bg-slate-50/80 px-2.5 py-2 sm:px-3">
+          <h4 className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tips for this method</h4>
+          <ul className="mt-1.5 space-y-1 text-[11px] leading-snug text-slate-600 sm:text-xs">
+            {activeTips.map((tip, i) => (
+              <li key={i} className="flex gap-1.5">
+                <span className="shrink-0 text-slate-400">→</span>
+                <span>{tip}</span>
+              </li>
+            ))}
+            <li className="flex gap-1.5">
+              <span className="shrink-0 text-slate-400">→</span>
+              <span>
+                If extraction finds <strong>zero places</strong>, your daily slot is returned so you can try again the
+                same day with a different area or zoom level.
+              </span>
+            </li>
+            <li className="flex gap-1.5">
+              <span className="shrink-0 text-slate-400">→</span>
+              <span>
+                Tap <strong>Stop</strong> during a long Grid/Area run to keep places found so far.
+              </span>
+            </li>
+          </ul>
+        </section>
+      </div>
     </div>
   )
 }

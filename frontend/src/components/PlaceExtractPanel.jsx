@@ -236,6 +236,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   // Method selection state
   const [extractionMethod, setExtractionMethod] = useState('grid') // 'grid' | 'search' | 'area'
+  const [extractGuideOpen, setExtractGuideOpen] = useState(false)
 
   // Grid-based extraction states
   const [mapsLoaded, setMapsLoaded] = useState(false)
@@ -2285,7 +2286,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
             {/* Left sidebar — method picker + controls + results */}
             <aside className="order-2 flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-slate-200/80 bg-white md:order-1 md:w-[min(400px,38%)] md:max-w-[420px] md:border-b-0 md:border-r lg:w-[420px] max-h-[46vh] md:max-h-full">
-              {/* Extract method — label + 3 options in one horizontal row */}
+              {/* Extract method — label + 3 options + Guide */}
               <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-3 py-2.5 sm:px-4">
                 <div className="flex items-center gap-2">
                   <p className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">
@@ -2343,6 +2344,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                 maxPlaces={gridExtractMaxPlaces}
                 maxAreaKm2={extractMaxAreaKm2}
                 requiresLogin={!user?.id}
+                open={extractGuideOpen}
+                onToggle={() => setExtractGuideOpen((v) => !v)}
+                panelOnly
               />
 
               {/* Method-specific panel (scrollable) */}
@@ -2352,7 +2356,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                   <div className="min-h-0 max-h-[42%] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
                   <div className="p-3 sm:p-3.5">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
+                      <PlaceExtractHelpGuide
+                        open={extractGuideOpen}
+                        onToggle={() => setExtractGuideOpen((v) => !v)}
+                        buttonOnly
+                      />
+                    </div>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
                         type="text"
@@ -2591,7 +2602,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {extractionMethod === 'search' && (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                   <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white p-3 sm:p-4">
-                    <h3 className="mb-2 text-sm font-semibold text-slate-800">Search places</h3>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <h3 className="text-sm font-semibold text-slate-800">Search places</h3>
+                      <PlaceExtractHelpGuide
+                        open={extractGuideOpen}
+                        onToggle={() => setExtractGuideOpen((v) => !v)}
+                        buttonOnly
+                      />
+                    </div>
                     <div ref={searchBarContainerRef} className="relative z-30">
                       <div className="flex min-h-[48px] items-center gap-2 rounded-2xl border border-slate-200 bg-white pl-3 pr-2 shadow-sm focus-within:ring-2 focus-within:ring-primary-400/35 focus-within:border-primary-400">
                         <svg className="h-5 w-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
@@ -2760,7 +2778,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                   <div className="min-h-0 max-h-[42%] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
                   <div className="p-3 sm:p-3.5">
-                    <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
+                      <PlaceExtractHelpGuide
+                        open={extractGuideOpen}
+                        onToggle={() => setExtractGuideOpen((v) => !v)}
+                        buttonOnly
+                      />
+                    </div>
                     <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                       <input
                         type="text"
