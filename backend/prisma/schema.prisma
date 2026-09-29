@@ -25,6 +25,8 @@ model User {
   // them again); lastDailyReminderAt = when we last sent one (dedupe per day).
   dailyReminderOptOut Boolean   @default(false) @map("daily_reminder_opt_out")
   lastDailyReminderAt DateTime? @map("last_daily_reminder_at")
+  // Set on each successful app login (createSession). Used for admin User list order.
+  lastLoginAt         DateTime? @map("last_login_at")
   createdAt           DateTime  @default(now())
   updatedAt           DateTime  @updatedAt
 
@@ -50,6 +52,7 @@ model User {
 
   @@index([email])
   @@index([googleId])
+  @@index([lastLoginAt])
 }
 
 model Notification {

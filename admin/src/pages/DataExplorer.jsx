@@ -86,6 +86,12 @@ export default function DataExplorer() {
       ? Object.keys(payload.data[0])
       : []
 
+  // User: put identity + last login date near the front so sort order is obvious.
+  const displayColumns =
+    activeLabel === 'User' && columns.length > 0
+      ? prioritizeColumns(columns, ['name', 'email', 'lastLoginAt', 'createdAt', 'updatedAt'])
+      : columns
+
   return (
     <div className="space-y-8">
       <header className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
@@ -237,7 +243,7 @@ export default function DataExplorer() {
                 <table className="w-full min-w-[720px] text-left text-sm">
                   <thead>
                     <tr className="border-b border-admin-border bg-admin-950/90 text-xs uppercase text-admin-muted">
-                      {columns.map((c) => (
+                      {displayColumns.map((c) => (
                         <th key={c} className="whitespace-nowrap px-3 py-3 font-medium">
                           {c}
                         </th>
@@ -247,7 +253,7 @@ export default function DataExplorer() {
                   <tbody>
                     {payload.data.map((row, i) => (
                       <tr key={row.id ?? i} className="border-b border-admin-border/50 hover:bg-admin-850/30">
-                        {columns.map((c) => (
+                        {displayColumns.map((c) => (
                           <td
                             key={c}
                             className="max-w-[280px] truncate px-3 py-2 font-mono text-xs text-slate-300"
@@ -273,6 +279,13 @@ export default function DataExplorer() {
       </div>
     </div>
   )
+}
+
+function prioritizeColumns(columns, preferred) {
+  const set = new Set(columns)
+  const head = preferred.filter((c) => set.has(c))
+  const tail = columns.filter((c) => !preferred.includes(c))
+  return [...head, ...tail]
 }
 
 function formatCell(v) {

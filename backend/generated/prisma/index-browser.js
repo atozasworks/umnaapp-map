@@ -134,6 +134,7 @@ exports.Prisma.UserScalarFieldEnum = {
   lastGridExtractAt: 'lastGridExtractAt',
   dailyReminderOptOut: 'dailyReminderOptOut',
   lastDailyReminderAt: 'lastDailyReminderAt',
+  lastLoginAt: 'lastLoginAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };

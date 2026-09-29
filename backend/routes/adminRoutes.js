@@ -1267,6 +1267,11 @@ router.get('/records/:model', async (req, res) => {
   const full = req.query.full === '1' || req.query.full === 'true'
   const q = String(req.query.q || '').trim()
   const where = key === 'place' && q ? placeNameSearchWhere(q) : {}
+  // User: most recent login first (never-logged-in users at the bottom).
+  const orderBy =
+    key === 'user'
+      ? [{ lastLoginAt: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }]
+      : { id: 'desc' }
 
   try {
     const [total, rows] = await prisma.$transaction([
@@ -1275,7 +1280,7 @@ router.get('/records/:model', async (req, res) => {
         where,
         skip,
         take: limit,
-        orderBy: { id: 'desc' },
+        orderBy,
       }),
     ])
 
@@ -1288,7 +1293,7 @@ router.get('/records/:model', async (req, res) => {
       limit,
       total,
       totalPages: Math.ceil(total / limit) || 1,
-      orderBy: { id: 'desc' },
+      orderBy,
       searchQuery: key === 'place' ? q : undefined,
       data,
     })
