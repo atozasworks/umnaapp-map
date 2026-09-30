@@ -31,6 +31,7 @@ import {
 } from '../components/lazyHomePanels'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
+import PwaInstallModal from '../components/PwaInstallModal'
 import NotificationBell from '../components/NotificationBell'
 import useSafeRouteMonitor from '../hooks/useSafeRouteMonitor'
 import api from '../services/api'
@@ -293,6 +294,7 @@ const HomePage = () => {
   const [utilityInjectedPlace, setUtilityInjectedPlace] = useState(null)
   const pendingUtilityAddTypeRef = useRef(null)
   const [showOfflineMaps, setShowOfflineMaps] = useState(false)
+  const [showInstallModal, setShowInstallModal] = useState(false)
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -323,6 +325,7 @@ const HomePage = () => {
   const menuPublicUtilities = useTranslate('Public Utility Finder')
   const menuOfflineMaps = useTranslate('Offline Maps')
   const menuSafeRoute = useTranslate('Safe Route')
+  const menuInstallApp = useTranslate('Install app')
   const mapPublicUtilitiesTitle = useTranslate('Public Utilities')
 
   const closeMapContextMenu = useCallback(() => {
@@ -2799,6 +2802,24 @@ const HomePage = () => {
               <div className="border-b border-slate-200 py-2">
                 <button
                   type="button"
+                  onClick={() => { setShowMenu(false); setShowInstallModal(true) }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 bg-gradient-to-r from-primary-50 to-cyan-50 text-left transition-colors hover:from-primary-100 hover:to-cyan-100 active:from-primary-100 active:to-cyan-100 touch-manipulation"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white shadow-sm">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+                    </svg>
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-sm font-bold text-primary-800">{menuInstallApp}</span>
+                    <span className="block text-[11px] text-primary-600">Fast access on your device</span>
+                  </span>
+                  <svg className="h-4 w-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
                   onClick={() => { setShowMenu(false); navigateTo('/open-source') }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
                 >
@@ -2866,6 +2887,8 @@ const HomePage = () => {
           />
         </Suspense>
       )}
+
+      <PwaInstallModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
 
       {showOnboarding && (
         <Suspense fallback={null}>
