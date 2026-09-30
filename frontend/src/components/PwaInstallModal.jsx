@@ -25,7 +25,7 @@ export default function PwaInstallModal({ isOpen, onClose }) {
     }
 
     if (!canInstall) {
-      setHint('Install is not available yet. Open this page in Chrome or Edge over HTTPS, then try again.')
+      setHint('Chrome has not enabled one-tap install yet. Use the browser menu and choose “Install UMNAAPP” or “Add to Home screen”.')
       return
     }
 

@@ -28,6 +28,7 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.png', 'apple-touch-icon.png', 'splash-screen.png'],
       manifest: {
+        id: '/',
         name: 'UMNAAPP - Map Platform',
         short_name: 'UMNAAPP',
         description: 'Map-based platform for exploring, saving places, and real-time sync.',
@@ -37,6 +38,7 @@ export default defineConfig({
         orientation: 'any',
         scope: '/',
         start_url: '/',
+        prefer_related_applications: false,
         categories: ['navigation', 'maps', 'productivity'],
         icons: [
           {
@@ -55,7 +57,7 @@ export default defineConfig({
             src: '/pwa-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable',
+            purpose: 'any maskable',
           },
         ],
       },
