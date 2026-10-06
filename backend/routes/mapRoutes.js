@@ -101,13 +101,19 @@ const TILESERVER_URL = process.env.TILESERVER_URL || 'https://umnaapp.in'
 const CARTO_TILE_FALLBACK = 'https://a.basemaps.cartocdn.com/rastertiles/voyager'
 const CARTO_API_KEY = (process.env.CARTO_API_KEY || 'cb1_2ibu_1_f81be7b5227dc1beb016c42f').trim()
 
-const isValidPngBuffer = (buf) =>
-  Buffer.isBuffer(buf) &&
-  buf.length > 8 &&
-  buf[0] === 0x89 &&
-  buf[1] === 0x50 &&
-  buf[2] === 0x4e &&
-  buf[3] === 0x47
+const isValidRasterBuffer = (buf) => {
+  if (!Buffer.isBuffer(buf) || buf.length < 8) return false
+  const isPng =
+    buf[0] === 0x89 &&
+    buf[1] === 0x50 &&
+    buf[2] === 0x4e &&
+    buf[3] === 0x47
+  const isJpeg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff
+  return isPng || isJpeg
+}
+
+const isValidTileCoordinate = (value, max) =>
+  Number.isInteger(value) && value >= 0 && value < max
 
 const NOMINATIM_PUBLIC = 'https://nominatim.openstreetmap.org/reverse'
 const NOMINATIM_PUBLIC_SEARCH = 'https://nominatim.openstreetmap.org/search'
@@ -172,6 +178,21 @@ async function reverseGeocode(lat, lon) {
 router.get('/tiles/:z/:x/:y.png', async (req, res) => {
   try {
     const { z, x, y } = req.params
+    const zoom = Number(z)
+    const column = Number(x)
+    const row = Number(y.replace(/@2x$/i, ''))
+    // Return a successful transparent PNG for legal-but-out-of-world requests;
+    // do not cache HTML/404/500 error bodies as raster tiles.
+    if (
+      !Number.isInteger(zoom) ||
+      zoom < 0 ||
+      zoom > 19 ||
+      !isValidTileCoordinate(column, 2 ** zoom) ||
+      !isValidTileCoordinate(row, 2 ** zoom)
+    ) {
+      res.status(200).type('image/png').send(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLttAAAAABJRU5ErkJggg==', 'base64'))
+      return
+    }
     const base = TILESERVER_URL.replace(/\/+$/, '')
     // y may be "14" or "14@2x" (HiDPI). Try requested form, then standard 1x.
     const yVariants = y.includes('@2x') ? [y, y.replace(/@2x$/i, '')] : [y]
@@ -191,9 +212,10 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
         })
 
         const buf = Buffer.from(tileResponse.data)
-        if (!isValidPngBuffer(buf)) continue
+        if (!isValidRasterBuffer(buf)) continue
 
-        res.setHeader('Content-Type', 'image/png')
+        const isJpeg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff
+        res.setHeader('Content-Type', isJpeg ? 'image/jpeg' : 'image/png')
         res.setHeader('Cache-Control', tileResponse.headers['cache-control'] || 'public, max-age=86400')
         res.send(buf)
         return
@@ -214,11 +236,12 @@ router.get('/tiles/:z/:x/:y.png', async (req, res) => {
         headers: { 'User-Agent': 'UMNAAPP-Map-Platform/1.0' },
       })
       const buf = Buffer.from(tileResponse.data)
-      if (!isValidPngBuffer(buf)) {
+      if (!isValidRasterBuffer(buf)) {
         res.status(502).send('Failed to fetch tile')
         return
       }
-      res.setHeader('Content-Type', 'image/png')
+      const isJpeg = buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff
+      res.setHeader('Content-Type', isJpeg ? 'image/jpeg' : 'image/png')
       res.setHeader('Cache-Control', 'public, max-age=604800')
       res.send(buf)
     } catch (error) {

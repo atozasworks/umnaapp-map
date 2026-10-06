@@ -30,6 +30,12 @@ import {
   toRetinaTileUrl,
 } from '../utils/mapRasterTiles'
 
+// Shared maximum supported by the street, terrain, satellite, and label providers.
+// Esri World Imagery advertises cached levels through z19; higher camera zooms
+// would only magnify parent tiles and may expose missing tile coverage.
+const MAP_MAX_ZOOM = 19
+const RASTER_SOURCE_MAX_ZOOM = 20
+
 const ROUTE_SOURCE_ID = 'route'
 const ROUTE_CASING_LAYER_ID = 'route-casing'
 const ROUTE_LAYER_ID = 'route'
@@ -137,7 +143,7 @@ const readCachedMapLocation = () => {
     return {
       lng,
       lat,
-      zoom: Number.isFinite(zoom) ? Math.min(18, Math.max(11, zoom)) : 15,
+      zoom: Number.isFinite(zoom) ? Math.min(MAP_MAX_ZOOM, Math.max(11, zoom)) : 15,
     }
   } catch {
     return null
@@ -263,14 +269,9 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
     map.triggerRepaint()
   }
 
-  if (mode === 'street') {
-    map.setMaxZoom(19)
-  } else if (mode === 'satellite') {
-    map.setMaxZoom(17)
-    if (map.getZoom() > 17) map.setZoom(17)
-  } else {
-    map.setMaxZoom(19)
-  }
+  const basemapMaxZoom = MAP_MAX_ZOOM
+  map.setMaxZoom(basemapMaxZoom)
+  if (map.getZoom() > basemapMaxZoom) map.setZoom(basemapMaxZoom)
 
   const needsLabels = mode === 'satellite'
   if (needsLabels) {
@@ -280,7 +281,7 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
         tiles: labelOverlayTiles(),
         tileSize: 256,
         minzoom: 0,
-        maxzoom: 19,
+        maxzoom: RASTER_SOURCE_MAX_ZOOM,
         attribution: '© CARTO © OpenStreetMap',
       })
       map.addLayer({
@@ -288,7 +289,7 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
         type: 'raster',
         source: BASEMAP_LABEL_SOURCE_ID,
         minzoom: 0,
-        maxzoom: 19,
+        maxzoom: RASTER_SOURCE_MAX_ZOOM,
         paint: RASTER_TILE_PAINT,
       })
     } else if (map.getLayer(BASEMAP_LABEL_LAYER_ID)) {
@@ -1289,7 +1290,9 @@ const MapComponent = forwardRef(({
             tiles: initialTileUrls,
             tileSize: 256,
             minzoom: 0,
-            maxzoom: 19,
+            // Keep source zoom above the camera ceiling so z19 remains backed
+            // by source tiles; MapLibre's source maxzoom is not a camera limit.
+            maxzoom: RASTER_SOURCE_MAX_ZOOM,
             attribution,
           },
         },
@@ -1304,8 +1307,8 @@ const MapComponent = forwardRef(({
             type: 'raster',
             source: 'raster-tiles',
             minzoom: 0,
-            // Keep in sync with source maxzoom to avoid odd tile requests at high zoom
-            maxzoom: 19,
+            // Permit rendering the highest camera zoom and parent-tile overzoom.
+            maxzoom: RASTER_SOURCE_MAX_ZOOM,
             paint: RASTER_TILE_PAINT,
           },
         ],
@@ -1315,7 +1318,8 @@ const MapComponent = forwardRef(({
       center: initialCenter,
       zoom: initialZoom,
       minZoom: 3,
-      maxZoom: 19,
+      // Bound every camera interaction so the basemap and place details stay available.
+      maxZoom: MAP_MAX_ZOOM,
       renderWorldCopies: false,
       antialias: true,
       // Keep parent tiles visible / cross-faded while zooming (no blank gaps).
