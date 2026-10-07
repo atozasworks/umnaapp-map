@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { fetchPendingPlaces, fetchApprovedPlaces, approvePlace, rejectPlace } from '../lib/api'
+import { fetchPendingPlaces, fetchApprovedPlaces, approvePlace, rejectPlace, bulkPlaceAction } from '../lib/api'
 
 function fmtDate(iso) {
   if (!iso) return '—'
@@ -146,6 +146,8 @@ export default function PendingPlaces() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [busyId, setBusyId] = useState(null)
+  const [approvingAll, setApprovingAll] = useState(false)
+  const [bulkMessage, setBulkMessage] = useState('')
   const [q, setQ] = useState('')
   const [category, setCategory] = useState('')
   const [source, setSource] = useState('')
@@ -202,6 +204,34 @@ export default function PendingPlaces() {
     }
   }
 
+  async function onApproveAll() {
+    if (approvingAll || pendingTotal === 0) return
+    setApprovingAll(true)
+    setErr('')
+    setBulkMessage('')
+    let approvedCount = 0
+    try {
+      // The pending endpoint returns up to 500 records, matching the bulk API
+      // limit. Drain batches until the entire pending queue is approved.
+      while (true) {
+        const data = await fetchPendingPlaces()
+        const ids = (data.places || []).map((place) => place.id).filter(Boolean)
+        if (!ids.length) break
+        const result = await bulkPlaceAction(ids, 'approve')
+        const affected = result.affected || 0
+        approvedCount += affected
+        if (affected === 0) break
+      }
+      await load()
+      setBulkMessage(`Approved ${approvedCount} pending place${approvedCount === 1 ? '' : 's'}.`)
+    } catch (e) {
+      setErr(e.response?.data?.error || e.message)
+      await load()
+    } finally {
+      setApprovingAll(false)
+    }
+  }
+
   const periods = pending?.autoApprovePeriods ?? approved?.autoApprovePeriods ?? {
     extracted: 1,
     manual: 5,
@@ -249,6 +279,11 @@ export default function PendingPlaces() {
 
       {err && (
         <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">{err}</div>
+      )}
+      {bulkMessage && (
+        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
+          {bulkMessage}
+        </div>
       )}
 
       <div className="flex flex-wrap items-end gap-3 rounded-2xl border border-admin-border bg-admin-900/50 p-4">
@@ -333,6 +368,16 @@ export default function PendingPlaces() {
         >
           Refresh
         </button>
+        {tab === 'pending' && (
+          <button
+            type="button"
+            onClick={onApproveAll}
+            disabled={loading || approvingAll || pendingTotal === 0}
+            className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {approvingAll ? 'Approving all…' : `Approve all pending (${pendingTotal})`}
+          </button>
+        )}
         {!loading && hasFilters && (
           <p className="text-sm text-admin-muted">
             Showing {resultCount} of {totalCount} {tab === 'pending' ? 'pending' : 'approved'} place

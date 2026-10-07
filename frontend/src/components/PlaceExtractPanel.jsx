@@ -44,6 +44,29 @@ import {
 const GRID_EXTRACT_MAX_PLACES_DEFAULT = 20
 const EXTRACT_MAX_AREA_KM2_DEFAULT = 9
 const AREA_GRID_SIZE_DEFAULT = 3
+const INDIA_MAP_BOUNDS = { north: 37.2, south: 6.5, west: 68, east: 97.5 }
+const INDIA_MAP_CENTER = { lat: 22.5, lng: 82 }
+
+function clampViewportToIndia(viewport) {
+  const ne = viewport.getNorthEast()
+  const sw = viewport.getSouthWest()
+  const north = Math.min(ne.lat(), INDIA_MAP_BOUNDS.north)
+  const south = Math.max(sw.lat(), INDIA_MAP_BOUNDS.south)
+  const east = Math.min(ne.lng(), INDIA_MAP_BOUNDS.east)
+  const west = Math.max(sw.lng(), INDIA_MAP_BOUNDS.west)
+  if (south > north || west > east) return null
+  return new window.google.maps.LatLngBounds(
+    new window.google.maps.LatLng(south, west),
+    new window.google.maps.LatLng(north, east)
+  )
+}
+
+function isInsideIndiaBounds(location) {
+  const lat = typeof location.lat === 'function' ? location.lat() : location.lat
+  const lng = typeof location.lng === 'function' ? location.lng() : location.lng
+  return lat >= INDIA_MAP_BOUNDS.south && lat <= INDIA_MAP_BOUNDS.north &&
+    lng >= INDIA_MAP_BOUNDS.west && lng <= INDIA_MAP_BOUNDS.east
+}
 
 function formatAddToMapStatus(bulkResult, fallbackCount) {
   const added = bulkResult?.added ?? fallbackCount
@@ -480,9 +503,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   useEffect(() => {
     if (!mapsLoaded || !isOpen || !mapContainerRef.current || mapInstanceRef.current) return
     const map = new window.google.maps.Map(mapContainerRef.current, {
-      center: { lat: 20.5, lng: 78.5 },
-      zoom: 4,
+      center: INDIA_MAP_CENTER,
+      zoom: 4.5,
       mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+      restriction: { latLngBounds: INDIA_MAP_BOUNDS, strictBounds: true },
     })
     mapInstanceRef.current = map
     serviceRef.current = new window.google.maps.places.PlacesService(map)
@@ -572,7 +596,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     return enqueueApiCall((done) => {
       recordGoogleApiUse('geocode')
       const geocoder = new window.google.maps.Geocoder()
-      geocoder.geocode({ address }, (results, gStatus) => {
+      const request = {
+        address,
+        componentRestrictions: { country: 'IN' },
+        bounds: INDIA_MAP_BOUNDS,
+      }
+      geocoder.geocode(request, (results, gStatus) => {
         updateStats('geocode')
         syncQuotaUi()
         if (gStatus === 'OVER_QUERY_LIMIT') {
@@ -585,7 +614,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           setStatus('Rate limited on geocode. Waiting 3s...')
           setTimeout(() => {
             recordGoogleApiUse('geocode')
-            geocoder.geocode({ address }, (r2, s2) => {
+            geocoder.geocode(request, (r2, s2) => {
               updateStats('geocode')
               syncQuotaUi()
               done({ results: r2, status: s2 })
@@ -731,7 +760,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         return
       }
       if (gStatus === 'OK' && results?.[0]) {
-        const viewport = results[0].geometry.viewport
+        const viewport = clampViewportToIndia(results[0].geometry.viewport)
+        if (!viewport) {
+          boundsRef.current.region = null
+          setStatus('That location is outside India. Place Extract is restricted to India.')
+          return
+        }
         boundsRef.current.region = viewport
         map.fitBounds(viewport)
         setStatus(`Loaded ${address}. Ready to extract places.`)
@@ -888,7 +922,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         return
       }
       if (gStatus === 'OK' && results?.[0]) {
-        const viewport = results[0].geometry.viewport
+        const viewport = clampViewportToIndia(results[0].geometry.viewport)
+        if (!viewport) {
+          areaBoundsRef.current.region = null
+          setAreaStatus('That location is outside India. Place Extract is restricted to India.')
+          return
+        }
         areaBoundsRef.current.region = viewport
         map.fitBounds(viewport)
         clearAreaShapeOverlay()
@@ -1065,6 +1104,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             if (areaPlacesArrayRef.current.length >= maxPlaces) return
             const lat = place.geometry.location.lat()
             const lng = place.geometry.location.lng()
+            if (!isInsideIndiaBounds({ lat, lng })) return
             if (!pointInRing(lng, lat, ring)) return
             const name = place.name
             const draft = buildNearbyExtractDraft(
@@ -1113,6 +1153,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
               if (areaPlacesArrayRef.current.length >= maxPlaces) return
               const lat = place.geometry.location.lat()
               const lng = place.geometry.location.lng()
+              if (!isInsideIndiaBounds({ lat, lng })) return
               if (!pointInRing(lng, lat, ring)) return
               const draft = buildNearbyExtractDraft(
                 place,
@@ -1381,6 +1422,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       }
       const newPlaces = []
       result.results.forEach((place) => {
+        if (!isInsideIndiaBounds(place.geometry.location)) return
         if (placesArrayRef.current.length >= maxPlaces) return
         const draft = buildNearbyExtractDraft(
           place,
@@ -1736,9 +1778,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     if (searchMapInstanceRef.current) return
 
     const searchMap = new window.google.maps.Map(searchMapContainerRef.current, {
-      center: { lat: 20.5, lng: 78.5 },
-      zoom: 10,
+      center: INDIA_MAP_CENTER,
+      zoom: 4.5,
       mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+      restriction: { latLngBounds: INDIA_MAP_BOUNDS, strictBounds: true },
     })
     searchMapInstanceRef.current = searchMap
     autocompleteServiceRef.current = new window.google.maps.places.AutocompleteService()
@@ -1762,9 +1805,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     if (areaMapInstanceRef.current) return
 
     const areaMap = new window.google.maps.Map(areaMapContainerRef.current, {
-      center: { lat: 20.5, lng: 78.5 },
-      zoom: 10,
+      center: INDIA_MAP_CENTER,
+      zoom: 4.5,
       mapTypeId: window.google.maps.MapTypeId.ROADMAP,
+      restriction: { latLngBounds: INDIA_MAP_BOUNDS, strictBounds: true },
     })
     areaMapInstanceRef.current = areaMap
     areaServiceRef.current = new window.google.maps.places.PlacesService(areaMap)
