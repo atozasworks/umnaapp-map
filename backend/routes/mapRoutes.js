@@ -1,4 +1,5 @@
 import express from 'express'
+import { randomUUID } from 'node:crypto'
 import { URL } from 'url'
 import axios from 'axios'
 import { body, query, validationResult } from 'express-validator'
@@ -59,6 +60,7 @@ import {
 import { isPersistedSource } from '../utils/placeSource.js'
 import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
 import { findPublicUtilitiesNearby } from '../services/publicUtilityService.js'
+import { hasPostgisRoadGeometry } from '../services/roadStorage.js'
 import { buildNormalizedAddressFields } from '../utils/osmAddress.js'
 import {
   GRID_EXTRACT_MAX_PLACES,
@@ -82,6 +84,37 @@ import {
 } from '../utils/travelModeRouting.js'
 
 const router = express.Router()
+
+/** Submit a GPS-recorded road for moderation. Road geometry is stored in PostGIS. */
+router.post('/roads', authenticateToken, rateLimitMiddleware('roads:create', 10, 60), async (req, res) => {
+  try {
+    const { name, roadType, surface, direction, speedLimit, description, photos, geometry } = req.body || {}
+    const coords = geometry?.type === 'LineString' ? geometry.coordinates : null
+    if (!name?.trim() || name.trim().length > 200) return res.status(400).json({ message: 'Road name is required (maximum 200 characters)' })
+    if (!Array.isArray(coords) || coords.length < 2 || coords.length > 50000 || coords.some((p) => !Array.isArray(p) || p.length < 2 || !Number.isFinite(p[0]) || !Number.isFinite(p[1]) || Math.abs(p[0]) > 180 || Math.abs(p[1]) > 90)) {
+      return res.status(400).json({ message: 'Valid LineString geometry with at least two points is required' })
+    }
+    const allowedTypes = ['local', 'residential', 'collector', 'arterial', 'highway', 'other']
+    const allowedSurfaces = ['paved', 'asphalt', 'concrete', 'gravel', 'dirt', 'other']
+    if (!allowedTypes.includes(roadType) || !allowedSurfaces.includes(surface) || !['one-way', 'two-way'].includes(direction)) return res.status(400).json({ message: 'Invalid road attributes' })
+    const photoList = Array.isArray(photos) ? photos.slice(0, 5).filter((p) => typeof p === 'string' && p.startsWith('data:image/') && p.length <= 1500000) : []
+    const id = randomUUID()
+    const geojson = JSON.stringify(geometry)
+    const postgisAvailable = await hasPostgisRoadGeometry(prisma)
+    if (postgisAvailable) {
+      await prisma.$executeRaw`INSERT INTO "Road" (id, name, road_type, surface, direction, speed_limit, description, photos, geom_geojson, geom, user_id, approval_status, created_at) VALUES (${id}::uuid, ${name.trim()}, ${roadType}, ${surface}, ${direction}, ${speedLimit ? Number(speedLimit) : null}, ${String(description || '').slice(0, 2000)}, ${JSON.stringify(photoList)}::jsonb, ${geojson}::jsonb, ST_SetSRID(ST_GeomFromGeoJSON(${geojson}), 4326), ${req.user.id}, 'pending', NOW())`
+    } else {
+      await prisma.$executeRaw`INSERT INTO "Road" (id, name, road_type, surface, direction, speed_limit, description, photos, geom_geojson, user_id, approval_status, created_at) VALUES (${id}::uuid, ${name.trim()}, ${roadType}, ${surface}, ${direction}, ${speedLimit ? Number(speedLimit) : null}, ${String(description || '').slice(0, 2000)}, ${JSON.stringify(photoList)}::jsonb, ${geojson}::jsonb, ${req.user.id}, 'pending', NOW())`
+    }
+    res.status(201).json({ id, approvalStatus: 'pending', message: 'Road submitted for review' })
+  } catch (error) {
+    console.error('Save road error:', error)
+    if (error.code === 'P2010' && error.meta?.code === '42P01') {
+      return res.status(503).json({ message: 'Road storage is not initialized. Apply backend/prisma/add-road-recording.sql, then retry.' })
+    }
+    res.status(500).json({ message: 'Failed to save road. Ensure the Road table migration has been applied.' })
+  }
+})
 
 function attachApprovalMeta(p) {
   return enrichPlaceApprovalMeta(p)

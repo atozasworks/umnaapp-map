@@ -30,8 +30,37 @@ import { publicPlaceSearch } from '../services/unifiedPlaceQuery.js'
 import { buildDirectRoute } from '../utils/routeHelpers.js'
 import { osrmProfileFor } from '../utils/travelModeRouting.js'
 import { getAllLegalDocuments, getLegalDocument } from '../services/legalService.js'
+import prisma from '../config/database.js'
+import { hasPostgisRoadGeometry, roadIntersectsBounds } from '../services/roadStorage.js'
 
 const router = express.Router()
+
+/** Approved road linework for map rendering; pending/rejected roads stay private. */
+router.get('/roads', rateLimitMiddleware('public:roads', 120, 60), async (req, res) => {
+  try {
+    const { minLat, maxLat, minLng, maxLng } = req.query
+    let roads
+    if ([minLat, maxLat, minLng, maxLng].every((v) => v != null && Number.isFinite(Number(v)))) {
+      const bounds = { minLat: Number(minLat), maxLat: Number(maxLat), minLng: Number(minLng), maxLng: Number(maxLng) }
+      const postgisAvailable = await hasPostgisRoadGeometry(prisma)
+      if (postgisAvailable) {
+        roads = await prisma.$queryRaw`SELECT id, name, road_type AS "roadType", surface, direction, speed_limit AS "speedLimit", geom_geojson AS geometry FROM "Road" WHERE approval_status = 'approved' AND ST_Intersects(geom, ST_MakeEnvelope(${bounds.minLng}, ${bounds.minLat}, ${bounds.maxLng}, ${bounds.maxLat}, 4326)) ORDER BY created_at DESC LIMIT 2000`
+      } else {
+        roads = await prisma.$queryRaw`SELECT id, name, road_type AS "roadType", surface, direction, speed_limit AS "speedLimit", geom_geojson AS geometry FROM "Road" WHERE approval_status = 'approved' ORDER BY created_at DESC LIMIT 2000`
+        roads = roads.filter((road) => roadIntersectsBounds(road.geometry, bounds))
+      }
+    } else {
+      roads = await prisma.$queryRaw`SELECT id, name, road_type AS "roadType", surface, direction, speed_limit AS "speedLimit", geom_geojson AS geometry FROM "Road" WHERE approval_status = 'approved' ORDER BY created_at DESC LIMIT 500`
+    }
+    res.json({ roads })
+  } catch (error) {
+    console.error('[public] roads error:', error)
+    if (error.code === 'P2010' && error.meta?.code === '42P01') {
+      return res.status(503).json({ error: 'Road storage is not initialized. Apply backend/prisma/add-road-recording.sql.' })
+    }
+    res.status(500).json({ error: 'Failed to load approved roads' })
+  }
+})
 
 /** Public, credential-less CORS for every route in this file. */
 const publicCors = cors({

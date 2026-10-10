@@ -234,6 +234,7 @@ const HomePage = () => {
   const [addPlaceLocationMethod, setAddPlaceLocationMethod] = useState(null)
   const [mapLocation, setMapLocation] = useState(null)
   const [allPlaces, setAllPlaces] = useState([])
+  const [approvedRoads, setApprovedRoads] = useState({ type: 'FeatureCollection', features: [] })
   const [dbPlaces, setDbPlaces] = useState([])
   const osmRefreshTimerRef = useRef(null)
   // Last padded bbox we successfully loaded — used to skip redundant fetches
@@ -269,6 +270,17 @@ const HomePage = () => {
   const [measureStats, setMeasureStats] = useState({ totalMeters: 0, pointCount: 0 })
   const profileFileInputRef = useRef(null)
   const [toast, setToast] = useState(null)
+  const [roadRecording, setRoadRecording] = useState(false)
+  const [roadCoordinates, setRoadCoordinates] = useState([])
+  const [roadPosition, setRoadPosition] = useState(null)
+  const [roadDetailsOpen, setRoadDetailsOpen] = useState(false)
+  const [roadSaving, setRoadSaving] = useState(false)
+  const [roadForm, setRoadForm] = useState({ name: '', roadType: 'local', surface: 'paved', direction: 'two-way', speedLimit: '', description: '', photos: [] })
+  const roadWatchRef = useRef(null)
+  const roadCoordsRef = useRef([])
+  useEffect(() => () => {
+    if (roadWatchRef.current != null) navigator.geolocation?.clearWatch(roadWatchRef.current)
+  }, [])
   const [confirmModal, setConfirmModal] = useState(null)
   const [duplicatePopup, setDuplicatePopup] = useState(null)
   const [successPopup, setSuccessPopup] = useState(null)
@@ -390,6 +402,90 @@ const HomePage = () => {
   const showToast = (msg, type = 'info') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3500)
+  }
+
+  const startRoadRecording = () => {
+    if (roadRecording || roadWatchRef.current != null) return
+    if (!navigator.geolocation) return showToast('This device does not support GPS location', 'error')
+    if (!isAuthenticated) return showToast('Sign in to record a road', 'error')
+    roadCoordsRef.current = []
+    setRoadCoordinates([])
+    setRoadPosition(null)
+    setRoadRecording(true)
+    roadWatchRef.current = navigator.geolocation.watchPosition((position) => {
+      const { latitude, longitude, accuracy } = position.coords || {}
+      if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return
+      if (!Number.isFinite(accuracy) || accuracy > 35) {
+        setRoadPosition({ coordinates: [longitude, latitude], accuracy, rejected: true })
+        mapRef.current?.setRoadRecordingData?.(roadCoordsRef.current, [longitude, latitude])
+        return
+      }
+      const point = [longitude, latitude]
+      const previous = roadCoordsRef.current.at(-1)
+      if (previous) {
+        const latDiff = (latitude - previous[1]) * 111320
+        const lngDiff = (longitude - previous[0]) * 111320 * Math.cos(latitude * Math.PI / 180)
+        if (Math.hypot(latDiff, lngDiff) < Math.max(3, Math.min(accuracy, 10))) {
+          setRoadPosition({ coordinates: point, accuracy, rejected: false })
+          mapRef.current?.setRoadRecordingData?.(roadCoordsRef.current, point)
+          return
+        }
+      }
+      roadCoordsRef.current = [...roadCoordsRef.current, point]
+      setRoadCoordinates(roadCoordsRef.current)
+      setRoadPosition({ coordinates: point, accuracy, rejected: false })
+      mapRef.current?.setRoadRecordingData?.(roadCoordsRef.current, point)
+      if (roadCoordsRef.current.length === 1) mapRef.current?.flyTo?.({ center: point, zoom: 17, duration: 500 })
+    }, (error) => {
+      if (error.code === 1) {
+        if (roadWatchRef.current != null) navigator.geolocation?.clearWatch(roadWatchRef.current)
+        roadWatchRef.current = null
+        setRoadRecording(false)
+      }
+      showToast(error.code === 1 ? 'Location permission denied. Allow GPS access and try again.' : 'Unable to get a GPS fix. Check your location signal.', 'error')
+    }, { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 })
+  }
+
+  const endRoadRecording = () => {
+    if (roadWatchRef.current != null) navigator.geolocation?.clearWatch(roadWatchRef.current)
+    roadWatchRef.current = null
+    setRoadRecording(false)
+    if (roadCoordsRef.current.length < 2) {
+      showToast('Record at least two accurate GPS points to save a road', 'error')
+      setRoadCoordinates([]); roadCoordsRef.current = []; setRoadPosition(null)
+      mapRef.current?.setRoadRecordingData?.([], null)
+      return
+    }
+    setRoadDetailsOpen(true)
+  }
+
+  const handleRoadMapClick = useCallback((location) => {
+    if (!roadRecording) return
+    const point = [location.longitude, location.latitude]
+    const previous = roadCoordsRef.current.at(-1)
+    if (previous) {
+      const latDiff = (point[1] - previous[1]) * 111320
+      const lngDiff = (point[0] - previous[0]) * 111320 * Math.cos(point[1] * Math.PI / 180)
+      if (Math.hypot(latDiff, lngDiff) < 3) return
+    }
+    roadCoordsRef.current = [...roadCoordsRef.current, point]
+    setRoadCoordinates(roadCoordsRef.current)
+    setRoadPosition({ coordinates: point, accuracy: null, rejected: false, manual: true })
+    mapRef.current?.setRoadRecordingData?.(roadCoordsRef.current, point)
+  }, [roadRecording])
+
+  const submitRoad = async (event) => {
+    event.preventDefault()
+    setRoadSaving(true)
+    try {
+      await api.post('/map/roads', { ...roadForm, geometry: { type: 'LineString', coordinates: roadCoordsRef.current } })
+      showToast('Road submitted for review', 'success')
+      setRoadDetailsOpen(false); setRoadCoordinates([]); roadCoordsRef.current = []; setRoadPosition(null)
+      mapRef.current?.setRoadRecordingData?.([], null)
+      setRoadForm({ name: '', roadType: 'local', surface: 'paved', direction: 'two-way', speedLimit: '', description: '', photos: [] })
+    } catch (error) {
+      showToast(error.response?.data?.message || error.response?.data?.error || 'Could not save road. Please try again.', 'error')
+    } finally { setRoadSaving(false) }
   }
 
   const showDuplicatePopup = useCallback((dup, placeName = '') => {
@@ -546,6 +642,31 @@ const HomePage = () => {
     },
     [isAuthenticated, refreshPlacesFromDb, refreshFavoritesFromDb, refreshMyContributions, scheduleOsmViewportRefresh]
   )
+
+  useEffect(() => {
+    if (!mapReadyTick) return undefined
+    const map = mapRef.current?.getMap?.()
+    if (!map) return undefined
+    let timer = null
+    let requestId = 0
+    const loadRoads = async () => {
+      const bounds = map.getBounds?.()
+      if (!bounds) return
+      const currentRequest = ++requestId
+      try {
+        const { data } = await api.get('/public/roads', { params: { minLat: bounds.getSouth(), maxLat: bounds.getNorth(), minLng: bounds.getWest(), maxLng: bounds.getEast() } })
+        if (currentRequest !== requestId) return
+        setApprovedRoads({ type: 'FeatureCollection', features: (data.roads || []).filter((road) => road.geometry?.type === 'LineString').map((road) => ({ type: 'Feature', id: road.id, geometry: road.geometry, properties: { id: road.id, name: road.name, surface: road.surface, roadType: road.roadType } })) })
+      } catch (error) {
+        console.warn('Could not load approved roads', error)
+      }
+    }
+    const scheduleLoad = () => { clearTimeout(timer); timer = setTimeout(loadRoads, 250) }
+    loadRoads()
+    const refreshTimer = setInterval(loadRoads, 30000)
+    map.on('moveend', scheduleLoad)
+    return () => { clearTimeout(timer); clearInterval(refreshTimer); map.off('moveend', scheduleLoad) }
+  }, [mapReadyTick])
 
   // Refresh the contributions list whenever the user opens that panel so it
   // always reflects the latest adds/edits.
@@ -2026,40 +2147,53 @@ const HomePage = () => {
         data-map-ui-chrome
         className="absolute top-0 left-0 right-0 z-30 glass border-b border-white/30 pt-[env(safe-area-inset-top)] shadow-lg"
       >
-        <div className="flex items-center justify-between gap-3 px-3 py-2.5 sm:px-6 sm:py-3">
+        <div className="flex items-center justify-between gap-1 px-2 py-2.5 sm:gap-3 sm:px-6 sm:py-3">
           {/* Logo + Hamburger */}
-          <div className="flex items-center gap-1 flex-shrink-0">
+          <div className="flex min-w-0 items-center gap-0.5 flex-shrink sm:gap-1 sm:flex-none">
             {/* Hamburger menu icon */}
             <button
               onClick={() => setShowMenu(!showMenu)}
-              className="p-2.5 sm:p-2 rounded-xl hover:bg-white/60 active:bg-white/80 transition-colors text-slate-600 flex items-center justify-center min-h-[44px] sm:min-h-0"
+              className="shrink-0 p-2 sm:p-2 rounded-xl hover:bg-white/60 active:bg-white/80 transition-colors text-slate-600 flex items-center justify-center min-h-[44px] sm:min-h-0"
               aria-label={navMenuAria}
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
               </svg>
             </button>
-            <h1 className="m-0 min-w-0 flex items-center gap-2">
+            <h1 className="m-0 min-w-0 flex items-center gap-1 sm:gap-2">
               <AppLogo
                 decorative
-                imgClassName="h-7 w-auto max-h-8 sm:h-8 sm:max-h-9 object-contain flex-shrink-0"
+                imgClassName="h-6 w-auto max-h-7 sm:h-8 sm:max-h-9 object-contain flex-shrink-0"
               />
-              <span className="text-lg sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
+              <span className="min-w-0 text-sm sm:text-xl font-bold bg-gradient-to-r from-primary-600 via-primary-700 to-primary-900 bg-clip-text text-transparent truncate">
                 {navAppTitle}
               </span>
-              <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wide text-slate-500/90 leading-none whitespace-nowrap self-end mb-0.5 sm:mb-1">
-                alpha version
+              <span className="shrink-0 text-[7px] sm:text-[10px] font-medium uppercase tracking-tight sm:tracking-wide text-slate-500/90 leading-none whitespace-nowrap self-end mb-0.5 sm:mb-1">
+      <span className="shrink-0 text-[7px] sm:text-[10px] font-medium uppercase tracking-tight sm:tracking-wide text-slate-500/90 leading-none whitespace-nowrap self-end mb-0.5 sm:mb-1">
+  alpha 
+</span>
               </span>
             </h1>
           </div>
 
           {/* Right side: Notifications + Extract Places + Add Place */}
-          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
+          <div className="flex shrink-0 items-center gap-1 sm:gap-2">
             <NotificationBell
               enabled={mapReadyTick > 0}
               onPlaceFocus={handleNotificationPlaceFocus}
               onOpenLiveShare={handleNotificationLiveShareOpen}
             />
+            <button
+              type="button"
+              onClick={roadRecording ? endRoadRecording : startRoadRecording}
+              title={roadRecording ? 'End road recording' : 'Add road'}
+              aria-label={roadRecording ? 'End road recording' : 'Add road'}
+              className={`flex min-h-[40px] shrink-0 items-center gap-1 rounded-xl border px-1.5 sm:gap-1.5 sm:px-3 py-2 text-[11px] sm:text-sm font-semibold shadow-sm transition-colors ${roadRecording ? 'border-red-200 bg-red-50 text-red-700 hover:bg-red-100' : 'border-teal-200 bg-teal-50 text-teal-800 hover:bg-teal-100'}`}
+            >
+              <span className={`h-2 w-2 shrink-0 rounded-full ${roadRecording ? 'animate-pulse bg-red-500' : 'bg-teal-600'}`} aria-hidden="true" />
+              <span className="sm:hidden">{roadRecording ? 'End' : 'Road'}</span>
+              <span className="hidden sm:inline">{roadRecording ? `End Road · ${roadCoordinates.length} pts${roadPosition?.accuracy ? ` · ±${Math.round(roadPosition.accuracy)}m` : ''}` : 'Add Road'}</span>
+            </button>
             {/* Extract Places button */}
             <button
               onClick={() => setShowExtractPanel(true)}
@@ -2453,7 +2587,13 @@ const HomePage = () => {
           routeStartPlace={routeStartPlace}
           routeEndPlace={routeEndPlace}
           routeStops={routeStops}
+          roadRecording={roadRecording}
+          roadCoordinates={roadCoordinates}
+          roadCurrentPosition={roadPosition?.coordinates || null}
+          onRoadMapClick={handleRoadMapClick}
+          approvedRoads={approvedRoads}
         />
+        {roadRecording && <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-full bg-slate-900/85 px-3 py-2 text-center text-xs font-medium text-white shadow-lg" role="status">GPS tracking live · tap map to add road points</div>}
         {showViewerBar && (
           <Suspense fallback={null}>
             <LiveLocationViewerBar
@@ -2504,6 +2644,21 @@ const HomePage = () => {
           />
         </Suspense>
       )}
+
+      {roadDetailsOpen && <div className="absolute inset-0 z-[70] flex items-end justify-center bg-slate-900/40 p-3 sm:items-center" onMouseDown={(event) => { if (event.target === event.currentTarget) setRoadDetailsOpen(false) }}>
+        <form onSubmit={submitRoad} className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-5 shadow-2xl">
+          <div className="mb-4 flex items-center justify-between"><h2 className="text-lg font-bold text-slate-900">Road Details</h2><button type="button" onClick={() => setRoadDetailsOpen(false)} aria-label="Close">✕</button></div>
+          <p className="mb-4 text-sm text-slate-500">{roadCoordinates.length} GPS points recorded. Submission will be reviewed before appearing on the map.</p>
+          <label className="mb-3 block text-sm">Road Name<input required maxLength={200} value={roadForm.name} onChange={(e) => setRoadForm({ ...roadForm, name: e.target.value })} className="mt-1 w-full rounded-lg border p-2" /></label>
+          <div className="grid grid-cols-2 gap-3">
+            {[['roadType','Road Type',['local','residential','collector','arterial','highway','other']],['surface','Surface',['paved','asphalt','concrete','gravel','dirt','other']],['direction','Direction',['two-way','one-way']]].map(([key,label,options]) => <label key={key} className="text-sm">{label}<select value={roadForm[key]} onChange={(e) => setRoadForm({ ...roadForm, [key]: e.target.value })} className="mt-1 w-full rounded-lg border bg-white p-2">{options.map(v => <option key={v} value={v}>{v}</option>)}</select></label>)}
+            <label className="text-sm">Speed Limit<input type="number" min="1" max="300" value={roadForm.speedLimit} onChange={(e) => setRoadForm({ ...roadForm, speedLimit: e.target.value })} className="mt-1 w-full rounded-lg border p-2" placeholder="km/h" /></label>
+          </div>
+          <label className="mt-3 block text-sm">Description<textarea maxLength={2000} value={roadForm.description} onChange={(e) => setRoadForm({ ...roadForm, description: e.target.value })} className="mt-1 w-full rounded-lg border p-2" rows={3} /></label>
+          <label className="mt-3 block text-sm">Photos<input type="file" accept="image/*" multiple className="mt-1 block w-full" onChange={async (e) => { const files = [...e.target.files].slice(0, 5); try { const data = await Promise.all(files.map(file => resizeImageToDataUrl(file, 1024))); setRoadForm({ ...roadForm, photos: data }) } catch { showToast('Could not read one of the selected photos', 'error') } }} /><span className="text-xs text-slate-500">Up to 5 images</span></label>
+          <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={() => setRoadDetailsOpen(false)} className="rounded-lg border px-4 py-2">Cancel</button><button disabled={roadSaving} className="rounded-lg bg-teal-700 px-4 py-2 font-semibold text-white disabled:opacity-60">{roadSaving ? 'Submitting…' : 'Submit Road'}</button></div>
+        </form>
+      </div>}
 
       {/* Place detail panel — map labels, search, PlaceFinder, filters */}
       {selectedPlace && (

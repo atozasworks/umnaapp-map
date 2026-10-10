@@ -30,10 +30,12 @@ import {
   toRetinaTileUrl,
 } from '../utils/mapRasterTiles'
 
-// Shared maximum supported by the street, terrain, satellite, and label providers.
-// Esri World Imagery advertises cached levels through z19; higher camera zooms
-// would only magnify parent tiles and may expose missing tile coverage.
+// Street and terrain camera ceiling. Satellite uses a lower ceiling because
+// Esri World Imagery may return placeholder tiles in areas without detail.
 const MAP_MAX_ZOOM = 19
+// Esri imagery frequently serves placeholder tiles at high zoom outside
+// detailed coverage areas. Keep satellite below that overzoom range.
+const SATELLITE_MAX_ZOOM = 16
 const RASTER_SOURCE_MAX_ZOOM = 20
 
 const ROUTE_SOURCE_ID = 'route'
@@ -269,7 +271,7 @@ const applyBasemapToMap = (map, mode, streetUrl, { onRouteLayers } = {}) => {
     map.triggerRepaint()
   }
 
-  const basemapMaxZoom = MAP_MAX_ZOOM
+  const basemapMaxZoom = mode === 'satellite' ? SATELLITE_MAX_ZOOM : MAP_MAX_ZOOM
   map.setMaxZoom(basemapMaxZoom)
   if (map.getZoom() > basemapMaxZoom) map.setZoom(basemapMaxZoom)
 
@@ -665,6 +667,11 @@ const MapComponent = forwardRef(({
   routeEndPlace = null,
   routeStops = [],
   draggableRouteStops = true,
+  roadRecording = false,
+  roadCoordinates = [],
+  roadCurrentPosition = null,
+  onRoadMapClick = null,
+  approvedRoads = { type: 'FeatureCollection', features: [] },
 }, ref) => {
   const mapContainerRef = useRef(null)
   const mapRef = useRef(null)
@@ -730,6 +737,109 @@ const MapComponent = forwardRef(({
   const [measurePointCount, setMeasurePointCount] = useState(0)
 
   const [mapLoaded, setMapLoaded] = useState(false)
+  const [basemapMode, setBasemapMode] = useState(readStoredBasemapMode)
+  const basemapModeRef = useRef(basemapMode)
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded) return
+    return whenStyleReady(map, () => {
+      const sourceId = 'approved-roads-source'
+      const layerId = 'approved-roads-layer'
+      const casingId = 'approved-roads-casing-layer'
+      const labelId = 'approved-roads-label-layer'
+      const source = map.getSource(sourceId)
+      if (source) source.setData(approvedRoads)
+      else map.addSource(sourceId, { type: 'geojson', data: approvedRoads })
+      // Match the OSM road hierarchy: motorway/trunk roads are warmer and
+      // wider, while local streets stay light and narrow with a subtle casing.
+      const roadClassWidth = ['match', ['get', 'roadType'],
+        'highway', 2.25, 'arterial', 1.85, 'collector', 1.55, 1.3]
+      if (!map.getLayer(casingId)) map.addLayer({
+        id: casingId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': basemapMode === 'satellite' ? '#3f3f46' : '#d6d0ca',
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, ['*', roadClassWidth, 1.9], 17, ['*', roadClassWidth, 5.5]],
+          'line-opacity': 0.95,
+        },
+      })
+      if (!map.getLayer(layerId)) map.addLayer({
+        id: layerId,
+        type: 'line',
+        source: sourceId,
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: {
+          'line-color': basemapMode === 'satellite'
+            ? '#f4d35e'
+            : ['match', ['get', 'roadType'], 'highway', '#f6d58a', 'arterial', '#f8dfa5', 'collector', '#fffefa', '#ffffff'],
+          'line-width': ['interpolate', ['linear'], ['zoom'], 10, roadClassWidth, 17, ['*', roadClassWidth, 4.2]],
+          'line-opacity': 0.98,
+        },
+      })
+      if (!map.getLayer(labelId)) map.addLayer({
+        id: labelId,
+        type: 'symbol',
+        source: sourceId,
+        minzoom: 13,
+        layout: {
+          'symbol-placement': 'line',
+          'symbol-spacing': 300,
+          'text-field': ['coalesce', ['get', 'name'], ''],
+          'text-font': ['Open Sans Regular'],
+          'text-size': ['interpolate', ['linear'], ['zoom'], 13, 10, 17, 12],
+          'text-max-angle': 30,
+          'text-keep-upright': true,
+          'text-allow-overlap': false,
+          'text-ignore-placement': false,
+        },
+        paint: {
+          'text-color': basemapMode === 'satellite' ? '#ffffff' : '#6b6258',
+          'text-halo-color': basemapMode === 'satellite' ? 'rgba(20, 20, 20, 0.8)' : '#fffefa',
+          'text-halo-width': 1.5,
+        },
+      })
+      map.setPaintProperty(casingId, 'line-color', basemapMode === 'satellite' ? '#3f3f46' : '#d6d2ca')
+      map.setPaintProperty(layerId, 'line-color', basemapMode === 'satellite'
+        ? '#f4d35e'
+        : ['match', ['get', 'roadType'], 'highway', '#f6d58a', 'arterial', '#f8dfa5', 'collector', '#fffefa', '#ffffff'])
+      map.setPaintProperty(labelId, 'text-color', basemapMode === 'satellite' ? '#ffffff' : '#6b6258')
+      map.setPaintProperty(labelId, 'text-halo-color', basemapMode === 'satellite' ? 'rgba(20, 20, 20, 0.8)' : '#fffefa')
+    })
+  }, [mapLoaded, approvedRoads, basemapMode])
+
+  // Keep the live road overlay in sync with React state as well as the
+  // imperative update method. This catches the first GPS fix if it arrives
+  // before the map style has finished loading.
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapLoaded || !map.isStyleLoaded()) return
+    const line = {
+      type: 'FeatureCollection',
+      features: roadCoordinates.length >= 2
+        ? [{ type: 'Feature', geometry: { type: 'LineString', coordinates: roadCoordinates }, properties: {} }]
+        : [],
+    }
+    const point = {
+      type: 'FeatureCollection',
+      features: roadCurrentPosition
+        ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: roadCurrentPosition }, properties: {} }]
+        : [],
+    }
+    for (const [id, data] of [['road-recording-line', line], ['road-recording-position', point]]) {
+      const source = map.getSource(id)
+      if (source) source.setData(data)
+      else map.addSource(id, { type: 'geojson', data })
+    }
+    if (!map.getLayer('road-recording-line-layer')) {
+      map.addLayer({ id: 'road-recording-line-layer', type: 'line', source: 'road-recording-line', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#0f766e', 'line-width': 6, 'line-opacity': 0.9 } })
+    }
+    if (!map.getLayer('road-recording-position-layer')) {
+      map.addLayer({ id: 'road-recording-position-layer', type: 'circle', source: 'road-recording-position', paint: { 'circle-radius': 8, 'circle-color': '#ef4444', 'circle-stroke-color': '#fff', 'circle-stroke-width': 3 } })
+    }
+  }, [mapLoaded, roadCoordinates, roadCurrentPosition])
   const [loadingOverlayVisible, setLoadingOverlayVisible] = useState(true)
   const [loadingOverlayMounted, setLoadingOverlayMounted] = useState(true)
   const [mapInitError, setMapInitError] = useState(null)
@@ -739,8 +849,6 @@ const MapComponent = forwardRef(({
   const startedFromCacheRef = useRef(false)
   const [vehicles, setVehicles] = useState([])
   const [route, setRoute] = useState(null)
-  const [basemapMode, setBasemapMode] = useState(readStoredBasemapMode)
-  const basemapModeRef = useRef(basemapMode)
   const areaExploreFeatureRef = useRef(areaExploreFeature)
   const isOnline = useOnlineStatus()
   const onlineStreetUrlRef = useRef(null)
@@ -1319,7 +1427,7 @@ const MapComponent = forwardRef(({
       zoom: initialZoom,
       minZoom: 3,
       // Bound every camera interaction so the basemap and place details stay available.
-      maxZoom: MAP_MAX_ZOOM,
+      maxZoom: initialBasemap === 'satellite' ? SATELLITE_MAX_ZOOM : MAP_MAX_ZOOM,
       renderWorldCopies: false,
       antialias: true,
       // Keep parent tiles visible / cross-faded while zooming (no blank gaps).
@@ -1512,6 +1620,11 @@ const MapComponent = forwardRef(({
       const { lng, lat } = e.lngLat
       const zoom = map.getZoom?.() ?? 12
 
+      if (roadRecording && onRoadMapClick) {
+        onRoadMapClick({ latitude: lat, longitude: lng, zoomLevel: zoom })
+        return
+      }
+
       if (addPlaceMode && onMapClickRef.current) {
         emitAddPlaceMapPick(lat, lng)
         return
@@ -1534,6 +1647,8 @@ const MapComponent = forwardRef(({
     mapLoaded,
     onMapClick,
     onMapPlacePick,
+    onRoadMapClick,
+    roadRecording,
     measureDistanceActive,
     emitAddPlaceMapPick,
   ])
@@ -3193,6 +3308,19 @@ const MapComponent = forwardRef(({
   // Expose methods via ref (for parent component)
   useImperativeHandle(ref, () => ({
     getMap: () => mapRef.current,
+    setRoadRecordingData: (coordinates, currentPosition) => {
+      const map = mapRef.current
+      if (!map || !map.isStyleLoaded()) return
+      const line = { type: 'FeatureCollection', features: coordinates?.length >= 2 ? [{ type: 'Feature', geometry: { type: 'LineString', coordinates }, properties: {} }] : [] }
+      const point = { type: 'FeatureCollection', features: currentPosition ? [{ type: 'Feature', geometry: { type: 'Point', coordinates: currentPosition }, properties: {} }] : [] }
+      for (const [id, data] of [['road-recording-line', line], ['road-recording-position', point]]) {
+        const source = map.getSource(id)
+        if (source) source.setData(data)
+        else map.addSource(id, { type: 'geojson', data })
+      }
+      if (!map.getLayer('road-recording-line-layer')) map.addLayer({ id: 'road-recording-line-layer', type: 'line', source: 'road-recording-line', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#0f766e', 'line-width': 6, 'line-opacity': 0.9 } })
+      if (!map.getLayer('road-recording-position-layer')) map.addLayer({ id: 'road-recording-position-layer', type: 'circle', source: 'road-recording-position', paint: { 'circle-radius': 8, 'circle-color': '#ef4444', 'circle-stroke-color': '#fff', 'circle-stroke-width': 3 } })
+    },
     isProgrammaticCameraMove: () => Date.now() < programmaticCameraUntilRef.current,
     calculateRoute: async (start, end, waypoints = [], profile = 'driving', routeOptions = {}) => {
       const requestAlternatives = routeOptions.alternatives === true && waypoints.length === 0
@@ -3491,7 +3619,7 @@ const MapComponent = forwardRef(({
   }), [clearAlternativeRoutes, clearMeasureDistance, clearSafetyOverlays, drawRoute, measurePointCount, measureTotalMeters, setSafetyOverlays, syncMeasurePath, updateLiveShareMarker])
 
   return (
-    <div className={`absolute inset-0 w-full h-full ${addPlaceMode || measureDistanceActive ? 'cursor-crosshair' : ''}`}>
+    <div className={`absolute inset-0 w-full h-full ${addPlaceMode || measureDistanceActive || roadRecording ? 'cursor-crosshair' : ''}`}>
       {mapInitError ? (
         <div className="w-full h-full flex flex-col items-center justify-center gap-4 p-6 bg-slate-100">
           <p className="text-slate-700 font-medium">Map could not load</p>

@@ -31,6 +31,7 @@ psql "$DATABASE_URL" -f prisma/add-phase7-claims-labels.sql   # Phase 7
 psql "$DATABASE_URL" -f prisma/add-notification-preferences.sql  # Phase 8
 psql "$DATABASE_URL" -f prisma/add-postgis-place-geom.sql     # Phase 9 (needs PostGIS)
 psql "$DATABASE_URL" -f prisma/add-live-location-sharing.sql  # Timed live-location sharing
+psql "$DATABASE_URL" -f prisma/add-road-recording.sql       # Live GPS roads (GeoJSON; adds PostGIS geometry when available)
 npx prisma generate
 ```
 

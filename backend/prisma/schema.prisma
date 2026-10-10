@@ -89,6 +89,26 @@ model Feedback {
   @@index([createdAt])
 }
 
+model Road {
+  id             String   @id @db.Uuid
+  name           String   @db.VarChar(200)
+  roadType       String   @map("road_type") @db.VarChar(40)
+  surface        String   @db.VarChar(40)
+  direction      String   @db.VarChar(20)
+  speedLimit     Int?     @map("speed_limit")
+  description    String   @default("")
+  photos         Json     @default("[]")
+  geomGeojson    Json     @map("geom_geojson")
+  userId         String   @map("user_id")
+  approvalStatus String   @default("pending") @map("approval_status")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  approvedAt     DateTime? @map("approved_at") @db.Timestamptz(6)
+
+  @@index([approvalStatus], map: "Road_approval_status_idx")
+  @@index([userId], map: "Road_user_id_idx")
+  @@map("Road")
+}
+
 // Per-user notification category preferences. A missing row means "all on"
 // (the defaults below). pushEnabled is the master switch for web-push delivery;
 // the per-category flags gate whether a notification of that kind is created at

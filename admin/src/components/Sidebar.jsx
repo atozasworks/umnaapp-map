@@ -4,6 +4,7 @@ import { logoutAdmin } from '../lib/api'
 const links = [
   { to: '/', label: 'Overview', icon: MOverview },
   { to: '/pending-places', label: 'Place approvals', icon: MHourglass },
+  { to: '/roads', label: 'Road approvals', icon: MHourglass },
   { to: '/safety-hazards', label: 'Safety hazards', icon: MShield },
   { to: '/business-claims', label: 'Business claims', icon: MBriefcase },
   { to: '/feedback', label: 'Feedback', icon: MDocument },

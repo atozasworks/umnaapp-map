@@ -132,6 +132,16 @@ export async function fetchPendingPlaces(params = {}) {
   return data
 }
 
+export async function fetchRoads(status = 'pending') {
+  const { data } = await api.get('/admin/roads', { params: { status } })
+  return data
+}
+
+export async function reviewRoad(id, action) {
+  const { data } = await api.patch(`/admin/roads/${encodeURIComponent(id)}/${action}`)
+  return data
+}
+
 export async function fetchApprovedPlaces(params = {}) {
   const { data } = await api.get('/admin/places/approved', {
     params: {

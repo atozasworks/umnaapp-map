@@ -179,6 +179,40 @@ router.get('/session', async (req, res) => {
 // All remaining admin routes require a valid OTP session cookie.
 router.use(adminAuth)
 
+// Road contributions use a PostGIS table separate from point based Places.
+router.get('/roads', async (req, res) => {
+  try {
+    const status = ['pending', 'approved', 'rejected'].includes(req.query.status) ? req.query.status : 'pending'
+    const roads = await prisma.$queryRaw`SELECT r.id, r.name, r.road_type AS "roadType", r.surface, r.direction, r.speed_limit AS "speedLimit", r.description, r.photos, r.approval_status AS "approvalStatus", r.created_at AS "createdAt", r.geom_geojson AS geometry, u.name AS "userName", u.email AS "userEmail" FROM "Road" r LEFT JOIN "User" u ON u.id = r.user_id WHERE r.approval_status = ${status} ORDER BY r.created_at DESC LIMIT 500`
+    res.json({ roads })
+  } catch (error) {
+    console.error('admin roads list', error)
+    res.status(500).json({ error: 'Failed to load roads. Apply the road recording migration first.' })
+  }
+})
+
+router.patch('/roads/:id/approve', async (req, res) => {
+  try {
+    const rows = await prisma.$queryRaw`UPDATE "Road" SET approval_status = 'approved', approved_at = NOW() WHERE id = ${req.params.id}::uuid AND approval_status = 'pending' RETURNING id`
+    if (!rows.length) return res.status(404).json({ error: 'Pending road not found' })
+    res.json({ success: true, id: req.params.id, approvalStatus: 'approved' })
+  } catch (error) {
+    console.error('admin road approve', error)
+    res.status(500).json({ error: 'Failed to approve road' })
+  }
+})
+
+router.patch('/roads/:id/reject', async (req, res) => {
+  try {
+    const rows = await prisma.$queryRaw`UPDATE "Road" SET approval_status = 'rejected' WHERE id = ${req.params.id}::uuid AND approval_status = 'pending' RETURNING id`
+    if (!rows.length) return res.status(404).json({ error: 'Pending road not found' })
+    res.json({ success: true, id: req.params.id, approvalStatus: 'rejected' })
+  } catch (error) {
+    console.error('admin road reject', error)
+    res.status(500).json({ error: 'Failed to reject road' })
+  }
+})
+
 /** GET /api/admin/settings/allowed-emails — list pre-approved admin Gmail addresses */
 router.get('/settings/allowed-emails', async (req, res) => {
   try {

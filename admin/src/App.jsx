@@ -14,6 +14,7 @@ import DailyReminders from './pages/DailyReminders.jsx'
 import SafetyHazards from './pages/SafetyHazards.jsx'
 import AdminSettings from './pages/AdminSettings.jsx'
 import Feedback from './pages/Feedback.jsx'
+import RoadApprovals from './pages/RoadApprovals.jsx'
 
 function PrivateRoute({ children }) {
   const [state, setState] = useState('loading') // loading | ok | no
@@ -55,6 +56,7 @@ export default function App() {
       >
         <Route index element={<Dashboard />} />
         <Route path="pending-places" element={<PendingPlaces />} />
+        <Route path="roads" element={<RoadApprovals />} />
         <Route path="safety-hazards" element={<SafetyHazards />} />
         <Route path="business-claims" element={<BusinessClaims />} />
         <Route path="legal" element={<LegalDocs />} />
