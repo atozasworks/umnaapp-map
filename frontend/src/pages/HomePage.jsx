@@ -2048,7 +2048,7 @@ const HomePage = () => {
                 {navAppTitle}
               </span>
               <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wide text-slate-500/90 leading-none whitespace-nowrap self-end mb-0.5 sm:mb-1">
-                alpha version
+                alpha
               </span>
             </h1>
           </div>

@@ -89,8 +89,8 @@ const GRID_OPTIONS = [
 const EXTRACT_METHODS = [
   {
     id: 'grid',
-    label: 'Grid',
-    description: 'Load region & scan cells',
+    label: 'By Region',
+    description: 'Find places across a selected region',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 4H5a2 2 0 00-2 2v4a2 2 0 002 2h4a2 2 0 002-2V6a2 2 0 00-2-2z" />
@@ -112,8 +112,8 @@ const EXTRACT_METHODS = [
   },
   {
     id: 'area',
-    label: 'Area',
-    description: 'Draw a shape on the map',
+    label: 'Draw Area',
+    description: 'Find places inside an area you draw on the map',
     icon: (
       <svg className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5h16M4 5l4 14h8l4-14M4 5l2-2m14 2l-2-2" />
@@ -270,6 +270,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const [taluk, setTaluk] = useState('')
   const [village, setVillage] = useState('')
   const [loadingRegion, setLoadingRegion] = useState(false)
+  const [regionLoaded, setRegionLoaded] = useState(false)
   const [gridSize, setGridSize] = useState(2)
   const [status, setStatus] = useState('Enter country → state → district → taluk → village as needed, then Load region')
   const [isExtracting, setIsExtracting] = useState(false)
@@ -737,6 +738,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
     const c = country.trim()
     if (!c) {
+      setRegionLoaded(false)
       setStatus('Enter at least a country, then tap Load region.')
       return
     }
@@ -750,6 +752,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       village: village.trim(),
     }
 
+    setRegionLoaded(false)
     setLoadingRegion(true)
     try {
       const { results, status: gStatus, message: geoMsg } = await throttledGeocode(address)
@@ -768,6 +771,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         }
         boundsRef.current.region = viewport
         map.fitBounds(viewport)
+        setRegionLoaded(true)
         setStatus(`Loaded ${address}. Ready to extract places.`)
       } else {
         boundsRef.current.region = null
@@ -1336,14 +1340,15 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   // --- Extraction ---
   const extractPlaces = useCallback(async () => {
-    const extractionBounds = boundsRef.current.region
-    if (!extractionBounds) {
+    const map = mapInstanceRef.current
+    const visibleBounds = map?.getBounds?.()
+    const extractionBounds = visibleBounds ? clampViewportToIndia(visibleBounds) : null
+    if (!regionLoaded || !extractionBounds) {
       setStatus('Tap Load region first (after entering location fields).')
       return
     }
     if (isExtracting) return
 
-    const map = mapInstanceRef.current
     const minZoom = quotaToolkitRef.current?.config.minZoomForNearbySearch ?? 14
     if (map && !isZoomSufficient(map, minZoom)) {
       setStatus(`Zoom in to level ${minZoom}+ before extracting (current: ${map.getZoom() ?? '—'}).`)
@@ -1422,6 +1427,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       }
       const newPlaces = []
       result.results.forEach((place) => {
+        if (!extractionBounds.contains(place.geometry.location)) return
         if (!isInsideIndiaBounds(place.geometry.location)) return
         if (placesArrayRef.current.length >= maxPlaces) return
         const draft = buildNearbyExtractDraft(
@@ -1571,6 +1577,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
     user?.id,
     gridExtractBlocked,
     gridExtractMaxPlaces,
+    regionLoaded,
   ])
 
   const stopExtraction = useCallback(() => {
@@ -2330,12 +2337,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
             {/* Left sidebar — method picker + controls + results */}
             <aside className="order-2 flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-slate-200/80 bg-white md:order-1 md:w-[min(400px,38%)] md:max-w-[420px] md:border-b-0 md:border-r lg:w-[420px] max-h-[46vh] md:max-h-full">
-              {/* Extract method — label + 3 options + Guide */}
+              {/* Extract method picker */}
               <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-3 py-2.5 sm:px-4">
                 <div className="flex items-center gap-2">
-                  <p className="shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                    Extract method
-                  </p>
                   <nav className="flex min-w-0 flex-1 gap-1" aria-label="Extract method">
                     {EXTRACT_METHODS.map((method) => {
                       const active = extractionMethod === method.id
@@ -2412,7 +2416,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       <input
                         type="text"
                         value={country}
-                        onChange={(e) => setCountry(e.target.value)}
+                        onChange={(e) => { setCountry(e.target.value); setRegionLoaded(false) }}
                         placeholder="Country (required, e.g. India)"
                         className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
                         onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
@@ -2420,7 +2424,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       <input
                         type="text"
                         value={state}
-                        onChange={(e) => setState(e.target.value)}
+                        onChange={(e) => { setState(e.target.value); setRegionLoaded(false) }}
                         placeholder="State / region"
                         className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
                         onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
@@ -2428,7 +2432,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       <input
                         type="text"
                         value={district}
-                        onChange={(e) => setDistrict(e.target.value)}
+                        onChange={(e) => { setDistrict(e.target.value); setRegionLoaded(false) }}
                         placeholder="District"
                         className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
                         onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
@@ -2436,7 +2440,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       <input
                         type="text"
                         value={taluk}
-                        onChange={(e) => setTaluk(e.target.value)}
+                        onChange={(e) => { setTaluk(e.target.value); setRegionLoaded(false) }}
                         placeholder="Taluk / taluka"
                         className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1"
                         onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
@@ -2444,7 +2448,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       <input
                         type="text"
                         value={village}
-                        onChange={(e) => setVillage(e.target.value)}
+                        onChange={(e) => { setVillage(e.target.value); setRegionLoaded(false) }}
                         placeholder="Village / town"
                         className="h-8 min-w-0 rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs shadow-sm outline-none ring-primary-400/25 transition-shadow focus:border-primary-400 focus:ring-1 sm:col-span-2"
                         onKeyDown={(e) => e.key === 'Enter' && loadRegion()}
@@ -2462,22 +2466,11 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       >
                         {loadingRegion ? 'Loading…' : 'Load region'}
                       </button>
-                      <select
-                        value={gridSize}
-                        onChange={(e) => setGridSize(parseInt(e.target.value, 10))}
-                        className="h-8 max-w-full appearance-none rounded-lg border border-slate-200 bg-white px-2 py-0 text-xs shadow-sm outline-none ring-primary-400/20 focus:border-primary-400 focus:ring-1 sm:w-auto"
-                      >
-                        {GRID_OPTIONS.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
                       {!isExtracting ? (
                         <button
                           type="button"
                           onClick={extractPlaces}
-                          disabled={googleApiBlocked || gridExtractBlocked || gridExtractStatus.loading}
+                          disabled={googleApiBlocked || gridExtractBlocked || gridExtractStatus.loading || !regionLoaded}
                           className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                           title={
                             gridExtractBlocked
@@ -2498,31 +2491,6 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                           Stop
                         </button>
                       )}
-                      <select
-                        value={exportFormat}
-                        onChange={(e) => setExportFormat(e.target.value)}
-                        className="h-8 max-w-[5.5rem] rounded-lg border border-slate-200 bg-white px-1.5 text-[11px] shadow-sm"
-                        title="Export format"
-                      >
-                        <option value="json">JSON</option>
-                        <option value="geojson">GeoJSON</option>
-                      </select>
-                      <button
-                        type="button"
-                        onClick={downloadExport}
-                        disabled={extractedPlaces.length === 0}
-                        className="h-8 shrink-0 rounded-lg bg-slate-700 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
-                      >
-                        Export
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => fileInputRef.current?.click()}
-                        className="h-8 shrink-0 rounded-lg bg-amber-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:bg-amber-600"
-                      >
-                        Upload
-                      </button>
-                      <input ref={fileInputRef} type="file" accept=".json,.geojson" className="hidden" onChange={handleUploadJSON} />
                     </div>
                   </div>
 
