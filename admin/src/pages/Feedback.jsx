@@ -7,11 +7,13 @@ export default function Feedback() {
   const [limit] = useState(50)
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     let cancelled = false
     async function load() {
       setLoading(true)
+      setLoadError('')
       try {
         const data = await fetchFeedbacks({ page, limit })
         if (!cancelled) {
@@ -20,6 +22,7 @@ export default function Feedback() {
         }
       } catch (e) {
         console.error('Failed to load feedback', e)
+        if (!cancelled) setLoadError(e?.response?.data?.error || 'Could not load feedback. Check the admin API and database migration.')
       } finally {
         if (!cancelled) setLoading(false)
       }
@@ -53,6 +56,10 @@ export default function Feedback() {
                 <tr>
                   <td colSpan={6} className="p-4 text-center text-admin-muted">Loading…</td>
                 </tr>
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={6} className="p-4 text-center text-rose-400">{loadError}</td>
+                </tr>
               ) : items.length === 0 ? (
                 <tr>
                   <td colSpan={6} className="p-4 text-center text-admin-muted">No feedback found.</td>
@@ -68,6 +75,7 @@ export default function Feedback() {
                     <td className="p-2">
                       <div className="font-semibold">{f.subject}</div>
                       <div className="text-admin-muted text-sm mt-1 whitespace-pre-wrap">{f.message?.length > 300 ? f.message.slice(0, 300) + '…' : f.message}</div>
+                      {f.imageData && <a href={f.imageData} target="_blank" rel="noreferrer" className="mt-2 inline-block"><img src={f.imageData} alt="User feedback attachment" className="max-h-32 max-w-48 rounded border border-admin-border object-contain" /></a>}
                     </td>
                   </tr>
                 ))

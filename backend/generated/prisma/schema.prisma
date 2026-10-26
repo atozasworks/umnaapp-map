@@ -81,6 +81,7 @@ model Feedback {
   category  String   @default("General")
   rating    Int?
   userAgent String?  @map("user_agent")
+  imageData String?  @map("image_data") @db.Text
   createdAt DateTime @default(now()) @map("created_at")
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

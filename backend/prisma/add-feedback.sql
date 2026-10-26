@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS "Feedback" (
   CONSTRAINT "Feedback_pkey" PRIMARY KEY ("id")
 );
 
+ALTER TABLE "Feedback" ADD COLUMN IF NOT EXISTS "image_data" TEXT;
+
 CREATE INDEX IF NOT EXISTS "Feedback_user_id_idx" ON "Feedback"("user_id");
 CREATE INDEX IF NOT EXISTS "Feedback_created_at_idx" ON "Feedback"("created_at");
 

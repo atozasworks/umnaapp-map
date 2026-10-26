@@ -160,6 +160,7 @@ exports.Prisma.FeedbackScalarFieldEnum = {
   category: 'category',
   rating: 'rating',
   userAgent: 'userAgent',
+  imageData: 'imageData',
   createdAt: 'createdAt'
 };
 

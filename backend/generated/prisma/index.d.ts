@@ -5501,6 +5501,7 @@ export namespace Prisma {
     category: string | null
     rating: number | null
     userAgent: string | null
+    imageData: string | null
     createdAt: Date | null
   }
 
@@ -5514,6 +5515,7 @@ export namespace Prisma {
     category: string | null
     rating: number | null
     userAgent: string | null
+    imageData: string | null
     createdAt: Date | null
   }
 
@@ -5527,6 +5529,7 @@ export namespace Prisma {
     category: number
     rating: number
     userAgent: number
+    imageData: number
     createdAt: number
     _all: number
   }
@@ -5550,6 +5553,7 @@ export namespace Prisma {
     category?: true
     rating?: true
     userAgent?: true
+    imageData?: true
     createdAt?: true
   }
 
@@ -5563,6 +5567,7 @@ export namespace Prisma {
     category?: true
     rating?: true
     userAgent?: true
+    imageData?: true
     createdAt?: true
   }
 
@@ -5576,6 +5581,7 @@ export namespace Prisma {
     category?: true
     rating?: true
     userAgent?: true
+    imageData?: true
     createdAt?: true
     _all?: true
   }
@@ -5676,6 +5682,7 @@ export namespace Prisma {
     category: string
     rating: number | null
     userAgent: string | null
+    imageData: string | null
     createdAt: Date
     _count: FeedbackCountAggregateOutputType | null
     _avg: FeedbackAvgAggregateOutputType | null
@@ -5708,6 +5715,7 @@ export namespace Prisma {
     category?: boolean
     rating?: boolean
     userAgent?: boolean
+    imageData?: boolean
     createdAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["feedback"]>
@@ -5722,6 +5730,7 @@ export namespace Prisma {
     category?: boolean
     rating?: boolean
     userAgent?: boolean
+    imageData?: boolean
     createdAt?: boolean
     user?: boolean | UserDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["feedback"]>
@@ -5736,6 +5745,7 @@ export namespace Prisma {
     category?: boolean
     rating?: boolean
     userAgent?: boolean
+    imageData?: boolean
     createdAt?: boolean
   }
 
@@ -5761,6 +5771,7 @@ export namespace Prisma {
       category: string
       rating: number | null
       userAgent: string | null
+      imageData: string | null
       createdAt: Date
     }, ExtArgs["result"]["feedback"]>
     composites: {}
@@ -6165,6 +6176,7 @@ export namespace Prisma {
     readonly category: FieldRef<"Feedback", 'String'>
     readonly rating: FieldRef<"Feedback", 'Int'>
     readonly userAgent: FieldRef<"Feedback", 'String'>
+    readonly imageData: FieldRef<"Feedback", 'String'>
     readonly createdAt: FieldRef<"Feedback", 'DateTime'>
   }
     
@@ -27150,6 +27162,7 @@ export namespace Prisma {
     category: 'category',
     rating: 'rating',
     userAgent: 'userAgent',
+    imageData: 'imageData',
     createdAt: 'createdAt'
   };
 
@@ -27851,6 +27864,7 @@ export namespace Prisma {
     category?: StringFilter<"Feedback"> | string
     rating?: IntNullableFilter<"Feedback"> | number | null
     userAgent?: StringNullableFilter<"Feedback"> | string | null
+    imageData?: StringNullableFilter<"Feedback"> | string | null
     createdAt?: DateTimeFilter<"Feedback"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
   }
@@ -27865,6 +27879,7 @@ export namespace Prisma {
     category?: SortOrder
     rating?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
+    imageData?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     user?: UserOrderByWithRelationInput
   }
@@ -27882,6 +27897,7 @@ export namespace Prisma {
     category?: StringFilter<"Feedback"> | string
     rating?: IntNullableFilter<"Feedback"> | number | null
     userAgent?: StringNullableFilter<"Feedback"> | string | null
+    imageData?: StringNullableFilter<"Feedback"> | string | null
     createdAt?: DateTimeFilter<"Feedback"> | Date | string
     user?: XOR<UserRelationFilter, UserWhereInput>
   }, "id">
@@ -27896,6 +27912,7 @@ export namespace Prisma {
     category?: SortOrder
     rating?: SortOrderInput | SortOrder
     userAgent?: SortOrderInput | SortOrder
+    imageData?: SortOrderInput | SortOrder
     createdAt?: SortOrder
     _count?: FeedbackCountOrderByAggregateInput
     _avg?: FeedbackAvgOrderByAggregateInput
@@ -27917,6 +27934,7 @@ export namespace Prisma {
     category?: StringWithAggregatesFilter<"Feedback"> | string
     rating?: IntNullableWithAggregatesFilter<"Feedback"> | number | null
     userAgent?: StringNullableWithAggregatesFilter<"Feedback"> | string | null
+    imageData?: StringNullableWithAggregatesFilter<"Feedback"> | string | null
     createdAt?: DateTimeWithAggregatesFilter<"Feedback"> | Date | string
   }
 
@@ -29965,6 +29983,7 @@ export namespace Prisma {
     category?: string
     rating?: number | null
     userAgent?: string | null
+    imageData?: string | null
     createdAt?: Date | string
     user: UserCreateNestedOneWithoutFeedbacksInput
   }
@@ -29979,6 +29998,7 @@ export namespace Prisma {
     category?: string
     rating?: number | null
     userAgent?: string | null
+    imageData?: string | null
     createdAt?: Date | string
   }
 
@@ -29991,6 +30011,7 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     rating?: NullableIntFieldUpdateOperationsInput | number | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    imageData?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: UserUpdateOneRequiredWithoutFeedbacksNestedInput
   }
@@ -30005,6 +30026,7 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     rating?: NullableIntFieldUpdateOperationsInput | number | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    imageData?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -30018,6 +30040,7 @@ export namespace Prisma {
     category?: string
     rating?: number | null
     userAgent?: string | null
+    imageData?: string | null
     createdAt?: Date | string
   }
 
@@ -30030,6 +30053,7 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     rating?: NullableIntFieldUpdateOperationsInput | number | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    imageData?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -30043,6 +30067,7 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     rating?: NullableIntFieldUpdateOperationsInput | number | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    imageData?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -32492,6 +32517,7 @@ export namespace Prisma {
     category?: SortOrder
     rating?: SortOrder
     userAgent?: SortOrder
+    imageData?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -32509,6 +32535,7 @@ export namespace Prisma {
     category?: SortOrder
     rating?: SortOrder
     userAgent?: SortOrder
+    imageData?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -32522,6 +32549,7 @@ export namespace Prisma {
     category?: SortOrder
     rating?: SortOrder
     userAgent?: SortOrder
+    imageData?: SortOrder
     createdAt?: SortOrder
   }
 
@@ -36045,6 +36073,7 @@ export namespace Prisma {
     category?: string
     rating?: number | null
     userAgent?: string | null
+    imageData?: string | null
     createdAt?: Date | string
   }
 
@@ -36057,6 +36086,7 @@ export namespace Prisma {
     category?: string
     rating?: number | null
     userAgent?: string | null
+    imageData?: string | null
     createdAt?: Date | string
   }
 
@@ -36677,6 +36707,7 @@ export namespace Prisma {
     category?: StringFilter<"Feedback"> | string
     rating?: IntNullableFilter<"Feedback"> | number | null
     userAgent?: StringNullableFilter<"Feedback"> | string | null
+    imageData?: StringNullableFilter<"Feedback"> | string | null
     createdAt?: DateTimeFilter<"Feedback"> | Date | string
   }
 
@@ -41430,6 +41461,7 @@ export namespace Prisma {
     category?: string
     rating?: number | null
     userAgent?: string | null
+    imageData?: string | null
     createdAt?: Date | string
   }
 
@@ -42133,6 +42165,7 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     rating?: NullableIntFieldUpdateOperationsInput | number | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    imageData?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -42145,6 +42178,7 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     rating?: NullableIntFieldUpdateOperationsInput | number | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    imageData?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -42157,6 +42191,7 @@ export namespace Prisma {
     category?: StringFieldUpdateOperationsInput | string
     rating?: NullableIntFieldUpdateOperationsInput | number | null
     userAgent?: NullableStringFieldUpdateOperationsInput | string | null
+    imageData?: NullableStringFieldUpdateOperationsInput | string | null
     createdAt?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
