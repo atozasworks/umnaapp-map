@@ -291,6 +291,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   const nearbyQuotaRemaining = googleQuotaStatus.remainingSession
   const dailyQuotaRemaining = googleQuotaStatus.remainingDaily
   const [addingToMap, setAddingToMap] = useState(false)
+  const addToMapInFlightRef = useRef(false)
   const [selectAll, setSelectAll] = useState(true)
   const [exportFormat, setExportFormat] = useState('json')
   const [gridExtractMaxPlaces, setGridExtractMaxPlaces] = useState(GRID_EXTRACT_MAX_PLACES_DEFAULT)
@@ -1278,6 +1279,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   }, [areaExtractedPlaces, isAlreadyOnMap])
 
   const handleAreaAddToMap = useCallback(async () => {
+    if (addToMapInFlightRef.current) return
     const selected = areaExtractedPlaces.filter(
       (p) => areaSelectedPlaces.has(p.name) && !isAlreadyOnMap(p)
     )
@@ -1289,6 +1291,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       setAreaStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
       return
     }
+    addToMapInFlightRef.current = true
     setAddingToMap(true)
     try {
       const svc = areaServiceRef.current
@@ -1310,6 +1313,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           {
             ...p,
             zoomLevel: typeof mapZoomVal === 'number' ? mapZoomVal : p.zoomLevel ?? 15,
+            extractMethod: 'area',
           },
           { map: activeMap, place: p }
         )
@@ -1331,9 +1335,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         )
         setAreaStatus(err.response?.data?.message || 'Place already on the map')
       } else {
-        setAreaStatus(`Failed to add places: ${err.message}`)
+        setAreaStatus(`Failed to add places: ${err.response?.data?.message || err.message}`)
       }
     } finally {
+      addToMapInFlightRef.current = false
       setAddingToMap(false)
     }
   }, [areaExtractedPlaces, areaSelectedPlaces, isAlreadyOnMap, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, syncQuotaUi])
@@ -1610,6 +1615,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   // --- Add to map ---
   const handleAddToMap = useCallback(async () => {
+    if (addToMapInFlightRef.current) return
     const selected = extractedPlaces.filter(
       (p) => selectedPlaces.has(p.name) && !isAlreadyOnMap(p)
     )
@@ -1621,6 +1627,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       setStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
       return
     }
+    addToMapInFlightRef.current = true
     setAddingToMap(true)
     try {
       const svc = serviceRef.current
@@ -1643,6 +1650,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           {
             ...p,
             zoomLevel: typeof mapZoom === 'number' ? mapZoom : p.zoomLevel ?? 15,
+            ...(extractionMethod === 'search' ? {} : { extractMethod: extractionMethod }),
           },
           { map: activeMap, place: p }
         )
@@ -1664,9 +1672,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         )
         setStatus(err.response?.data?.message || 'Place already on the map')
       } else {
-        setStatus(`Failed to add places: ${err.message}`)
+        setStatus(`Failed to add places: ${err.response?.data?.message || err.message}`)
       }
     } finally {
+      addToMapInFlightRef.current = false
       setAddingToMap(false)
     }
   }, [extractedPlaces, selectedPlaces, isAlreadyOnMap, onAddToMap, onClose, enqueueApiCall, onShowDuplicate, extractionMethod, syncQuotaUi])
@@ -2157,6 +2166,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   }, [searchResults, addSearchMarker])
 
   const handleSearchAddToMap = useCallback(async () => {
+    if (addToMapInFlightRef.current) return
     const selected = searchResults.filter(
       (p) => selectedSearchPlaces.has(p.name) && !isAlreadyOnMap(p)
     )
@@ -2164,6 +2174,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
       setSearchStatus('No places selected. Select places to add.')
       return
     }
+    addToMapInFlightRef.current = true
     setAddingToMap(true)
     try {
       const activeMap = searchMapInstanceRef.current
@@ -2194,8 +2205,9 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         searchMarkersRef.current = []
       }, 1500)
     } catch (err) {
-      setSearchStatus(`Failed to add places: ${err.message}`)
+      setSearchStatus(`Failed to add places: ${err.response?.data?.message || err.message}`)
     } finally {
+      addToMapInFlightRef.current = false
       setAddingToMap(false)
     }
   }, [searchResults, selectedSearchPlaces, isAlreadyOnMap, onAddToMap, onClose])

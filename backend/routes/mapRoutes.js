@@ -1313,6 +1313,10 @@ router.post(
     body('places.*.type').optional().trim().isLength({ max: 100 }),
     body('places.*.place_id').optional().trim().isLength({ max: 255 }),
     body('places.*.zoomLevel').optional().isFloat({ min: 0, max: 22 }),
+    body('places.*.extractMethod')
+      .optional()
+      .isIn(['grid', 'area'])
+      .withMessage('extractMethod must be grid or area'),
   ],
   async (req, res) => {
     try {
@@ -1330,10 +1334,10 @@ router.post(
       const userName = req.user.name || null
       const userEmail = req.user.email || null
 
-      const looksLikeExtractBatch = incoming.some(
-        (item) => item.extracted_at || item.extractedAt || item.place_id || item.placeId
+      const requiresDailyExtract = incoming.some(
+        (item) => item.extractMethod === 'grid' || item.extractMethod === 'area'
       )
-      if (looksLikeExtractBatch) {
+      if (requiresDailyExtract) {
         const extractRow = await prisma.user.findUnique({
           where: { id: userId },
           select: { lastGridExtractAt: true },
