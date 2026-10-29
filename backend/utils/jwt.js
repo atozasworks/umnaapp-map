@@ -1,9 +1,12 @@
 import jwt from 'jsonwebtoken'
 import prisma from '../config/database.js'
 
+/** Absolute session lifetime from manual login. Not a sliding window. */
+const SESSION_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '30d'
+
 export const generateToken = (userId) => {
   return jwt.sign({ userId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
+    expiresIn: SESSION_EXPIRES_IN,
   })
 }
 

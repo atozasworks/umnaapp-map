@@ -1,12 +1,14 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import api from '../services/api'
 import {
+  ATOZAS_POST_LOGOUT_PATH,
   beginAtozasLogin,
   fetchAtozasMe,
   isAtozasLoggedOut,
   logoutAtozasSession,
   markAtozasLoggedOut,
 } from '../utils/atozasSso'
+import { isTokenExpired } from '../utils/sessionExpiry'
 
 const AuthContext = createContext()
 
@@ -25,6 +27,7 @@ export const AuthProvider = ({ children }) => {
   const [atozasSsoEnabled, setAtozasSsoEnabled] = useState(false)
   const [atozasAutoStart, setAtozasAutoStart] = useState(() => !isAtozasLoggedOut())
   const skipAtozasRestoreRef = useRef(false)
+  const expiryHandledRef = useRef(false)
 
   const logout = useCallback(async () => {
     skipAtozasRestoreRef.current = true
@@ -50,6 +53,18 @@ export const AuthProvider = ({ children }) => {
     await Promise.allSettled(tasks)
   }, [])
 
+  const expireSession = useCallback(async () => {
+    if (expiryHandledRef.current) return
+    expiryHandledRef.current = true
+    await logout()
+    const path = window.location.pathname
+    if (path !== '/login' && path !== '/register' && path !== '/verify-otp') {
+      window.location.replace(ATOZAS_POST_LOGOUT_PATH)
+      return
+    }
+    expiryHandledRef.current = false
+  }, [logout])
+
   const loadUser = useCallback(async (retryCount = 0) => {
     try {
       const { data } = await api.get('/auth/me')
@@ -57,7 +72,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       // Only logout on 401 (invalid/expired token) - user must click Logout otherwise
       if (error.response?.status === 401) {
-        logout()
+        expireSession()
       } else {
         // Network error, timeout, 500, etc. - keep token, retry once
         console.error('Failed to load user:', error?.message || error)
@@ -68,7 +83,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setLoading(false)
     }
-  }, [logout])
+  }, [expireSession])
 
   useEffect(() => {
     let cancelled = false
@@ -82,6 +97,7 @@ export const AuthProvider = ({ children }) => {
     }
 
     if (urlToken) {
+      expiryHandledRef.current = false
       beginAtozasLogin()
       skipAtozasRestoreRef.current = false
       setAtozasAutoStart(true)
@@ -95,6 +111,13 @@ export const AuthProvider = ({ children }) => {
     }
 
     const existingToken = urlToken || token || localStorage.getItem('token')
+
+    if (existingToken && isTokenExpired(existingToken)) {
+      expireSession()
+      return () => {
+        cancelled = true
+      }
+    }
 
     // Load user from database when token exists
     if (existingToken) {
@@ -133,9 +156,31 @@ export const AuthProvider = ({ children }) => {
     return () => {
       cancelled = true
     }
-  }, [token, loadUser])
+  }, [token, loadUser, expireSession])
+
+  useEffect(() => {
+    if (!token) return undefined
+    const check = () => {
+      const current = localStorage.getItem('token')
+      if (current && isTokenExpired(current)) expireSession()
+    }
+    check()
+    // 30 days is longer than the maximum setTimeout delay, so poll instead.
+    const id = window.setInterval(check, 60_000)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') check()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    window.addEventListener('focus', check)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('focus', check)
+    }
+  }, [token, expireSession])
 
   const login = useCallback((userData, authToken) => {
+    expiryHandledRef.current = false
     beginAtozasLogin()
     skipAtozasRestoreRef.current = false
     setAtozasAutoStart(true)
@@ -164,12 +209,12 @@ export const AuthProvider = ({ children }) => {
     }
   }, [])
 
-  // Listen for 401 from /auth/me only - session expired
+  // Server rejected the signed session (expired, revoked, or invalid).
   useEffect(() => {
-    const handleSessionInvalid = () => logout()
+    const handleSessionInvalid = () => expireSession()
     window.addEventListener('auth:sessionExpired', handleSessionInvalid)
     return () => window.removeEventListener('auth:sessionExpired', handleSessionInvalid)
-  }, [logout])
+  }, [expireSession])
 
   const value = useMemo(
     () => ({

@@ -31,8 +31,9 @@ import {
 } from '../components/lazyHomePanels'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
-import PwaInstallModal from '../components/PwaInstallModal'
+import LandingInstallPopup from '../components/LandingInstallPopup'
 import NotificationBell from '../components/NotificationBell'
+import { usePwaInstall } from '../hooks/usePwaInstall'
 import useSafeRouteMonitor from '../hooks/useSafeRouteMonitor'
 import api from '../services/api'
 import { PLACE_CATEGORIES } from '../constants/placeCategories'
@@ -294,7 +295,7 @@ const HomePage = () => {
   const [utilityInjectedPlace, setUtilityInjectedPlace] = useState(null)
   const pendingUtilityAddTypeRef = useRef(null)
   const [showOfflineMaps, setShowOfflineMaps] = useState(false)
-  const [showInstallModal, setShowInstallModal] = useState(false)
+  const { promptInstall, isInstalled } = usePwaInstall()
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
@@ -2800,9 +2801,10 @@ const HomePage = () => {
 
               {/* Section 4: Settings */}
               <div className="border-b border-slate-200 py-2">
+                {!isInstalled && (
                 <button
                   type="button"
-                  onClick={() => { setShowMenu(false); setShowInstallModal(true) }}
+                  onClick={() => { setShowMenu(false); promptInstall() }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 bg-gradient-to-r from-primary-50 to-cyan-50 text-left transition-colors hover:from-primary-100 hover:to-cyan-100 active:from-primary-100 active:to-cyan-100 touch-manipulation"
                 >
                   <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white shadow-sm">
@@ -2818,6 +2820,7 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
                   </svg>
                 </button>
+                )}
                 <button
                   type="button"
                   onClick={() => { setShowMenu(false); navigateTo('/open-source') }}
@@ -2887,8 +2890,6 @@ const HomePage = () => {
           />
         </Suspense>
       )}
-
-      <PwaInstallModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
 
       {showOnboarding && (
         <Suspense fallback={null}>
@@ -3288,6 +3289,8 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
+      <LandingInstallPopup dismissStorageKey="home-pwa-install-dismissed" />
 
       {mapReadyTick > 0 && (
         <Suspense fallback={null}>
