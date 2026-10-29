@@ -49,8 +49,6 @@ export function usePwaInstall(dismissStorageKey = 'pwa-install-dismissed') {
   })
 
   const isStandalone = isStandaloneMode()
-
-  const isStandalone = isStandaloneMode()
   const isIos = isIosSafari()
 
   /** Run directly from onClick — opens native install UI immediately when available. */
@@ -70,13 +68,13 @@ export function usePwaInstall(dismissStorageKey = 'pwa-install-dismissed') {
   }, [dismissStorageKey])
 
   return {
+    canInstall,
+    isStandalone,
     isInstalled,
     isIos,
     dismissed,
     dismiss,
     promptInstall,
     showPopup: !isInstalled && !dismissed,
-    promptInstall,
-    showPopup: !isStandalone && !dismissed,
   }
 }

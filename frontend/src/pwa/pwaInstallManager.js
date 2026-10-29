@@ -43,15 +43,23 @@ export function initPwaInstallCapture() {
   if (typeof window === 'undefined' || window.__pwaInstallCaptureInit) return
   window.__pwaInstallCaptureInit = true
 
+  installed = readStoredInstalled()
+  publish()
+
   window.addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault()
     deferredPrompt = e
-    notify()
+    // The browser only offers this when the app is not installed.
+    installed = false
+    writeStoredInstalled(false)
+    publish()
   })
 
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null
-    notify()
+    installed = true
+    writeStoredInstalled(true)
+    publish()
   })
 }
 
@@ -59,14 +67,6 @@ export function getDeferredInstallPrompt() {
   return deferredPrompt
 }
 
-export function canTriggerInstall() {
-  return deferredPrompt != null
-}
-
-/**
- * Opens the native install dialog. Must run synchronously inside a user click handler.
- * @returns {{ ok: true, userChoice: Promise<{ outcome: string }> } | { ok: false }}
- */
 export function getInstallSnapshot() {
   return snapshot
 }
@@ -81,6 +81,14 @@ export function canTriggerInstall() {
 
 export function isAppInstalled() {
   return installed
+}
+
+/**
+ * Opens the native install dialog. Must run synchronously inside a user click handler.
+ * @returns {{ ok: true, userChoice: Promise<{ outcome: string }> } | { ok: false }}
+ */
+export function triggerInstall() {
+  const prompt = deferredPrompt
   if (!prompt) return { ok: false }
 
   // Do not await before prompt() — breaks the user-gesture requirement in Chromium.
@@ -89,7 +97,9 @@ export function isAppInstalled() {
   const userChoice = prompt.userChoice.then((choice) => {
     if (choice.outcome === 'accepted') {
       deferredPrompt = null
-      notify()
+      installed = true
+      writeStoredInstalled(true)
+      publish()
     }
     return choice
   })
@@ -97,10 +107,8 @@ export function isAppInstalled() {
   return { ok: true, userChoice }
 }
 
-      installed = true
-      writeStoredInstalled(true)
-      publish()
+export function subscribeInstallPrompt(listener) {
   listeners.add(listener)
-  listener(deferredPrompt)
+  listener(snapshot)
   return () => listeners.delete(listener)
 }
