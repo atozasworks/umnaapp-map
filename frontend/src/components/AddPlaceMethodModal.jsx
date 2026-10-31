@@ -38,7 +38,7 @@ const AddPlaceMethodModal = ({
         <div className="p-5 space-y-3">
           <p className="text-sm text-slate-600 mb-4">How would you like to add a place?</p>
 
-          {/* Option 1: Map / Currentttttttttt Location */}
+          {/* Option 1: Map / Currentttttttttt Locationnn */}
           <button
             onClick={onSelectMapPick}
             className="w-full flex items-start gap-4 p-4 rounded-xl border border-slate-200 hover:border-primary-300 hover:bg-primary-50/50 active:bg-primary-100/60 transition-all text-left group"
