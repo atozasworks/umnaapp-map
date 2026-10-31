@@ -2,7 +2,7 @@
 # Stack: PostgreSQL, Prisma, Express, React (Vite), Node.js
 #
 # Branch → GitHub Environment (secrets / VPS target):
-#   SafeRouteNavigationnn  → umnaapptest  (test server)
+#   logout_sessionUpdate  → umnaapptest  (test server)
 #   mainnn / stage       → umnaappMain  (production)
 #
 # VPS layout (VPS_APP_DIR = site root, NOT …/backend):
@@ -28,7 +28,7 @@
 #   umna_SMTP_*, umna_FEEDBACK_*, umna_GOOGLE_*, umna_GROQ_*, umna_VAPID_*,
 #   umna_ROUTE_SERVICE_URL, umna_SEARCH_SIMPLE_URL, umna_OSRM_PUBLIC_URL,
 #   umna_NODE_ENV, umna_PLACES_*, umna_GOOGLE_API_HARD_STOP,
-#   umna_TILESERVER_URL, umna_MAPS_HOST, etc.
+#   umna_TILESERVER_URL, umna_MAPS_HOST, umna_ATOZAS_*, umna_DAILY_REMINDER_*, etc.
 # Backend .env keys are written WITHOUT the umna_ prefix (e.g. umna_PORT → PORT).
 # FRONTEND_BUILD_PATH / ADMIN_BUILD_PATH are derived from VPS_APP_DIR automatically.
 # See backend/env.example.txt for variable meanings.
@@ -40,12 +40,12 @@ on:
     branches:
       - mainnn
       - stage
-      - SafeRouteNavigationnn
+      - logout_sessionUpdate
   pull_request:
     branches:
       - mainnn
       - stage
-      - SafeRouteNavigationnn
+      - logout_sessionUpdate
   workflow_dispatch:
     inputs:
       deploy_frontend:
@@ -85,7 +85,7 @@ env:
   API_PORT: '5000'
   API_BASE_URL: http://127.0.0.1:5000
   # GitHub Environment name selected by branch (secrets + VPS target).
-  DEPLOY_ENVIRONMENT: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
+  DEPLOY_ENVIRONMENT: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
 
 jobs:
   # ─── Single Quality Gate — all checks must pass before any deployment ───────
@@ -313,7 +313,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       admin: ${{ steps.filter.outputs.admin }}
       # Test branch always deploys all apps after quality gate passes.
-      deploy_all: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'true' || 'false' }}
+      deploy_all: ${{ github.ref_name == 'logout_sessionUpdate' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -363,7 +363,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.ref_name == 'SafeRouteNavigationnn' && 'test' || 'latest' }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.ref_name == 'logout_sessionUpdate' && 'test' || 'latest' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -378,7 +378,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -503,7 +503,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.admin == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_admin == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -587,7 +587,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'SafeRouteNavigationnn' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
@@ -654,6 +654,28 @@ jobs:
           umna_PLACES_MAP_IDLE_DEBOUNCE_MS: ${{ secrets.umna_PLACES_MAP_IDLE_DEBOUNCE_MS }}
           umna_PLACES_MIN_DELAY_MS: ${{ secrets.umna_PLACES_MIN_DELAY_MS }}
           umna_PLACES_CELL_DELAY_MS: ${{ secrets.umna_PLACES_CELL_DELAY_MS }}
+          umna_ATOZAS_SSO_ENABLED: ${{ secrets.umna_ATOZAS_SSO_ENABLED }}
+          umna_ATOZAS_ISSUER: ${{ secrets.umna_ATOZAS_ISSUER }}
+          umna_ATOZAS_CLIENT_ID: ${{ secrets.umna_ATOZAS_CLIENT_ID }}
+          umna_ATOZAS_CLIENT_SECRET: ${{ secrets.umna_ATOZAS_CLIENT_SECRET }}
+          umna_ATOZAS_REDIRECT_URI: ${{ secrets.umna_ATOZAS_REDIRECT_URI }}
+          umna_ATOZAS_SCOPE: ${{ secrets.umna_ATOZAS_SCOPE }}
+          umna_ATOZAS_AUTHORIZE_URL: ${{ secrets.umna_ATOZAS_AUTHORIZE_URL }}
+          umna_ATOZAS_TOKEN_URL: ${{ secrets.umna_ATOZAS_TOKEN_URL }}
+          umna_ATOZAS_USERINFO_URL: ${{ secrets.umna_ATOZAS_USERINFO_URL }}
+          umna_ATOZAS_REVOKE_URL: ${{ secrets.umna_ATOZAS_REVOKE_URL }}
+          umna_ATOZAS_TOKEN_AUTH_STYLE: ${{ secrets.umna_ATOZAS_TOKEN_AUTH_STYLE }}
+          umna_ATOZAS_HOMEPAGE_KEY: ${{ secrets.umna_ATOZAS_HOMEPAGE_KEY }}
+          umna_ATOZAS_SESSION_COOKIE_NAME: ${{ secrets.umna_ATOZAS_SESSION_COOKIE_NAME }}
+          umna_ATOZAS_SESSION_SECRET: ${{ secrets.umna_ATOZAS_SESSION_SECRET }}
+          umna_ATOZAS_SESSION_MAX_AGE_DAYS: ${{ secrets.umna_ATOZAS_SESSION_MAX_AGE_DAYS }}
+          umna_ATOZAS_SESSION_COLLECTION: ${{ secrets.umna_ATOZAS_SESSION_COLLECTION }}
+          umna_ATOZAS_COOKIE_SECURE: ${{ secrets.umna_ATOZAS_COOKIE_SECURE }}
+          umna_ATOZAS_COOKIE_SAMESITE: ${{ secrets.umna_ATOZAS_COOKIE_SAMESITE }}
+          umna_ATOZAS_AUTO_REDIRECT: ${{ secrets.umna_ATOZAS_AUTO_REDIRECT }}
+          umna_DAILY_REMINDER_DRIP_SIZE: ${{ secrets.umna_DAILY_REMINDER_DRIP_SIZE }}
+          umna_DAILY_REMINDER_DRIP_INTERVAL_MINUTES: ${{ secrets.umna_DAILY_REMINDER_DRIP_INTERVAL_MINUTES }}
+          umna_DAILY_REMINDER_SEND_GAP_MS: ${{ secrets.umna_DAILY_REMINDER_SEND_GAP_MS }}
         run: |
           set -euo pipefail
           umask 077
@@ -743,6 +765,28 @@ jobs:
           write_kv PLACES_MAP_IDLE_DEBOUNCE_MS "$umna_PLACES_MAP_IDLE_DEBOUNCE_MS"
           write_kv PLACES_MIN_DELAY_MS "$umna_PLACES_MIN_DELAY_MS"
           write_kv PLACES_CELL_DELAY_MS "$umna_PLACES_CELL_DELAY_MS"
+          write_kv ATOZAS_SSO_ENABLED "$umna_ATOZAS_SSO_ENABLED"
+          write_kv ATOZAS_ISSUER "$umna_ATOZAS_ISSUER"
+          write_kv ATOZAS_CLIENT_ID "$umna_ATOZAS_CLIENT_ID"
+          write_kv ATOZAS_CLIENT_SECRET "$umna_ATOZAS_CLIENT_SECRET"
+          write_kv ATOZAS_REDIRECT_URI "$umna_ATOZAS_REDIRECT_URI"
+          write_kv ATOZAS_SCOPE "$umna_ATOZAS_SCOPE"
+          write_kv ATOZAS_AUTHORIZE_URL "$umna_ATOZAS_AUTHORIZE_URL"
+          write_kv ATOZAS_TOKEN_URL "$umna_ATOZAS_TOKEN_URL"
+          write_kv ATOZAS_USERINFO_URL "$umna_ATOZAS_USERINFO_URL"
+          write_kv ATOZAS_REVOKE_URL "$umna_ATOZAS_REVOKE_URL"
+          write_kv ATOZAS_TOKEN_AUTH_STYLE "$umna_ATOZAS_TOKEN_AUTH_STYLE"
+          write_kv ATOZAS_HOMEPAGE_KEY "$umna_ATOZAS_HOMEPAGE_KEY"
+          write_kv ATOZAS_SESSION_COOKIE_NAME "$umna_ATOZAS_SESSION_COOKIE_NAME"
+          write_kv ATOZAS_SESSION_SECRET "$umna_ATOZAS_SESSION_SECRET"
+          write_kv ATOZAS_SESSION_MAX_AGE_DAYS "$umna_ATOZAS_SESSION_MAX_AGE_DAYS"
+          write_kv ATOZAS_SESSION_COLLECTION "$umna_ATOZAS_SESSION_COLLECTION"
+          write_kv ATOZAS_COOKIE_SECURE "$umna_ATOZAS_COOKIE_SECURE"
+          write_kv ATOZAS_COOKIE_SAMESITE "$umna_ATOZAS_COOKIE_SAMESITE"
+          write_kv ATOZAS_AUTO_REDIRECT "$umna_ATOZAS_AUTO_REDIRECT"
+          write_kv DAILY_REMINDER_DRIP_SIZE "$umna_DAILY_REMINDER_DRIP_SIZE"
+          write_kv DAILY_REMINDER_DRIP_INTERVAL_MINUTES "$umna_DAILY_REMINDER_DRIP_INTERVAL_MINUTES"
+          write_kv DAILY_REMINDER_SEND_GAP_MS "$umna_DAILY_REMINDER_SEND_GAP_MS"
 
           # Readable on the runner so appleboy/scp-action (Docker) can tar it.
           # Server install step still sets mode 600 on the final .env.
