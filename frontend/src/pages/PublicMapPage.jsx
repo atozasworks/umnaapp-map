@@ -5,7 +5,7 @@
  * Uses the same label layout and search suggestions as the main UMNAAPP map.
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
-import maplibregl from 'maplibre-gl'
+import * as maplibregl from 'maplibre-gl'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { io } from 'socket.io-client'
 import { getApiOrigin } from '../utils/apiBase'
