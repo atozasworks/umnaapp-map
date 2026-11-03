@@ -244,3 +244,15 @@ export async function rejectSafetyHazard(id) {
   const { data } = await api.patch(`/admin/safety-hazards/${encodeURIComponent(id)}/reject`)
   return data
 }
+
+export async function fetchFeedbacks({ page = 1, limit = 50, q = '', category = '' } = {}) {
+  const { data } = await api.get('/admin/feedback', {
+    params: {
+      page,
+      limit,
+      ...(q ? { q: String(q).trim() } : {}),
+      ...(category ? { category: String(category).trim() } : {}),
+    },
+  })
+  return data
+}

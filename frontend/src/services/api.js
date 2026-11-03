@@ -27,12 +27,23 @@ api.interceptors.request.use(
   }
 )
 
-// Handle 401 - only logout when /auth/me fails (actual session invalid). Other 401s don't auto-logout.
+const SESSION_ENDED_ERRORS = new Set([
+  'Token expired',
+  'Invalid or expired session',
+  'Invalid token',
+])
+
+// End the local session only when the server rejects the signed session itself.
+// Other 401s (missing rights, admin-only routes) must not sign the user out.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const url = error.config?.url || ''
-    if (error.response?.status === 401 && url.includes('/auth/me')) {
+    const message = error.response?.data?.error
+    const sessionEnded =
+      error.response?.status === 401 &&
+      (url.includes('/auth/me') || SESSION_ENDED_ERRORS.has(message))
+    if (sessionEnded) {
       window.dispatchEvent(new CustomEvent('auth:sessionExpired'))
     }
     return Promise.reject(error)

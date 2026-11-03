@@ -35,7 +35,7 @@ if (!isSMTPConfigured) {
   })
 }
 
-// Get SMTP configuration with defaults
+// Get SMTP configuration with default
 export const smtpConfig = {
   name: process.env.SMTP_NAME || 'atozas.com',
   server: process.env.SMTP_SERVER || 'mail.atozas.com',
@@ -315,7 +315,8 @@ const atozasAuth = {
   },
 }
 
-// Export email sending function for use in routes
+// Export email sending function for use in routesoo
+// Export email sending function for use in routesttyii
 export async function sendEmailOtp(email, otp) {
   if (!emailTransporter) {
     console.error('❌ Email transporter not configured')

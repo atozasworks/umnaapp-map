@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
+import { useCallback, useState, useSyncExternalStore } from 'react'
 import {
-  canTriggerInstall,
+  getInstallServerSnapshot,
+  getInstallSnapshot,
   subscribeInstallPrompt,
   triggerInstall,
 } from '../pwa/pwaInstallManager'
@@ -24,22 +25,20 @@ function subscribeCanInstall(onStoreChange) {
 }
 
 function getCanInstallSnapshot() {
-  return canTriggerInstall()
-}
-
-function getCanInstallServerSnapshot() {
-  return false
+  return getInstallSnapshot()
 }
 
 /**
  * @param {string} dismissStorageKey - sessionStorage key when user dismisses
  */
 export function usePwaInstall(dismissStorageKey = 'pwa-install-dismissed') {
-  const canInstall = useSyncExternalStore(
+  const installState = useSyncExternalStore(
     subscribeCanInstall,
     getCanInstallSnapshot,
-    getCanInstallServerSnapshot,
+    getInstallServerSnapshot,
   )
+  const canInstall = installState.canInstall
+  const isInstalled = isStandaloneMode() || installState.installed
 
   const [dismissed, setDismissed] = useState(() => {
     try {
@@ -71,10 +70,11 @@ export function usePwaInstall(dismissStorageKey = 'pwa-install-dismissed') {
   return {
     canInstall,
     isStandalone,
+    isInstalled,
     isIos,
     dismissed,
     dismiss,
     promptInstall,
-    showPopup: !isStandalone && !dismissed,
+    showPopup: !isInstalled && !dismissed,
   }
 }

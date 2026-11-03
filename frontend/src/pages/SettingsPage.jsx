@@ -568,6 +568,19 @@ const SettingsPage = () => {
                 </svg>
               }
             />
+            <div className="mx-3.5 border-t border-slate-100/80" />
+            <MenuRow
+              delay={140}
+              iconTone="sky"
+              title="Vehicles"
+              subtitle="Manage and track your vehicles"
+              onClick={() => navigate('/vehicles')}
+              icon={
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M3 13l1.5-4.5A2 2 0 016.4 6h11.2a2 2 0 011.9 2.5L21 13v5a2 2 0 01-2 2h-1a2 2 0 01-2-2v-1H9v1a2 2 0 01-2 2H6a2 2 0 01-2-2v-5z" />
+                </svg>
+              }
+            />
           </div>
         </section>
 
