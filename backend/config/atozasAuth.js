@@ -35,7 +35,7 @@ if (!isSMTPConfigured) {
   })
 }
 
-// Get SMTP configuration with defaultsd
+// Get SMTP configuration with default
 export const smtpConfig = {
   name: process.env.SMTP_NAME || 'atozas.com',
   server: process.env.SMTP_SERVER || 'mail.atozas.com',
