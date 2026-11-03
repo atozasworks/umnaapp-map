@@ -451,6 +451,10 @@ jobs:
           # VPS_APP_DIR = site root → frontend lives at backend/build
           APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
           APP_DIR="${APP_DIR%/}"
+          case "$APP_DIR" in
+            /*) ;;
+            *) echo "VPS_APP_DIR must be an absolute path, for example /var/www/umnaapp-map"; exit 1 ;;
+          esac
           if [ "${APP_DIR##*/}" = "backend" ]; then
             BACKEND_DIR="${APP_DIR}"
           else
@@ -492,6 +496,10 @@ jobs:
           set -euo pipefail
           APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
           APP_DIR="${APP_DIR%/}"
+          case "$APP_DIR" in
+            /*) ;;
+            *) echo "VPS_APP_DIR must be an absolute path, for example /var/www/umnaapp-map"; exit 1 ;;
+          esac
           if [ "${APP_DIR##*/}" = "backend" ]; then
             BACKEND_DIR="${APP_DIR}"
           else
@@ -602,6 +610,10 @@ jobs:
           # VPS_APP_DIR = site root → admin lives at backend/admin/dist
           APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
           APP_DIR="${APP_DIR%/}"
+          case "$APP_DIR" in
+            /*) ;;
+            *) echo "VPS_APP_DIR must be an absolute path, for example /var/www/umnaapp-map"; exit 1 ;;
+          esac
           if [ "${APP_DIR##*/}" = "backend" ]; then
             BACKEND_DIR="${APP_DIR}"
           else
@@ -755,6 +767,10 @@ jobs:
           # Site root → backend/build + backend/admin/dist (absolute paths for Express).
           APP_DIR=$(echo "${VPS_APP_DIR}" | tr -d '\n\r' | xargs)
           APP_DIR="${APP_DIR%/}"
+          case "$APP_DIR" in
+            /*) ;;
+            *) echo "VPS_APP_DIR must be an absolute path, for example /var/www/umnaapp-map"; exit 1 ;;
+          esac
           if [ "${APP_DIR##*/}" = "backend" ]; then
             BACKEND_DIR="${APP_DIR}"
           else
@@ -898,6 +914,10 @@ jobs:
           # VPS_APP_DIR = site root → code deploys to backend/
           APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
           APP_DIR="${APP_DIR%/}"
+          case "$APP_DIR" in
+            /*) ;;
+            *) echo "VPS_APP_DIR must be an absolute path, for example /var/www/umnaapp-map"; exit 1 ;;
+          esac
           if [ "${APP_DIR##*/}" = "backend" ]; then
             BACKEND_DIR="${APP_DIR}"
           else
@@ -956,6 +976,10 @@ jobs:
           set -euo pipefail
           APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
           APP_DIR="${APP_DIR%/}"
+          case "$APP_DIR" in
+            /*) ;;
+            *) echo "VPS_APP_DIR must be an absolute path, for example /var/www/umnaapp-map"; exit 1 ;;
+          esac
           if [ "${APP_DIR##*/}" = "backend" ]; then
             BACKEND_DIR="${APP_DIR}"
           else
@@ -991,6 +1015,10 @@ jobs:
           set -euo pipefail
           APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
           APP_DIR="${APP_DIR%/}"
+          case "$APP_DIR" in
+            /*) ;;
+            *) echo "VPS_APP_DIR must be an absolute path, for example /var/www/umnaapp-map"; exit 1 ;;
+          esac
           if [ "${APP_DIR##*/}" = "backend" ]; then
             BACKEND_DIR="${APP_DIR}"
           else

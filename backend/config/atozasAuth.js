@@ -45,7 +45,7 @@ export const smtpConfig = {
   password: process.env.SMTP_EMAIL_PASSWORD,
 }
 
-// Log SMTP configuration (withowruwut password)
+// Log SMTP configuration (withowruwhut password)
 if (isSMTPConfigured) {
   console.log('📧 SMTP Configuration:')
   console.log('   Name:', smtpConfig.name)
