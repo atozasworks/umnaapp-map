@@ -2,8 +2,8 @@
 # Stack: PostgreSQL, Prisma, Express, React (Vite), Node.js
 #
 # Branch → GitHub Environment (secrets / VPS target):
-#   logout_sessionUpdate  → umnaapptest  (test server)
-#   mainnn / stage       → umnaappMain  (production)
+#   umnaapp_testCICD_testSite_deploy          → umnaapptest  (test server)
+#   umnaappMain_testCICD_finalsite_deploy     → umnaappMain  (production)
 #
 # VPS layout (VPS_APP_DIR = site root, NOT …/backend):
 #   $VPS_APP_DIR/
@@ -38,14 +38,12 @@ name: CI/CD Deploy to VPS
 on:
   push:
     branches:
-      - mainnn
-      - stage
-      - logout_sessionUpdate
+      - umnaappMain_testCICD_finalsite_deploy
+      - umnaapp_testCICD_testSite_deploy
   pull_request:
     branches:
-      - mainnn
-      - stage
-      - logout_sessionUpdate
+      - umnaappMain_testCICD_finalsite_deploy
+      - umnaapp_testCICD_testSite_deploy
   workflow_dispatch:
     inputs:
       deploy_frontend:
@@ -85,7 +83,7 @@ env:
   API_PORT: '5000'
   API_BASE_URL: http://127.0.0.1:5000
   # GitHub Environment name selected by branch (secrets + VPS target).
-  DEPLOY_ENVIRONMENT: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
+  DEPLOY_ENVIRONMENT: ${{ github.ref_name == 'umnaapp_testCICD_testSite_deploy' && 'umnaapptest' || 'umnaappMain' }}
 
 jobs:
   # ─── Single Quality Gate — all checks must pass before any deployment ───────
@@ -313,7 +311,7 @@ jobs:
       backend: ${{ steps.filter.outputs.backend }}
       admin: ${{ steps.filter.outputs.admin }}
       # Test branch always deploys all apps after quality gate passes.
-      deploy_all: ${{ github.ref_name == 'logout_sessionUpdate' && 'true' || 'false' }}
+      deploy_all: ${{ github.ref_name == 'umnaapp_testCICD_testSite_deploy' && 'true' || 'false' }}
     steps:
       - uses: actions/checkout@v4
       - uses: dorny/paths-filter@v3
@@ -363,7 +361,7 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.sha }}
-            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.ref_name == 'logout_sessionUpdate' && 'test' || 'latest' }}
+            ${{ env.REGISTRY }}/${{ github.repository }}/backend:${{ github.ref_name == 'umnaapp_testCICD_testSite_deploy' && 'test' || 'latest' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -378,7 +376,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.frontend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_frontend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'umnaapp_testCICD_testSite_deploy' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -503,7 +501,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.admin == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_admin == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'umnaapp_testCICD_testSite_deploy' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -587,7 +585,7 @@ jobs:
       ((github.event_name == 'push' && (needs.changes.outputs.backend == 'true' || needs.changes.outputs.deploy_all == 'true')) ||
        (github.event_name == 'workflow_dispatch' && inputs.deploy_backend == true))
     runs-on: ubuntu-latest
-    environment: ${{ github.ref_name == 'logout_sessionUpdate' && 'umnaapptest' || 'umnaappMain' }}
+    environment: ${{ github.ref_name == 'umnaapp_testCICD_testSite_deploy' && 'umnaapptest' || 'umnaappMain' }}
     timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
