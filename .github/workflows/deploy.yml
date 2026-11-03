@@ -434,34 +434,34 @@ jobs:
           grep -q "END.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing END marker"; exit 1; }
           echo "GitHub deploy key fingerprint:"
           ssh-keygen -l -f ~/.ssh/deploy_key
-          cp ~/.ssh/deploy_key "$GITHUB_WORKSPACE/.ci-deploy-key"
-          chmod 600 "$GITHUB_WORKSPACE/.ci-deploy-key"
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
             "${SSH_USER}@${SSH_HOST}" "echo ssh-ok"
 
       - name: Prepare remote build directory
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          command_timeout: 10m
-          script: |
-            set -euo pipefail
-            # VPS_APP_DIR = site root → frontend lives at backend/build
-            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            APP_DIR="${APP_DIR%/}"
-            if [ "${APP_DIR##*/}" = "backend" ]; then
-              BACKEND_DIR="${APP_DIR}"
-            else
-              BACKEND_DIR="${APP_DIR}/backend"
-            fi
-            BUILD_DIR="${BACKEND_DIR}/build"
-            mkdir -p "${BUILD_DIR}"
-            # Clear previous frontend assets only (keep backend code / admin).
-            find "${BUILD_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-            echo "Frontend target: ${BUILD_DIR}"
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" bash -s << 'ENDSSH'
+          set -euo pipefail
+          # VPS_APP_DIR = site root → frontend lives at backend/build
+          APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+          APP_DIR="${APP_DIR%/}"
+          if [ "${APP_DIR##*/}" = "backend" ]; then
+            BACKEND_DIR="${APP_DIR}"
+          else
+            BACKEND_DIR="${APP_DIR}/backend"
+          fi
+          BUILD_DIR="${BACKEND_DIR}/build"
+          mkdir -p "${BUILD_DIR}"
+          # Clear previous frontend assets only (keep backend code / admin).
+          find "${BUILD_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          echo "Frontend target: ${BUILD_DIR}"
+          ENDSSH
 
       - name: Upload frontend build
         run: |
@@ -469,43 +469,45 @@ jobs:
           ls -lh ../../frontend-build.tar.gz
 
       - name: SCP frontend build
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          source: frontend-build.tar.gz
-          target: /tmp
-          timeout: 300s
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          scp -i ~/.ssh/deploy_key -P "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            frontend-build.tar.gz "${SSH_USER}@${SSH_HOST}:/tmp/"
 
       - name: Extract frontend on VPS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          command_timeout: 10m
-          script: |
-            set -euo pipefail
-            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            APP_DIR="${APP_DIR%/}"
-            if [ "${APP_DIR##*/}" = "backend" ]; then
-              BACKEND_DIR="${APP_DIR}"
-            else
-              BACKEND_DIR="${APP_DIR}/backend"
-            fi
-            BUILD_DIR="${BACKEND_DIR}/build"
-            mkdir -p "${BUILD_DIR}"
-            tar -xzf /tmp/frontend-build.tar.gz -C "${BUILD_DIR}"
-            rm -f /tmp/frontend-build.tar.gz
-            test -f "${BUILD_DIR}/index.html"
-            echo "Frontend deployed to ${BUILD_DIR}"
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" bash -s << 'ENDSSH'
+          set -euo pipefail
+          APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+          APP_DIR="${APP_DIR%/}"
+          if [ "${APP_DIR##*/}" = "backend" ]; then
+            BACKEND_DIR="${APP_DIR}"
+          else
+            BACKEND_DIR="${APP_DIR}/backend"
+          fi
+          BUILD_DIR="${BACKEND_DIR}/build"
+          mkdir -p "${BUILD_DIR}"
+          tar -xzf /tmp/frontend-build.tar.gz -C "${BUILD_DIR}"
+          rm -f /tmp/frontend-build.tar.gz
+          test -f "${BUILD_DIR}/index.html"
+          echo "Frontend deployed to ${BUILD_DIR}"
+          ENDSSH
 
       - name: Cleanup
         if: always()
-        run: rm -f frontend-build.tar.gz .ci-deploy-key
+        run: rm -f frontend-build.tar.gz
 
   # ─── Deploy admin panel to VPS ───────────────────────────────────────────────
   deploy-admin:
@@ -572,50 +574,51 @@ jobs:
           grep -q "END.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing END marker"; exit 1; }
           echo "GitHub deploy key fingerprint:"
           ssh-keygen -l -f ~/.ssh/deploy_key
-          cp ~/.ssh/deploy_key "$GITHUB_WORKSPACE/.ci-deploy-key"
-          chmod 600 "$GITHUB_WORKSPACE/.ci-deploy-key"
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
             "${SSH_USER}@${SSH_HOST}" "echo ssh-ok"
 
       - name: SCP admin build
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          source: admin-build.tar.gz
-          target: /tmp
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          scp -i ~/.ssh/deploy_key -P "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            admin-build.tar.gz "${SSH_USER}@${SSH_HOST}:/tmp/"
 
       - name: Extract admin on VPS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          command_timeout: 10m
-          script: |
-            set -euo pipefail
-            # VPS_APP_DIR = site root → admin lives at backend/admin/dist
-            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            APP_DIR="${APP_DIR%/}"
-            if [ "${APP_DIR##*/}" = "backend" ]; then
-              BACKEND_DIR="${APP_DIR}"
-            else
-              BACKEND_DIR="${APP_DIR}/backend"
-            fi
-            ADMIN_DIR="${BACKEND_DIR}/admin/dist"
-            mkdir -p "${ADMIN_DIR}"
-            find "${ADMIN_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
-            tar -xzf /tmp/admin-build.tar.gz -C "${ADMIN_DIR}"
-            rm -f /tmp/admin-build.tar.gz
-            test -f "${ADMIN_DIR}/index.html"
-            echo "Admin deployed to ${ADMIN_DIR}"
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" bash -s << 'ENDSSH'
+          set -euo pipefail
+          # VPS_APP_DIR = site root → admin lives at backend/admin/dist
+          APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+          APP_DIR="${APP_DIR%/}"
+          if [ "${APP_DIR##*/}" = "backend" ]; then
+            BACKEND_DIR="${APP_DIR}"
+          else
+            BACKEND_DIR="${APP_DIR}/backend"
+          fi
+          ADMIN_DIR="${BACKEND_DIR}/admin/dist"
+          mkdir -p "${ADMIN_DIR}"
+          find "${ADMIN_DIR}" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
+          tar -xzf /tmp/admin-build.tar.gz -C "${ADMIN_DIR}"
+          rm -f /tmp/admin-build.tar.gz
+          test -f "${ADMIN_DIR}/index.html"
+          echo "Admin deployed to ${ADMIN_DIR}"
+          ENDSSH
 
       - name: Cleanup
         if: always()
-        run: rm -f admin-build.tar.gz .ci-deploy-key
+        run: rm -f admin-build.tar.gz
 
   # ─── Deploy backend to VPS ───────────────────────────────────────────────────
   deploy-backend:
@@ -830,8 +833,7 @@ jobs:
           write_kv DAILY_REMINDER_DRIP_INTERVAL_MINUTES "$umna_DAILY_REMINDER_DRIP_INTERVAL_MINUTES"
           write_kv DAILY_REMINDER_SEND_GAP_MS "$umna_DAILY_REMINDER_SEND_GAP_MS"
 
-          # Readable on the runner so appleboy/scp-action (Docker) can tar it.
-          # Server install step still sets mode 600 on the final .env.
+          # Readable on the runner so scp can upload it. Server install sets mode 600.
           chmod 644 "$OUT"
           # Sanity: file exists, has required keys, no secret values printed.
           test -s "$OUT"
@@ -868,154 +870,158 @@ jobs:
           grep -q "END.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing END marker"; exit 1; }
           echo "GitHub deploy key fingerprint:"
           ssh-keygen -l -f ~/.ssh/deploy_key
-          cp ~/.ssh/deploy_key "$GITHUB_WORKSPACE/.ci-deploy-key"
-          chmod 600 "$GITHUB_WORKSPACE/.ci-deploy-key"
           ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
             "${SSH_USER}@${SSH_HOST}" "echo ssh-ok"
 
       - name: SCP backend archive and env file
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          source: backend-deploy.tar.gz,backend.env.deploy
-          target: /tmp
-          timeout: 300s
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          scp -i ~/.ssh/deploy_key -P "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            backend-deploy.tar.gz backend.env.deploy "${SSH_USER}@${SSH_HOST}:/tmp/"
 
       - name: Extract backend on VPS
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          command_timeout: 10m
-          script: |
-            set -euo pipefail
-            # VPS_APP_DIR = site root → code deploys to backend/
-            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            APP_DIR="${APP_DIR%/}"
-            if [ "${APP_DIR##*/}" = "backend" ]; then
-              BACKEND_DIR="${APP_DIR}"
-            else
-              BACKEND_DIR="${APP_DIR}/backend"
-            fi
-            mkdir -p "${BACKEND_DIR}/build" "${BACKEND_DIR}/admin/dist" "${BACKEND_DIR}/uploads"
-            TEMP_DIR=$(mktemp -d)
-            cd "${TEMP_DIR}"
-            tar -xzf /tmp/backend-deploy.tar.gz
-            # Preserve runtime assets that are not in the git archive.
-            [ -d "${BACKEND_DIR}/uploads" ] && mkdir -p ./uploads && cp -a "${BACKEND_DIR}/uploads/." ./uploads/ 2>/dev/null || mkdir -p ./uploads
-            [ -d "${BACKEND_DIR}/build" ] && mkdir -p ./build && cp -a "${BACKEND_DIR}/build/." ./build/ 2>/dev/null || mkdir -p ./build
-            [ -d "${BACKEND_DIR}/admin/dist" ] && mkdir -p ./admin/dist && cp -a "${BACKEND_DIR}/admin/dist/." ./admin/dist/ 2>/dev/null || mkdir -p ./admin/dist
-            # Never carry over a server-side .env — config comes only from GitHub Secrets.
-            rm -f ./.env ./.env.* 2>/dev/null || true
-            if command -v rsync >/dev/null 2>&1; then
-              rsync -a --delete \
-                --exclude 'uploads/' \
-                --exclude 'build/' \
-                --exclude 'admin/dist/' \
-                --exclude 'node_modules/' \
-                --exclude '.env' \
-                ./ "${BACKEND_DIR}/"
-            else
-              # Fallback when rsync is unavailable: copy tree, then restore preserved dirs.
-              shopt -s dotglob nullglob
-              for item in ./*; do
-                base=$(basename "$item")
-                case "$base" in
-                  uploads|build|admin|node_modules|.env) continue ;;
-                esac
-                cp -a "$item" "${BACKEND_DIR}/"
-              done
-              shopt -u dotglob nullglob
-              mkdir -p "${BACKEND_DIR}/admin"
-            fi
-            mkdir -p "${BACKEND_DIR}/uploads" "${BACKEND_DIR}/build" "${BACKEND_DIR}/admin/dist"
-            [ -d ./uploads ] && cp -a ./uploads/. "${BACKEND_DIR}/uploads/" || true
-            [ -d ./build ] && cp -a ./build/. "${BACKEND_DIR}/build/" || true
-            [ -d ./admin/dist ] && cp -a ./admin/dist/. "${BACKEND_DIR}/admin/dist/" || true
-            rm -rf "${TEMP_DIR}" /tmp/backend-deploy.tar.gz
-            echo "Backend deployed to ${BACKEND_DIR}"
-            echo "Layout: ${BACKEND_DIR}/build (frontend), ${BACKEND_DIR}/admin/dist (admin)"
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" bash -s << 'ENDSSH'
+          set -euo pipefail
+          # VPS_APP_DIR = site root → code deploys to backend/
+          APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+          APP_DIR="${APP_DIR%/}"
+          if [ "${APP_DIR##*/}" = "backend" ]; then
+            BACKEND_DIR="${APP_DIR}"
+          else
+            BACKEND_DIR="${APP_DIR}/backend"
+          fi
+          mkdir -p "${BACKEND_DIR}/build" "${BACKEND_DIR}/admin/dist" "${BACKEND_DIR}/uploads"
+          TEMP_DIR=$(mktemp -d)
+          cd "${TEMP_DIR}"
+          tar -xzf /tmp/backend-deploy.tar.gz
+          # Preserve runtime assets that are not in the git archive.
+          [ -d "${BACKEND_DIR}/uploads" ] && mkdir -p ./uploads && cp -a "${BACKEND_DIR}/uploads/." ./uploads/ 2>/dev/null || mkdir -p ./uploads
+          [ -d "${BACKEND_DIR}/build" ] && mkdir -p ./build && cp -a "${BACKEND_DIR}/build/." ./build/ 2>/dev/null || mkdir -p ./build
+          [ -d "${BACKEND_DIR}/admin/dist" ] && mkdir -p ./admin/dist && cp -a "${BACKEND_DIR}/admin/dist/." ./admin/dist/ 2>/dev/null || mkdir -p ./admin/dist
+          # Never carry over a server-side .env — config comes only from GitHub Secrets.
+          rm -f ./.env ./.env.* 2>/dev/null || true
+          if command -v rsync >/dev/null 2>&1; then
+            rsync -a --delete \
+              --exclude 'uploads/' \
+              --exclude 'build/' \
+              --exclude 'admin/dist/' \
+              --exclude 'node_modules/' \
+              --exclude '.env' \
+              ./ "${BACKEND_DIR}/"
+          else
+            # Fallback when rsync is unavailable: copy tree, then restore preserved dirs.
+            shopt -s dotglob nullglob
+            for item in ./*; do
+              base=$(basename "$item")
+              case "$base" in
+                uploads|build|admin|node_modules|.env) continue ;;
+              esac
+              cp -a "$item" "${BACKEND_DIR}/"
+            done
+            shopt -u dotglob nullglob
+            mkdir -p "${BACKEND_DIR}/admin"
+          fi
+          mkdir -p "${BACKEND_DIR}/uploads" "${BACKEND_DIR}/build" "${BACKEND_DIR}/admin/dist"
+          [ -d ./uploads ] && cp -a ./uploads/. "${BACKEND_DIR}/uploads/" || true
+          [ -d ./build ] && cp -a ./build/. "${BACKEND_DIR}/build/" || true
+          [ -d ./admin/dist ] && cp -a ./admin/dist/. "${BACKEND_DIR}/admin/dist/" || true
+          rm -rf "${TEMP_DIR}" /tmp/backend-deploy.tar.gz
+          echo "Backend deployed to ${BACKEND_DIR}"
+          echo "Layout: ${BACKEND_DIR}/build (frontend), ${BACKEND_DIR}/admin/dist (admin)"
+          ENDSSH
 
       - name: Install .env on VPS from GitHub Environment secrets
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          command_timeout: 5m
-          script: |
-            set -euo pipefail
-            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            APP_DIR="${APP_DIR%/}"
-            if [ "${APP_DIR##*/}" = "backend" ]; then
-              BACKEND_DIR="${APP_DIR}"
-            else
-              BACKEND_DIR="${APP_DIR}/backend"
-            fi
-            test -f /tmp/backend.env.deploy
-            umask 077
-            mkdir -p "${BACKEND_DIR}"
-            # Replace any existing server .env entirely — do not source/merge it.
-            rm -f "${BACKEND_DIR}/.env"
-            install -m 600 /tmp/backend.env.deploy "${BACKEND_DIR}/.env"
-            rm -f /tmp/backend.env.deploy
-            # Verify required keys exist without printing values.
-            for key in NODE_ENV PORT DATABASE_URL JWT_SECRET ADMIN_SECRET FRONTEND_URL FRONTEND_BUILD_PATH ADMIN_BUILD_PATH; do
-              grep -q "^${key}=" "${BACKEND_DIR}/.env" || {
-                echo "Installed .env missing required key: ${key}"
-                exit 1
-              }
-            done
-            echo "Installed ${BACKEND_DIR}/.env from ${{ env.DEPLOY_ENVIRONMENT }} secrets ($(wc -l < "${BACKEND_DIR}/.env") lines)"
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" bash -s << 'ENDSSH'
+          set -euo pipefail
+          APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+          APP_DIR="${APP_DIR%/}"
+          if [ "${APP_DIR##*/}" = "backend" ]; then
+            BACKEND_DIR="${APP_DIR}"
+          else
+            BACKEND_DIR="${APP_DIR}/backend"
+          fi
+          test -f /tmp/backend.env.deploy
+          umask 077
+          mkdir -p "${BACKEND_DIR}"
+          # Replace any existing server .env entirely — do not source/merge it.
+          rm -f "${BACKEND_DIR}/.env"
+          install -m 600 /tmp/backend.env.deploy "${BACKEND_DIR}/.env"
+          rm -f /tmp/backend.env.deploy
+          # Verify required keys exist without printing values.
+          for key in NODE_ENV PORT DATABASE_URL JWT_SECRET ADMIN_SECRET FRONTEND_URL FRONTEND_BUILD_PATH ADMIN_BUILD_PATH; do
+            grep -q "^${key}=" "${BACKEND_DIR}/.env" || {
+              echo "Installed .env missing required key: ${key}"
+              exit 1
+            }
+          done
+          echo "Installed ${BACKEND_DIR}/.env from ${{ env.DEPLOY_ENVIRONMENT }} secrets ($(wc -l < "${BACKEND_DIR}/.env") lines)"
+          ENDSSH
 
       - name: Install dependencies and restart PM2
-        uses: appleboy/ssh-action@v1.2.0
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key_path: /github/workspace/.ci-deploy-key
-          port: ${{ secrets.VPS_PORT || 22 }}
-          command_timeout: 20m
-          script: |
-            set -euo pipefail
-            APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
-            APP_DIR="${APP_DIR%/}"
-            if [ "${APP_DIR##*/}" = "backend" ]; then
-              BACKEND_DIR="${APP_DIR}"
-            else
-              BACKEND_DIR="${APP_DIR}/backend"
-            fi
-            cd "${BACKEND_DIR}"
-            if [ -s "$HOME/.nvm/nvm.sh" ]; then
-              export NVM_DIR="$HOME/.nvm"
-              . "$NVM_DIR/nvm.sh"
-              nvm use 22 || nvm install 22
-            fi
-            npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
-            npx prisma generate
-            if ! command -v pm2 >/dev/null 2>&1; then
-              npm i -g pm2@latest --no-audit --no-fund
-            fi
-            # startOrReload only accepts an ecosystem file — never pass server.js directly.
-            if [ -f ecosystem.config.cjs ]; then
-              pm2 startOrReload ecosystem.config.cjs --update-env
-            elif [ -f ecosystem.config.js ]; then
-              pm2 startOrReload ecosystem.config.js --update-env
-            elif pm2 describe umnaapp-backend >/dev/null 2>&1; then
-              pm2 reload umnaapp-backend --update-env
-            else
-              pm2 start server.js --name umnaapp-backend
-            fi
-            pm2 save || true
-            pm2 list
-            echo "PM2 running from ${BACKEND_DIR}"
+        env:
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          PORT="${SSH_PORT:-22}"
+          ssh -i ~/.ssh/deploy_key -p "$PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" bash -s << 'ENDSSH'
+          set -euo pipefail
+          APP_DIR=$(echo "${{ secrets.VPS_APP_DIR }}" | tr -d '\n\r' | xargs)
+          APP_DIR="${APP_DIR%/}"
+          if [ "${APP_DIR##*/}" = "backend" ]; then
+            BACKEND_DIR="${APP_DIR}"
+          else
+            BACKEND_DIR="${APP_DIR}/backend"
+          fi
+          cd "${BACKEND_DIR}"
+          if [ -s "$HOME/.nvm/nvm.sh" ]; then
+            export NVM_DIR="$HOME/.nvm"
+            . "$NVM_DIR/nvm.sh"
+            nvm use 22 || nvm install 22
+          fi
+          npm ci --omit=dev --no-audit --no-fund || npm install --omit=dev --no-audit --no-fund
+          npx prisma generate
+          if ! command -v pm2 >/dev/null 2>&1; then
+            npm i -g pm2@latest --no-audit --no-fund
+          fi
+          # startOrReload only accepts an ecosystem file — never pass server.js directly.
+          if [ -f ecosystem.config.cjs ]; then
+            pm2 startOrReload ecosystem.config.cjs --update-env
+          elif [ -f ecosystem.config.js ]; then
+            pm2 startOrReload ecosystem.config.js --update-env
+          elif pm2 describe umnaapp-backend >/dev/null 2>&1; then
+            pm2 reload umnaapp-backend --update-env
+          else
+            pm2 start server.js --name umnaapp-backend
+          fi
+          pm2 save || true
+          pm2 list
+          echo "PM2 running from ${BACKEND_DIR}"
+          ENDSSH
 
       - name: Cleanup
         if: always()
-        run: rm -f backend-deploy.tar.gz backend.env.deploy .ci-deploy-key
+        run: rm -f backend-deploy.tar.gz backend.env.deploy
