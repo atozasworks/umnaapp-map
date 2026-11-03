@@ -413,22 +413,38 @@ jobs:
           npm run build --workspace=umnaapp-frontend
 
       - name: Validate SSH key
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
         run: |
           set -euo pipefail
+          if [ -z "${SSH_PORT:-}" ]; then
+            echo "::warning::VPS_PORT is empty in ${{ env.DEPLOY_ENVIRONMENT }}. Using port 22. Main server needs VPS_PORT=4343."
+            SSH_PORT=22
+          else
+            echo "VPS_PORT is set (${#SSH_PORT} characters) in ${{ env.DEPLOY_ENVIRONMENT }}."
+          fi
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          SSH_KEY="${{ secrets.VPS_SSH_KEY }}"
-          echo "$SSH_KEY" | grep -q "BEGIN.*PRIVATE KEY" || { echo "SSH key missing BEGIN marker"; exit 1; }
-          echo "$SSH_KEY" | grep -q "END.*PRIVATE KEY" || { echo "SSH key missing END marker"; exit 1; }
-          printf '%s\n' "$SSH_KEY" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > ~/.ssh/deploy_key
+          echo >> ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keygen -l -f ~/.ssh/deploy_key >/dev/null
+          grep -q "BEGIN.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing BEGIN marker"; exit 1; }
+          grep -q "END.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing END marker"; exit 1; }
+          echo "GitHub deploy key fingerprint:"
+          ssh-keygen -l -f ~/.ssh/deploy_key
+          cp ~/.ssh/deploy_key "$GITHUB_WORKSPACE/.ci-deploy-key"
+          chmod 600 "$GITHUB_WORKSPACE/.ci-deploy-key"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" "echo ssh-ok"
 
       - name: Prepare remote build directory
         uses: appleboy/ssh-action@v1.2.0
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 10m
           script: |
@@ -457,7 +473,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           source: frontend-build.tar.gz
           target: /tmp
@@ -468,7 +484,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 10m
           script: |
@@ -489,7 +505,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f frontend-build.tar.gz
+        run: rm -f frontend-build.tar.gz .ci-deploy-key
 
   # ─── Deploy admin panel to VPS ───────────────────────────────────────────────
   deploy-admin:
@@ -534,12 +550,39 @@ jobs:
           cd admin/dist && tar -czf ../../admin-build.tar.gz .
           ls -lh ../../admin-build.tar.gz
 
+      - name: Validate SSH key
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
+        run: |
+          set -euo pipefail
+          if [ -z "${SSH_PORT:-}" ]; then
+            echo "::warning::VPS_PORT is empty in ${{ env.DEPLOY_ENVIRONMENT }}. Using port 22. Main server needs VPS_PORT=4343."
+            SSH_PORT=22
+          else
+            echo "VPS_PORT is set (${#SSH_PORT} characters) in ${{ env.DEPLOY_ENVIRONMENT }}."
+          fi
+          mkdir -p ~/.ssh && chmod 700 ~/.ssh
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > ~/.ssh/deploy_key
+          echo >> ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          grep -q "BEGIN.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing BEGIN marker"; exit 1; }
+          grep -q "END.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing END marker"; exit 1; }
+          echo "GitHub deploy key fingerprint:"
+          ssh-keygen -l -f ~/.ssh/deploy_key
+          cp ~/.ssh/deploy_key "$GITHUB_WORKSPACE/.ci-deploy-key"
+          chmod 600 "$GITHUB_WORKSPACE/.ci-deploy-key"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" "echo ssh-ok"
+
       - name: SCP admin build
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           source: admin-build.tar.gz
           target: /tmp
@@ -549,7 +592,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 10m
           script: |
@@ -572,7 +615,7 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f admin-build.tar.gz
+        run: rm -f admin-build.tar.gz .ci-deploy-key
 
   # ─── Deploy backend to VPS ───────────────────────────────────────────────────
   deploy-backend:
@@ -804,22 +847,38 @@ jobs:
           echo "Static paths: FRONTEND_BUILD_PATH=${FRONTEND_BUILD_PATH} ADMIN_BUILD_PATH=${ADMIN_BUILD_PATH}"
 
       - name: Validate SSH key
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_HOST: ${{ secrets.VPS_HOST }}
+          SSH_USER: ${{ secrets.VPS_USER }}
+          SSH_PORT: ${{ secrets.VPS_PORT }}
         run: |
           set -euo pipefail
+          if [ -z "${SSH_PORT:-}" ]; then
+            echo "::warning::VPS_PORT is empty in ${{ env.DEPLOY_ENVIRONMENT }}. Using port 22. Main server needs VPS_PORT=4343."
+            SSH_PORT=22
+          else
+            echo "VPS_PORT is set (${#SSH_PORT} characters) in ${{ env.DEPLOY_ENVIRONMENT }}."
+          fi
           mkdir -p ~/.ssh && chmod 700 ~/.ssh
-          SSH_KEY="${{ secrets.VPS_SSH_KEY }}"
-          echo "$SSH_KEY" | grep -q "BEGIN.*PRIVATE KEY" || exit 1
-          echo "$SSH_KEY" | grep -q "END.*PRIVATE KEY" || exit 1
-          printf '%s\n' "$SSH_KEY" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KEY" | tr -d '\r' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' > ~/.ssh/deploy_key
+          echo >> ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
-          ssh-keygen -l -f ~/.ssh/deploy_key >/dev/null
+          grep -q "BEGIN.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing BEGIN marker"; exit 1; }
+          grep -q "END.*PRIVATE KEY" ~/.ssh/deploy_key || { echo "SSH key missing END marker"; exit 1; }
+          echo "GitHub deploy key fingerprint:"
+          ssh-keygen -l -f ~/.ssh/deploy_key
+          cp ~/.ssh/deploy_key "$GITHUB_WORKSPACE/.ci-deploy-key"
+          chmod 600 "$GITHUB_WORKSPACE/.ci-deploy-key"
+          ssh -i ~/.ssh/deploy_key -p "$SSH_PORT" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
+            "${SSH_USER}@${SSH_HOST}" "echo ssh-ok"
 
       - name: SCP backend archive and env file
         uses: appleboy/scp-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           source: backend-deploy.tar.gz,backend.env.deploy
           target: /tmp
@@ -830,7 +889,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 10m
           script: |
@@ -887,7 +946,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 5m
           script: |
@@ -920,7 +979,7 @@ jobs:
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_SSH_KEY }}
+          key_path: /github/workspace/.ci-deploy-key
           port: ${{ secrets.VPS_PORT || 22 }}
           command_timeout: 20m
           script: |
@@ -959,4 +1018,4 @@ jobs:
 
       - name: Cleanup
         if: always()
-        run: rm -f backend-deploy.tar.gz backend.env.deploy
+        run: rm -f backend-deploy.tar.gz backend.env.deploy .ci-deploy-key
