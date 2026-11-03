@@ -37,6 +37,8 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
   const [category, setCategory] = useState(initialCategory)
   const [subject, setSubject] = useState('')
   const [message, setMessage] = useState('')
+  const [image, setImage] = useState(null)
+  const [imageError, setImageError] = useState('')
   const [rating, setRating] = useState(0)
   const [hoverRating, setHoverRating] = useState(0)
   const [submitting, setSubmitting] = useState(false)
@@ -48,6 +50,8 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
       setCategory(initialCategory)
       setSubject('')
       setMessage('')
+      setImage(null)
+      setImageError('')
       setRating(0)
       setHoverRating(0)
       setSubmitting(false)
@@ -63,6 +67,23 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
   const MAX = 5000
   const charsLeft = MAX - message.length
 
+  const handleImageChange = (event) => {
+    const file = event.target.files?.[0]
+    setImageError('')
+    if (!file) return
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setImageError('Choose a JPEG, PNG, WebP or GIF image.')
+      event.target.value = ''
+      return
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setImageError('Image must be 2 MB or smaller.')
+      event.target.value = ''
+      return
+    }
+    setImage(file)
+  }
+
   const handleSubmit = async (e) => {
     e?.preventDefault?.()
     setError('')
@@ -72,11 +93,18 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
     }
     try {
       setSubmitting(true)
+      const imageData = image ? await new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result)
+        reader.onerror = () => reject(new Error('Could not read the selected image.'))
+        reader.readAsDataURL(image)
+      }) : null
       await api.post('/feedback', {
         subject: subject.trim(),
         message: message.trim(),
         category,
         rating: rating || null,
+        imageData,
       })
       setSuccess(true)
     } catch (err) {
@@ -290,6 +318,14 @@ const FeedbackModal = ({ isOpen, onClose, user }) => {
               <div className="flex justify-end text-[11px] text-slate-400 mt-1">
                 {charsLeft} {tCharsLeft}
               </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-600 mb-1" htmlFor="feedback-image">Attach image (optional)</label>
+              <input id="feedback-image" type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleImageChange} disabled={submitting} className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-primary-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-primary-700 hover:file:bg-primary-100" />
+              <p className="mt-1 text-[11px] text-slate-400">JPEG, PNG, WebP or GIF · Max 2 MB</p>
+              {image && <div className="mt-2 flex items-center gap-3"><span className="min-w-0 flex-1 truncate text-xs text-slate-600">{image.name}</span><button type="button" onClick={() => { setImage(null); const input = document.getElementById('feedback-image'); if (input) input.value = '' }} className="text-xs font-medium text-rose-600">Remove</button></div>}
+              {imageError && <p className="mt-1 text-xs text-rose-600">{imageError}</p>}
             </div>
 
             {error && (

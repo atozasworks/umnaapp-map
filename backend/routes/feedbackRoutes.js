@@ -1,6 +1,7 @@
 import express from 'express'
 import nodemailer from 'nodemailer'
 import { authenticateToken } from '../middleware/auth.js'
+import prisma from '../config/database.js'
 import {
   emailTransporter as fallbackTransporter,
   smtpConfig as fallbackSmtpConfig,
@@ -89,7 +90,7 @@ const escapeHtml = (value = '') =>
 // POST /api/feedback - submit feedback (auth required)
 router.post('/', authenticateToken, async (req, res) => {
   try {
-    const { subject, message, category, rating } = req.body || {}
+    const { subject, message, category, rating, imageData } = req.body || {}
 
     const cleanMessage = String(message || '').trim()
     if (!cleanMessage || cleanMessage.length < 5) {
@@ -105,6 +106,16 @@ router.post('/', authenticateToken, async (req, res) => {
     const cleanRating = Number.isFinite(numericRating) && numericRating >= 1 && numericRating <= 5
       ? Math.round(numericRating)
       : null
+    let attachment = null
+    let cleanImageData = null
+    if (imageData) {
+      const match = /^data:(image\/(?:jpeg|png|webp|gif));base64,([A-Za-z0-9+/]+=*)$/.exec(String(imageData))
+      if (!match) return res.status(400).json({ error: 'Image must be JPEG, PNG, WebP or GIF.' })
+      const imageBuffer = Buffer.from(match[2], 'base64')
+      if (imageBuffer.length > 2 * 1024 * 1024) return res.status(400).json({ error: 'Image must be 2 MB or smaller.' })
+      cleanImageData = String(imageData)
+      attachment = { filename: `feedback-image.${match[1].split('/')[1].replace('jpeg', 'jpg')}`, content: imageBuffer, contentType: match[1] }
+    }
 
     // Pick the dedicated feedback transporter if configured, else fallback
     const transporter = feedbackTransporter || fallbackTransporter
@@ -131,6 +142,25 @@ router.post('/', authenticateToken, async (req, res) => {
     const fromHeader = `"${fromDisplayName} (${user.email})" <${senderConfig.email}>`
 
     const stars = cleanRating ? '★'.repeat(cleanRating) + '☆'.repeat(5 - cleanRating) : 'Not rated'
+
+    // Save before email delivery so accepted feedback is visible in the admin inbox.
+    // Let storage failures reach the user instead of silently losing submissions.
+    if (!prisma?.feedback) {
+      return res.status(503).json({ error: 'Feedback storage is not available' })
+    }
+    await prisma.feedback.create({
+      data: {
+        userId: user.id,
+        userName: user.name || null,
+        userEmail: user.email,
+        subject: cleanSubject,
+        message: cleanMessage,
+        category: cleanCategory,
+        rating: cleanRating,
+        userAgent: userAgent || null,
+        imageData: cleanImageData,
+      },
+    })
 
     const html = `
       <!DOCTYPE html>
@@ -216,6 +246,7 @@ ${escapeHtml(cleanMessage)}
       subject: `[Feedback] [${cleanCategory}] ${cleanSubject} — ${user.email}`,
       text,
       html,
+      attachments: attachment ? [attachment] : [],
       headers: {
         'X-UMNAAPP-Feedback': 'true',
         'X-UMNAAPP-User-Email': user.email,

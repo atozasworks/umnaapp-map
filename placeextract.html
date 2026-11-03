@@ -180,6 +180,41 @@
         let isExtracting = false;
         let stopRequested = false;
         let gridRectangles = [];
+
+        // Google Maps accepts rectangular bounds. This envelope covers India's
+        // mainland and island territories and is used only by this extractor.
+        const INDIA_BOUNDS = {
+            north: 37.2,
+            south: 6.5,
+            west: 68.0,
+            east: 97.5
+        };
+        const INDIA_CENTER = { lat: 22.5, lng: 82.0 };
+
+        function isIndiaCountry(country) {
+            return /^(india|bharat|republic of india)$/i.test(country.trim());
+        }
+
+        function isWithinIndiaBounds(location) {
+            var lat = typeof location.lat === 'function' ? location.lat() : location.lat;
+            var lng = typeof location.lng === 'function' ? location.lng() : location.lng;
+            return lat >= INDIA_BOUNDS.south && lat <= INDIA_BOUNDS.north &&
+                lng >= INDIA_BOUNDS.west && lng <= INDIA_BOUNDS.east;
+        }
+
+        function clampToIndiaBounds(bounds) {
+            var ne = bounds.getNorthEast();
+            var sw = bounds.getSouthWest();
+            var north = Math.min(ne.lat(), INDIA_BOUNDS.north);
+            var south = Math.max(sw.lat(), INDIA_BOUNDS.south);
+            var east = Math.min(ne.lng(), INDIA_BOUNDS.east);
+            var west = Math.max(sw.lng(), INDIA_BOUNDS.west);
+            if (south > north || west > east) return null;
+            return new google.maps.LatLngBounds(
+                new google.maps.LatLng(south, west),
+                new google.maps.LatLng(north, east)
+            );
+        }
         
         // ===== RATE LIMITING CONFIGURATION =====
         const RATE_CONFIG = {
@@ -266,7 +301,11 @@
         function throttledGeocode(address, callback) {
             enqueueApiCall(function(done) {
                 var geocoder = new google.maps.Geocoder();
-                geocoder.geocode({ address: address }, function(results, status) {
+                geocoder.geocode({
+                    address: address,
+                    componentRestrictions: { country: 'IN' },
+                    bounds: INDIA_BOUNDS
+                }, function(results, status) {
                     trackApiCall('geocode');
                     
                     if (status === 'OVER_QUERY_LIMIT') {
@@ -276,7 +315,11 @@
                         updateStatus('Rate limited on geocode. Waiting 3s...');
                         setTimeout(function() {
                             showRetryNotice(false);
-                            geocoder.geocode({ address: address }, function(results2, status2) {
+                            geocoder.geocode({
+                                address: address,
+                                componentRestrictions: { country: 'IN' },
+                                bounds: INDIA_BOUNDS
+                            }, function(results2, status2) {
                                 trackApiCall('geocode');
                                 callback(results2, status2);
                                 done();
@@ -329,9 +372,11 @@
         // ===== MAP INIT =====
         function initMap() {
             map = new google.maps.Map(document.getElementById("map"), {
-                center: { lat: 0, lng: 0 },
-                zoom: 2,
-                mapTypeId: google.maps.MapTypeId.ROADMAP
+                center: INDIA_CENTER,
+                zoom: 5,
+                mapTypeId: google.maps.MapTypeId.ROADMAP,
+                restriction: { latLngBounds: INDIA_BOUNDS, strictBounds: true },
+                minZoom: 4
             });
             service = new google.maps.places.PlacesService(map);
         }
@@ -345,10 +390,18 @@
             currentTaluk = "";
             
             if (!currentCountry) { alert("Please enter a country name"); return; }
+            if (!isIndiaCountry(currentCountry)) {
+                currentCountry = "";
+                document.getElementById("countryInput").value = "India";
+                alert("This extractor is restricted to India. Please enter India.");
+                return;
+            }
+            currentCountry = "India";
+            document.getElementById("countryInput").value = currentCountry;
             
             throttledGeocode(currentCountry, function(results, status) {
                 if (status === "OK" && results[0]) {
-                    map.fitBounds(results[0].geometry.viewport);
+                    map.fitBounds(clampToIndiaBounds(results[0].geometry.viewport) || INDIA_BOUNDS);
                     updateStatus('Loaded ' + currentCountry + '. Please enter a state/region.');
                 } else {
                     alert("Could not find the specified country");
@@ -368,7 +421,8 @@
             
             throttledGeocode(currentState + ', ' + currentCountry, function(results, status) {
                 if (status === "OK" && results[0]) {
-                    stateBounds = results[0].geometry.viewport;
+                    stateBounds = clampToIndiaBounds(results[0].geometry.viewport);
+                    if (!stateBounds) { alert("That location is outside India."); return; }
                     map.fitBounds(stateBounds);
                     updateStatus('Loaded ' + currentState + ', ' + currentCountry + '. Ready to extract places or enter a district.');
                 } else {
@@ -388,7 +442,8 @@
             
             throttledGeocode(currentDistrict + ', ' + currentState + ', ' + currentCountry, function(results, status) {
                 if (status === "OK" && results[0]) {
-                    districtBounds = results[0].geometry.viewport;
+                    districtBounds = clampToIndiaBounds(results[0].geometry.viewport);
+                    if (!districtBounds) { alert("That location is outside India."); return; }
                     map.fitBounds(districtBounds);
                     updateStatus('Loaded ' + currentDistrict + ', ' + currentState + ', ' + currentCountry + '. Ready to extract places or enter a taluk.');
                 } else {
@@ -407,7 +462,8 @@
             
             throttledGeocode(currentTaluk + ', ' + currentDistrict + ', ' + currentState + ', ' + currentCountry, function(results, status) {
                 if (status === "OK" && results[0]) {
-                    talukBounds = results[0].geometry.viewport;
+                    talukBounds = clampToIndiaBounds(results[0].geometry.viewport);
+                    if (!talukBounds) { alert("That location is outside India."); return; }
                     map.fitBounds(talukBounds);
                     updateStatus('Loaded ' + currentTaluk + ', ' + currentDistrict + ', ' + currentState + ', ' + currentCountry + '. Ready to extract places.');
                 } else {
@@ -582,6 +638,7 @@
             throttledNearbySearch(request, function(results, status) {
                 if (status === google.maps.places.PlacesServiceStatus.OK && results) {
                     results.forEach(function(place) {
+                        if (!isWithinIndiaBounds(place.geometry.location)) return;
                         if (!placeExists(place.name)) {
                             var newPlace = {
                                 name: place.name,

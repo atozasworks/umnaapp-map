@@ -31,7 +31,9 @@ import {
 } from '../components/lazyHomePanels'
 import TranslatedLabel from '../components/TranslatedLabel'
 import AppLogo from '../components/AppLogo'
+import LandingInstallPopup from '../components/LandingInstallPopup'
 import NotificationBell from '../components/NotificationBell'
+import { usePwaInstall } from '../hooks/usePwaInstall'
 import useSafeRouteMonitor from '../hooks/useSafeRouteMonitor'
 import api from '../services/api'
 import { PLACE_CATEGORIES } from '../constants/placeCategories'
@@ -293,10 +295,10 @@ const HomePage = () => {
   const [utilityInjectedPlace, setUtilityInjectedPlace] = useState(null)
   const pendingUtilityAddTypeRef = useRef(null)
   const [showOfflineMaps, setShowOfflineMaps] = useState(false)
+  const { promptInstall, isInstalled } = usePwaInstall()
 
   const menuShowSidebar = useTranslate('Show side bar')
   const menuSaved = useTranslate('Saved')
-  const menuRecents = useTranslate('Recents')
   const menuYourContributions = useTranslate('Your contributions')
   const menuLocationSharing = useTranslate('Location sharing')
   const menuPrint = useTranslate('Print')
@@ -324,6 +326,7 @@ const HomePage = () => {
   const menuPublicUtilities = useTranslate('Public Utility Finder')
   const menuOfflineMaps = useTranslate('Offline Maps')
   const menuSafeRoute = useTranslate('Safe Route')
+  const menuInstallApp = useTranslate('Install app')
   const mapPublicUtilitiesTitle = useTranslate('Public Utilities')
 
   const closeMapContextMenu = useCallback(() => {
@@ -2046,7 +2049,7 @@ const HomePage = () => {
                 {navAppTitle}
               </span>
               <span className="text-[9px] sm:text-[10px] font-medium uppercase tracking-wide text-slate-500/90 leading-none whitespace-nowrap self-end mb-0.5 sm:mb-1">
-                alpha version
+                alpha
               </span>
             </h1>
           </div>
@@ -2740,12 +2743,6 @@ const HomePage = () => {
                     {favorites.length}
                   </span>
                 </button>
-                <button className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation opacity-60">
-                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-                  </svg>
-                  <span className="text-sm text-slate-500">{menuRecents}</span>
-                </button>
                 <button
                   onClick={() => { setShowMenu(false); setShowContributionsOnly(true); setShowMyPlaces(true); }}
                   className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
@@ -2804,6 +2801,26 @@ const HomePage = () => {
 
               {/* Section 4: Settings */}
               <div className="border-b border-slate-200 py-2">
+                {!isInstalled && (
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); promptInstall() }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 bg-gradient-to-r from-primary-50 to-cyan-50 text-left transition-colors hover:from-primary-100 hover:to-cyan-100 active:from-primary-100 active:to-cyan-100 touch-manipulation"
+                >
+                  <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-600 text-white shadow-sm">
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12m0 0l-4-4m4 4l4-4M5 21h14" />
+                    </svg>
+                  </span>
+                  <span className="flex-1">
+                    <span className="block text-sm font-bold text-primary-800">{menuInstallApp}</span>
+                    <span className="block text-[11px] text-primary-600">Fast access on your device</span>
+                  </span>
+                  <svg className="h-4 w-4 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2} aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+                )}
                 <button
                   type="button"
                   onClick={() => { setShowMenu(false); navigateTo('/open-source') }}
@@ -3272,6 +3289,8 @@ const HomePage = () => {
           </div>
         </div>
       )}
+
+      <LandingInstallPopup dismissStorageKey="home-pwa-install-dismissed" />
 
       {mapReadyTick > 0 && (
         <Suspense fallback={null}>

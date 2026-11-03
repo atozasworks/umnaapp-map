@@ -134,6 +134,7 @@ exports.Prisma.UserScalarFieldEnum = {
   lastGridExtractAt: 'lastGridExtractAt',
   dailyReminderOptOut: 'dailyReminderOptOut',
   lastDailyReminderAt: 'lastDailyReminderAt',
+  lastLoginAt: 'lastLoginAt',
   createdAt: 'createdAt',
   updatedAt: 'updatedAt'
 };
@@ -146,6 +147,20 @@ exports.Prisma.NotificationScalarFieldEnum = {
   body: 'body',
   data: 'data',
   read: 'read',
+  createdAt: 'createdAt'
+};
+
+exports.Prisma.FeedbackScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  userName: 'userName',
+  userEmail: 'userEmail',
+  subject: 'subject',
+  message: 'message',
+  category: 'category',
+  rating: 'rating',
+  userAgent: 'userAgent',
+  imageData: 'imageData',
   createdAt: 'createdAt'
 };
 
@@ -461,6 +476,7 @@ exports.Prisma.JsonNullValueFilter = {
 exports.Prisma.ModelName = {
   User: 'User',
   Notification: 'Notification',
+  Feedback: 'Feedback',
   NotificationPreference: 'NotificationPreference',
   PushSubscription: 'PushSubscription',
   OTPVerification: 'OTPVerification',

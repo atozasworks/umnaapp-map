@@ -315,7 +315,8 @@ const atozasAuth = {
   },
 }
 
-// Export email sending function for use in routes
+// Export email sending function for use in routesoo
+// Export email sending function for use in routesttyii
 export async function sendEmailOtp(email, otp) {
   if (!emailTransporter) {
     console.error('❌ Email transporter not configured')

@@ -2,11 +2,11 @@ import { useState } from 'react'
 import AppLogo from './AppLogo'
 import { usePwaInstall } from '../hooks/usePwaInstall'
 
-/** Bottom-right install popup for the landing page. */
-export default function LandingInstallPopup() {
-  const { canInstall, isIos, showPopup, dismiss, promptInstall } = usePwaInstall(
-    'landing-pwa-install-dismissed',
-  )
+/** Bottom-right install popup. Sits above the chat button. Hidden once the app is installed. */
+export default function LandingInstallPopup({
+  dismissStorageKey = 'landing-pwa-install-dismissed',
+}) {
+  const { canInstall, isIos, showPopup, dismiss, promptInstall } = usePwaInstall(dismissStorageKey)
   const [hint, setHint] = useState('')
   const [installing, setInstalling] = useState(false)
 
@@ -43,7 +43,7 @@ export default function LandingInstallPopup() {
 
   return (
     <div
-      className="fixed z-[60] bottom-4 right-4 w-[min(100vw-2rem,20rem)] animate-slide-up pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)]"
+      className="fixed z-[70] bottom-24 right-4 w-[min(100vw-2rem,20rem)] animate-slide-up pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)]"
       role="dialog"
       aria-labelledby="landing-install-title"
       aria-describedby="landing-install-desc"
