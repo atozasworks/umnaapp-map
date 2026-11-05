@@ -102,7 +102,7 @@ export default function PlaceExtractHelpGuide({
       )}
       <div
         id="place-extract-guide-panel"
-        className={`max-h-[min(42vh,320px)] overflow-y-auto overscroll-contain px-3 pb-3 pt-2 sm:px-4 sm:pb-3.5 ${
+        className={`max-h-[min(22dvh,160px)] overflow-y-auto overscroll-contain px-3 pb-3 pt-2 sm:max-h-[min(42vh,320px)] sm:px-4 sm:pb-3.5 ${
           panelOnly ? '' : 'border-t border-emerald-100/80'
         }`}
       >

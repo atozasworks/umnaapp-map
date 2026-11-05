@@ -2225,12 +2225,17 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   if (!isOpen) return null
 
+  const mobileResultsVisible =
+    (extractionMethod === 'grid' && extractedPlaces.length > 0) ||
+    (extractionMethod === 'search' && searchResults.length > 0) ||
+    (extractionMethod === 'area' && areaExtractedPlaces.length > 0)
+
   return (
     <div
-      className="fixed inset-0 z-40 flex pointer-events-none items-end justify-center sm:items-center p-0 sm:p-4 md:p-6"
+      className="fixed inset-0 z-40 flex h-[100dvh] max-h-[100dvh] pointer-events-none items-stretch justify-center overflow-hidden p-0 sm:items-center sm:p-4 md:p-6"
       style={{
         paddingTop: 'max(0.5rem, env(safe-area-inset-top))',
-        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingBottom: 'max(0.25rem, env(safe-area-inset-bottom))',
       }}
     >
       {/* Backdrop */}
@@ -2245,7 +2250,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         role="dialog"
         aria-modal="true"
         aria-labelledby="place-extract-title"
-        className="relative pointer-events-auto flex w-full max-w-[min(1480px,98vw)] flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl max-h-[min(100dvh,100svh)] sm:h-[min(92dvh,920px)] sm:max-h-[min(92dvh,920px)] min-h-0 animate-sheet-up sm:animate-fade-in"
+        className="relative pointer-events-auto flex h-full max-h-full min-h-0 w-full max-w-[min(1480px,98vw)] flex-col overflow-hidden rounded-t-[1.35rem] border border-slate-200/80 bg-white shadow-[0_-12px_48px_rgba(15,23,42,0.18)] sm:h-[min(92dvh,920px)] sm:max-h-[min(92dvh,920px)] sm:flex-none sm:rounded-2xl sm:border-slate-200 sm:shadow-2xl animate-sheet-up sm:animate-fade-in"
       >
         {/* Mobile drag affordance */}
         <div className="flex shrink-0 justify-center pt-2 pb-1 sm:hidden" aria-hidden>
@@ -2348,7 +2353,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         ) : (
           <div className="flex min-h-0 flex-1 flex-col overflow-hidden md:flex-row">
             {/* Left sidebar — method picker + controls + results */}
-            <aside className="order-2 flex h-full min-h-0 w-full shrink-0 flex-col overflow-hidden border-b border-slate-200/80 bg-white md:order-1 md:w-[min(400px,38%)] md:max-w-[420px] md:border-b-0 md:border-r lg:w-[420px] max-h-[46vh] md:max-h-full">
+            <aside className="order-2 flex min-h-0 w-full flex-1 flex-col overflow-hidden border-t border-slate-200/80 bg-white md:order-1 md:h-full md:w-[min(400px,38%)] md:max-w-[420px] md:flex-none md:shrink-0 md:border-t-0 md:border-r lg:w-[420px]">
               {/* Extract method picker */}
               <div className="shrink-0 border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white px-3 py-2.5 sm:px-4">
                 <div className="flex items-center gap-2">
@@ -2414,7 +2419,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {/* ============== GRID SELECTION METHOD ============== */}
             {extractionMethod === 'grid' && (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <div className="min-h-0 max-h-[42%] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
+                  <div className="min-h-0 max-h-40 shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
                   <div className="p-3 sm:p-3.5">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
@@ -2531,7 +2536,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                   </div>
 
                 {/* Places list — pinned below controls, always visible */}
-                <div className="flex min-h-[180px] min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(15,23,42,0.04)]">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 bg-white">
                   <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
@@ -2587,11 +2592,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       </ul>
                     )}
                   </div>
+                </div>
 
                   {extractedPlaces.length > 0 && (
                     <div
-                      className="shrink-0 border-t border-slate-200 bg-gradient-to-r from-primary-50 to-cyan-50 p-3 sm:p-4"
-                      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                      className="sticky bottom-0 z-20 shrink-0 border-t border-slate-200 bg-gradient-to-r from-primary-50 to-cyan-50 p-2.5 shadow-[0_-8px_18px_rgba(15,23,42,0.08)] sm:p-4"
+                      style={{ paddingBottom: 'max(0.65rem, env(safe-area-inset-bottom))' }}
                     >
                       <button
                         type="button"
@@ -2618,7 +2624,6 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       </button>
                     </div>
                   )}
-                </div>
               </div>
             )}
 
@@ -2763,8 +2768,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
                   {searchResults.length > 0 && (
                     <div
-                      className="shrink-0 space-y-2 border-t border-slate-100 bg-white p-3 sm:p-4"
-                      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                      className="sticky bottom-0 z-20 shrink-0 space-y-2 border-t border-slate-200 bg-white p-2.5 shadow-[0_-8px_18px_rgba(15,23,42,0.08)] sm:p-4"
+                      style={{ paddingBottom: 'max(0.65rem, env(safe-area-inset-bottom))' }}
                     >
                       <div className="text-center text-xs font-medium text-slate-600">
                         {selectedSearchPlaces.size} of {searchResults.length} selected
@@ -2800,7 +2805,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {/* ============== AREA-BASED METHOD ============== */}
             {extractionMethod === 'area' && (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <div className="min-h-0 max-h-[42%] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
+                  <div className="min-h-0 max-h-40 shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
                   <div className="p-3 sm:p-3.5">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
@@ -2980,7 +2985,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                   </div>
                   </div>
 
-                <div className="flex min-h-[180px] min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 bg-white shadow-[0_-4px_12px_rgba(15,23,42,0.04)]">
+                <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 bg-white">
                   <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-100 bg-slate-50/90 px-2 py-2 sm:px-3">
                     <div className="flex min-w-0 items-center gap-2">
                       <h3 className="truncate text-xs font-semibold text-slate-800 sm:text-sm">Extracted places</h3>
@@ -3036,11 +3041,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       </ul>
                     )}
                   </div>
+                </div>
 
                   {areaExtractedPlaces.length > 0 && (
                     <div
-                      className="shrink-0 border-t border-slate-200 bg-gradient-to-r from-primary-50 to-cyan-50 p-3 sm:p-4"
-                      style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
+                      className="sticky bottom-0 z-20 shrink-0 border-t border-slate-200 bg-gradient-to-r from-primary-50 to-cyan-50 p-2.5 shadow-[0_-8px_18px_rgba(15,23,42,0.08)] sm:p-4"
+                      style={{ paddingBottom: 'max(0.65rem, env(safe-area-inset-bottom))' }}
                     >
                       <button
                         type="button"
@@ -3067,14 +3073,19 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                       </button>
                     </div>
                   )}
-                </div>
               </div>
             )}
               </div>
             </aside>
 
             {/* Right — full-height map preview */}
-            <div className="relative order-1 min-h-[min(42vh,360px)] flex-1 min-w-0 bg-slate-200 md:order-2 md:min-h-0">
+            <div
+              className={`relative order-1 w-full shrink-0 min-w-0 bg-slate-200 md:order-2 md:h-auto md:max-h-none md:min-h-0 md:flex-1 md:shrink ${
+                mobileResultsVisible
+                  ? 'h-[clamp(64px,18dvh,150px)]'
+                  : 'h-[clamp(140px,32dvh,260px)]'
+              }`}
+            >
               <div
                 ref={mapContainerRef}
                 className={`absolute inset-0 bg-slate-100 ${extractionMethod !== 'grid' ? 'invisible pointer-events-none' : ''}`}
