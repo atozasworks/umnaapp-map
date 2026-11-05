@@ -308,6 +308,7 @@ const HomePage = () => {
   const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
   const menuSettings = useTranslate('Settings')
+  const menuPricing = useTranslate('Pricing')
   const menuGitHub = useTranslate('Go to GitHub')
   const menuTapPhotoHint = useTranslate('Tap photo to change')
   const navAppTitle = useTranslate('UMNAAPP')
@@ -2821,6 +2822,16 @@ const HomePage = () => {
                   </svg>
                 </button>
                 )}
+                <button
+                  type="button"
+                  onClick={() => { setShowMenu(false); navigateTo('/pricing') }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V6m0 10v2m8-8a8 8 0 11-16 0 8 8 0 0116 0z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuPricing}</span>
+                </button>
                 <button
                   type="button"
                   onClick={() => { setShowMenu(false); navigateTo('/open-source') }}

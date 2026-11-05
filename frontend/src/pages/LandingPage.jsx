@@ -207,7 +207,13 @@ const LandingPage = () => {
                 UMNAAPP
               </span>
             </Link>
-            <nav className="flex items-center gap-2 sm:gap-3">
+            <nav className="flex items-center gap-1 sm:gap-3">
+              <Link
+                to="/pricing"
+                className="inline-flex min-h-[40px] items-center text-sm font-medium text-slate-200 hover:text-white px-2.5 sm:px-4 py-2 rounded-xl hover:bg-white/5 transition-all"
+              >
+                Pricing
+              </Link>
               <Link
                 to={loginTo}
                 className="hidden sm:inline-flex text-sm font-medium text-slate-300 hover:text-white px-4 py-2 rounded-xl hover:bg-white/5 transition-all"
@@ -647,6 +653,9 @@ const LandingPage = () => {
               &copy; {new Date().getFullYear()} UMNAAPP. All rights reserved.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-6 sm:gap-8 text-sm font-medium">
+              <Link to="/pricing" className="text-slate-600 hover:text-primary-600 transition-colors">
+                Pricing
+              </Link>
               <Link to={loginTo} className="text-slate-600 hover:text-primary-600 transition-colors">
                 Sign in
               </Link>

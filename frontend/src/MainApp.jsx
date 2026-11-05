@@ -19,6 +19,7 @@ const OTPVerificationPage = lazy(() => import('./pages/OTPVerificationPage'))
 const HomePage = lazy(() => import('./pages/HomePage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const OpenSourcePage = lazy(() => import('./pages/OpenSourcePage'))
+const PricingPage = lazy(() => import('./pages/PricingPage'))
 const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const MyContributionsPage = lazy(() => import('./pages/MyContributionsPage'))
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'))
@@ -94,6 +95,7 @@ export default function MainApp() {
                       }
                     />
                     <Route path="/welcome" element={<LandingPage />} />
+                    <Route path="/pricing" element={<PricingPage />} />
                     <Route
                       path="/login"
                       element={
