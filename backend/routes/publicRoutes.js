@@ -1,11 +1,16 @@
 /**
  * Public Map Platform API (UMNAAPP Maps).
  *
- * These endpoints expose ONLY approved place data from the shared `Place` table
- * and require NO authentication, so external projects, embedded iframes, the
- * JavaScript SDK, and mobile apps can consume the same live data the main app
- * uses. Private endpoints (admin, users, notifications, payments, auth) are
- * untouched and stay protected.
+ * These endpoints expose ONLY approved place data from the shared `Place` table.
+ * External callers must send an API key (X-Api-Key header or ?key=). Each key
+ * is limited to the features selected when it was created:
+ *   - map        → /config and /embedded-map
+ *   - places     → /places, /search, /nearby, /categories, /place/:id
+ *   - directions → /route
+ * A Map key may also call place endpoints from the embedded map page itself
+ * (X-Umna-Surface: embed + Referer /embedded-map), so markers still render.
+ * The signed-in UMNAAPP app reads /legal without a key. Private app routes
+ * are untouched.
  *
  * Cross-origin: permissive CORS (any origin) is intentional here because this is
  * a public read-only data API meant to be embedded on third-party sites. No
@@ -30,6 +35,7 @@ import { publicPlaceSearch } from '../services/unifiedPlaceQuery.js'
 import { buildDirectRoute } from '../utils/routeHelpers.js'
 import { osrmProfileFor } from '../utils/travelModeRouting.js'
 import { getAllLegalDocuments, getLegalDocument } from '../services/legalService.js'
+import { requirePublicApiKey, requirePublicApiKeyOrAppSession } from '../middleware/apiKeyAuth.js'
 
 const router = express.Router()
 
@@ -37,9 +43,17 @@ const router = express.Router()
 const publicCors = cors({
   origin: true,
   methods: ['GET', 'OPTIONS'],
+  allowedHeaders: ['Accept', 'Content-Type', 'Authorization', 'X-Api-Key', 'X-Umna-Surface'],
+  exposedHeaders: ['X-RateLimit-Limit', 'X-RateLimit-Remaining', 'Retry-After'],
   credentials: false,
   maxAge: 86400,
 })
+
+const mapKey = requirePublicApiKey('map')
+const placesKey = requirePublicApiKey('places', { allowMapEmbed: true })
+const placesOnlyKey = requirePublicApiKey('places')
+const directionsKey = requirePublicApiKey('directions')
+const legalAccess = requirePublicApiKeyOrAppSession()
 router.use(publicCors)
 router.options('*', publicCors)
 
@@ -70,6 +84,7 @@ function parseCategories(raw) {
  */
 router.get(
   '/places',
+  placesKey,
   rateLimitMiddleware('public:places', 120, 60),
   [
     query('categories').optional().isString().isLength({ max: 500 }),
@@ -116,6 +131,7 @@ router.get(
  */
 router.get(
   '/search',
+  placesKey,
   rateLimitMiddleware('public:search', 120, 60),
   cacheMiddleware(120),
   [
@@ -172,6 +188,7 @@ router.get(
  */
 router.get(
   '/nearby',
+  placesOnlyKey,
   rateLimitMiddleware('public:nearby', 120, 60),
   [
     query('lat').isFloat({ min: -90, max: 90 }).withMessage('lat required'),
@@ -205,6 +222,7 @@ router.get(
  */
 router.get(
   '/categories',
+  placesKey,
   rateLimitMiddleware('public:categories', 120, 60),
   cacheMiddleware(300),
   async (req, res) => {
@@ -225,6 +243,7 @@ router.get(
  */
 router.get(
   '/route',
+  directionsKey,
   rateLimitMiddleware('public:route', 60, 60),
   [
     query('start').isString().withMessage('start=lat,lng required'),
@@ -293,7 +312,7 @@ router.get(
  * @desc Client configuration for the viewer / SDK (tiles, defaults, attribution)
  * @access Public
  */
-router.get('/config', rateLimitMiddleware('public:config', 120, 60), cacheMiddleware(300), (req, res) => {
+router.get('/config', mapKey, rateLimitMiddleware('public:config', 120, 60), cacheMiddleware(300), (req, res) => {
   res.json({
     name: 'UMNAAPP Maps',
     tiles: {
@@ -331,7 +350,7 @@ router.get('/config', rateLimitMiddleware('public:config', 120, 60), cacheMiddle
  * @desc Current legal documents (Privacy Policy + Terms & Conditions)
  * @access Public
  */
-router.get('/legal', rateLimitMiddleware('public:legal', 120, 60), cacheMiddleware(60), async (req, res) => {
+router.get('/legal', legalAccess, rateLimitMiddleware('public:legal', 120, 60), cacheMiddleware(60), async (req, res) => {
   try {
     const documents = await getAllLegalDocuments()
     res.json({ documents })
@@ -348,6 +367,7 @@ router.get('/legal', rateLimitMiddleware('public:legal', 120, 60), cacheMiddlewa
  */
 router.get(
   '/legal/:type',
+  legalAccess,
   rateLimitMiddleware('public:legal', 120, 60),
   cacheMiddleware(60),
   [param('type').isIn(['privacy', 'terms'])],
@@ -371,6 +391,7 @@ router.get(
  */
 router.get(
   '/place/:id',
+  placesKey,
   rateLimitMiddleware('public:place', 120, 60),
   [param('id').isString().isLength({ min: 1, max: 100 })],
   async (req, res) => {

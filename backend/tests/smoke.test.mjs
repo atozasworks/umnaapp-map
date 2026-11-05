@@ -18,39 +18,38 @@ test('GET /api/health/db returns 200 when database is reachable', async () => {
   assert.equal(body.database, 'connected')
 })
 
-// --- Public Map Platform (no auth) ---
+// --- Public Map Platform (API key required) ---
 
-test('GET /api/public/config returns viewer config (no auth)', async () => {
+test('GET /api/public/config without an API key is rejected', async () => {
   const res = await fetch(`${BASE}/api/public/config`)
-  assert.equal(res.status, 200)
+  assert.equal(res.status, 401)
   const body = await res.json()
-  assert.ok(body.endpoints && body.endpoints.places)
-  assert.ok(body.realtime && body.realtime.namespace === '/public-maps')
+  assert.equal(body.code, 'API_KEY_REQUIRED')
 })
 
-test('GET /api/public/categories returns approved categories (no auth)', async () => {
+test('GET /api/public/categories without an API key is rejected', async () => {
   const res = await fetch(`${BASE}/api/public/categories`)
-  assert.equal(res.status, 200)
-  const body = await res.json()
-  assert.ok(Array.isArray(body.categories))
+  assert.equal(res.status, 401)
 })
 
-test('GET /api/public/places returns a paginated list (no auth)', async () => {
+test('GET /api/public/places without an API key is rejected', async () => {
   const res = await fetch(`${BASE}/api/public/places?limit=1`)
-  assert.equal(res.status, 200)
-  const body = await res.json()
-  assert.ok(Array.isArray(body.places))
-  assert.equal(typeof body.total, 'number')
+  assert.equal(res.status, 401)
 })
 
-test('GET /api/public/place/:id returns 404 for unknown id', async () => {
+test('GET /api/public/place/:id without an API key is rejected', async () => {
   const res = await fetch(`${BASE}/api/public/place/does-not-exist`)
-  assert.equal(res.status, 404)
+  assert.equal(res.status, 401)
 })
 
-test('GET /api/public/search validates the query', async () => {
-  const res = await fetch(`${BASE}/api/public/search?q=a`)
-  assert.equal(res.status, 400) // q must be >= 2 chars
+test('GET /api/public/search without an API key is rejected', async () => {
+  const res = await fetch(`${BASE}/api/public/search?q=ab`)
+  assert.equal(res.status, 401)
+})
+
+test('GET /api/public/route without an API key is rejected', async () => {
+  const res = await fetch(`${BASE}/api/public/route?start=12.97,77.59&end=12.93,77.62`)
+  assert.equal(res.status, 401)
 })
 
 test('public API sends permissive CORS headers', async () => {

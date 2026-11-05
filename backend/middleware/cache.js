@@ -24,7 +24,7 @@ function buildCacheKey(req) {
   const params = new URLSearchParams()
   const entries = Object.entries(req.query || {}).sort(([a], [b]) => a.localeCompare(b))
   for (const [key, value] of entries) {
-    if (value == null) continue
+    if (value == null || key === 'key') continue
     if (Array.isArray(value)) {
       value.forEach((v) => params.append(key, String(v)))
     } else {

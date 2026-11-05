@@ -24,6 +24,7 @@ const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
 const MyContributionsPage = lazy(() => import('./pages/MyContributionsPage'))
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'))
 const VehiclesPage = lazy(() => import('./pages/VehiclesPage'))
+const ApiKeysPage = lazy(() => import('./pages/ApiKeysPage'))
 
 function LanguageDocSync({ children }) {
   useLanguageDocAttrs()
@@ -127,6 +128,14 @@ export default function MainApp() {
                       element={
                         <ProtectedRoute>
                           <SettingsPage />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/credentials"
+                      element={
+                        <ProtectedRoute>
+                          <ApiKeysPage />
                         </ProtectedRoute>
                       }
                     />

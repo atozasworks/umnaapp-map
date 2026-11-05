@@ -308,6 +308,7 @@ const HomePage = () => {
   const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
   const menuSettings = useTranslate('Settings')
+  const menuApiKeys = useTranslate('API Keys')
   const menuPricing = useTranslate('Pricing')
   const menuGitHub = useTranslate('Go to GitHub')
   const menuTapPhotoHint = useTranslate('Tap photo to change')
@@ -2861,6 +2862,16 @@ const HomePage = () => {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
                   </svg>
                   <span className="text-sm font-medium text-slate-800">{menuFeedback}</span>
+                </button>
+                <button
+                  type="button"
+                    onClick={() => { setShowMenu(false); navigateTo('/credentials') }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuApiKeys}</span>
                 </button>
                 <button
                   type="button"

@@ -430,6 +430,25 @@ exports.Prisma.LegalDocumentScalarFieldEnum = {
   updatedAt: 'updatedAt'
 };
 
+exports.Prisma.ApiKeyScalarFieldEnum = {
+  id: 'id',
+  userId: 'userId',
+  name: 'name',
+  keyPrefix: 'keyPrefix',
+  keyHash: 'keyHash',
+  keyEncrypted: 'keyEncrypted',
+  plan: 'plan',
+  scopes: 'scopes',
+  allowedOrigins: 'allowedOrigins',
+  active: 'active',
+  requestCount: 'requestCount',
+  lastUsedAt: 'lastUsedAt',
+  rateLimitPerMin: 'rateLimitPerMin',
+  createdAt: 'createdAt',
+  updatedAt: 'updatedAt',
+  revokedAt: 'revokedAt'
+};
+
 exports.Prisma.AdminAllowedEmailScalarFieldEnum = {
   id: 'id',
   email: 'email',
@@ -495,6 +514,7 @@ exports.Prisma.ModelName = {
   LiveLocationViewer: 'LiveLocationViewer',
   SafetyHazardReport: 'SafetyHazardReport',
   LegalDocument: 'LegalDocument',
+  ApiKey: 'ApiKey',
   AdminAllowedEmail: 'AdminAllowedEmail',
   AdminOtp: 'AdminOtp'
 };

@@ -18,6 +18,9 @@ import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import safeRouteRoutes from './routes/safeRouteRoutes.js'
 import publicRoutes from './routes/publicRoutes.js'
+import apiKeyRoutes from './routes/apiKeyRoutes.js'
+import { findActiveApiKey } from './services/apiKeyService.js'
+import { hasScope } from './utils/apiKeyCrypto.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
@@ -145,6 +148,7 @@ app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (OTP to pre-approved Gmail + httpOnly session)
 app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
+app.use('/api/api-keys', rateLimitMiddleware('api-keys', 60, 60), apiKeyRoutes)
 app.use('/api/feedback', feedbackRoutes)
 app.use('/api/live-location', liveLocationRoutes) // Timed live-location sharing
 app.use('/api/reminders', reminderRoutes) // Daily reminder email unsubscribe/resubscribe (public, token-signed)
@@ -254,10 +258,22 @@ app.get('*', (req, res, next) => {
 
 setIo(io)
 
-// Public, anonymous real-time namespace for embedded/external maps.
-// No auth middleware here (unlike the default namespace) — it only ever
-// receives broadcasts of approved-place changes (no private data).
+// Real-time namespace for embedded maps. Requires an API key with Map enabled.
+// It only ever receives broadcasts of approved-place changes (no private data).
 const publicMapsNsp = io.of('/public-maps')
+publicMapsNsp.use(async (socket, next) => {
+  try {
+    const raw = socket.handshake.auth?.key || socket.handshake.query?.key
+    const row = await findActiveApiKey(typeof raw === 'string' ? raw : '')
+    if (!hasScope(row, 'map')) {
+      return next(new Error('A valid API key with the Map feature is required'))
+    }
+    socket.data.apiKeyId = row.id
+    return next()
+  } catch (error) {
+    return next(new Error('API key authentication failed'))
+  }
+})
 publicMapsNsp.on('connection', (socket) => {
   socket.emit('connected', { namespace: '/public-maps' })
   socket.on('ping', () => socket.emit('pong', { timestamp: Date.now() }))

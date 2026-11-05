@@ -141,6 +141,7 @@ function readParams() {
     showControls: sp.get('controls') !== '0',
     hasExplicitCenter: num('lat') != null && num('lng') != null,
     autoLocate: sp.get('locate') !== '0',
+    key: (sp.get('key') || '').trim(),
   }
 }
 
@@ -181,18 +182,43 @@ export default function PublicMapPage() {
   const [locationError, setLocationError] = useState(null)
 
   const apiBase = '/api/public'
+  const apiKey = paramsRef.current.key
+  const [keyState, setKeyState] = useState(() => (apiKey ? 'checking' : 'missing'))
 
   const fetchJSON = useCallback(async (path, params) => {
     const usp = new URLSearchParams()
+    const key = paramsRef.current.key
+    if (key) usp.set('key', key)
     Object.entries(params || {}).forEach(([k, v]) => {
-      if (v === undefined || v === null || v === '') return
+      if (v === undefined || v === null || v === '' || k === 'key') return
       usp.set(k, Array.isArray(v) ? v.join(',') : v)
     })
     const url = `${apiBase}${path}${usp.toString() ? `?${usp}` : ''}`
-    const res = await fetch(url, { headers: { Accept: 'application/json' } })
-    if (!res.ok) throw new Error(`API ${res.status}`)
+    const headers = { Accept: 'application/json', 'X-Umna-Surface': 'embed' }
+    if (key) headers['X-Api-Key'] = key
+    const res = await fetch(url, { headers })
+    if (!res.ok) {
+      const err = new Error(`API ${res.status}`)
+      err.status = res.status
+      throw err
+    }
     return res.json()
   }, [])
+
+  useEffect(() => {
+    if (!apiKey) return undefined
+    let cancelled = false
+    fetchJSON('/config')
+      .then(() => {
+        if (!cancelled) setKeyState('ready')
+      })
+      .catch((err) => {
+        if (!cancelled) setKeyState(err.status === 403 ? 'forbidden' : 'invalid')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [apiKey, fetchJSON])
 
   const runLabelLayout = useCallback(() => {
     const map = mapRef.current
@@ -568,7 +594,8 @@ export default function PublicMapPage() {
 
   // Initialize map
   useEffect(() => {
-    if (mapRef.current || !containerRef.current) return
+    if (keyState !== 'ready') return undefined
+    if (mapRef.current || !containerRef.current) return undefined
     const params = paramsRef.current
 
     const start = async () => {
@@ -689,10 +716,15 @@ export default function PublicMapPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [keyState])
 
   useEffect(() => {
-    const socket = io(`${getApiOrigin()}/public-maps`, { transports: ['websocket', 'polling'], reconnection: true })
+    if (keyState !== 'ready' || !apiKey) return undefined
+    const socket = io(`${getApiOrigin()}/public-maps`, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      auth: { key: apiKey },
+    })
     socketRef.current = socket
     const onUpsert = (msg) => msg?.place && upsertPlace(msg.place)
     const onRemove = (msg) => msg?.place?.id && removePlace(msg.place.id)
@@ -707,7 +739,7 @@ export default function PublicMapPage() {
       socket.off('place:deleted', onRemove)
       socket.disconnect()
     }
-  }, [upsertPlace, removePlace])
+  }, [upsertPlace, removePlace, keyState, apiKey])
 
   useEffect(() => {
     const onMessage = (event) => {
@@ -823,11 +855,42 @@ export default function PublicMapPage() {
   const showSearch = paramsRef.current.showSearch
   const showControls = paramsRef.current.showControls
 
+  const keyMessage =
+    keyState === 'missing'
+      ? 'An API key with the Map feature is required. Add ?key=YOUR_API_KEY to this page URL.'
+      : keyState === 'forbidden'
+        ? 'This API key does not have the Map feature enabled.'
+        : keyState === 'invalid'
+          ? 'This API key is invalid or has been revoked.'
+          : 'Checking API key…'
+
   return (
     <div style={{ position: 'fixed', inset: 0, width: '100%', height: '100%' }}>
+      {keyState !== 'ready' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f8fafc',
+            padding: 24,
+            textAlign: 'center',
+            fontFamily: 'system-ui, sans-serif',
+            color: '#0f172a',
+          }}
+        >
+          <div style={{ maxWidth: 420 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>UMNAAPP Maps</div>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: '#475569' }}>{keyMessage}</p>
+          </div>
+        </div>
+      )}
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
-      {showSearch && (
+      {keyState === 'ready' && showSearch && (
         <div
           ref={searchBoxRef}
           data-map-ui-chrome
