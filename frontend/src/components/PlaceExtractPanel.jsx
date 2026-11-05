@@ -449,7 +449,12 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
         requiresLogin: false,
       })
     } catch {
-      setGridExtractStatus((prev) => ({ ...prev, loading: false }))
+      setGridExtractStatus({
+        loading: false,
+        canExtract: !!user?.id,
+        usedToday: false,
+        requiresLogin: !user?.id,
+      })
     }
   }, [user?.id])
 
@@ -731,7 +736,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
   // --- Single geocode from full hierarchy (country required) ---
   const loadRegion = useCallback(async () => {
     const map = mapInstanceRef.current
-    if (!map) return
+    if (!map) {
+      setStatus('Map is still loading. Wait a moment, then tap Load region.')
+      return
+    }
     if (!canUseGoogleApi()) {
       setStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
       return
@@ -771,9 +779,14 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
           return
         }
         boundsRef.current.region = viewport
-        map.fitBounds(viewport)
+        try {
+          map.fitBounds(viewport)
+          window.google?.maps?.event?.trigger(map, 'resize')
+        } catch {
+          /* region is still usable if the map has not finished sizing */
+        }
         setRegionLoaded(true)
-        setStatus(`Loaded ${address}. Ready to extract places.`)
+        setStatus(`Loaded ${address}. Extract places is ready.`)
       } else {
         boundsRef.current.region = null
         setStatus(`Could not find "${address}"`)
@@ -894,7 +907,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
   const loadAreaRegion = useCallback(async () => {
     const map = areaMapInstanceRef.current
-    if (!map) return
+    if (!map) {
+      setAreaStatus('Map is still loading. Wait a moment, then tap Load region.')
+      return
+    }
     if (!canUseGoogleApi()) {
       setAreaStatus(getGoogleApiQuotaStatus().message || QUOTA_EXHAUSTED_MESSAGE_DAILY)
       return
@@ -2419,8 +2435,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {/* ============== GRID SELECTION METHOD ============== */}
             {extractionMethod === 'grid' && (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <div className="min-h-0 max-h-40 shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
-                  <div className="p-3 sm:p-3.5">
+                  <div className="min-h-0 max-h-[7.25rem] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white sm:max-h-40 md:max-h-[34%]">
+                  <div className="p-3 pb-2 sm:p-3.5">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; grid</p>
                       <PlaceExtractHelpGuide
@@ -2429,7 +2445,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         buttonOnly
                       />
                     </div>
-                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <input
                         type="text"
                         value={country}
@@ -2474,7 +2490,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                     <p className="mt-1 text-[10px] text-slate-500 sm:text-[11px]">
                       Max {gridExtractMaxPlaces} places · once per day · area up to {extractMaxAreaKm2} km²
                     </p>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  </div>
+                  </div>
+                    <div className="shrink-0 border-b border-slate-200 bg-white px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
                         onClick={loadRegion}
@@ -2487,14 +2506,16 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         <button
                           type="button"
                           onClick={extractPlaces}
-                          disabled={googleApiBlocked || gridExtractBlocked || gridExtractStatus.loading || !regionLoaded}
-                          className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                          disabled={googleApiBlocked || gridExtractBlocked || !regionLoaded}
+                          className="h-9 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-3 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                           title={
                             gridExtractBlocked
                               ? gridExtractStatus.requiresLogin
                                 ? 'Log in to extract'
                                 : 'Already used today — try again tomorrow'
-                              : undefined
+                              : !regionLoaded
+                                ? 'Load region first'
+                                : 'Extract places in this region'
                           }
                         >
                           Extract places
@@ -2509,10 +2530,22 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         </button>
                       )}
                     </div>
+                    {!regionLoaded && !gridExtractBlocked && (
+                      <p className="mt-1.5 text-[10px] font-medium text-slate-500">
+                        Tap Load region. Extract places turns on after the map loads that area.
+                      </p>
+                    )}
+                    {gridExtractBlocked && (
+                      <p className="mt-1.5 text-[10px] font-medium text-amber-800">
+                        {gridExtractStatus.requiresLogin
+                          ? 'Log in to use Extract places.'
+                          : 'Today’s extract is already used. Try again tomorrow.'}
+                      </p>
+                    )}
                   </div>
 
                   {/* Status + Progress */}
-                  <div className="border-b border-slate-100 bg-white px-3 py-2 sm:px-3.5">
+                  <div className="shrink-0 border-b border-slate-100 bg-white px-3 py-2 sm:px-3.5">
                     <div className="flex flex-col gap-0.5 text-[11px] leading-snug text-slate-600 sm:flex-row sm:items-center sm:justify-between">
                       <span className="min-w-0 sm:truncate">{status}</span>
                       <span className="shrink-0 text-[10px] text-slate-400 sm:text-[11px]">
@@ -2532,7 +2565,6 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         />
                       </div>
                     )}
-                  </div>
                   </div>
 
                 {/* Places list — pinned below controls, always visible */}
@@ -2805,8 +2837,8 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
             {/* ============== AREA-BASED METHOD ============== */}
             {extractionMethod === 'area' && (
               <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <div className="min-h-0 max-h-40 shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white md:max-h-[38%]">
-                  <div className="p-3 sm:p-3.5">
+                  <div className="min-h-0 max-h-[7.25rem] shrink overflow-y-auto overscroll-contain border-b border-slate-100 bg-gradient-to-b from-slate-50 to-white sm:max-h-40 md:max-h-[34%]">
+                  <div className="p-3 pb-2 sm:p-3.5">
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">Region &amp; shape</p>
                       <PlaceExtractHelpGuide
@@ -2815,7 +2847,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         buttonOnly
                       />
                     </div>
-                    <div className="grid grid-cols-1 gap-1.5 sm:grid-cols-2">
+                    <div className="grid grid-cols-2 gap-1.5">
                       <input
                         type="text"
                         value={areaCountry}
@@ -2874,7 +2906,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         ))}
                       </select>
                     </div>
-                    <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                  </div>
+                  </div>
+                    <div className="shrink-0 border-b border-slate-200 bg-white px-3 py-2">
+                    <div className="flex flex-wrap items-center gap-1.5">
                       <button
                         type="button"
                         onClick={loadAreaRegion}
@@ -2919,7 +2954,7 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         <button
                           type="button"
                           onClick={extractAreaPlaces}
-                          disabled={googleApiBlocked || !areaShapeReady || areaExtractBlocked || gridExtractStatus.loading}
+                          disabled={googleApiBlocked || !areaShapeReady || areaExtractBlocked}
                           className="h-8 shrink-0 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 px-2.5 text-xs font-semibold text-white shadow-sm transition hover:from-blue-700 hover:to-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
                           title={
                             areaExtractBlocked
@@ -2982,7 +3017,6 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
                         />
                       </div>
                     )}
-                  </div>
                   </div>
 
                 <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden border-t border-slate-200 bg-white">
@@ -3080,10 +3114,10 @@ const PlaceExtractPanel = ({ isOpen, onClose, onAddToMap, mapPlaces = [], onShow
 
             {/* Right — full-height map preview */}
             <div
-              className={`relative order-1 w-full shrink-0 min-w-0 bg-slate-200 md:order-2 md:h-auto md:max-h-none md:min-h-0 md:flex-1 md:shrink ${
+              className={`relative order-1 w-full min-w-0 shrink-0 bg-slate-200 md:order-2 md:h-full md:min-h-0 md:flex-1 md:shrink ${
                 mobileResultsVisible
-                  ? 'h-[clamp(64px,18dvh,150px)]'
-                  : 'h-[clamp(140px,32dvh,260px)]'
+                  ? 'max-md:h-[clamp(88px,22dvh,180px)]'
+                  : 'max-md:h-[clamp(160px,34dvh,280px)]'
               }`}
             >
               <div
