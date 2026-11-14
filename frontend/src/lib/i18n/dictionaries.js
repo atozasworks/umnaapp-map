@@ -270,6 +270,7 @@ const UI = {
     'Location sharing': 'ಸ್ಥಳ ಹಂಚಿಕೆ',
     'Show side bar': 'ಬದಿಯ ಪಟ್ಟಿಯನ್ನು ತೋರಿಸಿ',
     'Extract Places': 'ಸ್ಥಳಗಳನ್ನು ಹೊರತೆಗೆಯಿರಿ',
+    'API Keys': 'API ಕೀಗಳು',
   },
   ta: {
     'Search places...': 'இடங்களைத் தேடு...',
@@ -327,6 +328,7 @@ const UI = {
     'Location sharing': 'இடப் பகிர்வு',
     'Show side bar': 'பக்கப்பட்டியைக் காட்டு',
     'Extract Places': 'இடங்களைப் பிரித்தெடு',
+    'API Keys': 'API விசைகள்',
   },
   mr: {
     'Search places...': 'ठिकाणे शोधा...',
@@ -384,6 +386,7 @@ const UI = {
     'Location sharing': 'स्थान सामायिकरण',
     'Show side bar': 'साइडबार दाखवा',
     'Extract Places': 'ठिकाणे काढा',
+    'API Keys': 'API की',
   },
   hi: {
     'Search places...': 'जगहें खोजें...',
@@ -441,6 +444,7 @@ const UI = {
     'Location sharing': 'स्थान साझाकरण',
     'Show side bar': 'साइडबार दिखाएं',
     'Extract Places': 'स्थान निकालें',
+    'API Keys': 'API कुंजियाँ',
   },
   tcy: {
     'Search places...': 'ಜಾಗೊಲೆನ್ ತುಡಿಯರ್...',
@@ -498,6 +502,7 @@ const UI = {
     'Location sharing': 'ಜಾಗೆ ಪಂಚುನು',
     'Show side bar': 'ಬರಿಕ್ಕು ಪಟ್ಟಿ ತೋಜಾಲೆ',
     'Extract Places': 'ಜಾಗೊಲೆನ್ ಪಿರಪಾಲೆ',
+    'API Keys': 'API ಕೀಲಿಲು',
   },
   kok: {
     'Search places...': 'सुवाती सोदात...',
@@ -555,6 +560,7 @@ const UI = {
     'Location sharing': 'सुवात वांटप',
     'Show side bar': 'बाजूचो पट्टो दाखयात',
     'Extract Places': 'सुवाती काडात',
+    'API Keys': 'API की',
   },
 }
 

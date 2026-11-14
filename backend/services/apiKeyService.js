@@ -93,7 +93,7 @@ function toOwnerDto(row) {
 
 function assertFeatures(scopes) {
   if (!featuresToList({ scopes }).length) {
-    const err = new Error('Select at least one feature: Map, Places, or Directions')
+    const err = new Error('Select at least one feature: Map, Search, or Directions')
     err.status = 400
     throw err
   }

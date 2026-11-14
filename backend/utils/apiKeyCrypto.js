@@ -89,13 +89,21 @@ export function mergeScopes(existing, features) {
   return kept
 }
 
+/**
+ * Google-style product packaging for one key:
+ * - Map only → map
+ * - Search or Directions → map + search + directions on the same key
+ */
 export function normalizeFeatures(input) {
   const list = Array.isArray(input) ? input : []
   const set = new Set(list.map((f) => String(f || '').trim().toLowerCase()))
+  const wantsSearch = set.has('places') || set.has('search')
+  const wantsDirections = set.has('directions')
+  const bundle = wantsSearch || wantsDirections
   return {
-    map: set.has('map'),
-    places: set.has('places'),
-    directions: set.has('directions'),
+    map: set.has('map') || bundle,
+    places: bundle,
+    directions: bundle,
   }
 }
 

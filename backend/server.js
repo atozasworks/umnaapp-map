@@ -86,6 +86,14 @@ app.get('/sdk.js', (req, res) => {
 })
 
 // Allow the public map viewer to be embedded in third-party <iframe>s.
+// The test/prod host also injects X-Frame-Options: SAMEORIGIN on every response
+// (after this app). CSP frame-ancestors overrides that header in browsers, which
+// is why /embedded-map can be framed and the bare site root cannot.
+function allowAnyFrameAncestor(res) {
+  res.removeHeader('X-Frame-Options')
+  res.setHeader('Content-Security-Policy', 'frame-ancestors *')
+}
+
 app.use((req, res, next) => {
   if (
     req.path === '/embedded-map' ||
@@ -93,8 +101,17 @@ app.use((req, res, next) => {
     req.path === '/map' ||
     req.path.startsWith('/map/')
   ) {
-    res.removeHeader('X-Frame-Options')
-    res.setHeader('Content-Security-Policy', 'frame-ancestors *')
+    allowAnyFrameAncestor(res)
+    return next()
+  }
+
+  // Other apps iframe https://<host>/ (no /embedded-map). That document is
+  // blocked by the host's X-Frame-Options. Send the framed root to the map
+  // viewer and mark the redirect itself as embeddable.
+  if (req.method === 'GET' && req.path === '/' && String(req.get('sec-fetch-dest') || '') === 'iframe') {
+    allowAnyFrameAncestor(res)
+    const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : ''
+    return res.redirect(302, `/embedded-map${qs}`)
   }
   next()
 })

@@ -4,9 +4,10 @@
  * These endpoints expose ONLY approved place data from the shared `Place` table.
  * External callers must send an API key (X-Api-Key header or ?key=). Each key
  * is limited to the features selected when it was created:
- *   - map        → /config and /embedded-map
+ *   - map        → /config and /embedded-map (map-only keys hide search/directions UI)
  *   - places     → /places, /search, /nearby, /categories, /place/:id
  *   - directions → /route
+ * Selecting Search or Directions stores map+places+directions on the same key.
  * A Map key may also call place endpoints from the embedded map page itself
  * (X-Umna-Surface: embed + Referer /embedded-map), so markers still render.
  * The signed-in UMNAAPP app reads /legal without a key. Private app routes
@@ -312,9 +313,10 @@ router.get(
  * @desc Client configuration for the viewer / SDK (tiles, defaults, attribution)
  * @access Public
  */
-router.get('/config', mapKey, rateLimitMiddleware('public:config', 120, 60), cacheMiddleware(300), (req, res) => {
+router.get('/config', mapKey, rateLimitMiddleware('public:config', 120, 60), (req, res) => {
   res.json({
     name: 'UMNAAPP Maps',
+    features: req.apiKey?.features || { map: true, places: false, directions: false },
     tiles: {
       // CARTO Voyager (OSM-based) is the primary source: full 0–20 zoom, fast
       // global CDN, retina @2x. The umnaapp.in host only serves up to z13 and is

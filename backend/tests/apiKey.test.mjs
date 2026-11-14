@@ -24,7 +24,7 @@ test('encrypted keys round-trip', () => {
   assert.equal(decryptApiKey(encryptApiKey(raw)), raw)
 })
 
-test('features stay independent', () => {
+test('stored scopes stay independent at runtime', () => {
   const mapOnly = { active: true, scopes: ['map'] }
   const placesOnly = { active: true, scopes: ['places'] }
   const directionsOnly = { active: true, scopes: ['directions'] }
@@ -41,10 +41,30 @@ test('features stay independent', () => {
   assert.equal(keyAllowsFeature({ ...mapOnly, active: false }, 'map').status, 401)
 })
 
-test('normalizeFeatures ignores unknown names', () => {
-  assert.deepEqual(normalizeFeatures(['Map', 'nope', 'directions']), {
+test('search or directions bundles map, search, and directions on one key', () => {
+  assert.deepEqual(normalizeFeatures(['map']), {
     map: true,
     places: false,
+    directions: false,
+  })
+  assert.deepEqual(normalizeFeatures(['places']), {
+    map: true,
+    places: true,
+    directions: true,
+  })
+  assert.deepEqual(normalizeFeatures(['search']), {
+    map: true,
+    places: true,
+    directions: true,
+  })
+  assert.deepEqual(normalizeFeatures(['directions']), {
+    map: true,
+    places: true,
+    directions: true,
+  })
+  assert.deepEqual(normalizeFeatures(['Map', 'nope', 'directions']), {
+    map: true,
+    places: true,
     directions: true,
   })
 })

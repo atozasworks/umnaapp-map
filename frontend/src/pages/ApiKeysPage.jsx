@@ -7,21 +7,32 @@ const FEATURES = [
   {
     id: 'map',
     title: 'Map',
-    detail: 'Embed the interactive map: zoom, pan, and place markers.',
+    detail: 'Interactive map only: zoom, pan, and place markers. Search and directions stay hidden.',
   },
   {
     id: 'places',
-    title: 'Places',
-    detail: 'Search places and read place data from another app.',
+    title: 'Search',
+    detail: 'Place search on the same key. Also enables Map and Directions, like Google Maps Platform.',
   },
   {
     id: 'directions',
     title: 'Directions',
-    detail: 'Calculate road distance and duration between two points.',
+    detail: 'Routes, distance, and duration on the same key. Also enables Map and Search.',
   },
 ]
 
+const FEATURE_LABELS = { map: 'Map', places: 'Search', directions: 'Directions' }
 const EMPTY_FORM = { name: '', features: { map: true, places: false, directions: false } }
+
+function applyFeatureSelection(current, id) {
+  const turningOn = !current[id]
+  if (id === 'map') {
+    if (!turningOn) return { map: true, places: false, directions: false }
+    return { ...current, map: true }
+  }
+  if (turningOn) return { map: true, places: true, directions: true }
+  return { map: true, places: false, directions: false }
+}
 
 function formatWhen(iso) {
   if (!iso) return '—'
@@ -55,7 +66,7 @@ export default function ApiKeysPage() {
   const [busyId, setBusyId] = useState('')
   const [editing, setEditing] = useState(null)
 
-  const origin = 'https://umnaapp.com'
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://umnaapp.com'
   const sampleKey = keys.find((k) => k.status === 'active')?.key || 'YOUR_API_KEY'
 
   const showToast = (message) => {
@@ -107,8 +118,8 @@ export default function ApiKeysPage() {
       },
       {
         id: 'places',
-        title: 'Places search',
-        feature: 'Places',
+        title: 'Search',
+        feature: 'Search',
         code: `const res = await fetch('${origin}/api/public/search?q=Majestic', {
   headers: { 'X-Api-Key': '${sampleKey}' },
 });
@@ -132,7 +143,7 @@ const km = (route.distance / 1000).toFixed(1);`,
   const toggleFeature = (id) => {
     setForm((prev) => ({
       ...prev,
-      features: { ...prev.features, [id]: !prev.features[id] },
+      features: applyFeatureSelection(prev.features, id),
     }))
   }
 
@@ -238,8 +249,8 @@ const km = (route.distance / 1000).toFixed(1);`,
           <div>
             <h2 className="text-2xl font-semibold tracking-tight">Credentials</h2>
             <p className="text-sm text-slate-500 mt-1 max-w-xl">
-              Create a key, choose Map, Places, and Directions, then paste the key into another app.
-              A key can call only the features you enable.
+              Create a key like Google Maps Platform. Map only shows the map. Search or Directions
+              puts Map, Search, and Directions on that same key.
             </p>
           </div>
           <button
@@ -297,8 +308,8 @@ const km = (route.distance / 1000).toFixed(1);`,
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {item.features.map((f) => (
-                          <span key={f} className="text-xs font-medium bg-sky-50 text-sky-800 px-2 py-1 rounded-lg capitalize">
-                            {f}
+                          <span key={f} className="text-xs font-medium bg-sky-50 text-sky-800 px-2 py-1 rounded-lg">
+                            {FEATURE_LABELS[f] || f}
                           </span>
                         ))}
                       </div>
@@ -393,7 +404,7 @@ const km = (route.distance / 1000).toFixed(1);`,
             <h2 className="text-lg font-semibold">Use the key in another app</h2>
             <p className="text-sm text-slate-500 mt-1">
               Send the key as the <code className="text-xs">X-Api-Key</code> header or as <code className="text-xs">?key=</code>.
-              Calling a feature that is not enabled returns HTTP 403.
+              A Map-only key shows only the map. A Search or Directions key can use map, search, and routing.
             </p>
           </div>
           <div className="grid gap-3">
@@ -428,7 +439,10 @@ const km = (route.distance / 1000).toFixed(1);`,
             placeholder="My website"
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm mb-4"
           />
-          <p className="text-sm font-medium mb-2">Features</p>
+          <p className="text-sm font-medium mb-2">APIs</p>
+          <p className="text-xs text-slate-500 mb-3">
+            Select Map for the map only. Select Search or Directions to enable Map, Search, and Directions together.
+          </p>
           <div className="space-y-2 mb-5">
             {FEATURES.map((feature) => (
               <label key={feature.id} className="flex gap-3 rounded-xl border border-slate-200 px-3 py-3 cursor-pointer">
@@ -464,6 +478,9 @@ const km = (route.distance / 1000).toFixed(1);`,
             onChange={(e) => setEditing((prev) => ({ ...prev, name: e.target.value }))}
             className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm mb-4"
           />
+          <p className="text-xs text-slate-500 mb-3">
+            Map only shows the map. Search or Directions enables Map, Search, and Directions on this key.
+          </p>
           <div className="space-y-2 mb-5">
             {FEATURES.map((feature) => (
               <label key={feature.id} className="flex gap-3 rounded-xl border border-slate-200 px-3 py-3 cursor-pointer">
@@ -473,7 +490,7 @@ const km = (route.distance / 1000).toFixed(1);`,
                   onChange={() =>
                     setEditing((prev) => ({
                       ...prev,
-                      features: { ...prev.features, [feature.id]: !prev.features[feature.id] },
+                      features: applyFeatureSelection(prev.features, feature.id),
                     }))
                   }
                   className="mt-1"

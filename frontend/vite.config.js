@@ -71,6 +71,18 @@ export default defineConfig({
         enabled: true,
         type: 'module',
         navigateFallback: 'index.html',
+        // Same exclusions as NavigationRoute in src/sw.js. Without /embedded-map
+        // here, the dev worker serves the app shell (X-Frame-Options: SAMEORIGIN)
+        // into third-party iframes and the map never paints.
+        navigateFallbackDenylist: [
+          /^\/api/,
+          /^\/auth/,
+          /^\/socket\.io/,
+          /^\/admin/,
+          /^\/sdk\.js/,
+          /^\/embedded-map/,
+          /^\/map(\/|\?|$)/,
+        ],
       },
     }),
     // Emit .gz / .br siblings for static hosts / nginx gzip_static / brotli_static
