@@ -8,6 +8,7 @@
 import axios from 'axios'
 import prisma from '../config/database.js'
 import { OPEN_PLACE_SOURCES } from '../utils/openPlaceCategory.js'
+import { applyOpenPlaceSchema } from './openPlaceSetup.js'
 
 /** Same tolerance as the place duplicate check (utils/placeDuplicate.js COORD_EPS). */
 const COORD_EPS = 0.0001
@@ -17,15 +18,23 @@ const AREA_SCAN_LIMIT = 20000
 let _tableReady = null
 let _tableCheckedAt = 0
 
-/** Whether the OpenPlace table exists (cached; re-probed every minute while missing). */
+/** Whether the OpenPlace table exists; creates it when missing (cached; retried every minute on failure). */
 export async function openPlacesAvailable() {
   const now = Date.now()
   if (_tableReady === true) return true
   if (_tableReady === false && now - _tableCheckedAt < 60_000) return false
   try {
-    const rows = await prisma.$queryRaw`SELECT to_regclass('public."OpenPlace"')::text AS t`
+    const probe = () => prisma.$queryRaw`SELECT to_regclass('public."OpenPlace"')::text AS t`
+    let rows = await probe()
+    if (!rows[0]?.t) {
+      // Fresh deployment: create the catalogue table instead of waiting for a manual migration.
+      await applyOpenPlaceSchema()
+      console.log('[open-places] Created the OpenPlace catalogue table.')
+      rows = await probe()
+    }
     _tableReady = Boolean(rows[0]?.t)
-  } catch {
+  } catch (err) {
+    console.error('[open-places] Catalogue table is not available:', err.message.split('\n')[0])
     _tableReady = false
   }
   _tableCheckedAt = now

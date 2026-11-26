@@ -6,6 +6,7 @@
  */
 import { useEffect, useRef, useState, useCallback } from 'react'
 import * as maplibregl from 'maplibre-gl'
+import '../utils/maplibreWorker'
 import 'maplibre-gl/dist/maplibre-gl.css'
 import { io } from 'socket.io-client'
 import { getApiOrigin } from '../utils/apiBase'
