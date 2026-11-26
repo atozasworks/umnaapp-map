@@ -13,8 +13,15 @@ function withSessionStorage(fn, fallback) {
   }
 }
 
+// Logout here: no silent sign-in on this device (all tabs) until a login button is pressed.
+const OPTOUT_KEY = 'atozas.optout.v1'
+const SILENT_KEY = 'atozas.silentcheck.v1'
+
 export function isAtozasLoggedOut() {
-  return withSessionStorage(() => sessionStorage.getItem(ATOZAS_LOGGED_OUT_KEY) === '1', false)
+  return (
+    withSessionStorage(() => sessionStorage.getItem(ATOZAS_LOGGED_OUT_KEY) === '1', false) ||
+    withSessionStorage(() => localStorage.getItem(OPTOUT_KEY) === '1', false)
+  )
 }
 
 export function markAtozasLoggedOut() {
@@ -22,6 +29,7 @@ export function markAtozasLoggedOut() {
     sessionStorage.setItem(ATOZAS_LOGGED_OUT_KEY, '1')
     sessionStorage.removeItem(ATOZAS_SSO_ONCE_KEY)
   })
+  withSessionStorage(() => localStorage.setItem(OPTOUT_KEY, '1'))
 }
 
 export function clearAtozasLoggedOut() {
@@ -29,6 +37,7 @@ export function clearAtozasLoggedOut() {
     sessionStorage.removeItem(ATOZAS_LOGGED_OUT_KEY)
     sessionStorage.removeItem(ATOZAS_SSO_ONCE_KEY)
   })
+  withSessionStorage(() => localStorage.removeItem(OPTOUT_KEY))
 }
 
 /** Call before starting a user-initiated ATOZAS login so the next boot can restore. */
@@ -83,6 +92,7 @@ export async function fetchAtozasMe(timeoutMs = 4000, options = {}) {
       authenticated: Boolean(data.authenticated),
       token: typeof data.token === 'string' ? data.token : null,
       user: data.user || null,
+      silent: Boolean(data.silent),
     }
   } catch {
     return DISABLED
@@ -91,9 +101,13 @@ export async function fetchAtozasMe(timeoutMs = 4000, options = {}) {
   }
 }
 
-export function atozasStartPath(returnTo = '/') {
+// One login for every AtoZ app: method = the button pressed here ('google' | 'otp' | 'atozas'),
+// loginHint = email to prefill for OTP. ATOZAS then opens that login.
+export function atozasStartPath(returnTo = '/', { method = '', loginHint = '' } = {}) {
   const params = new URLSearchParams()
   if (returnTo) params.set('returnTo', returnTo)
+  if (method) params.set('method', method)
+  if (loginHint) params.set('login_hint', loginHint)
   const query = params.toString()
   return query ? `${SSO_PREFIX}/atozas?${query}` : `${SSO_PREFIX}/atozas`
 }
@@ -114,4 +128,25 @@ export async function logoutAtozasSession(timeoutMs = 5000) {
   } finally {
     clearTimeout(timer)
   }
+}
+
+/**
+ * Silent check: someone already signed in at ATOZAS (homepage or another AtoZ app) comes back signed
+ * in here with no click (/auth/atozas/silent, prompt=none). Once per tab, at most every 5 minutes
+ * across tabs, never after Logout here until a login button is pressed. Returns true if it redirected.
+ */
+export function maybeAtozasSilentCheck(status) {
+  if (typeof window === 'undefined') return false
+  if (!status?.enabled || status.authenticated || !status.silent || isAtozasLoggedOut()) return false
+  const params = new URLSearchParams(window.location.search)
+  if (params.get('error') || params.get('logged_out')) return false
+  const read = (st) => withSessionStorage(() => Number(st.getItem(SILENT_KEY) || 0), 0)
+  if (read(sessionStorage) > 0 || Date.now() - read(localStorage) < 5 * 60 * 1000) return false
+  if (/bot|crawl|spider|preview/i.test(navigator.userAgent || '')) return false
+  const now = String(Date.now())
+  withSessionStorage(() => sessionStorage.setItem(SILENT_KEY, now))
+  withSessionStorage(() => localStorage.setItem(SILENT_KEY, now))
+  const next = `${window.location.pathname}${window.location.search}` || '/'
+  window.location.replace(`${SSO_PREFIX}/atozas/silent?returnTo=${encodeURIComponent(next)}`)
+  return true
 }

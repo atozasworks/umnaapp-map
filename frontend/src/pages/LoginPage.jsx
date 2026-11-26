@@ -106,6 +106,12 @@ const LoginPage = () => {
     e.preventDefault()
     setError('')
     setLoading(true)
+    // With ATOZAS on, the code is sent and checked by ATOZAS (one login for every AtoZ app).
+    if (atozasSso.enabled) {
+      beginAtozasLogin()
+      window.location.href = atozasStartPath(redirect, { method: 'otp', loginHint: String(email).trim().toLowerCase() })
+      return
+    }
 
     try {
       await api.post('/auth/login', { email })
@@ -119,10 +125,16 @@ const LoginPage = () => {
 
   const handleAtozasLogin = () => {
     beginAtozasLogin()
-    window.location.href = atozasStartPath(redirect)
+    window.location.href = atozasStartPath(redirect, { method: 'atozas' })
   }
 
   const handleGoogleLogin = () => {
+    // With ATOZAS on, Google logs in at ATOZAS so the login works on every AtoZ app.
+    if (atozasSso.enabled) {
+      beginAtozasLogin()
+      window.location.href = atozasStartPath(redirect, { method: 'google' })
+      return
+    }
     window.location.href = `/api/auth/google?redirect=${encodeURIComponent(redirect)}`
   }
 

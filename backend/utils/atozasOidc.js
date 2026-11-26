@@ -84,6 +84,7 @@ export function pendingFromRecord(record) {
     nonce: typeof record.n === 'string' ? record.n : '',
     returnTo: sanitizeReturnTo(record.r, '/'),
     createdAt: Number.isFinite(record.t) ? record.t : Date.now(),
+    silent: record.q === 1,
   }
 }
 
@@ -415,4 +416,31 @@ export async function revokeProviderToken({ config, endpoints, token, tokenTypeH
   } catch {
     // Logout must still succeed if the IdP revoke endpoint is unreachable.
   }
+}
+
+/**
+ * The silent check (prompt=none) needs ATOZAS's support for it; an older ATOZAS would show its login
+ * page to every guest. On only once ATOZAS reports `pending_login_method` in /sso/session.php
+ * (checked at most every 10 minutes). ATOZAS_SILENT=1 / 0 forces it on / off.
+ */
+let silentCache = { at: 0, ok: false }
+export async function isSilentSupported(config, fetchImpl = fetch) {
+  if (process.env.ATOZAS_SILENT === '1') return true
+  if (process.env.ATOZAS_SILENT === '0') return false
+  if (!config?.issuer) return false
+  if (Date.now() - silentCache.at < 10 * 60 * 1000) return silentCache.ok
+  let ok = false
+  try {
+    const base = String(config.issuer).replace(/\/+$/, '').replace(/\/sso$/, '')
+    const res = await fetchImpl(`${base}/sso/session.php`, {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(4000),
+    })
+    const data = await res.json().catch(() => null)
+    ok = res.ok && !!data && Object.prototype.hasOwnProperty.call(data, 'pending_login_method')
+  } catch {
+    ok = false
+  }
+  silentCache = { at: Date.now(), ok }
+  return ok
 }
