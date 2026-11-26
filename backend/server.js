@@ -17,6 +17,8 @@ import { mountAtozasSso } from './config/atozasSso.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import safeRouteRoutes from './routes/safeRouteRoutes.js'
+import openPlaceRoutes from './routes/openPlaceRoutes.js'
+import surveyRoutes from './routes/surveyRoutes.js'
 import publicRoutes from './routes/publicRoutes.js'
 import apiKeyRoutes from './routes/apiKeyRoutes.js'
 import { findActiveApiKey } from './services/apiKeyService.js'
@@ -161,6 +163,8 @@ if (process.env.NODE_ENV !== 'production') {
 }
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
 app.use('/api/map', safeRouteRoutes) // Safe Route scoring + community hazard reports
+app.use('/api/map', openPlaceRoutes) // Open-data place catalogue for the Place Extractor
+app.use('/api/map', surveyRoutes) // Quick Survey: signboard photo → place name + category
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (OTP to pre-approved Gmail + httpOnly session)
 app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)

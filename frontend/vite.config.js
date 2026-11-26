@@ -151,6 +151,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['@react-oauth/google', 'atozas-traslate'],
+    // maplibre-gl v6 loads its worker from a sibling .mjs file via import.meta.url.
+    // Pre-bundling moves the main module and breaks that URL in dev
+    // ("Worker failed to load"), so GeoJSON layers never render.
+    exclude: ['maplibre-gl'],
     esbuildOptions: {
       loader: {
         '.ts': 'ts',

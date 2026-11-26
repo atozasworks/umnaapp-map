@@ -14,6 +14,7 @@ import {
   AddPlaceMethodModal,
   PlaceDetailPanel,
   PlaceExtractPanel,
+  QuickSurveySheet,
   DuplicatePlaceModal,
   PlaceAddedSuccessModal,
   PolygonExplorePanel,
@@ -275,6 +276,7 @@ const HomePage = () => {
   const [successPopup, setSuccessPopup] = useState(null)
   const [shareModal, setShareModal] = useState(null)
   const [showExtractPanel, setShowExtractPanel] = useState(false)
+  const [showQuickSurvey, setShowQuickSurvey] = useState(false)
   const [showLanguageModal, setShowLanguageModal] = useState(false)
   const [showFeedbackModal, setShowFeedbackModal] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
@@ -304,6 +306,7 @@ const HomePage = () => {
   const menuPrint = useTranslate('Print')
   const menuAddMissingPlace = useTranslate('Add a missing place')
   const menuExtractPlaces = useTranslate('Extract Places')
+  const menuQuickSurvey = useTranslate('Quick Survey')
   const menuLanguage = useTranslate('Language')
   const menuFeedback = useTranslate('Feedback')
   const menuLogout = useTranslate('Logout')
@@ -1398,6 +1401,15 @@ const HomePage = () => {
       console.warn('handleMapClickForPlace: failed to load place details', err)
     }
   }, [addPlacePickMode])
+
+  /** Quick Survey saves many places in a row: update the lists quietly, no popup or map jump. */
+  const handleSurveyPlaceSaved = (place) => {
+    const upsert = (prev) => [place, ...prev.filter((item) => item.id !== place.id)]
+    setDbPlaces(upsert)
+    setAllPlaces(upsert)
+    setMyContributions(upsert)
+    if (placeMatchesCategories(place, selectedCategories)) setVisiblePlaces(upsert)
+  }
 
   const handlePlaceSaved = (place) => {
     const wasEdit = editPlaceId != null
@@ -2799,6 +2811,16 @@ const HomePage = () => {
                   </svg>
                   <span className="text-sm font-medium text-slate-800">{menuExtractPlaces}</span>
                 </button>
+                <button
+                  onClick={() => { setShowMenu(false); setShowQuickSurvey(true) }}
+                  className="w-full flex items-center gap-3 px-4 sm:px-5 py-3.5 sm:py-3 min-h-[48px] sm:min-h-0 hover:bg-slate-50 active:bg-slate-100 transition-colors text-left touch-manipulation"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-800">{menuQuickSurvey}</span>
+                </button>
               </div>
 
               {/* Section 4: Settings */}
@@ -3068,6 +3090,18 @@ const HomePage = () => {
             </a>
           </div>
         </div>
+      )}
+
+      {/* Quick Survey */}
+      {showQuickSurvey && (
+        <Suspense fallback={null}>
+          <QuickSurveySheet
+            isOpen
+            onClose={() => setShowQuickSurvey(false)}
+            onPlaceSaved={handleSurveyPlaceSaved}
+            getMapZoom={() => mapRef.current?.getMap?.()?.getZoom?.()}
+          />
+        </Suspense>
       )}
 
       {/* Place Extract Panel */}
