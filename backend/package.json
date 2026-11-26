@@ -17,7 +17,11 @@
     "reminders:send": "node scripts/send-daily-reminders.js",
     "migrate:admin-otp": "node scripts/migrate-admin-otp-auth.js",
     "migrate:feedback": "node scripts/migrate-feedback.js",
+    "migrate:api-keys": "node scripts/migrate-api-keys.js",
     "migrate:feedback-image": "node scripts/migrate-feedback-image.js",
+    "migrate:open-places": "node scripts/migrate-open-places.js",
+    "import:open-places": "node scripts/import-open-places.js",
+    "auto-add:open-places": "node scripts/auto-add-open-places.js",
     "seed:admin-emails": "node scripts/seed-admin-allowed-emails.js",
     "ci:lint": "prisma validate && prisma format --check",
     "ci:audit": "npm audit --audit-level=high",
@@ -27,6 +31,7 @@
     "ci:check": "npm run ci:lint && npm run ci:audit && npm run ci:build"
   },
   "dependencies": {
+    "@duckdb/node-api": "^2.0.1-r.1",
     "@mapbox/polyline": "^1.2.1",
     "@prisma/client": "^5.7.1",
     "@vitalets/google-translate-api": "^9.2.1",

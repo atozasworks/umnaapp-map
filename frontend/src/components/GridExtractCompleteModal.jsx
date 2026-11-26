@@ -79,7 +79,7 @@ export default function GridExtractCompleteModal({
             {count > 0
               ? `Up to ${maxPlaces} places can be extracted per run. Review the list, then add selected places to your map.`
               : slotReleased
-                ? 'Google Places returned no results for this area. Try a broader region, zoom in closer, or pick a nearby town — you can run place extract again today.'
+                ? 'The open-data catalogue has no new places for this area. Try a nearby town or a different area — you can run place extract again today.'
                 : 'No new places were found in this region. You can try a different area tomorrow.'}
           </p>
           {count > 0 || !slotReleased ? (

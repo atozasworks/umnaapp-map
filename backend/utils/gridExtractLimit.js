@@ -1,5 +1,8 @@
 /** Place extract: max places per run, max drawn area (km²), one run per user per UTC calendar day. */
-export const GRID_EXTRACT_MAX_PLACES = 20
+export const GRID_EXTRACT_MAX_PLACES = Math.min(
+  Math.max(parseInt(process.env.EXTRACT_MAX_PLACES, 10) || 20, 1),
+  500
+)
 export const EXTRACT_MAX_AREA_KM2 = parseFloat(process.env.EXTRACT_MAX_AREA_KM2) || 9
 
 export function utcDateKey(date = new Date()) {

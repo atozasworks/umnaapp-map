@@ -215,36 +215,6 @@ export async function sendDailyRemindersNow() {
   return data
 }
 
-export async function fetchBusinessClaims(status = 'pending') {
-  const { data } = await api.get('/admin/claims', { params: { status } })
-  return data
-}
-
-export async function approveBusinessClaim(id, note) {
-  const { data } = await api.post(`/admin/claims/${encodeURIComponent(id)}/approve`, { note })
-  return data
-}
-
-export async function rejectBusinessClaim(id, note) {
-  const { data } = await api.post(`/admin/claims/${encodeURIComponent(id)}/reject`, { note })
-  return data
-}
-
-export async function fetchSafetyHazards(status = 'pending') {
-  const { data } = await api.get('/admin/safety-hazards', { params: { status } })
-  return data
-}
-
-export async function approveSafetyHazard(id) {
-  const { data } = await api.patch(`/admin/safety-hazards/${encodeURIComponent(id)}/approve`)
-  return data
-}
-
-export async function rejectSafetyHazard(id) {
-  const { data } = await api.patch(`/admin/safety-hazards/${encodeURIComponent(id)}/reject`)
-  return data
-}
-
 export async function fetchFeedbacks({ page = 1, limit = 50, q = '', category = '' } = {}) {
   const { data } = await api.get('/admin/feedback', {
     params: {

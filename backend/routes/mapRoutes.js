@@ -57,7 +57,6 @@ import {
   isOsmPlaceId,
 } from '../services/unifiedPlaceQuery.js'
 import { isPersistedSource } from '../utils/placeSource.js'
-import { getPlacesQuotaConfig } from '../utils/placesQuotaConfig.js'
 import { findPublicUtilitiesNearby } from '../services/publicUtilityService.js'
 import { buildNormalizedAddressFields } from '../utils/osmAddress.js'
 import {
@@ -881,7 +880,9 @@ router.post(
       const nameEn = sanitizePlaceName(rawNameEn, addressCtx) || rawNameEn
       const nameLocal = sanitizePlaceName(place_name_local, addressCtx)
 
-      const dup = await findPlaceDuplicate(prisma, req.body)
+      const dup = await findPlaceDuplicate(prisma, req.body, {
+        allowNearbyDifferentName: req.body.survey === true,
+      })
       if (dup.duplicate) {
         return res.status(409).json({
           error: 'Duplicate place',
@@ -1392,7 +1393,9 @@ router.post(
             action: PLACE_AUDIT_ACTIONS.CREATED,
             actor: userActor(req.user),
             after: place,
-            note: 'Extracted place added',
+            note: item.data_source
+              ? `Extracted from open data: ${String(item.data_source).slice(0, 40)} (${String(item.open_place_id || '').slice(0, 220)})`
+              : 'Extracted place added',
           })
           if (place.source !== 'saved') {
             onPlaceCreated(place, { id: userId, name: userName }).catch(() => {})
@@ -2734,13 +2737,11 @@ router.get(
 
 /**
  * @route GET /api/map/config
- * @desc Return public client-side config (Google Maps API key)
+ * @desc Return public client-side config (place extract limits)
  * @access Private
  */
 router.get('/config', authenticateToken, (req, res) => {
   res.json({
-    googleMapsApiKey: process.env.GOOGLE_MAPS_API_KEY || '',
-    placesQuota: getPlacesQuotaConfig(),
     gridExtract: {
       maxPlaces: GRID_EXTRACT_MAX_PLACES,
       maxAreaKm2: EXTRACT_MAX_AREA_KM2,

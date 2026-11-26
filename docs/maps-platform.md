@@ -2,8 +2,10 @@
 
 UMNAAPP Maps turns the existing UMNAAPP application into a reusable map platform
 — like OpenStreetMap or the Google Maps Platform. External projects, websites,
-and mobile apps can use the same live place data **without** authentication and
+and mobile apps can use the same live place data with an **API key** and
 **without** ever seeing the UMNAAPP login, register, landing, or home pages.
+Create a key in the app menu under **API Keys**, and enable Map, Places, and
+Directions independently. Send it as `X-Api-Key` or `?key=`.
 
 The existing UMNAAPP app (login, register, landing, home, admin, user dashboard,
 private APIs) is **unchanged**. Everything below is an additive public layer on
@@ -25,7 +27,7 @@ top of the same `Place` table and the same backend.
 
 ```html
 <iframe
-  src="https://maps.umnaapp.com/embedded-map?lat=12.97&lng=77.59&zoom=12"
+  src="https://maps.umnaapp.com/embedded-map?key=YOUR_API_KEY&lat=12.97&lng=77.59&zoom=12"
   style="width:100%;height:480px;border:0"
   allow="geolocation"
   title="UMNAAPP Maps">
@@ -36,7 +38,7 @@ top of the same `Place` table and the same backend.
 
 ```html
 <div id="map" style="width:100%;height:480px"></div>
-<script src="https://maps.umnaapp.com/sdk.js"></script>
+<script src="https://maps.umnaapp.com/sdk.js?key=YOUR_API_KEY"></script>
 <script>
   const map = UmnaMaps.embed('#map', {
     center: { lat: 12.97, lng: 77.59 },
@@ -57,7 +59,9 @@ top of the same `Place` table and the same backend.
 const { results } = await UmnaMaps.api.search('coffee');
 
 // Or plain fetch
-const res = await fetch('https://maps.umnaapp.com/api/public/search?q=coffee');
+const res = await fetch('https://maps.umnaapp.com/api/public/search?q=coffee', {
+  headers: { 'X-Api-Key': 'YOUR_API_KEY' },
+});
 const data = await res.json();
 ```
 
@@ -65,7 +69,7 @@ const data = await res.json();
 
 ## 2. Public REST API
 
-All endpoints are **GET**, require **no authentication**, return **JSON**, and
+All endpoints are **GET**, require an **API key**, return **JSON**, and
 expose **only approved places**. CORS is open (`Access-Control-Allow-Origin: *`,
 no credentials). Responses are rate-limited per IP and cached where noted.
 
@@ -182,7 +186,7 @@ Raster basemap tiles (already public, same-origin friendly, cached).
 Load it once:
 
 ```html
-<script src="https://maps.umnaapp.com/sdk.js"></script>
+<script src="https://maps.umnaapp.com/sdk.js?key=YOUR_API_KEY"></script>
 ```
 
 It exposes a global `UmnaMaps` and auto-detects the platform origin from its own
@@ -253,7 +257,10 @@ The embedded viewer and SDK already subscribe to these events for you.
   returned by the public API or broadcast.
 - Every public response is **sanitized**: contributor `userId`/email, business
   claim ownership, audit data, and internal approval bookkeeping are stripped.
-- Public endpoints are **read-only** (`GET`) and **credential-less**.
+- Public endpoints are **read-only** (`GET`) and require an **API key**.
+  Map, Places, and Directions are checked separately. A key without the
+  feature receives HTTP `403`. Missing or revoked keys receive HTTP `401`.
+  Each key is also rate-limited (default 120 requests per minute).
 - All **private** surfaces remain fully protected and unchanged:
   - `/api/auth/*`, `/api/users/*`, `/api/notifications/*`, `/api/itineraries/*`,
     `/api/vehicles/*`, `/api/feedback/*` (JWT required)

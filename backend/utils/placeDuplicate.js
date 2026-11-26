@@ -194,7 +194,17 @@ export class PlaceDuplicateIndex {
 }
 
 /** Targeted queries for single-place create (avoids loading entire table). */
-export async function findPlaceDuplicate(prisma, payload, { excludePlaceId = null } = {}) {
+/**
+ * @param {object} [options]
+ * @param {string|null} [options.excludePlaceId]
+ * @param {boolean} [options.allowNearbyDifferentName] Quick Survey: neighbouring shops sit only a few
+ *   metres apart, so a place at (almost) the same coordinates is a duplicate only when the name matches too.
+ */
+export async function findPlaceDuplicate(
+  prisma,
+  payload,
+  { excludePlaceId = null, allowNearbyDifferentName = false } = {}
+) {
   const c = candidateFromPayload(payload)
   if (!c.name || !Number.isFinite(c.lat) || !Number.isFinite(c.lng)) {
     return { duplicate: true, reason: 'invalid', message: DUPLICATE_MESSAGES.invalid }
@@ -225,14 +235,18 @@ export async function findPlaceDuplicate(prisma, payload, { excludePlaceId = nul
     if (hit) return formatDuplicateResult(hit, 'google_place_id')
   }
 
-  const coordHit = await prisma.place.findFirst({
+  const coordHits = await prisma.place.findMany({
     where: {
       ...exclude,
       latitude: { gte: c.lat - COORD_EPS, lte: c.lat + COORD_EPS },
       longitude: { gte: c.lng - COORD_EPS, lte: c.lng + COORD_EPS },
     },
     select,
+    take: allowNearbyDifferentName ? 50 : 1,
   })
+  const coordHit = allowNearbyDifferentName
+    ? coordHits.find((row) => normalizePlaceName(row.placeNameEn || row.name) === c.nameKey)
+    : coordHits[0]
   if (coordHit) return formatDuplicateResult(coordHit, 'coordinates')
 
   if (c.nameKey && c.addressKey) {

@@ -17,7 +17,12 @@ import { mountAtozasSso } from './config/atozasSso.js'
 import testRoutes from './routes/testRoutes.js'
 import mapRoutes from './routes/mapRoutes.js'
 import safeRouteRoutes from './routes/safeRouteRoutes.js'
+import openPlaceRoutes from './routes/openPlaceRoutes.js'
+import surveyRoutes from './routes/surveyRoutes.js'
 import publicRoutes from './routes/publicRoutes.js'
+import apiKeyRoutes from './routes/apiKeyRoutes.js'
+import { findActiveApiKey } from './services/apiKeyService.js'
+import { hasScope } from './utils/apiKeyCrypto.js'
 import vehicleRoutes from './routes/vehicleRoutes.js'
 import adminRoutes from './routes/adminRoutes.js'
 import notificationRoutes from './routes/notificationRoutes.js'
@@ -83,6 +88,14 @@ app.get('/sdk.js', (req, res) => {
 })
 
 // Allow the public map viewer to be embedded in third-party <iframe>s.
+// The test/prod host also injects X-Frame-Options: SAMEORIGIN on every response
+// (after this app). CSP frame-ancestors overrides that header in browsers, which
+// is why /embedded-map can be framed and the bare site root cannot.
+function allowAnyFrameAncestor(res) {
+  res.removeHeader('X-Frame-Options')
+  res.setHeader('Content-Security-Policy', 'frame-ancestors *')
+}
+
 app.use((req, res, next) => {
   if (
     req.path === '/embedded-map' ||
@@ -90,8 +103,17 @@ app.use((req, res, next) => {
     req.path === '/map' ||
     req.path.startsWith('/map/')
   ) {
-    res.removeHeader('X-Frame-Options')
-    res.setHeader('Content-Security-Policy', 'frame-ancestors *')
+    allowAnyFrameAncestor(res)
+    return next()
+  }
+
+  // Other apps iframe https://<host>/ (no /embedded-map). That document is
+  // blocked by the host's X-Frame-Options. Send the framed root to the map
+  // viewer and mark the redirect itself as embeddable.
+  if (req.method === 'GET' && req.path === '/' && String(req.get('sec-fetch-dest') || '') === 'iframe') {
+    allowAnyFrameAncestor(res)
+    const qs = req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : ''
+    return res.redirect(302, `/embedded-map${qs}`)
   }
   next()
 })
@@ -141,10 +163,13 @@ if (process.env.NODE_ENV !== 'production') {
 }
 app.use('/api/map', mapRoutes) // Map services (routing, search, reverse geocoding)
 app.use('/api/map', safeRouteRoutes) // Safe Route scoring + community hazard reports
+app.use('/api/map', openPlaceRoutes) // Open-data place catalogue for the Place Extractor
+app.use('/api/map', surveyRoutes) // Quick Survey: signboard photo → place name + category
 app.use('/api/vehicles', vehicleRoutes) // Vehicle management
 app.use('/api/admin', adminRoutes) // Database admin (OTP to pre-approved Gmail + httpOnly session)
 app.use('/api/notifications', rateLimitMiddleware('notifications', 120, 60), notificationRoutes)
 app.use('/api/users', userRoutes) // Public profiles + My Contributions center
+app.use('/api/api-keys', rateLimitMiddleware('api-keys', 60, 60), apiKeyRoutes)
 app.use('/api/feedback', feedbackRoutes)
 app.use('/api/live-location', liveLocationRoutes) // Timed live-location sharing
 app.use('/api/reminders', reminderRoutes) // Daily reminder email unsubscribe/resubscribe (public, token-signed)
@@ -254,10 +279,22 @@ app.get('*', (req, res, next) => {
 
 setIo(io)
 
-// Public, anonymous real-time namespace for embedded/external maps.
-// No auth middleware here (unlike the default namespace) — it only ever
-// receives broadcasts of approved-place changes (no private data).
+// Real-time namespace for embedded maps. Requires an API key with Map enabled.
+// It only ever receives broadcasts of approved-place changes (no private data).
 const publicMapsNsp = io.of('/public-maps')
+publicMapsNsp.use(async (socket, next) => {
+  try {
+    const raw = socket.handshake.auth?.key || socket.handshake.query?.key
+    const row = await findActiveApiKey(typeof raw === 'string' ? raw : '')
+    if (!hasScope(row, 'map')) {
+      return next(new Error('A valid API key with the Map feature is required'))
+    }
+    socket.data.apiKeyId = row.id
+    return next()
+  } catch (error) {
+    return next(new Error('API key authentication failed'))
+  }
+})
 publicMapsNsp.on('connection', (socket) => {
   socket.emit('connected', { namespace: '/public-maps' })
   socket.on('ping', () => socket.emit('pong', { timestamp: Date.now() }))

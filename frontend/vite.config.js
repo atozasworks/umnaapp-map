@@ -71,6 +71,18 @@ export default defineConfig({
         enabled: true,
         type: 'module',
         navigateFallback: 'index.html',
+        // Same exclusions as NavigationRoute in src/sw.js. Without /embedded-map
+        // here, the dev worker serves the app shell (X-Frame-Options: SAMEORIGIN)
+        // into third-party iframes and the map never paints.
+        navigateFallbackDenylist: [
+          /^\/api/,
+          /^\/auth/,
+          /^\/socket\.io/,
+          /^\/admin/,
+          /^\/sdk\.js/,
+          /^\/embedded-map/,
+          /^\/map(\/|\?|$)/,
+        ],
       },
     }),
     // Emit .gz / .br siblings for static hosts / nginx gzip_static / brotli_static
@@ -139,6 +151,10 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['@react-oauth/google', 'atozas-traslate'],
+    // maplibre-gl v6 loads its worker from a sibling .mjs file via import.meta.url.
+    // Pre-bundling moves the main module and breaks that URL in dev
+    // ("Worker failed to load"), so GeoJSON layers never render.
+    exclude: ['maplibre-gl'],
     esbuildOptions: {
       loader: {
         '.ts': 'ts',

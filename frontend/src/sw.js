@@ -21,9 +21,35 @@ registerRoute(
   new NetworkOnly()
 )
 
+// The precached app shell is stored with the host's X-Frame-Options: SAMEORIGIN.
+// Replaying that shell for a framed document makes the browser refuse the iframe
+// (the BuyNbites error on https://<host>/). Send a framed site root to the real
+// map URL. /embedded-map itself is denylisted below so this worker does not
+// answer it — the network response keeps frame-ancestors and can be embedded.
+registerRoute(
+  ({ request, url }) =>
+    request.mode === 'navigate' &&
+    request.destination === 'iframe' &&
+    url.origin === self.location.origin &&
+    (url.pathname === '/' || url.pathname === ''),
+  async ({ url }) => {
+    const target = new URL(`/embedded-map${url.search}`, url.origin)
+    return Response.redirect(target.href, 302)
+  }
+)
+
 registerRoute(
   new NavigationRoute(createHandlerBoundToURL('index.html'), {
-    denylist: [/^\/api/, /^\/auth/, /^\/socket\.io/, /^\/admin/, /^\/sdk\.js/],
+    denylist: [
+      /^\/api/,
+      /^\/auth/,
+      /^\/socket\.io/,
+      /^\/admin/,
+      /^\/sdk\.js/,
+      /^\/embedded-map/,
+      // Public map path. Do not use /^\/map/ — that would also skip /map-tiles.
+      /^\/map(\/|\?|$)/,
+    ],
   })
 )
 
