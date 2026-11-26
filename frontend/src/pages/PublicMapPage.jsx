@@ -138,10 +138,78 @@ function readParams() {
     q: sp.get('q') || '',
     place: sp.get('place') || '',
     showSearch: sp.get('search') !== '0',
+    showDirections: sp.get('directions') !== '0',
     showControls: sp.get('controls') !== '0',
     hasExplicitCenter: num('lat') != null && num('lng') != null,
     autoLocate: sp.get('locate') !== '0',
+    key: (sp.get('key') || '').trim(),
   }
+}
+
+const EMBED_ROUTE_SOURCE = 'embed-route'
+const EMBED_ROUTE_LAYER = 'embed-route-line'
+const EMBED_ROUTE_CASING = 'embed-route-casing'
+
+function coordsFromResult(result) {
+  const lat = Number(result?.latitude ?? result?.lat)
+  const lng = Number(result?.longitude ?? result?.lng)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  return { lat, lng, title: formatSearchSuggestion(result).title }
+}
+
+function formatRouteSummary(distance, duration) {
+  const km = Number(distance) / 1000
+  const mins = Math.max(0, Math.round(Number(duration) / 60))
+  const dist = !Number.isFinite(km) ? '' : km >= 10 ? `${km.toFixed(0)} km` : `${km.toFixed(1)} km`
+  const time =
+    mins < 1 ? '<1 min' : mins < 60 ? `${mins} min` : `${Math.floor(mins / 60)} hr ${mins % 60} min`
+  return [dist, time].filter(Boolean).join(' · ')
+}
+
+function emptyRouteData() {
+  return { type: 'FeatureCollection', features: [] }
+}
+
+function ensureEmbedRouteLayers(map) {
+  if (!map.getSource(EMBED_ROUTE_SOURCE)) {
+    map.addSource(EMBED_ROUTE_SOURCE, { type: 'geojson', data: emptyRouteData() })
+  }
+  if (!map.getLayer(EMBED_ROUTE_CASING)) {
+    map.addLayer({
+      id: EMBED_ROUTE_CASING,
+      type: 'line',
+      source: EMBED_ROUTE_SOURCE,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#ffffff', 'line-width': 8, 'line-opacity': 0.9 },
+    })
+  }
+  if (!map.getLayer(EMBED_ROUTE_LAYER)) {
+    map.addLayer({
+      id: EMBED_ROUTE_LAYER,
+      type: 'line',
+      source: EMBED_ROUTE_SOURCE,
+      layout: { 'line-join': 'round', 'line-cap': 'round' },
+      paint: { 'line-color': '#1a73e8', 'line-width': 5 },
+    })
+  }
+}
+
+function applyEmbedRoute(map, geometry) {
+  if (!map?.getSource || !geometry) return
+  ensureEmbedRouteLayers(map)
+  map.getSource(EMBED_ROUTE_SOURCE).setData({ type: 'Feature', geometry, properties: {} })
+  const coords = geometry.coordinates
+  if (!Array.isArray(coords) || coords.length < 2) return
+  const bounds = coords.reduce(
+    (b, c) => b.extend(c),
+    new maplibregl.LngLatBounds(coords[0], coords[0])
+  )
+  map.fitBounds(bounds, { padding: 72, maxZoom: 16, duration: 700 })
+}
+
+function clearEmbedRoute(map) {
+  const src = map?.getSource?.(EMBED_ROUTE_SOURCE)
+  if (src) src.setData(emptyRouteData())
 }
 
 function isUuid(id) {
@@ -159,7 +227,12 @@ export default function PublicMapPage() {
   const showSearchPopupRef = useRef(null)
   const socketRef = useRef(null)
   const searchTimeoutRef = useRef(null)
+  const dirTimeoutRef = useRef(null)
   const searchBoxRef = useRef(null)
+  const dirBoxRef = useRef(null)
+  const dirMarkersRef = useRef({ start: null, end: null })
+  const configRef = useRef(null)
+  const keyFeaturesRef = useRef({ map: false, places: false, directions: false })
   const userMarkerRef = useRef(null)
   const watchIdRef = useRef(null)
   const lastValidLocationRef = useRef(null)
@@ -181,18 +254,64 @@ export default function PublicMapPage() {
   const [locationError, setLocationError] = useState(null)
 
   const apiBase = '/api/public'
+  const apiKey = paramsRef.current.key
+  const [keyState, setKeyState] = useState(() => (apiKey ? 'checking' : 'missing'))
+  const [keyFeatures, setKeyFeatures] = useState({ map: false, places: false, directions: false })
+  const [directionsOpen, setDirectionsOpen] = useState(false)
+  const [dirFromQuery, setDirFromQuery] = useState('')
+  const [dirToQuery, setDirToQuery] = useState('')
+  const [dirFrom, setDirFrom] = useState(null)
+  const [dirTo, setDirTo] = useState(null)
+  const [dirActive, setDirActive] = useState(null)
+  const [dirResults, setDirResults] = useState([])
+  const [dirLoading, setDirLoading] = useState(false)
+  const [dirRouting, setDirRouting] = useState(false)
+  const [dirSummary, setDirSummary] = useState('')
+  const [dirError, setDirError] = useState('')
 
   const fetchJSON = useCallback(async (path, params) => {
     const usp = new URLSearchParams()
+    const key = paramsRef.current.key
+    if (key) usp.set('key', key)
     Object.entries(params || {}).forEach(([k, v]) => {
-      if (v === undefined || v === null || v === '') return
+      if (v === undefined || v === null || v === '' || k === 'key') return
       usp.set(k, Array.isArray(v) ? v.join(',') : v)
     })
     const url = `${apiBase}${path}${usp.toString() ? `?${usp}` : ''}`
-    const res = await fetch(url, { headers: { Accept: 'application/json' } })
-    if (!res.ok) throw new Error(`API ${res.status}`)
+    const headers = { Accept: 'application/json', 'X-Umna-Surface': 'embed' }
+    if (key) headers['X-Api-Key'] = key
+    const res = await fetch(url, { headers })
+    if (!res.ok) {
+      const err = new Error(`API ${res.status}`)
+      err.status = res.status
+      throw err
+    }
     return res.json()
   }, [])
+
+  useEffect(() => {
+    if (!apiKey) return undefined
+    let cancelled = false
+    fetchJSON('/config')
+      .then((cfg) => {
+        if (cancelled) return
+        configRef.current = cfg
+        const nextFeatures = {
+          map: Boolean(cfg?.features?.map),
+          places: Boolean(cfg?.features?.places),
+          directions: Boolean(cfg?.features?.directions),
+        }
+        keyFeaturesRef.current = nextFeatures
+        setKeyFeatures(nextFeatures)
+        setKeyState('ready')
+      })
+      .catch((err) => {
+        if (!cancelled) setKeyState(err.status === 403 ? 'forbidden' : 'invalid')
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [apiKey, fetchJSON])
 
   const runLabelLayout = useCallback(() => {
     const map = mapRef.current
@@ -364,9 +483,7 @@ export default function PublicMapPage() {
         <div style="font-family:system-ui,sans-serif;max-width:240px">
           <div style="font-weight:600;font-size:14px;margin-bottom:2px">${escapeHtml(title)}</div>
           ${subtitle ? `<div style="color:#555;font-size:12px;margin-bottom:4px">${escapeHtml(subtitle)}</div>` : ''}
-          <div style="margin-top:6px">
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${result.lat ?? result.latitude},${result.lng ?? result.longitude}" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb">Directions →</a>
-          </div>
+          ${keyFeaturesRef.current.directions ? `<div style="margin-top:6px"><a href="https://www.google.com/maps/dir/?api=1&destination=${result.lat ?? result.latitude},${result.lng ?? result.longitude}" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb">Directions →</a></div>` : ''}
         </div>`
       if (popupRef.current) popupRef.current.remove()
       popupRef.current = new maplibregl.Popup({ closeButton: true, offset: 12 })
@@ -405,9 +522,7 @@ export default function PublicMapPage() {
           ${addr ? `<div style="color:#555;font-size:12px;margin-bottom:4px">${escapeHtml(addr)}</div>` : ''}
           ${place.phone ? `<div style="font-size:12px">📞 ${escapeHtml(place.phone)}</div>` : ''}
           ${place.website ? `<div style="font-size:12px"><a href="${escapeAttr(place.website)}" target="_blank" rel="noopener">Website</a></div>` : ''}
-          <div style="margin-top:6px">
-            <a href="https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb">Directions →</a>
-          </div>
+          ${keyFeaturesRef.current.directions ? `<div style="margin-top:6px"><a href="https://www.google.com/maps/dir/?api=1&destination=${place.latitude},${place.longitude}" target="_blank" rel="noopener" style="font-size:12px;color:#2563eb">Directions →</a></div>` : ''}
         </div>`
       if (popupRef.current) popupRef.current.remove()
       popupRef.current = new maplibregl.Popup({ closeButton: true, offset: 12 })
@@ -485,8 +600,69 @@ export default function PublicMapPage() {
     }, { enableHighAccuracy: true, maximumAge: 0, timeout: 25000 })
   }, [updateUserLocation])
 
+  const setDirMarker = useCallback((slot, point, color) => {
+    const map = mapRef.current
+    const existing = dirMarkersRef.current[slot]
+    if (existing) {
+      existing.remove()
+      dirMarkersRef.current[slot] = null
+    }
+    if (!map || !point) return
+    const el = document.createElement('div')
+    el.style.cssText = `width:14px;height:14px;border-radius:50%;background:${color};border:2px solid #fff;box-shadow:0 1px 4px rgba(15,23,42,.35)`
+    dirMarkersRef.current[slot] = new maplibregl.Marker({ element: el })
+      .setLngLat([point.lng, point.lat])
+      .addTo(map)
+  }, [])
+
+  const clearDirections = useCallback(() => {
+    setDirFrom(null)
+    setDirTo(null)
+    setDirFromQuery('')
+    setDirToQuery('')
+    setDirResults([])
+    setDirActive(null)
+    setDirSummary('')
+    setDirError('')
+    setDirRouting(false)
+    clearEmbedRoute(mapRef.current)
+    setDirMarker('start', null)
+    setDirMarker('end', null)
+  }, [setDirMarker])
+
+  const runDirections = useCallback(
+    async (from, to) => {
+      if (!from || !to) return
+      setDirRouting(true)
+      setDirError('')
+      try {
+        const route = await fetchJSON('/route', {
+          start: `${from.lat},${from.lng}`,
+          end: `${to.lat},${to.lng}`,
+          profile: 'driving',
+        })
+        applyEmbedRoute(mapRef.current, route.geometry)
+        setDirSummary(formatRouteSummary(route.distance, route.duration))
+        setDirMarker('start', from, '#16a34a')
+        setDirMarker('end', to, '#dc2626')
+      } catch {
+        setDirSummary('')
+        setDirError('Could not find a route')
+        clearEmbedRoute(mapRef.current)
+      } finally {
+        setDirRouting(false)
+      }
+    },
+    [fetchJSON, setDirMarker]
+  )
+
   // Debounced search — umnaapp.in/search via /api/public/search (location-biased)
   useEffect(() => {
+    if (!keyFeatures.places || directionsOpen) {
+      setSearchResults([])
+      setShowResults(false)
+      return undefined
+    }
     if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     const term = searchValue.trim()
     if (term.length < 2) {
@@ -523,12 +699,49 @@ export default function PublicMapPage() {
     return () => {
       if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current)
     }
-  }, [searchValue, fetchJSON])
+  }, [searchValue, fetchJSON, keyFeatures.places, directionsOpen])
+
+  useEffect(() => {
+    if (!directionsOpen || !keyFeatures.directions) return undefined
+    const term = (dirActive === 'to' ? dirToQuery : dirFromQuery).trim()
+    if (dirTimeoutRef.current) clearTimeout(dirTimeoutRef.current)
+    if (!dirActive || term.length < 2) {
+      setDirResults([])
+      return undefined
+    }
+    dirTimeoutRef.current = setTimeout(async () => {
+      setDirLoading(true)
+      try {
+        const loc = currentLocationRef.current
+        const map = mapRef.current
+        const c = loc ?? map?.getCenter()
+        const data = await fetchJSON('/search', {
+          q: term,
+          limit: 8,
+          lat: c?.lat,
+          lng: c?.lng,
+          radiusKm: loc ? 50 : undefined,
+        })
+        setDirResults(data.results || [])
+      } catch {
+        setDirResults([])
+      } finally {
+        setDirLoading(false)
+      }
+    }, 250)
+    return () => {
+      if (dirTimeoutRef.current) clearTimeout(dirTimeoutRef.current)
+    }
+  }, [directionsOpen, keyFeatures.directions, dirActive, dirFromQuery, dirToQuery, fetchJSON])
 
   useEffect(() => {
     const onClickOutside = (e) => {
       if (searchBoxRef.current && !searchBoxRef.current.contains(e.target)) {
         setShowResults(false)
+      }
+      if (dirBoxRef.current && !dirBoxRef.current.contains(e.target)) {
+        setDirActive(null)
+        setDirResults([])
       }
     }
     document.addEventListener('mousedown', onClickOutside)
@@ -566,17 +779,55 @@ export default function PublicMapPage() {
     [openPlacePopup, showSearchResultPopup, syncMarkers]
   )
 
+  const pickDirResult = useCallback(
+    (result, slot) => {
+      const point = coordsFromResult(result)
+      if (!point) return
+      const nextFrom = slot === 'from' ? point : dirFrom
+      const nextTo = slot === 'to' ? point : dirTo
+      if (slot === 'from') {
+        setDirFrom(point)
+        setDirFromQuery(point.title)
+      } else {
+        setDirTo(point)
+        setDirToQuery(point.title)
+      }
+      setDirResults([])
+      setDirActive(null)
+      if (nextFrom && nextTo) runDirections(nextFrom, nextTo)
+    },
+    [dirFrom, dirTo, runDirections]
+  )
+
+  const useMyLocationForFrom = useCallback(() => {
+    const loc = currentLocationRef.current
+    if (!loc) {
+      setDirError('Location unavailable. Enable GPS and try again.')
+      return
+    }
+    const point = { lat: loc.lat, lng: loc.lng, title: 'Your location' }
+    setDirFrom(point)
+    setDirFromQuery('Your location')
+    setDirResults([])
+    setDirActive(null)
+    if (dirTo) runDirections(point, dirTo)
+  }, [dirTo, runDirections])
+
   // Initialize map
   useEffect(() => {
-    if (mapRef.current || !containerRef.current) return
+    if (keyState !== 'ready') return undefined
+    if (mapRef.current || !containerRef.current) return undefined
     const params = paramsRef.current
 
     const start = async () => {
-      let config = null
-      try {
-        config = await fetchJSON('/config')
-      } catch {
-        config = null
+      let config = configRef.current
+      if (!config) {
+        try {
+          config = await fetchJSON('/config')
+          configRef.current = config
+        } catch {
+          config = null
+        }
       }
       const cartoFallback =
         'https://a.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
@@ -648,6 +899,7 @@ export default function PublicMapPage() {
       }
 
       map.on('load', () => {
+        ensureEmbedRouteLayers(map)
         setMapLoaded(true)
         loadPlacesInView()
         if (params.place) openPlacePopupRef.current?.(params.place)
@@ -679,6 +931,8 @@ export default function PublicMapPage() {
     return () => {
       markerEntriesRef.current.forEach(({ marker }) => marker.remove())
       markerEntriesRef.current = []
+      Object.values(dirMarkersRef.current).forEach((marker) => marker?.remove())
+      dirMarkersRef.current = { start: null, end: null }
       if (userMarkerRef.current) {
         userMarkerRef.current.remove()
         userMarkerRef.current = null
@@ -689,10 +943,15 @@ export default function PublicMapPage() {
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [keyState])
 
   useEffect(() => {
-    const socket = io(`${getApiOrigin()}/public-maps`, { transports: ['websocket', 'polling'], reconnection: true })
+    if (keyState !== 'ready' || !apiKey) return undefined
+    const socket = io(`${getApiOrigin()}/public-maps`, {
+      transports: ['websocket', 'polling'],
+      reconnection: true,
+      auth: { key: apiKey },
+    })
     socketRef.current = socket
     const onUpsert = (msg) => msg?.place && upsertPlace(msg.place)
     const onRemove = (msg) => msg?.place?.id && removePlace(msg.place.id)
@@ -707,7 +966,7 @@ export default function PublicMapPage() {
       socket.off('place:deleted', onRemove)
       socket.disconnect()
     }
-  }, [upsertPlace, removePlace])
+  }, [upsertPlace, removePlace, keyState, apiKey])
 
   useEffect(() => {
     const onMessage = (event) => {
@@ -820,21 +1079,53 @@ export default function PublicMapPage() {
     }
   }, [mapLoaded, updateUserLocation])
 
-  const showSearch = paramsRef.current.showSearch
+  const showSearch = paramsRef.current.showSearch && keyFeatures.places
+  const showDirections = paramsRef.current.showDirections && keyFeatures.directions
   const showControls = paramsRef.current.showControls
+
+  const keyMessage =
+    keyState === 'missing'
+      ? 'An API key with the Map feature is required. Add ?key=YOUR_API_KEY to this page URL.'
+      : keyState === 'forbidden'
+        ? 'This API key does not have the Map feature enabled.'
+        : keyState === 'invalid'
+          ? 'This API key is invalid or has been revoked.'
+          : 'Checking API key…'
 
   return (
     <div style={{ position: 'fixed', inset: 0, width: '100%', height: '100%' }}>
+      {keyState !== 'ready' && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            zIndex: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#f8fafc',
+            padding: 24,
+            textAlign: 'center',
+            fontFamily: 'system-ui, sans-serif',
+            color: '#0f172a',
+          }}
+        >
+          <div style={{ maxWidth: 420 }}>
+            <div style={{ fontSize: 18, fontWeight: 700, marginBottom: 8 }}>UMNAAPP Maps</div>
+            <p style={{ margin: 0, fontSize: 14, lineHeight: 1.5, color: '#475569' }}>{keyMessage}</p>
+          </div>
+        </div>
+      )}
       <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
-      {showSearch && (
+      {keyState === 'ready' && showSearch && !directionsOpen && (
         <div
           ref={searchBoxRef}
           data-map-ui-chrome
           className="absolute top-3 left-3 z-20 w-[min(360px,calc(100%-24px))]"
         >
           <div className="relative w-full">
-            <div className="flex items-center gap-2 glass rounded-full pl-3 pr-3 py-2 shadow-lg border border-white/30 min-h-[48px]">
+            <div className="flex items-center gap-1 glass rounded-full pl-3 pr-1.5 py-2 shadow-lg border border-white/30 min-h-[48px]">
               <input
                 type="text"
                 value={searchValue}
@@ -844,11 +1135,23 @@ export default function PublicMapPage() {
                 className="flex-1 min-w-0 bg-transparent border-none focus:outline-none text-slate-700 placeholder-slate-500 text-base sm:text-sm py-1"
               />
               {isSearching ? (
-                <div className="flex-shrink-0 animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent" />
+                <div className="flex-shrink-0 animate-spin rounded-full h-4 w-4 border-2 border-primary-500 border-t-transparent mr-2" />
               ) : (
-                <svg className="w-5 h-5 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 text-slate-400 flex-shrink-0 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                 </svg>
+              )}
+              {showDirections && (
+                <button
+                  type="button"
+                  title="Directions"
+                  onClick={() => setDirectionsOpen(true)}
+                  className="flex-shrink-0 rounded-full p-2 hover:bg-white/70 text-slate-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+                  </svg>
+                </button>
               )}
             </div>
 
@@ -885,6 +1188,102 @@ export default function PublicMapPage() {
               <div className="absolute z-50 left-0 right-0 mt-2 glass rounded-xl shadow-2xl border border-white/30 px-4 py-3 text-sm text-slate-500">
                 No places found
               </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {keyState === 'ready' && showDirections && !showSearch && !directionsOpen && (
+        <button
+          type="button"
+          title="Directions"
+          onClick={() => setDirectionsOpen(true)}
+          className="absolute top-3 left-3 z-20 glass rounded-full p-3 shadow-lg border border-white/30 text-slate-700"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+          </svg>
+        </button>
+      )}
+
+      {keyState === 'ready' && showDirections && directionsOpen && (
+        <div
+          ref={dirBoxRef}
+          data-map-ui-chrome
+          className="absolute top-3 left-3 z-20 w-[min(360px,calc(100%-24px))]"
+        >
+          <div className="glass rounded-2xl shadow-lg border border-white/30 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-slate-800">Directions</p>
+              <button
+                type="button"
+                className="text-xs font-medium text-slate-500 hover:text-slate-800"
+                onClick={() => {
+                  setDirectionsOpen(false)
+                  clearDirections()
+                }}
+              >
+                Close
+              </button>
+            </div>
+            <input
+              value={dirFromQuery}
+              onChange={(e) => {
+                setDirFromQuery(e.target.value)
+                setDirFrom(null)
+                setDirActive('from')
+              }}
+              onFocus={() => setDirActive('from')}
+              placeholder="Starting point"
+              className="w-full rounded-xl bg-white/80 border border-white/40 px-3 py-2 text-sm text-slate-700 placeholder-slate-500 focus:outline-none"
+            />
+            <input
+              value={dirToQuery}
+              onChange={(e) => {
+                setDirToQuery(e.target.value)
+                setDirTo(null)
+                setDirActive('to')
+              }}
+              onFocus={() => setDirActive('to')}
+              placeholder="Destination"
+              className="w-full rounded-xl bg-white/80 border border-white/40 px-3 py-2 text-sm text-slate-700 placeholder-slate-500 focus:outline-none"
+            />
+            <div className="flex items-center justify-between gap-2">
+              <button
+                type="button"
+                className="text-xs font-medium text-sky-700"
+                onClick={useMyLocationForFrom}
+              >
+                Use my location
+              </button>
+              {dirRouting ? (
+                <span className="text-xs text-slate-500">Finding route…</span>
+              ) : dirSummary ? (
+                <span className="text-xs font-medium text-slate-700">{dirSummary}</span>
+              ) : null}
+            </div>
+            {dirError && <p className="text-xs text-rose-600">{dirError}</p>}
+            {dirActive && dirResults.length > 0 && (
+              <div className="max-h-48 overflow-y-auto rounded-xl bg-white/90 border border-white/40">
+                {dirResults.map((result) => {
+                  const { title, subtitle } = formatSearchSuggestion(result)
+                  const key = result.placeId ?? `${result.lat}-${result.lng}-${title}`
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => pickDirResult(result, dirActive)}
+                      className="w-full text-left px-3 py-2 border-b border-slate-100 last:border-b-0 hover:bg-slate-50"
+                    >
+                      <div className="text-sm font-medium text-slate-700 truncate">{title}</div>
+                      {subtitle ? <div className="text-xs text-slate-500 truncate">{subtitle}</div> : null}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+            {dirActive && dirLoading && (
+              <p className="text-xs text-slate-500">Searching…</p>
             )}
           </div>
         </div>

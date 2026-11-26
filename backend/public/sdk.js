@@ -6,7 +6,7 @@
  * landing, or home pages.
  *
  * Usage:
- *   <script src="https://maps.umnaapp.com/sdk.js"></script>
+ *   <script src="https://maps.umnaapp.com/sdk.js?key=YOUR_API_KEY"></script>
  *   <div id="map" style="width:100%;height:480px"></div>
  *   <script>
  *     const map = UmnaMaps.embed('#map', {
@@ -17,8 +17,10 @@
  *     map.on('ready', () => console.log('map ready'));
  *     map.on('placeClick', (place) => console.log('clicked', place));
  *
- *     // Pure data access (no map):
+ *     // Places feature:
  *     UmnaMaps.api.search('coffee').then(console.log);
+ *     // Directions feature:
+ *     UmnaMaps.api.route({ lat: 12.97, lng: 77.59 }, { lat: 12.93, lng: 77.62 });
  *   </script>
  *
  * The SDK auto-detects the platform origin from its own <script src>.
@@ -48,8 +50,33 @@
     return global.location ? global.location.origin : ''
   }
 
+  function readScriptKey() {
+    function fromSrc(src) {
+      if (!src || src.indexOf('sdk.js') === -1) return ''
+      try {
+        return new URL(src, global.location ? global.location.href : undefined).searchParams.get('key') || ''
+      } catch (e) {
+        return ''
+      }
+    }
+    try {
+      var current = document.currentScript
+      var fromCurrent = current ? fromSrc(current.src) : ''
+      if (fromCurrent) return fromCurrent
+    } catch (e) {
+      /* ignore */
+    }
+    var scripts = document.getElementsByTagName('script')
+    for (var i = scripts.length - 1; i >= 0; i--) {
+      var found = fromSrc(scripts[i].src || '')
+      if (found) return found
+    }
+    return ''
+  }
+
   var ORIGIN = resolveOrigin()
   var API_BASE = ORIGIN + '/api/public'
+  var API_KEY = readScriptKey()
 
   function qs(params) {
     var parts = []
@@ -63,9 +90,11 @@
   }
 
   function getJSON(path, params) {
+    var headers = { Accept: 'application/json' }
+    if (API_KEY) headers['X-Api-Key'] = API_KEY
     return fetch(API_BASE + path + qs(params), {
       method: 'GET',
-      headers: { Accept: 'application/json' },
+      headers: headers,
       credentials: 'omit',
     }).then(function (r) {
       if (!r.ok) throw new Error('UmnaMaps API ' + r.status)
@@ -143,7 +172,10 @@
     var container = typeof el === 'string' ? document.querySelector(el) : el
     if (!container) throw new Error('UmnaMaps.embed: container not found: ' + el)
 
-    var params = { embed: '1' }
+    var key = options.key || API_KEY
+    if (!key) throw new Error('UmnaMaps.embed: API key required (Map feature)')
+
+    var params = { embed: '1', key: key }
     if (options.center) {
       params.lat = options.center.lat
       params.lng = options.center.lng
@@ -215,9 +247,13 @@
   }
 
   var UmnaMaps = {
-    version: '1.0.0',
+    version: '1.1.0',
     origin: ORIGIN,
     api: api,
+    setKey: function (key) {
+      API_KEY = key ? String(key) : ''
+      return UmnaMaps
+    },
     embed: function (el, options) {
       return new EmbeddedMap(el, options)
     },

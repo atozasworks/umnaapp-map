@@ -49,6 +49,7 @@ model User {
   liveLocationViewerships LiveLocationViewer[]
   safetyHazardReports     SafetyHazardReport[]
   feedbacks               Feedback[]
+  apiKeys                 ApiKey[]
 
   @@index([email])
   @@index([googleId])
@@ -517,6 +518,34 @@ model LegalDocument {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@index([type])
+}
+
+// External API credentials. The table already existed (plan, scopes,
+// allowed_origins, active). Map / Places / Directions are stored in scopes.
+// key_encrypted is set for keys created here so the owner can view and copy them.
+model ApiKey {
+  id              String    @id @default(uuid())
+  userId          String    @map("user_id")
+  name            String
+  keyPrefix       String    @map("key_prefix")
+  keyHash         String    @unique @map("key_hash")
+  keyEncrypted    String?   @map("key_encrypted") @db.Text
+  plan            String    @default("free")
+  scopes          String[]
+  allowedOrigins  String[]  @default([]) @map("allowed_origins")
+  active          Boolean   @default(true)
+  requestCount    Int       @default(0) @map("request_count")
+  lastUsedAt      DateTime? @map("last_used_at")
+  rateLimitPerMin Int       @default(120) @map("rate_limit_per_min")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  revokedAt       DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+  @@index([active])
+  @@map("ApiKey")
 }
 
 // Pre-approved Gmail addresses allowed to request admin OTP login.

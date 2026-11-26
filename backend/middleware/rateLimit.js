@@ -151,6 +151,42 @@ export const rateLimitMiddleware = (keyPrefix, maxRequests, windowSeconds) => {
 }
 
 /**
+ * Shared Redis counter used by API-key auth. Returns a result instead of
+ * writing the HTTP response so callers can choose 429 vs 503.
+ */
+export async function consumeRateLimit(keyPrefix, identifier, maxRequests, windowSeconds) {
+  if (!isRedisUsable()) {
+    if (!process.env.REDIS_URL?.trim() && !isProduction()) {
+      return { allowed: true, limit: maxRequests, remaining: maxRequests, skipped: true }
+    }
+    return { allowed: false, unavailable: true, limit: maxRequests, remaining: 0 }
+  }
+
+  const key = `ratelimit:${keyPrefix}:${identifier}`
+  const current = await redisClient.get(key)
+  const count = current ? parseInt(current, 10) : 0
+  if (count >= maxRequests) {
+    return {
+      allowed: false,
+      limit: maxRequests,
+      remaining: 0,
+      retryAfter: windowSeconds,
+    }
+  }
+  if (count === 0) {
+    await redisClient.setEx(key, windowSeconds, '1')
+  } else {
+    await redisClient.incr(key)
+  }
+  return {
+    allowed: true,
+    limit: maxRequests,
+    remaining: Math.max(0, maxRequests - count - 1),
+    retryAfter: windowSeconds,
+  }
+}
+
+/**
  * Tiered rate limiter: applies a different cap for authenticated users vs
  * anonymous clients, keyed by user id (authenticated) or IP (anonymous).
  * Use for public endpoints that should still reward signed-in users and

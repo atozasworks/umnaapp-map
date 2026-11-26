@@ -1,7 +1,7 @@
 <!doctype html>
 <!--
   UMNAAPP Maps — example of using the public map platform from ANY other project.
-  No login, no API key, no subdomain required.
+  No login. An API key with the right features is required.
 
   Replace HOST below with your deployment, e.g. https://umnaapp.com
   (or https://maps.umnaapp.com if you set up the subdomain).
@@ -101,13 +101,16 @@ map.on('placeClick', p =&gt; console.log('clicked', p));</pre>
         }
       })()
 
+      // Paste a Map API key here, or add ?key= to this page's URL.
+      const API_KEY = new URLSearchParams(location.search).get('key') || 'YOUR_API_KEY'
+
       // 1) iframe
       document.getElementById('iframeMap').src =
-        HOST + '/embedded-map?lat=12.97&lng=77.59&zoom=12';
+        HOST + '/embedded-map?key=' + encodeURIComponent(API_KEY) + '&lat=12.97&lng=77.59&zoom=12';
 
       // 2) SDK — load it then embed
       const s = document.createElement('script');
-      s.src = HOST + '/sdk.js';
+      s.src = HOST + '/sdk.js?key=' + encodeURIComponent(API_KEY);
       s.onload = () => {
         const map = UmnaMaps.embed('#sdkMap', {
           center: { lat: 12.97, lng: 77.59 },
@@ -125,7 +128,9 @@ map.on('placeClick', p =&gt; console.log('clicked', p));</pre>
         if (q.length < 2) { out.textContent = 'Enter at least 2 characters.'; return; }
         out.textContent = 'Loading…';
         try {
-          const res = await fetch(HOST + '/api/public/search?q=' + encodeURIComponent(q));
+          const res = await fetch(HOST + '/api/public/search?q=' + encodeURIComponent(q), {
+            headers: { 'X-Api-Key': API_KEY },
+          });
           const data = await res.json();
           if (!data.results || !data.results.length) { out.textContent = 'No results.'; return; }
           out.innerHTML = data.results
