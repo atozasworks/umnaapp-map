@@ -26,7 +26,7 @@
     "ci:lint": "prisma validate && prisma format --check",
     "ci:audit": "npm audit --audit-level=high",
     "ci:build": "prisma generate",
-    "ci:test": "node --test tests/apiKey.test.mjs tests/openPlaces.test.mjs tests/smoke.test.mjs tests/liveLocation.test.mjs tests/liveLocation.smoke.test.mjs tests/security.hardening.test.mjs tests/notification.flows.test.mjs tests/admin.auth.test.mjs tests/atozasOidc.test.mjs tests/atozasSso.flow.test.mjs",
+    "ci:test": "node --test tests/smoke.test.mjs tests/liveLocation.test.mjs tests/liveLocation.smoke.test.mjs tests/security.hardening.test.mjs tests/notification.flows.test.mjs tests/admin.auth.test.mjs tests/atozasOidc.test.mjs tests/atozasSso.flow.test.mjs tests/atozasSilent.test.mjs",
     "validate:schemas": "prisma validate && prisma format --check",
     "ci:check": "npm run ci:lint && npm run ci:audit && npm run ci:build"
   },

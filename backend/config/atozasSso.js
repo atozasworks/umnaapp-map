@@ -18,6 +18,7 @@ import {
   fetchUserinfo,
   revokeProviderToken,
   userRecordFromUserinfo,
+  isSilentSupported,
 } from '../utils/atozasOidc.js'
 import { createMemoryPendingStore, createPgPendingStore } from '../utils/atozasOidcPending.js'
 
@@ -212,7 +213,24 @@ export function createAtozasSsoRouter(overrides = {}) {
     return endpointsPromise
   }
 
-  router.get('/atozas', async (req, res) => {
+  const LOGIN_METHODS = new Set(['google', 'otp', 'atozas'])
+
+  // One login for every AtoZ app:
+  //   /auth/atozas?method=google|otp|atozas&login_hint=  the button pressed here; ATOZAS opens that login
+  //   /auth/atozas/silent?returnTo=/path                 prompt=none: a visitor signed in at ATOZAS
+  //                                                      (homepage or another AtoZ app) is signed in here
+  //                                                      with no click; anyone else returns as a guest
+  router.get('/atozas/silent', async (req, res) => {
+    const back = frontendRedirect(config.frontendUrl, req.query.returnTo || '/', null)
+    if (req.session?.atozas?.userId || !(await isSilentSupported(config, fetchImpl))) {
+      return res.redirect(back)
+    }
+    return startLogin(req, res, true)
+  })
+
+  router.get('/atozas', (req, res) => startLogin(req, res, false))
+
+  async function startLogin(req, res, silent) {
     try {
       const returnTo = sanitizeReturnTo(req.query.returnTo || req.query.redirect, '/')
       const nonce = generateNonce()
@@ -227,6 +245,7 @@ export function createAtozasSsoRouter(overrides = {}) {
           n: nonce,
           r: returnTo,
           t: issuedAt,
+          ...(silent ? { q: 1 } : {}),
         },
         OIDC_TTL_MS
       )
@@ -243,6 +262,7 @@ export function createAtozasSsoRouter(overrides = {}) {
           r: returnTo,
           t: issuedAt,
           s: state,
+          ...(silent ? { q: 1 } : {}),
         }
         try {
           await saveSession(req)
@@ -261,13 +281,25 @@ export function createAtozasSsoRouter(overrides = {}) {
         homepage_key: config.homepageKey,
         code_challenge: pkce.codeChallenge,
         code_challenge_method: pkce.codeChallengeMethod,
+        ...loginExtras(req, silent),
       })
       res.redirect(authorizeUrl)
     } catch (err) {
       console.error('ATOZAS authorize start failed:', err.message)
+      if (silent) return res.redirect(frontendRedirect(config.frontendUrl, req.query.returnTo || '/', null))
       res.redirect(loginErrorRedirect(config.frontendUrl, 'atozas_auth_failed', req.query.returnTo))
     }
-  })
+  }
+
+  function loginExtras(req, silent) {
+    if (silent) return { prompt: 'none' }
+    const method = String(req.query.method || '').toLowerCase()
+    const hint = String(req.query.login_hint || '').trim().toLowerCase()
+    return {
+      login_method: LOGIN_METHODS.has(method) ? method : '',
+      login_hint: hint.length <= 254 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(hint) ? hint : '',
+    }
+  }
 
   router.get('/atozas/callback', async (req, res) => {
     const rawState = typeof req.query.state === 'string' ? req.query.state : ''
@@ -290,7 +322,7 @@ export function createAtozasSsoRouter(overrides = {}) {
         Date.now() - sess.t <= OIDC_TTL_MS &&
         (!rawState || rawState === sess.s)
       ) {
-        pending = pendingFromRecord({ v: sess.v, n: sess.n, r: sess.r, t: sess.t })
+        pending = pendingFromRecord({ v: sess.v, n: sess.n, r: sess.r, t: sess.t, q: sess.q })
         recoveredFromSession = Boolean(pending?.codeVerifier)
       }
     }
@@ -299,6 +331,12 @@ export function createAtozasSsoRouter(overrides = {}) {
     const fail = (code) => res.redirect(loginErrorRedirect(config.frontendUrl, code, returnTo))
 
     try {
+      // Our own silent check: "not signed in at ATOZAS" -> back to the page as a guest.
+      if (req.query.error && pending?.silent) {
+        if (req.session) req.session.oidcPending = undefined
+        await saveSession(req).catch(() => {})
+        return res.redirect(frontendRedirect(config.frontendUrl, returnTo, null))
+      }
       if (req.query.error) {
         // Surface the IdP's own error so a misconfiguration (e.g.
         // redirect_uri_mismatch, invalid_client, access_denied, login_required)
@@ -404,7 +442,8 @@ export function createAtozasSsoRouter(overrides = {}) {
 
     const atozas = req.session?.atozas
     if (!atozas?.userId) {
-      return res.json({ ...status, authenticated: false })
+      // `silent`: the site may run the silent check for this guest (/auth/atozas/silent).
+      return res.json({ ...status, authenticated: false, silent: await isSilentSupported(config, fetchImpl) })
     }
 
     try {
