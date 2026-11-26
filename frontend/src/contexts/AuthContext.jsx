@@ -4,6 +4,7 @@ import {
   ATOZAS_POST_LOGOUT_PATH,
   beginAtozasLogin,
   fetchAtozasMe,
+  maybeAtozasSilentCheck,
   isAtozasLoggedOut,
   logoutAtozasSession,
   markAtozasLoggedOut,
@@ -150,6 +151,8 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('token', restored.token)
         return
       }
+      // Signed in on the AtoZ homepage or another AtoZ app? Sign in here too, with no click.
+      if (maybeAtozasSilentCheck(restored)) return
       setLoading(false)
     })()
 
