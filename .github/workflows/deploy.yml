@@ -24,11 +24,13 @@
 #   VPS_HOST, VPS_USER, VPS_SSH_KEY, VPS_APP_DIR
 #   umna_DATABASE_URL, umna_JWT_SECRET, umna_ADMIN_SECRET, umna_PORT, umna_FRONTEND_URL
 #   umna_API_URL (frontend/admin Vite build → VITE_API_URL)
+#   umna_REDIS_URL (required when NODE_ENV=production — the backend refuses to start without it)
 # Optional (set when needed): VPS_PORT, umna_JWT_EXPIRES_IN, umna_ADMIN_URL,
 #   umna_SMTP_*, umna_FEEDBACK_*, umna_GOOGLE_*, umna_GROQ_*, umna_VAPID_*,
 #   umna_ROUTE_SERVICE_URL, umna_SEARCH_SIMPLE_URL, umna_OSRM_PUBLIC_URL,
 #   umna_NODE_ENV, umna_PLACES_*, umna_GOOGLE_API_HARD_STOP,
-#   umna_TILESERVER_URL, umna_MAPS_HOST, umna_ATOZAS_*, umna_DAILY_REMINDER_*, etc.
+#   umna_TILESERVER_URL, umna_MAPS_HOST, umna_ATOZAS_*, umna_DAILY_REMINDER_*,
+#   umna_CARTO_API_KEY, etc.
 # Backend .env keys are written WITHOUT the umna_ prefix (e.g. umna_PORT → PORT).
 # FRONTEND_BUILD_PATH / ADMIN_BUILD_PATH are derived from VPS_APP_DIR automatically.
 # See backend/env.example.txt for variable meanings.
@@ -700,6 +702,8 @@ jobs:
           umna_ROUTE_SERVICE_URL: ${{ secrets.umna_ROUTE_SERVICE_URL }}
           umna_OSRM_PUBLIC_URL: ${{ secrets.umna_OSRM_PUBLIC_URL }}
           umna_SEARCH_SIMPLE_URL: ${{ secrets.umna_SEARCH_SIMPLE_URL }}
+          umna_REDIS_URL: ${{ secrets.umna_REDIS_URL }}
+          umna_CARTO_API_KEY: ${{ secrets.umna_CARTO_API_KEY }}
           umna_GOOGLE_API_HARD_STOP: ${{ secrets.umna_GOOGLE_API_HARD_STOP }}
           umna_PLACES_MIN_ZOOM_NEARBY: ${{ secrets.umna_PLACES_MIN_ZOOM_NEARBY }}
           umna_PLACES_MAX_NEARBY_PER_SESSION: ${{ secrets.umna_PLACES_MAX_NEARBY_PER_SESSION }}
@@ -779,6 +783,13 @@ jobs:
           FRONTEND_BUILD_PATH="${BACKEND_DIR}/build"
           ADMIN_BUILD_PATH="${BACKEND_DIR}/admin/dist"
 
+          # The backend exits at startup in production when REDIS_URL is missing. Fail here,
+          # before the server's .env is replaced, instead of taking the live site down.
+          if [ "${umna_NODE_ENV:-production}" = "production" ] && [ -z "${umna_REDIS_URL:-}" ]; then
+            echo "Missing required Environment Secret: umna_REDIS_URL (${{ env.DEPLOY_ENVIRONMENT }})"
+            exit 1
+          fi
+
           # Map umna_* Environment Secrets → backend .env keys (strip umna_ prefix).
           write_kv NODE_ENV "${umna_NODE_ENV:-production}"
           write_kv PORT "$umna_PORT"
@@ -815,6 +826,8 @@ jobs:
           write_kv ROUTE_SERVICE_URL "$umna_ROUTE_SERVICE_URL"
           write_kv OSRM_PUBLIC_URL "$umna_OSRM_PUBLIC_URL"
           write_kv SEARCH_SIMPLE_URL "$umna_SEARCH_SIMPLE_URL"
+          write_kv REDIS_URL "$umna_REDIS_URL"
+          write_kv CARTO_API_KEY "$umna_CARTO_API_KEY"
           write_kv GOOGLE_API_HARD_STOP "$umna_GOOGLE_API_HARD_STOP"
           write_kv PLACES_MIN_ZOOM_NEARBY "$umna_PLACES_MIN_ZOOM_NEARBY"
           write_kv PLACES_MAX_NEARBY_PER_SESSION "$umna_PLACES_MAX_NEARBY_PER_SESSION"
